@@ -1,14 +1,28 @@
 {
-"scripts": {
-  "start": "concurrently \"cd client && npm install && npm run dev\" \"cd server && node server.js\""
+  "name": "musicworld-inventoryms",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "start:dev": "nodemon server/server.js",
+    "dev": "concurrently \"cd client && npm install && npm run dev\" \"cd server && npm install && nodemon server/server.js\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
   "dependencies": {
+    "express": "^5.1.0",
+    "mysql2": "^3.14.0",
     "cors": "^2.8.5",
     "next": "^15.2.4",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
+    "nodemon": "^3.1.9",
     "concurrently": "^9.1.2"
   }
 }
