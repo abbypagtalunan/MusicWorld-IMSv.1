@@ -21,7 +21,7 @@ Make sure the following packages are installed:
 npm install express cors mysql2
 ```
 
-### Client-side (Next.js app)
+### Client-side
 ```bash
 npm install axios next
 ```
