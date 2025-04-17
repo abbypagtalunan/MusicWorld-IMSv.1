@@ -2,6 +2,13 @@ const express = require("express");
 const cors = require("cors");
 const app = express();
 const supplierRoutes = require('../server/src/routes/supplierRoutes.js');
+const brandRoutes = require('../server/src/routes/brandRoutes.js');
+const categoryRoutes = require('../server/src/routes/categoryRoutes.js');
+const productStatusRoutes = require('../server/src/routes/productStatusRoutes.js');
+const deliveryModeOfPaymentRoutes = require('../server/src/routes/deliveryModeOfPaymentRouter.js');
+const deliveryPaymentTypesRoutes = require('./src/routes/deliveryPaymentTypesRoutes.js');
+const deliveryPaymentStatusRoutes = require('./src/routes/deliveryPaymentStatusRoutes.js');
+const returnTypeRoutes = require('./src/routes/returnTypeRoutes.js');
 
 
 app.use(
@@ -17,6 +24,13 @@ app.use(express.json());
 
 // Use all routes for each entity here
 app.use("/suppliers", supplierRoutes);
+app.use("/brands", brandRoutes);
+app.use("/categories", categoryRoutes);
+app.use("/productStatus", productStatusRoutes);
+app.use("/deliveryMOP", deliveryModeOfPaymentRoutes);
+app.use("/deliveryPayTypes", deliveryPaymentTypesRoutes);
+app.use("/deliveryPayStatus", deliveryPaymentStatusRoutes);
+app.use("/returnType", returnTypeRoutes);
 
 // Log that server is running
 app.listen(8080, () => {

@@ -20,6 +20,7 @@ export default function ConfigurationsPage() {
       idField: "S_supplierID",
       nameField: "S_supplierName",
       statusField: "S_supplierStatus",
+      isAutoInc: false,
       api: {
         fetch: "http://localhost:8080/suppliers", 
         add: "http://localhost:8080/suppliers",
@@ -27,10 +28,13 @@ export default function ConfigurationsPage() {
         delete: "http://localhost:8080/suppliers",
       },
     },
+
     brand: {
       label: "Brand",
       idField: "B_brandID",
       nameField: "B_brandName",
+      statusField: "B_brandStatus",
+      isAutoInc: false,
       api: {
         fetch: "http://localhost:8080/brands", 
         add: "http://localhost:8080/brands",  
@@ -41,27 +45,84 @@ export default function ConfigurationsPage() {
 
     category: {
       label: "Category",
-      idField: "B_brandID",
-      nameField: "B_brandName",
+      idField: "C_categoryID",
+      nameField: "C_categoryName",
+      statusField: "C_categoryStatus",
+      isAutoInc: true,
       api: {
-        fetch: "http://localhost:8080/brands", 
-        add: "http://localhost:8080/brands",  
-        update: "http://localhost:8080/brands", 
-        delete: "http://localhost:8080/brands",  
+        fetch: "http://localhost:8080/categories", 
+        add: "http://localhost:8080/categories",  
+        update: "http://localhost:8080/categories", 
+        delete: "http://localhost:8080/categories",  
       },
     },
 
     productStatus: {
       label: "Product Status",
-      idField: "B_brandID",
-      nameField: "B_brandName",
+      idField: "P_productStatusID",
+      nameField: "P_productStatusName",
+      isAutoInc: true,
       api: {
-        fetch: "http://localhost:8080/brands", 
-        add: "http://localhost:8080/brands",  
-        update: "http://localhost:8080/brands", 
-        delete: "http://localhost:8080/brands",  
+        fetch: "http://localhost:8080/productStatus", 
+        add: "http://localhost:8080/productStatus",  
+        update: "http://localhost:8080/productStatus", 
+        delete: "http://localhost:8080/productStatus",  
       },
     },
+
+    returnType: {
+      label: "Return Type",
+      idField: "RT_returnTypeID",
+      nameField: "RT_returnTypeDescription",
+      isAutoInc: true,
+      api: {
+        fetch: "http://localhost:8080/returnType", 
+        add: "http://localhost:8080/returnType",  
+        update: "http://localhost:8080/returnType", 
+        delete: "http://localhost:8080/returnType",  
+      },
+    },
+
+    deliveryModeOfPayment: {
+      label: "Delivery MOP",
+      idField: "D_modeOfPaymentID",
+      nameField: "D_mopName",
+      isAutoInc: true,
+      api: {
+        fetch: "http://localhost:8080/deliveryMOP", 
+        add: "http://localhost:8080/deliveryMOP",  
+        update: "http://localhost:8080/deliveryMOP", 
+        delete: "http://localhost:8080/deliveryMOP",  
+      },
+    },
+
+    deliveryPaymentTypes: {
+      label: "Delivery Payment Type",
+      idField: "D_paymentTypeID",
+      nameField: "D_paymentName",
+      isAutoInc: true,
+      api: {
+        fetch: "http://localhost:8080/deliveryPayTypes", 
+        add: "http://localhost:8080/deliveryPayTypes",  
+        update: "http://localhost:8080/deliveryPayTypes", 
+        delete: "http://localhost:8080/deliveryPayTypes",  
+      },
+    },
+
+    deliveryPaymentStatus: {
+      label: "Delivery Payment Status",
+      idField: "D_paymentStatusID",
+      nameField: "D_statusName",
+      isAutoInc: true,
+      api: {
+        fetch: "http://localhost:8080/deliveryPayStatus", 
+        add: "http://localhost:8080/deliveryPayStatus",  
+        update: "http://localhost:8080/deliveryPayStatus", 
+        delete: "http://localhost:8080/deliveryPayStatus",  
+      },
+    },
+
+
   };
 
   const [activeTab, setActiveTab] = useState("supplier");
@@ -105,10 +166,13 @@ export default function ConfigurationsPage() {
       .catch((error) => console.error("Error fetching data:", error));
   };
 
-  const filteredItems = data.filter((item) =>
-    item[config.nameField].toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item[config.idField].includes(searchTerm)
-  );
+  const filteredItems =
+  config?.nameField && config?.idField
+    ? data.filter((item) =>
+        (item[config.nameField]?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+        (item[config.idField] || "").includes(searchTerm)
+      )
+    : [];
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -194,7 +258,7 @@ export default function ConfigurationsPage() {
             <TabsList className="w-full flex justify-start bg-white shadow-md rounded-md px-6 py-6 mb-4">
               {Object.entries(configMap).map(([key, cfg]) => (
                 <TabsTrigger key={key} value={key} className="data-[state=active]:text-indigo-600">
-                  {`ADD ${cfg.label.toUpperCase()}`}
+                  {`${cfg.label.toUpperCase()}`}
                 </TabsTrigger>
               ))}
             </TabsList>
@@ -226,9 +290,14 @@ export default function ConfigurationsPage() {
                                 <TableRow key={item[cfg.idField]} className="hover:bg-gray-50">
                                   <TableCell className="py-2">
                                     <div className="font-medium text-sm">{item[cfg.nameField]}</div>
+
                                     <div className="text-xs text-gray-500">Code: {item[cfg.idField]}</div>
+
+                                    {config.statusField && (
                                     <div className="text-xs text-gray-500">Status: {item[cfg.statusField]}</div>
+                                    )}
                                   </TableCell>
+                                    
 
                                   {/* Edit - Delete */}
                                   <TableCell className="text-right w-[100px]">
@@ -278,7 +347,8 @@ export default function ConfigurationsPage() {
                               required
                             />
                           </div>
-
+                          
+                          {!config.isAutoInc && (
                           <div className="mb-4">
                             <Label>{cfg.label} Code</Label>
                             <Input
@@ -287,15 +357,21 @@ export default function ConfigurationsPage() {
                               required
                             />
                           </div>
+                          )}
 
-                          <div className="mb-4">
-                            <Label>Status</Label>
-                            <Input
-                              value={values[config.statusField]}
-                              onChange={(e) => setValues({ ...values, [config.statusField]: e.target.value })}
-                              required
-                            />
-                          </div>
+                          {/* Show if input statusField exists */}
+                          {config.statusField && (
+                            <div className="mb-4">
+                              <Label>Status</Label>
+                              <Input
+                                value={values[config.statusField]}
+                                onChange={(e) =>
+                                  setValues({ ...values, [config.statusField]: e.target.value })
+                                }
+                                required
+                              />
+                            </div>
+                          )}
 
                           <Button type="submit" className="w-full bg-blue-500 hover:bg-blue-600 text-white mt-4">
                             {editingItem ? "Update" : "Add"} {cfg.label}
@@ -312,20 +388,20 @@ export default function ConfigurationsPage() {
       </div>
 
       <Dialog open={openDialog} onOpenChange={() => setOpenDialog(false)}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Confirm Delete</DialogTitle>
-        </DialogHeader>
-        <p>Are you sure you want to delete this {config.label.toLowerCase()}?</p>
-        <DialogFooter className="mt-4">
-          <Button variant="secondary" onClick={() => setOpenDialog(false)}>
-            Cancel
-          </Button>
-          <Button variant="destructive" onClick={handleDelete}>
-            Delete
-          </Button>
-        </DialogFooter>
-      </DialogContent>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Delete</DialogTitle>
+          </DialogHeader>
+          <p>Are you sure you want to delete this {config.label.toLowerCase()}?</p>
+          <DialogFooter className="mt-4">
+            <Button variant="secondary" onClick={() => setOpenDialog(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
     </SidebarProvider>
   );
