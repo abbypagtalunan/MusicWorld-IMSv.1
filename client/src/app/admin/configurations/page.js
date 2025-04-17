@@ -12,7 +12,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Search, FilePen, Trash } from "lucide-react";
 import { toast, Toaster } from "react-hot-toast";
-import dynamic from 'next/dynamic';
 
 export default function ConfigurationsPage() {
   const configMap = {
@@ -78,18 +77,25 @@ export default function ConfigurationsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedItemID, setSelectedItemID] = useState(null);
-  const NoSSR = dynamic(() => import('@/components/no-ssr.js'), { ssr: false });
 
   useEffect(() => {
-    refreshTable();
+    const currentConfig = configMap[activeTab];
+    if (!currentConfig) return;
+  
+    axios
+      .get(currentConfig.api.fetch)
+      .then((res) => setData(res.data))
+      .catch((error) => console.error("Error fetching data:", error));
+  
     setValues({
-      [config.idField]: "",
-      [config.nameField]: "",
-      [config.statusField]: ""
+      [currentConfig.idField]: "",
+      [currentConfig.nameField]: "",
+      [currentConfig.statusField]: ""
     });
     setEditingItem(null);
     setSearchTerm("");
   }, [activeTab]);
+  
 
   // Refresh Table upon changes
   const refreshTable = () => {
