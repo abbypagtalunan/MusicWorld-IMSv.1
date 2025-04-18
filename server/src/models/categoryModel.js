@@ -2,7 +2,7 @@ const db = require('../../db');
 
 // Get all Categories
 const getAllCategories = (callback) => {
-  const query = 'SELECT C_categoryID, C_categoryName, C_categoryStatus FROM Categories';
+  const query = `SELECT C_categoryID, C_categoryName, C_categoryStatus FROM Categories ORDER BY C_categoryID`;
   
   db.query(query, (err, results) => {
     if (err) {
@@ -16,7 +16,7 @@ const getAllCategories = (callback) => {
 // Add a new category
 const addCategory = (categoryData, callback) => {
   const { C_categoryID, C_categoryName, C_categoryStatus } = categoryData;
-  const query = 'INSERT INTO Categories (C_categoryID, C_categoryName, C_categoryStatus) VALUES (?, ?, ?)';
+  const query = `INSERT INTO Categories (C_categoryID, C_categoryName, C_categoryStatus) VALUES (?, ?, ?)`;
 
   db.query(query, [C_categoryID, C_categoryName, C_categoryStatus], (err, results) => {
     if (err) {
@@ -48,7 +48,7 @@ const updateCategory = (categoryId, categoryData, callback) => {
 
 // Delete a category
 const deleteCategory = (categoryId, callback) => {
-  const query = 'DELETE FROM Categories WHERE C_categoryID = ?';
+  const query = `DELETE FROM Categories WHERE C_categoryID = ?`;
 
   db.query(query, [categoryId], (err, results) => {
     if (err) {

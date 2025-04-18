@@ -2,7 +2,7 @@ const db = require('../../db');
 
 // Get all Product Statuses
 const getAllProductStatus = (callback) => {
-  const query = 'SELECT P_productStatusID, P_productStatusName FROM ProductStatus';
+  const query = `SELECT P_productStatusID, P_productStatusName FROM ProductStatus ORDER BY P_productStatusID`;
 
   db.query(query, (err, results) => {
     if (err) {
@@ -16,7 +16,7 @@ const getAllProductStatus = (callback) => {
 // Add a new Product Status
 const addProductStatus = (statusData, callback) => {
   const { P_productStatusName } = statusData;
-  const query = 'INSERT INTO ProductStatus (P_productStatusName) VALUES (?)';
+  const query = `INSERT INTO ProductStatus (P_productStatusName) VALUES (?)`;
 
   db.query(query, [P_productStatusName], (err, results) => {
     if (err) {
@@ -47,7 +47,7 @@ const updateProductStatus = (statusId, statusData, callback) => {
 
 // Delete a Product Status
 const deleteProductStatus = (statusId, callback) => {
-  const query = 'DELETE FROM ProductStatus WHERE P_productStatusID = ?';
+  const query = `DELETE FROM ProductStatus WHERE P_productStatusID = ?`;
 
   db.query(query, [statusId], (err, results) => {
     if (err) {

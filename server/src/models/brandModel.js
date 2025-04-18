@@ -2,7 +2,18 @@ const db = require('../../db');
 
 // Get all Brands
 const getAllBrands = (callback) => {
-  const query = 'SELECT B_brandID, B_brandName, B_brandStatus FROM Brands';
+  const query = `
+        SELECT B_brandID, B_brandName, B_brandStatus
+        FROM Brands
+        ORDER BY 
+          B_brandName ASC,
+          CASE B_brandStatus
+            WHEN 'Active' THEN 1
+            WHEN 'Discontinued' THEN 2
+            WHEN 'Archived' THEN 3
+            ELSE 4
+          END
+  `;
   
   db.query(query, (err, results) => {
     if (err) {
@@ -16,7 +27,7 @@ const getAllBrands = (callback) => {
 // Add a new Brand
 const addBrand = (brandData, callback) => {
   const { B_brandID, B_brandName, B_brandStatus } = brandData;
-  const query = 'INSERT INTO Brands (B_brandID, B_brandName, B_brandStatus) VALUES (?, ?, ?)';
+  const query = `INSERT INTO Brands (B_brandID, B_brandName, B_brandStatus) VALUES (?, ?, ?)`;
 
   db.query(query, [B_brandID, B_brandName, B_brandStatus], (err, results) => {
     if (err) {
@@ -48,7 +59,7 @@ const updateBrand = (brandId, brandData, callback) => {
 
 // Delete a Brand
 const deleteBrand = (brandId, callback) => {
-  const query = 'DELETE FROM Brands WHERE B_brandID = ?';
+  const query = `DELETE FROM Brands WHERE B_brandID = ?`;
 
   db.query(query, [brandId], (err, results) => {
     if (err) {
