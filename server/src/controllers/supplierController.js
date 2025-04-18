@@ -19,31 +19,38 @@ const getAllSuppliers = (req, res) => {
 
 // Route to add a new supplier
 const addSupplier = (req, res) => {
-  const { S_supplierID, S_supplierName, S_supplierStatus } = req.body;
-  if (!S_supplierID || !S_supplierName || !S_supplierStatus) {
+  const { S_supplierID, S_supplierName, S_supplierStatusID } = req.body;
+
+  // Check if required fields are provided
+  if (!S_supplierID || !S_supplierName || !S_supplierStatusID) {
     return res.status(400).json({ message: 'Missing required fields' });
   }
 
-  supplierModel.addSupplier({ S_supplierID, S_supplierName, S_supplierStatus }, (err, supplierId) => {
+  // Insert supplier into the database
+  supplierModel.addSupplier({ S_supplierID, S_supplierName, S_supplierStatusID }, (err, supplierId) => {
     if (err) {
       console.error('Error inserting supplier:', err);
-      res.status(500).json({ message: 'Error inserting supplier' });
-    } else {
-      res.status(201).json({ message: 'Supplier added successfully', id: supplierId });
+      // Handle duplicate entry error from MySQL (ER_DUP_ENTRY)
+      if (err.code === 'ER_DUP_ENTRY') {
+        return res.status(409).json({ message: 'Supplier ID already exists' });
+      }
+      return res.status(500).json({ message: 'Error inserting supplier' });
     }
+    res.status(201).json({ message: 'Supplier added successfully', id: supplierId });
   });
 };
+
 
 // Route to update supplier details
 const updateSupplier = (req, res) => {
   const supplierId = req.params.id;  // Extract supplier ID from the URL parameter
-  const { S_supplierName, S_supplierStatus } = req.body; // Get the new data from the request body
+  const { S_supplierName, S_supplierStatusID } = req.body; // Get the new data from the request body
 
-  if (!S_supplierName || !S_supplierStatus) {
+  if (!S_supplierName || !S_supplierStatusID) {
     return res.status(400).json({ message: 'Missing required fields' });
   }
 
-  supplierModel.updateSupplier(supplierId, { S_supplierName, S_supplierStatus }, (err, results) => {
+  supplierModel.updateSupplier(supplierId, { S_supplierName, S_supplierStatusID }, (err, results) => {
     if (err) {
       console.error('Error updating supplier:', err);
       return res.status(500).json({ message: 'Error updating supplier' });

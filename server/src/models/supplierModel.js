@@ -6,18 +6,21 @@ const db = require('../../db');
 const getAllSuppliers = (callback) => {
   // Order by ID then status
   const query = `
-        SELECT S_supplierID, S_supplierName, S_supplierStatus 
-        FROM Suppliers
+        SELECT 
+          s.S_supplierID, 
+          s.S_supplierName, 
+          st.SupBrdCatStatusName AS S_supplierStatus
+        FROM Suppliers s
+        JOIN SupBrdCatStatus st ON s.S_supplierStatusID = st.SupBrdCatStatusID
         ORDER BY 
-          S_supplierID ASC,
-          CASE S_supplierStatus
+          CASE st.SupBrdCatStatusName
             WHEN 'Active' THEN 1
             WHEN 'Discontinued' THEN 2
             WHEN 'Archived' THEN 3
             ELSE 4
-          END
-        `;
-
+          END,
+        s.S_supplierID ASC
+      `;
   // Order by status first then name
   // const query = `
   //       SELECT S_supplierID, S_supplierName, S_supplierStatus 
@@ -43,14 +46,13 @@ const getAllSuppliers = (callback) => {
 
 // Add a new supplier
 const addSupplier = (supplierData, callback) => {
-  const { S_supplierID, S_supplierName, S_supplierStatus } = supplierData;
-  const query = `INSERT INTO Suppliers (S_supplierID, S_supplierName, S_supplierStatus) VALUES (?, ?, ?)`;
-
-  db.query(query, [S_supplierID, S_supplierName, S_supplierStatus], (err, results) => {
+  const { S_supplierID, S_supplierName, S_supplierStatusID } = supplierData;
+  
+  const query = `INSERT INTO Suppliers (S_supplierID, S_supplierName, S_supplierStatusID) VALUES (?, ?, ?)`;
+  db.query(query, [S_supplierID, S_supplierName, S_supplierStatusID], (err, results) => {
     if (err) {
       callback(err, null);
     } else {
-      // Return the id of the newly inserted supplier
       callback(null, results.insertId);
     }
   });
@@ -58,14 +60,14 @@ const addSupplier = (supplierData, callback) => {
 
 // Update an existing supplier
 const updateSupplier = (supplierId, supplierData, callback) => {
-  const { S_supplierName, S_supplierStatus } = supplierData;
+  const { S_supplierName, S_supplierStatusID } = supplierData;
   const query = `
     UPDATE Suppliers
-    SET S_supplierName = ?, S_supplierStatus = ?
+    SET S_supplierName = ?, S_supplierStatusID = ?
     WHERE S_supplierID = ?;
   `;
 
-  db.query(query, [S_supplierName, S_supplierStatus, supplierId], (err, results) => {
+  db.query(query, [S_supplierName, S_supplierStatusID, supplierId], (err, results) => {
     if (err) {
       callback(err, null);
     } else {

@@ -16,31 +16,34 @@ const getAllBrands = (req, res) => {
 
 // Route to add a new brand
 const addBrand = (req, res) => {
-  const { B_brandID, B_brandName, B_brandStatus } = req.body;
-  if (!B_brandID || !B_brandName || !B_brandStatus) {
+  const { B_brandID, B_brandName, B_brandStatusID } = req.body;
+  if (!B_brandID || !B_brandName || !B_brandStatusID) {
     return res.status(400).json({ message: 'Missing required fields' });
   }
 
-  brandModel.addBrand({ B_brandID, B_brandName, B_brandStatus }, (err, brandId) => {
+  brandModel.addBrand({ B_brandID, B_brandName, B_brandStatusID }, (err, brandId) => {
     if (err) {
-      console.error('Error inserting brand:', err);
-      res.status(500).json({ message: 'Error inserting brand' });
-    } else {
-      res.status(201).json({ message: 'Brand added successfully', id: brandId });
+      console.error('Error inserting supplier:', err);
+      // Handle duplicate entry error from MySQL (ER_DUP_ENTRY)
+      if (err.code === 'ER_DUP_ENTRY') {
+        return res.status(409).json({ message: 'Brand ID already exists' });
+      }
+      return res.status(500).json({ message: 'Error inserting brand' });
     }
+    res.status(201).json({ message: 'Brand added successfully', id: supplierId });
   });
 };
 
 // Route to update brand details
 const updateBrand = (req, res) => {
   const brandId = req.params.id;  // Extract brand ID from the URL parameter
-  const { B_brandName, B_brandStatus } = req.body; // Get the new data from the request body
+  const { B_brandName, B_brandStatusID } = req.body; // Get the new data from the request body
 
-  if (!B_brandName || !B_brandStatus) {
+  if (!B_brandName || !B_brandStatusID) {
     return res.status(400).json({ message: 'Missing required fields' });
   }
 
-  brandModel.updateBrand(brandId, { B_brandName, B_brandStatus }, (err, results) => {
+  brandModel.updateBrand(brandId, { B_brandName, B_brandStatusID }, (err, results) => {
     if (err) {
       console.error('Error updating brand:', err);
       return res.status(500).json({ message: 'Error updating brand' });

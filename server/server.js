@@ -9,7 +9,7 @@ const deliveryModeOfPaymentRoutes = require('../server/src/routes/deliveryModeOf
 const deliveryPaymentTypesRoutes = require('./src/routes/deliveryPaymentTypesRoutes.js');
 const deliveryPaymentStatusRoutes = require('./src/routes/deliveryPaymentStatusRoutes.js');
 const returnTypeRoutes = require('./src/routes/returnTypeRoutes.js');
-
+const supBrdCatStatusRoutes = require('./src/routes/SupBrdCatStatusRoutes.js');
 
 app.use(
   cors({
@@ -31,6 +31,7 @@ app.use("/deliveryMOP", deliveryModeOfPaymentRoutes);
 app.use("/deliveryPayTypes", deliveryPaymentTypesRoutes);
 app.use("/deliveryPayStatus", deliveryPaymentStatusRoutes);
 app.use("/returnType", returnTypeRoutes);
+app.use("/supBrdCatStatus", supBrdCatStatusRoutes);
 
 // Log that server is running
 app.listen(8080, () => {

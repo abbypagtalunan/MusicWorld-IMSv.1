@@ -7,7 +7,20 @@ import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Search, FilePen, Trash } from "lucide-react";
@@ -15,16 +28,30 @@ import { toast, Toaster } from "react-hot-toast";
 
 export default function ConfigurationsPage() {
   const configMap = {
+    status: {
+      label: "SBC Status",
+      idField: "SupBrdCatStatusID",
+      nameField: "SupBrdCatStatusName",
+      isAutoInc: true,
+      api: {
+        fetch: "http://localhost:8080/supBrdCatStatus",
+        add: "http://localhost:8080/supBrdCatStatus",
+        update: "http://localhost:8080/supBrdCatStatus",
+        delete: "http://localhost:8080/supBrdCatStatus",
+      },
+    },
+
     supplier: {
       label: "Supplier",
       idField: "S_supplierID",
       nameField: "S_supplierName",
       statusField: "S_supplierStatus",
+      statusId: "S_supplierStatusID",
       isAutoInc: false,
       api: {
-        fetch: "http://localhost:8080/suppliers", 
+        fetch: "http://localhost:8080/suppliers",
         add: "http://localhost:8080/suppliers",
-        update: "http://localhost:8080/suppliers", 
+        update: "http://localhost:8080/suppliers",
         delete: "http://localhost:8080/suppliers",
       },
     },
@@ -34,12 +61,13 @@ export default function ConfigurationsPage() {
       idField: "B_brandID",
       nameField: "B_brandName",
       statusField: "B_brandStatus",
+      statusId: "B_brandStatusID",
       isAutoInc: false,
       api: {
-        fetch: "http://localhost:8080/brands", 
-        add: "http://localhost:8080/brands",  
-        update: "http://localhost:8080/brands", 
-        delete: "http://localhost:8080/brands",  
+        fetch: "http://localhost:8080/brands",
+        add: "http://localhost:8080/brands",
+        update: "http://localhost:8080/brands",
+        delete: "http://localhost:8080/brands",
       },
     },
 
@@ -48,12 +76,13 @@ export default function ConfigurationsPage() {
       idField: "C_categoryID",
       nameField: "C_categoryName",
       statusField: "C_categoryStatus",
+      statusId: "C_categoryStatusID",
       isAutoInc: true,
       api: {
-        fetch: "http://localhost:8080/categories", 
-        add: "http://localhost:8080/categories",  
-        update: "http://localhost:8080/categories", 
-        delete: "http://localhost:8080/categories",  
+        fetch: "http://localhost:8080/categories",
+        add: "http://localhost:8080/categories",
+        update: "http://localhost:8080/categories",
+        delete: "http://localhost:8080/categories",
       },
     },
 
@@ -63,10 +92,10 @@ export default function ConfigurationsPage() {
       nameField: "P_productStatusName",
       isAutoInc: true,
       api: {
-        fetch: "http://localhost:8080/productStatus", 
-        add: "http://localhost:8080/productStatus",  
-        update: "http://localhost:8080/productStatus", 
-        delete: "http://localhost:8080/productStatus",  
+        fetch: "http://localhost:8080/productStatus",
+        add: "http://localhost:8080/productStatus",
+        update: "http://localhost:8080/productStatus",
+        delete: "http://localhost:8080/productStatus",
       },
     },
 
@@ -76,10 +105,10 @@ export default function ConfigurationsPage() {
       nameField: "RT_returnTypeDescription",
       isAutoInc: true,
       api: {
-        fetch: "http://localhost:8080/returnType", 
-        add: "http://localhost:8080/returnType",  
-        update: "http://localhost:8080/returnType", 
-        delete: "http://localhost:8080/returnType",  
+        fetch: "http://localhost:8080/returnType",
+        add: "http://localhost:8080/returnType",
+        update: "http://localhost:8080/returnType",
+        delete: "http://localhost:8080/returnType",
       },
     },
 
@@ -89,10 +118,10 @@ export default function ConfigurationsPage() {
       nameField: "D_mopName",
       isAutoInc: true,
       api: {
-        fetch: "http://localhost:8080/deliveryMOP", 
-        add: "http://localhost:8080/deliveryMOP",  
-        update: "http://localhost:8080/deliveryMOP", 
-        delete: "http://localhost:8080/deliveryMOP",  
+        fetch: "http://localhost:8080/deliveryMOP",
+        add: "http://localhost:8080/deliveryMOP",
+        update: "http://localhost:8080/deliveryMOP",
+        delete: "http://localhost:8080/deliveryMOP",
       },
     },
 
@@ -102,10 +131,10 @@ export default function ConfigurationsPage() {
       nameField: "D_paymentName",
       isAutoInc: true,
       api: {
-        fetch: "http://localhost:8080/deliveryPayTypes", 
-        add: "http://localhost:8080/deliveryPayTypes",  
-        update: "http://localhost:8080/deliveryPayTypes", 
-        delete: "http://localhost:8080/deliveryPayTypes",  
+        fetch: "http://localhost:8080/deliveryPayTypes",
+        add: "http://localhost:8080/deliveryPayTypes",
+        update: "http://localhost:8080/deliveryPayTypes",
+        delete: "http://localhost:8080/deliveryPayTypes",
       },
     },
 
@@ -115,14 +144,12 @@ export default function ConfigurationsPage() {
       nameField: "D_statusName",
       isAutoInc: true,
       api: {
-        fetch: "http://localhost:8080/deliveryPayStatus", 
-        add: "http://localhost:8080/deliveryPayStatus",  
-        update: "http://localhost:8080/deliveryPayStatus", 
-        delete: "http://localhost:8080/deliveryPayStatus",  
+        fetch: "http://localhost:8080/deliveryPayStatus",
+        add: "http://localhost:8080/deliveryPayStatus",
+        update: "http://localhost:8080/deliveryPayStatus",
+        delete: "http://localhost:8080/deliveryPayStatus",
       },
     },
-
-
   };
 
   const [activeTab, setActiveTab] = useState("supplier");
@@ -131,7 +158,7 @@ export default function ConfigurationsPage() {
   const [values, setValues] = useState({
     [config.idField]: "",
     [config.nameField]: "",
-    [config.statusField]: ""
+    [config.statusField]: "",
   });
 
   const [editingItem, setEditingItem] = useState(null);
@@ -139,6 +166,7 @@ export default function ConfigurationsPage() {
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedItemID, setSelectedItemID] = useState(null);
 
+  // Fetch
   useEffect(() => {
     const currentConfig = configMap[activeTab];
     if (!currentConfig) return;
@@ -148,15 +176,16 @@ export default function ConfigurationsPage() {
       .then((res) => setData(res.data))
       .catch((error) => console.error("Error fetching data:", error));
   
+    // Reset form fields
     setValues({
       [currentConfig.idField]: "",
       [currentConfig.nameField]: "",
-      [currentConfig.statusField]: ""
+      [currentConfig.statusField]: "",
     });
+  
     setEditingItem(null);
     setSearchTerm("");
-  }, [activeTab]);
-  
+  }, [activeTab]); 
 
   // Refresh Table upon changes
   const refreshTable = () => {
@@ -166,18 +195,36 @@ export default function ConfigurationsPage() {
       .catch((error) => console.error("Error fetching data:", error));
   };
 
+  // Search
   const filteredItems =
-  config?.nameField && config?.idField
-    ? data.filter((item) =>
-        (item[config.nameField]?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
-        (item[config.idField] || "").includes(searchTerm)
-      )
-    : [];
+    config?.nameField && config?.idField
+      ? data.filter(
+          (item) =>
+            (item[config.nameField]?.toLowerCase() || "").includes(
+              searchTerm.toLowerCase()
+            ) || (item[config.idField] || "").includes(searchTerm)
+        )
+      : [];
 
+  // For status dropdown
+  const [statusOptions, setStatusOptions] = useState([]);
+  useEffect(() => {
+    axios
+      .get("http://localhost:8080/supBrdCatStatus")
+      .then((res) => setStatusOptions(res.data))
+      .catch((err) => console.error("Failed to fetch status options:", err));
+  }, []);
+
+  const statusIdMap = statusOptions.reduce((map, status) => {
+    map[status.SupBrdCatStatusName] = status.SupBrdCatStatusID;
+    return map;
+  }, {});
+
+  // Submit
   const handleSubmit = (e) => {
     e.preventDefault();
     const payload = { ...values };
-
+  
     if (editingItem) {
       axios
         .put(`${config.api.update}/${editingItem[config.idField]}`, payload)
@@ -196,24 +243,40 @@ export default function ConfigurationsPage() {
           resetForm();
         })
         .catch((err) => {
-          if (err.response?.status === 409) {
-            toast.error(`${config.label} ID already exists`);
-          } else {
+          console.error("Error response:", err.response);
+
+          if (err.response?.data?.message?.includes('.PRIMARY')) {
+            toast.error(`${config.label} with given code already exists. Code must be unique.`);
+          }
+          
+          if (err.response?.status === 409 || err.response?.data?.message?.includes('unique_name')) {
+            toast.error(`${config.label} with given name already exists. Name must be unique.`);
+          } 
+          else {
             toast.error(`Error adding ${config.label}`);
           }
         });
     }
-  };
+  };  
 
+  // Edit
   const handleEdit = (item) => {
+    const selectedStatus = statusOptions.find(
+      (status) => status.SupBrdCatStatusName === item[config.statusField]
+    );
+  
+    const statusId = selectedStatus ? selectedStatus.SupBrdCatStatusID : "";
+  
     setValues({
       [config.idField]: item[config.idField],
       [config.nameField]: item[config.nameField],
-      [config.statusField]: item[config.statusField],
-    });
+      [config.statusId]: statusId,
+    });  
     setEditingItem(item);
   };
+  
 
+  // Delete
   const handleDelete = () => {
     axios
       .delete(`${config.api.delete}/${selectedItemID}`)
@@ -225,6 +288,7 @@ export default function ConfigurationsPage() {
       .finally(() => setOpenDialog(false));
   };
 
+  // Make card add if cardclick
   const handleCardClick = (e) => {
     const target = e.target;
     if (
@@ -232,16 +296,21 @@ export default function ConfigurationsPage() {
       target.tagName !== "BUTTON" &&
       target.closest("input") === null
     ) {
-      setEditingItem(null); 
-      setValues({ [config.idField]: "", [config.nameField]: "", [config.statusField]: "" }); 
+      setEditingItem(null);
+      setValues({
+        [config.idField]: "",
+        [config.nameField]: "",
+        [config.statusField]: "",
+      });
     }
   };
 
+  // Reset
   const resetForm = () => {
     setValues({
       [config.idField]: "",
       [config.nameField]: "",
-      [config.statusField]: ""
+      [config.statusField]: "",
     });
     setEditingItem(null);
   };
@@ -252,12 +321,18 @@ export default function ConfigurationsPage() {
         <AppSidebar />
         <div className="flex-1 p-4 flex flex-col" onClick={handleCardClick}>
           <Toaster position="top-center" />
-          <h1 className="text-lg font-medium text-gray-600 mt-4 mb-6">Configurations</h1>
+          <h1 className="text-lg font-medium text-gray-600 mt-4 mb-6">
+            Configurations
+          </h1>
 
           <Tabs defaultValue={activeTab} onValueChange={setActiveTab}>
             <TabsList className="w-full flex justify-start bg-white shadow-md rounded-md px-6 py-6 mb-4">
               {Object.entries(configMap).map(([key, cfg]) => (
-                <TabsTrigger key={key} value={key} className="data-[state=active]:text-indigo-600">
+                <TabsTrigger
+                  key={key}
+                  value={key}
+                  className="data-[state=active]:text-indigo-600"
+                >
                   {`${cfg.label.toUpperCase()}`}
                 </TabsTrigger>
               ))}
@@ -266,14 +341,12 @@ export default function ConfigurationsPage() {
             {Object.entries(configMap).map(([key, cfg]) => (
               <TabsContent key={key} value={key}>
                 <div className="flex flex-col lg:flex-row gap-6">
-                  
                   {/* Table */}
                   <div className="w-full lg:w-2/3">
                     <Card>
                       <CardContent className="p-4">
                         <div className="relative mb-4">
-                         
-                         {/* Search */}
+                          {/* Search */}
                           <Search className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
                           <Input
                             placeholder={`Search ${cfg.label.toLowerCase()}`}
@@ -287,22 +360,34 @@ export default function ConfigurationsPage() {
                           <TableBody>
                             {filteredItems.length > 0 ? (
                               filteredItems.map((item) => (
-                                <TableRow key={item[cfg.idField]} className="hover:bg-gray-50">
+                                <TableRow
+                                  key={item[cfg.idField]}
+                                  className="hover:bg-gray-50"
+                                >
                                   <TableCell className="py-2">
-                                    <div className="font-medium text-sm">{item[cfg.nameField]}</div>
+                                    <div className="font-medium text-sm">
+                                      {item[cfg.nameField]}
+                                    </div>
 
-                                    <div className="text-xs text-gray-500">Code: {item[cfg.idField]}</div>
+                                    <div className="text-xs text-gray-500">
+                                      Code: {item[cfg.idField]}
+                                    </div>
 
                                     {config.statusField && (
-                                    <div className="text-xs text-gray-500">Status: {item[cfg.statusField]}</div>
+                                      <div className="text-xs text-gray-500">
+                                        Status: {item[cfg.statusField]}
+                                      </div>
                                     )}
                                   </TableCell>
-                                    
 
                                   {/* Edit - Delete */}
                                   <TableCell className="text-right w-[100px]">
                                     <div className="flex justify-end gap-2">
-                                      <Button variant="ghost" size="sm" onClick={() => handleEdit(item)}>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleEdit(item)}
+                                      >
                                         <FilePen size={16} />
                                       </Button>
                                       <Button
@@ -311,7 +396,8 @@ export default function ConfigurationsPage() {
                                         onClick={() => {
                                           setSelectedItemID(item[cfg.idField]);
                                           setOpenDialog(true);
-                                        }} >
+                                        }}
+                                      >
                                         <Trash size={16} />
                                       </Button>
                                     </div>
@@ -320,7 +406,10 @@ export default function ConfigurationsPage() {
                               ))
                             ) : (
                               <TableRow>
-                                <TableCell colSpan={3} className="text-center text-gray-500 py-4">
+                                <TableCell
+                                  colSpan={3}
+                                  className="text-center text-gray-500 py-4"
+                                >
                                   No {cfg.label.toLowerCase()}s found
                                 </TableCell>
                               </TableRow>
@@ -331,11 +420,15 @@ export default function ConfigurationsPage() {
                     </Card>
                   </div>
 
-                  {/* Form */} 
+                  {/* Form */}
                   <div className="w-full lg:w-1/3 h-fit">
                     <Card>
                       <CardHeader>
-                        <CardTitle className="text-center text-xl">{editingItem ? `Edit ${cfg.label}` : `Add ${cfg.label}`}</CardTitle>
+                        <CardTitle className="text-center text-xl">
+                          {editingItem
+                            ? `Edit ${cfg.label}`
+                            : `Add ${cfg.label}`}
+                        </CardTitle>
                       </CardHeader>
                       <CardContent>
                         <form onSubmit={handleSubmit}>
@@ -343,37 +436,89 @@ export default function ConfigurationsPage() {
                             <Label>{cfg.label} Name</Label>
                             <Input
                               value={values[config.nameField]}
-                              onChange={(e) => setValues({ ...values, [config.nameField]: e.target.value })}
+                              onChange={(e) =>
+                                setValues({
+                                  ...values,
+                                  [config.nameField]: e.target.value,
+                                })
+                              }
                               required
                             />
                           </div>
-                          
+
                           {!config.isAutoInc && (
-                          <div className="mb-4">
-                            <Label>{cfg.label} Code</Label>
-                            <Input
-                              value={values[config.idField]}
-                              onChange={(e) => setValues({ ...values, [config.idField]: e.target.value })}
-                              required
-                            />
-                          </div>
+                            <div className="mb-4">
+                              <Label>{cfg.label} Code</Label>
+                              <Input
+                                value={values[config.idField]}
+                                onChange={(e) =>
+                                  setValues({
+                                    ...values,
+                                    [config.idField]: e.target.value,
+                                  })
+                                }
+                                required
+                                disabled={editingItem} // Disable only when editing
+                              />
+                            </div>
                           )}
 
-                          {/* Show if input statusField exists */}
-                          {config.statusField && (
+                          {config.statusField &&
+                          ["supplier", "brand", "category"].includes(
+                            activeTab
+                          ) ? (
+                            <div className="mb-4">
+                              <Label>Status</Label>
+                              <Select
+                                value={
+                                  statusOptions.find(
+                                    (s) =>
+                                      s.SupBrdCatStatusID ===
+                                      values[config.statusId]
+                                  )?.SupBrdCatStatusName || ""
+                                }
+                                onValueChange={(value) => {
+                                  setValues({
+                                    ...values,
+                                    [config.statusId]: statusIdMap[value],
+                                  });
+                                }}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select Status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {statusOptions.map((status) => (
+                                    <SelectItem
+                                      key={status.SupBrdCatStatusID}
+                                      value={status.SupBrdCatStatusName}
+                                    >
+                                      {status.SupBrdCatStatusName}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          ) : config.statusField ? (
                             <div className="mb-4">
                               <Label>Status</Label>
                               <Input
                                 value={values[config.statusField]}
                                 onChange={(e) =>
-                                  setValues({ ...values, [config.statusField]: e.target.value })
+                                  setValues({
+                                    ...values,
+                                    [config.statusField]: e.target.value,
+                                  })
                                 }
                                 required
                               />
                             </div>
-                          )}
+                          ) : null}
 
-                          <Button type="submit" className="w-full bg-blue-500 hover:bg-blue-600 text-white mt-4">
+                          <Button
+                            type="submit"
+                            className="w-full bg-blue-500 hover:bg-blue-600 text-white mt-2"
+                          >
                             {editingItem ? "Update" : "Add"} {cfg.label}
                           </Button>
                         </form>
@@ -392,7 +537,9 @@ export default function ConfigurationsPage() {
           <DialogHeader>
             <DialogTitle>Confirm Delete</DialogTitle>
           </DialogHeader>
-          <p>Are you sure you want to delete this {config.label.toLowerCase()}?</p>
+          <p>
+            Are you sure you want to delete this {config.label.toLowerCase()}?
+          </p>
           <DialogFooter className="mt-4">
             <Button variant="secondary" onClick={() => setOpenDialog(false)}>
               Cancel
@@ -406,3 +553,50 @@ export default function ConfigurationsPage() {
     </SidebarProvider>
   );
 }
+
+
+// Displays status but does not update in db
+// {config.statusField ? (
+//   ["supplier", "brand", "category"].includes(activeTab) ? (
+//     <div className="mb-4">
+//       <Label>Status</Label>
+//       <Select
+//         value={values[config.statusField]?.toString() || ""}
+//         onValueChange={(selectedId) =>
+//           setValues({
+//             ...values,
+//             [config.statusField]: parseInt(selectedId),
+//           })
+//         }
+//       >
+//         <SelectTrigger>
+//           <SelectValue placeholder="Select Status" />
+//         </SelectTrigger>
+//         <SelectContent>
+//           {statusOptions.map((status) => (
+//             <SelectItem
+//               key={status.SupBrdCatStatusID}
+//               value={status.SupBrdCatStatusID.toString()}
+//             >
+//               {status.SupBrdCatStatusName}
+//             </SelectItem>
+//           ))}
+//         </SelectContent>
+//       </Select>
+//     </div>
+//   ) : (
+//     <div className="mb-4">
+//       <Label>Status</Label>
+//       <Input
+//         value={values[config.statusField]}
+//         onChange={(e) =>
+//           setValues({
+//             ...values,
+//             [config.statusField]: e.target.value,
+//           })
+//         }
+//         required
+//       />
+//     </div>
+//   )
+// ) : null}

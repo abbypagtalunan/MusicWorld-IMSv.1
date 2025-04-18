@@ -3,18 +3,22 @@ const db = require('../../db');
 // Get all Brands
 const getAllBrands = (callback) => {
   const query = `
-        SELECT B_brandID, B_brandName, B_brandStatus
-        FROM Brands
+        SELECT 
+          b.B_brandID, 
+          b.B_brandName, 
+          st.SupBrdCatStatusName AS B_brandStatus
+        FROM Brands b
+        JOIN SupBrdCatStatus st ON b.B_brandStatusID = st.SupBrdCatStatusID
         ORDER BY 
-          B_brandName ASC,
-          CASE B_brandStatus
+          CASE st.SupBrdCatStatusName
             WHEN 'Active' THEN 1
             WHEN 'Discontinued' THEN 2
             WHEN 'Archived' THEN 3
             ELSE 4
-          END
-  `;
-  
+          END,
+          b.B_brandName ASC
+      `;
+
   db.query(query, (err, results) => {
     if (err) {
       callback(err, null);
@@ -26,14 +30,13 @@ const getAllBrands = (callback) => {
 
 // Add a new Brand
 const addBrand = (brandData, callback) => {
-  const { B_brandID, B_brandName, B_brandStatus } = brandData;
-  const query = `INSERT INTO Brands (B_brandID, B_brandName, B_brandStatus) VALUES (?, ?, ?)`;
+  const { B_brandID, B_brandName, B_brandStatusID } = brandData;
+  const query = `INSERT INTO Brands (B_brandID, B_brandName, B_brandStatusID) VALUES (?, ?, ?)`;
 
-  db.query(query, [B_brandID, B_brandName, B_brandStatus], (err, results) => {
+  db.query(query, [B_brandID, B_brandName, B_brandStatusID], (err, results) => {
     if (err) {
       callback(err, null);
     } else {
-      // Return the id of the newly inserted brand
       callback(null, results.insertId);
     }
   });
@@ -41,14 +44,14 @@ const addBrand = (brandData, callback) => {
 
 // Update an existing brand
 const updateBrand = (brandId, brandData, callback) => {
-  const { B_brandName, B_brandStatus } = brandData;
+  const { B_brandName, B_brandStatusID } = brandData;
   const query = `
     UPDATE Brands
-    SET B_brandName = ?, B_brandStatus = ?
+    SET B_brandName = ?, B_brandStatusID = ?
     WHERE B_brandID = ?;
   `;
 
-  db.query(query, [B_brandName, B_brandStatus, brandId], (err, results) => {
+  db.query(query, [B_brandName, B_brandStatusID, brandId], (err, results) => {
     if (err) {
       callback(err, null);
     } else {
