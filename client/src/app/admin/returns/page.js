@@ -65,6 +65,13 @@ export default function ReturnsPage() {
   const [filteredSupplierReturns, setFilteredSupplierReturns] = useState([]);
   const [selectedFilter] = useState("All");
   const [ , setActiveTab] = useState("customer");
+  const [productName, setProductName] = useState("");
+  const [returnType, setReturnType] = useState("");
+  const [supplier, setSupplier] = useState("");
+  const [brand, setBrand] = useState("");
+  const [quantity, setQuantity] = useState("");
+  const [discount, setDiscount] = useState("");
+  const [price, setPrice] = useState("");
   
   // Process and merge data from transactions and products tables for customer returns
   useEffect(() => {
@@ -321,18 +328,18 @@ useEffect(() => {
                   </CardHeader>
                   <CardContent className="p-4 flex flex-col flex-1 justify-between">
                     <div className="space-y-3">
-                      <div>
-                        <Label htmlFor="productName">Product Name</Label>
-                        <Select>
-                          <SelectTrigger id="productName" className="mt-1">
-                            <SelectValue placeholder="Select product name" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Product A">Product A</SelectItem>
-                            <SelectItem value="Product B">Product B</SelectItem>
-                          </SelectContent>
-                        </Select>   
-                      </div>
+                    <div>
+                      <Label htmlFor="productName">Product Name</Label>
+                      <Input
+                        id="productName"
+                        type="text"
+                        placeholder="Type product name"
+                        value={productName}
+                        onChange={(e) => setProductName(e.target.value)}
+                        className="mt-1"
+                      />
+                    </div>
+
                       
                       <div>
                         <Label htmlFor="supplier">Supplier</Label>
@@ -377,17 +384,14 @@ useEffect(() => {
                       
                       <div>
                         <Label htmlFor="returnType">Return Type</Label>
-                        <Select>
-                          <SelectTrigger id="returnType" className="mt-1">
-                            <SelectValue placeholder="Select return type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="resellable">Return to Inventory (Resellable)</SelectItem>
-                            <SelectItem value="defective">Defective - Cannot Be Resold</SelectItem>
-                            <SelectItem value="repairable">Electronic Malfunction (Repairable)</SelectItem>
-                            <SelectItem value="cosmetic">Cosmetic Damage (Discounted Resale)</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <Input
+                          id="returnType"
+                          type="text"
+                          placeholder="Type return type"
+                          value={returnType}
+                          onChange={(e) => setReturnType(e.target.value)}
+                          className="mt-1"
+                        />
                       </div>
 
                       <div>  
