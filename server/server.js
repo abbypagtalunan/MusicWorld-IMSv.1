@@ -4,6 +4,7 @@ const app = express();
 const supplierRoutes = require('../server/src/routes/supplierRoutes.js');
 const brandRoutes = require('../server/src/routes/brandRoutes.js');
 const categoryRoutes = require('../server/src/routes/categoryRoutes.js');
+const productRoutes = require('../server/src/routes/productRoutes.js')
 const productStatusRoutes = require('../server/src/routes/productStatusRoutes.js');
 const deliveryModeOfPaymentRoutes = require('../server/src/routes/deliveryModeOfPaymentRouter.js');
 const deliveryPaymentTypesRoutes = require('./src/routes/deliveryPaymentTypesRoutes.js');
@@ -26,6 +27,7 @@ app.use(express.json());
 app.use("/suppliers", supplierRoutes);
 app.use("/brands", brandRoutes);
 app.use("/categories", categoryRoutes);
+app.use("/products", productRoutes);
 app.use("/productStatus", productStatusRoutes);
 app.use("/deliveryMOP", deliveryModeOfPaymentRoutes);
 app.use("/deliveryPayTypes", deliveryPaymentTypesRoutes);

@@ -1,6 +1,6 @@
 "use client";
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 import { AppSidebar } from "@/components/admin-sidebar"
 import { SidebarProvider } from "@/components/ui/sidebar"
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table";
@@ -13,39 +13,162 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogFooter } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
 
+export default function ProductsPage() {
+  const config = {
+    product: {
+      label: "Product",
+      codeField: "P_productCode",
+      dateField: "P_dateAdded",
+      supplierField: "P_supplier",
+      supplierID: "P_supplierID",
+      brandField: "P_brand",
+      brandID: "P_brandID",
+      categoryField: "P_category",
+      categoryID: "P_categoryID",
+      nameField: "P_productName",
+      quantityField: "P_quantity",
+      unitpriceField: "P_unitPrice",
+      sellingpriceField: "P_sellingPrice",
+      statusField: "P_productStatus",
+      statusId: "P_statusID",
+      isAutoInc: false,
+      api: {
+        fetch: "http://localhost:8080/products", 
+        add: "http://localhost:8080/products",  
+        update: "http://localhost:8080/products", 
+        delete: "http://localhost:8080/products",
+      },
+    },
 
-// Sample product data
-const product = [
-  { productCode: "188090", dateAdded: "11/12/22", supplier: "Lazer", brand: "Cort", category: "Guitar", product: "AD W/ W Case", quantity: 2, price: "₱15,995", sellingprice:"1", status: "Active" },
-  { productCode: "188091", dateAdded: "11/12/22", supplier: "Lazer", brand: "Lazer", category: "Drum", product: "Maple Snare Drum", quantity: 1, price: "₱4,500", sellingprice:"1", status: "Active" },
-  { productCode: "188092", dateAdded: "11/12/22", supplier: "Lazer", brand: "Lazer", category: "Drum", product: "Cymbal Straight Stand", quantity: 3, price: "₱2,395", sellingprice:"1", status: "Active" },
-  { productCode: "188093", dateAdded: "11/12/22", supplier: "Lazer", brand: "Alice", category: "Violin String", product: "Alice Violin String", quantity: 0, price: "₱395", sellingprice:"1", status: "Discontinued" },
-  { productCode: "188094", dateAdded: "11/12/22", supplier: "Lazer", brand: "Bee", category: "Harmonica", product: "Bee Harmonica", quantity: 0, price: "₱295", sellingprice:"1", status: "Out of Stock" },
-  { productCode: "188095", dateAdded: "11/12/22", supplier: "Lazer", brand: "Cort", category: "Guitar", product: "Cort Acoustic Guitar", quantity: 2, price: "₱15,995", sellingprice:"1", status: "Low Stock" },
-  { productCode: "188096", dateAdded: "11/12/22", supplier: "Lazer", brand: "Cort", category: "Guitar", product: "AD W/ W Case", quantity: 2, price: "₱15,995", sellingprice:"1", status: "Active" },
-  { productCode: "188097", dateAdded: "11/12/22", supplier: "Lazer", brand: "Lazer", category: "Drum", product: "Maple Snare Drum", quantity: 1, price: "₱4,500", sellingprice:"1", status: "Active" },
-  { productCode: "188098", dateAdded: "11/12/22", supplier: "Lazer", brand: "Lazer", category: "Drum", product: "Cymbal Straight Stand", quantity: 3, price: "₱2,395", sellingprice:"1", status: "Active" },
-];
+    supplier: {
+      label: "Supplier",
+      idField: "SupplierID",
+      nameField: "SupplierName",
+      isAutoInc: false,
+      api: {
+        fetch: "http://localhost:8080/suppliers",
+      },
+    },
 
-export default function ProductTable() {
+    brand: {
+      label: "Brand",
+      idField: "BrandID",
+      nameField: "BrandName",
+      isAutoInc: false,
+      api: {
+        fetch: "http://localhost:8080/brands",
+      },
+    },
+
+    category: {
+      label: "Category",
+      idField: "CategoryID",
+      nameField: "CategoryName",
+      isAutoInc: false,
+      api: {
+        fetch: "http://localhost:8080/categories",
+      },
+    }, 
+    
+    productStatus: {
+      label: "Product Status",
+      idField: "PStatusID",
+      nameField: "PStatusName",
+      isAutoInc: false,
+      api: {
+        fetch: "http://localhost:8080/productStatus",
+      },
+    },
+  };
+
   const [isSheetOpen, setSheetOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
-  const openEditSheet = (product) => {
-    setSelectedProduct(product);
+  const [data, setData] = useState([]);
+  const [values, setValues] = useState({
+    [config.codeField]: "",
+    [config.dateField]: "",
+    [config.supplierField]: "",
+    [config.brandField]: "",
+    [config.categoryField]: "",
+    [config.nameField]: "",
+    [config.quantityField]: "",
+    [config.unitpriceField]: "",
+    [config.sellingpriceField]: "",
+    [config.statusField]: "",
+  });
+
+  const [editingItem, setEditingItem] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedPID, setSelectedPID] = useState(null);
+
+  // Fetch
+  useEffect(() => {
+    axios
+      .get(config.product.api.fetch)
+      .then((res) => {
+        const normalizedData = res.data.map((item) => ({
+          productCode: item.P_productCode,
+          dateAdded: item.P_dateAdded,
+          supplier: item.supplier || "",
+          supplierID: item.S_supplierID,
+          brand: item.brand || "",
+          brandID: item.B_brandID,
+          category: item.category || "",
+          categoryID: item.C_categoryID,
+          productName: item.P_productName,
+          quantity: item.P_quantity,
+          price: item.P_unitPrice,
+          sellingPrice: item.P_sellingPrice,
+          status: item.P_productStatus 
+        }));
+        setData(normalizedData);})
+      .catch((error) => console.error("Error fetching data:", error));
+    
+      setValues({
+      [config.codeField]: "",
+      [config.dateField]: "",
+      [config.supplierField]: "",
+      [config.brandField]: "",
+      [config.categoryField]: "",
+      [config.nameField]: "",
+      [config.quantityField]: "",
+      [config.unitpriceField]: "",
+      [config.sellingpriceField]: "",
+      [config.statusField]: "",
+    });
+
+    setEditingItem(null);
+    setSearchTerm("");
+  }, []);
+
+  const refreshTable = () => {
+    axios
+      .get(config.api.fetch)
+      .then((res) => setData(res.data))
+      .catch((error) => console.error("Error fetching data:", error));
+  };
+
+  const openEditSheet = (data) => {
+    setSelectedProduct(data);
     setSheetOpen(true);
   };
 
+  // Search
   const [selectedFilter, setSelectedFilter] = useState(null);
   const [selectedSubFilter, setSelectedSubFilter] = useState(null);
 
-  const handleFilterSelect = (filter, subFilter = null) => {
-    setSelectedFilter(filter);
-    setSelectedSubFilter(subFilter);
-  };
-
   const getFilteredTransactions = () => {
-    let sortedTransactions = [...product];
+    const filteredItems =
+    config?.nameField && config?.idField
+      ? data.filter(
+          (item) =>
+            (item[config.nameField]?.toLowerCase() || "").includes(
+              searchTerm.toLowerCase()
+            ) || (item[config.idField] || "").includes(searchTerm)
+        )
+      : [];
+    let sortedTransactions = [...data];
     if (!selectedFilter || !selectedSubFilter) return sortedTransactions;
 
     if (selectedFilter === "Supplier") {
@@ -56,6 +179,10 @@ export default function ProductTable() {
       sortedTransactions = sortedTransactions.filter((item) => item.brand === selectedSubFilter);
     }
 
+    if (selectedFilter === "Category") {
+      sortedTransactions = sortedTransactions.filter((item) => item.category === selectedSubFilter);
+    }
+
     if (selectedFilter === "Product Status") {
       sortedTransactions = sortedTransactions.filter((item) => item.status === selectedSubFilter);
     }
@@ -63,21 +190,191 @@ export default function ProductTable() {
     if (selectedFilter === "Product Name") {
       sortedTransactions.sort((a, b) =>
         selectedSubFilter === "Ascending"
-          ? a.product.localeCompare(b.product)
-          : b.product.localeCompare(a.product)
+          ? a.productName.localeCompare(b.productName)
+          : b.productName.localeCompare(a.productName)
       );
     }
 
     if (selectedFilter === "Price") {
-      const getPrice = (price) => parseFloat(price.replace(/[^\d.]/g, ""));
+      const getPrice = (price) => {
+        if (!price) return 0;
+        return parseFloat(price.toString().replace(/[^\d.]/g, ""));
+      }
+      
       sortedTransactions.sort((a, b) =>
         selectedSubFilter === "Low to High"
           ? getPrice(a.price) - getPrice(b.price)
           : getPrice(b.price) - getPrice(a.price)
       );
     }
+
     return sortedTransactions;
-  };  
+  }; 
+
+  const handleFilterSelect = (filter, subFilter = null) => {
+    setSelectedFilter(filter);
+    setSelectedSubFilter(subFilter);
+  };
+
+  // For Dropdowns
+  const[suppliers, setSuppliers] = useState([]);
+  useEffect(() => {
+    axios
+      .get("http://localhost:8080/suppliers")
+      .then(res => setSuppliers(res.data))
+      .catch((err) => console.error("Failed to fetch supplier options:", err));
+  }, []);
+  const supplierIDMap = suppliers.reduce((map, supplier) => {
+    map[supplier.SupplierName] = supplier.SupplierID;
+    return map;
+  }, {});
+  const[brands, setBrands] = useState([]);
+  useEffect(() => {
+    axios.get("http://localhost:8080/brands")
+      .then(res => setBrands(res.data))
+      .catch((err) => console.error("Failed to fetch brand options:", err));
+  }, []);
+  const brandIDMap = brands.reduce((map, brand) => {
+    map[brand.BrandName] = brand.BrandID;
+    return map;
+  }, {});
+  const[categories, setCategories] = useState([]);
+  useEffect(() => {
+    axios.get("http://localhost:8080/categories")
+      .then(res => setCategories(res.data))
+      .catch((err) => console.error("Failed to fetch category options:", err));
+  }, []);
+  const categoryIDMap = categories.reduce((map, category) => {
+    map[category.CategoryName] = category.CategoryID;
+    return map;
+  }, {});
+  const[pStatus, setPStatus] = useState([]);
+  useEffect(() => {
+    axios.get("http://localhost:8080/productStatus")
+      .then(res => setPStatus(res.data))
+      .catch((err) => console.error("Failed to fetch product status options:", err));
+  }, []);
+  const pStatusIDMap = pStatus.reduce((map, pstatus) => {
+    map[pstatus.PStatusName] = pstatus.PStatusID;
+    return map;
+  }, {});
+ 
+  // Submit
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const payload = { 
+      [config.product.codeField]: values[config.product.codeField],
+      [config.product.dateField]: values[config.product.dateField],
+      [config.product.supplierField]: values[config.product.supplierField],
+      [config.product.brandField]: values[config.product.brandField],
+      [config.product.categoryField]: values[config.product.categoryField],
+      [config.product.nameField]: values[config.product.nameField],
+      [config.product.quantityField]: values[config.product.quantityField],
+      [config.product.unitpriceField]: values[config.product.unitpriceField],
+      [config.product.sellingpriceField]: values[config.product.sellingpriceField],
+      [config.product.statusField]: values[config.product.statusField],
+    };
+
+    axios
+      .post(config.product.api.add, payload)
+      .then(() => {
+        toast.success(`${config.label} updated successfully`);
+        refreshTable();
+        resetForm();
+      })
+      .catch((err) => {
+        console.error("Error response:", err.response);
+
+        if (err.response?.data?.message?.includes('.PRIMARY')) {
+          toast.error(`${config.label} with given code already exists. Code must be unique.`);
+        }
+
+        if (err.response?.status === 409 || err.response?.data?.message?.includes('unique_name')) {
+          toast.error(`${config.label} with given name already exists. Name must be unique.`);
+        } 
+        else {
+          toast.error(`Error adding ${config.label}`);
+        }
+      });
+  };
+
+  const resetForm = () => {
+    setValues({
+      [config.product.codeField]: "",
+      [config.product.dateField]: "",
+      [config.product.supplierField]: "",
+      [config.product.brandField]: "",
+      [config.product.categoryField]: "",
+      [config.product.nameField]: "",
+      [config.product.quantityField]: "",
+      [config.product.unitpriceField]: "",
+      [config.product.sellingpriceField]: "",
+      [config.product.statusField]: "",
+    });
+    setEditingItem(null);
+  };
+
+  // Edit
+  const handleEdit = (item) => {
+    const selectedSupplier = suppliers.find(
+      (supplier) => supplier.SupplierName === item[config.supplierField]
+    );
+    const supplierID = selectedSupplier ? selectedSupplier.SupplierID : "";
+  
+    const selectedBrand = brands.find(
+      (brand) => brand.BrandName === item[config.brandField]
+    );
+    const brandID = selectedBrand ? selectedBrand.BrandID : "";
+
+    const selectedCategory = categories.find(
+      (category) => category.CategoryName === item[config.categoryField]
+    );
+    const categoryID = selectedCategory ? selectedCategory.CategoryID : "";
+  
+    const selectedStatus = pStatus.find(
+      (pstatus) => pstatus.PStatusName === item[config.statusField]
+    );
+    const pstatusID = selectedStatus ? selectedStatus.PStatusID : "";
+
+    setValues({
+      [config.supplierField]: supplierID,
+      [config.brandField]: brandID,
+      [config.categoryField]: categoryID,
+      [config.nameField]: item[config.nameField],
+      [config.quantityField]: item[config.quantityFieldField],
+      [config.unitpriceField]: item[config.unitpriceFieldField],
+      [config.sellingpriceField]: item[config.sellingpriceField],
+      [config.statusField]: pstatusID,
+    });  
+    setEditingItem(item);
+  };
+
+  // Price edit
+  const handlePriceEdit = (item) => {
+    const selectedSupplier = suppliers.find(
+      (supplier) => supplier.SupplierName === item[config.supplierField]
+    );
+    const supplierID = selectedSupplier ? selectedSupplier.SupplierID : "";
+  
+    setValues({
+      [config.supplierField]: supplierID,
+      [config.nameField]: item[config.nameField],
+      [config.sellingpriceField]: item[config.sellingpriceField],
+    });  
+    setEditingItem(item);
+  };
+
+  // Delete
+  const handleDelete = () => {
+    axios
+      .delete(`${config.api.delete}/${selectedPID}`)
+      .then(() => {
+        toast.success(`${config.label} deleted`);
+        refreshTable();
+      })
+      .catch(() => toast.error(`Error deleting ${config.label}`))
+      .finally(() => setOpenDialog(false));
+  };
 
   return (
     <SidebarProvider>
@@ -91,6 +388,8 @@ export default function ProductTable() {
                   type="text"
                   placeholder="Search product, category, item code"
                   className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                 />
                 <div className="absolute left-3 top-2.5 text-gray-500">
                   <Search className="w-5 h-5" />
@@ -108,24 +407,39 @@ export default function ProductTable() {
                     <DropdownMenuSub>
                       <DropdownMenuSubTrigger>Supplier</DropdownMenuSubTrigger>
                       <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Supplier", "Cort")}>
-                          Cort
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Supplier", "Lazer")}>
-                          Lazer
-                        </DropdownMenuItem>
+                        {suppliers.map((supplier) => (
+                          <DropdownMenuItem
+                            key={supplier.S_supplierName}
+                            onClick={() => handleFilterSelect("Supplier", supplier.S_supplierName)}>
+                            {supplier.S_supplierName}
+                          </DropdownMenuItem>
+                        ))}
                       </DropdownMenuSubContent>
                     </DropdownMenuSub>
                     
                     <DropdownMenuSub>
                       <DropdownMenuSubTrigger>Brand</DropdownMenuSubTrigger>
                       <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Brand", "Cort")}>
-                          Cort
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Brand", "Lazer")}>
-                          Lazer
-                        </DropdownMenuItem>
+                        {brands.map((brand) => (
+                          <DropdownMenuItem
+                            key={brand.B_brandName}
+                            onClick={() => handleFilterSelect("Brand", brand.B_brandName)}>
+                            {brand.B_brandName}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>Category</DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent>
+                        {categories.map((category) => (
+                          <DropdownMenuItem
+                            key={category.C_categoryName}
+                            onClick={() => handleFilterSelect("Category", category.C_categoryName)}>
+                            {category.C_categoryName}
+                          </DropdownMenuItem>
+                        ))}
                       </DropdownMenuSubContent>
                     </DropdownMenuSub>
                     
@@ -148,6 +462,18 @@ export default function ProductTable() {
                           Low to High
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleFilterSelect("Price", "High to Low")}>
+                          High to Low
+                        </DropdownMenuItem>
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>Date added</DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent>
+                        <DropdownMenuItem onClick={() => handleFilterSelect("Date added", "Low to High")}>
+                          Low to High
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleFilterSelect("Date added", "High to Low")}>
                           High to Low
                         </DropdownMenuItem>
                       </DropdownMenuSubContent>
@@ -192,60 +518,75 @@ export default function ProductTable() {
                   </SheetHeader>
                   <div className="overflow-y-auto flex flex-col space-y-4">
                     <Label className>Product Code</Label>
-                    <Input placeholder="Enter product code" />
+                    <Input placeholder="Enter product code" type="number" required onChange={(e) => setValues({...values, [config.codeField]: e.target.value})} />
 
                     <Label>Date Added</Label>
-                    <Input type="date" />
+                    <Input type="date" name="Pdateadded"  required onChange={(e) => setValues({ ...values, [config.product.dateField]: e.target.value })}/>
 
                     <Label>Supplier</Label>
-                    <Select>
+                    <Select onValueChange={(value) => setValues({ ...values, [config.product.supplierField]: value })}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select Supplier" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Lazer">Lazer</SelectItem>
-                        <SelectItem value="Cort">Cort</SelectItem>
+                        {suppliers.map((supplier) => (
+                          <SelectItem
+                            key={supplier.S_supplierID}
+                            value={supplier.S_supplierName}>
+                            {supplier.S_supplierName}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
 
                     <Label>Brand</Label>
-                    <Select>
+                    <Select onValueChange={(value) => setValues({ ...values, [config.product.brandField]: value })}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select Brand" />
+                      <SelectValue placeholder="Select Brand" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Cort">Cort</SelectItem>
-                        <SelectItem value="Lazer">Lazer</SelectItem>
+                        {brands.map((brand) => (
+                          <SelectItem
+                            key={brand.B_brandID}
+                            value={brand.B_brandName}>
+                            {brand.B_brandName}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
 
                     <Label>Category</Label>
-                    <Select>
+                    <Select onValueChange={(value) => setValues({ ...values, [config.product.categoryField]: value })}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select Category" />
+                        <SelectValue placeholder="Select Category"/>
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Guitar">Guitar</SelectItem>
-                        <SelectItem value="Drum">Drum</SelectItem>
+                        {categories.map((category) => (
+                          <SelectItem
+                            key={category.C_categoryID}
+                            value={category.C_categoryName}>
+                            {category.C_categoryName}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
 
                     <Label>Product Name</Label>
-                    <Input placeholder="Enter product name" />
+                    <Input placeholder="Enter product name" required onChange={(e) => setValues({ ...values, [config.product.nameField]: e.target.value })}/>
 
                     <Label>Quantity</Label>
-                    <Input type="number" placeholder="Enter quantity" />
+                    <Input type="number" placeholder="Enter quantity" required onChange={(e) => setValues({ ...values, [config.product.quantityField]: e.target.value })}/>
 
                     <Label>Price</Label>
-                    <Input type="text" placeholder="Enter price" />
+                    <Input placeholder="Enter price"  type="number" required onChange={(e) => setValues({ ...values, [config.product.unitpriceField]: e.target.value })}/>
 
                     <Label>Selling Price</Label>
-                    <Input type="text" placeholder="Enter selling price" />
+                    <Input placeholder="Enter selling price"  type="number" required onChange={(e) => setValues({...values, [config.product.sellingpriceField]: e.target.value,})}/>
 
                     <Label>Product Status</Label>
-                    <Select>
+                    <Select onValueChange={(value) => setValues({ ...values, [config.product.statusField]: value })}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select Status" />
+                        <SelectValue placeholder="Select Status"/>
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Active">Active</SelectItem>
@@ -254,7 +595,7 @@ export default function ProductTable() {
                         <SelectItem value="Discontinued">Discontinued</SelectItem>
                       </SelectContent>
                     </Select>
-                    <Button className="bg-blue-400 text-white w-full mt-4">Add Product</Button>
+                    <Button className="bg-blue-400 text-white w-full mt-4" onClick={handleSubmit}>Add Product</Button>
                   </div>
                 </SheetContent>
               </Sheet>
@@ -278,9 +619,14 @@ export default function ProductTable() {
                         <SelectValue placeholder="Select Supplier" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Lazer">Lazer</SelectItem>
-                        <SelectItem value="Cort">Cort</SelectItem>
-                      </SelectContent>
+                        {suppliers.map((supplier) => (
+                          <SelectItem
+                            key={supplier.S_supplierID}
+                            value={supplier.S_supplierName}>
+                            {supplier.S_supplierName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>  
                     </Select>
 
                     <Label>Product Code</Label>
@@ -323,18 +669,22 @@ export default function ProductTable() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {getFilteredTransactions().map((product) => (
-                  <TableRow key={product.productCode} className={getStatusColor(product.status)}>
-                    <TableCell>{product.productCode}</TableCell>
-                    <TableCell>{product.dateAdded}</TableCell>
-                    <TableCell>{product.supplier}</TableCell>
-                    <TableCell>{product.brand}</TableCell>
-                    <TableCell>{product.category}</TableCell>
-                    <TableCell>{product.product}</TableCell>
-                    <TableCell>{product.quantity} pcs</TableCell>
-                    <TableCell>{product.price}</TableCell>
-                    <TableCell>{product.sellingprice}</TableCell>
-                    <TableCell className={`font-semibold ${getStatusTextColor(product.status)}`}>{product.status}</TableCell>
+              {getFilteredTransactions().filter(item =>
+                item.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                item.productCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                item.category.toLowerCase().includes(searchTerm.toLowerCase())
+              ).map((item) => (
+                  <TableRow key={item.productCode} className={getStatusColor(item.status)}>
+                    <TableCell>{item.productCode}</TableCell>
+                    <TableCell>{new Date(item.dateAdded).toLocaleDateString()}</TableCell>
+                    <TableCell>{item.supplier}</TableCell>
+                    <TableCell>{item.brand}</TableCell>
+                    <TableCell>{item.category}</TableCell>
+                    <TableCell>{item.productName}</TableCell>
+                    <TableCell>{item.quantity} pcs</TableCell>
+                    <TableCell>{item.price}</TableCell>
+                    <TableCell>{item.sellingPrice}</TableCell>
+                    <TableCell className={`font-semibold ${getStatusTextColor(item.status)}`}>{item.status}</TableCell>
                     <TableCell className="flex space-x-2">
                       <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600" onClick={() => openEditSheet(product)}>
                         <FilePen size={16} />
@@ -350,24 +700,25 @@ export default function ProductTable() {
                           <DialogHeader>
                               <DialogTitle>
                                 <span className="text-lg text-red-900">Delete Transaction</span>{" "}
-                                <span className="text-lg text-gray-400 font-normal italic">{product.productCode}</span></DialogTitle>
+                                <span className="text-lg text-gray-400 font-normal italic">{item.productCode}</span></DialogTitle>
                               <DialogClose />
                             </DialogHeader>
                             <p className='text-sm text-gray-800 mt-2 pl-4'> Deleting this transaction will reflect on Void Transactions. Enter the admin password to delete this transaction. </p>
                             <div className="flex items-center gap-4 mt-4 pl-10">          
                               <div className="flex-1">
-                                <label htmlFor={`password-${product.productCode}`} className="text-base font-medium text-gray-700 block mb-2">
+                                <label htmlFor={`password-${item.productCode}`} className="text-base font-medium text-gray-700 block mb-2">
                                   Admin Password
                                 </label>
-                                <Input type="password" id={`password-${product.productCode}`} required
+                                <Input type="password" id={`password-${item.productCode}`} required
                                   placeholder="Enter valid password"  className="w-full" 
                                 />
                               </div>
             
                               <Button 
                                 className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
-                                onClick={() => handleDelete(product.productCode, 
-                                  document.getElementById(`password-${product.productCode}`).value)}
+                                onClick={() => handleDelete(
+                                  item.productCode, 
+                                  document.getElementById(`password-${item.productCode}`).value)}
                               >
                                 DELETE TRANSACTION
                               </Button>
@@ -393,35 +744,50 @@ export default function ProductTable() {
               <Input value={selectedProduct.dateAdded} disabled className="bg-gray-200" />
 
               <label className="text-black font-semibold text-sm">Supplier</label>
-              <Select value={selectedProduct.supplier}>
+              <Select>
                 <SelectTrigger>
-                  <SelectValue placeholder={selectedProduct.supplier}/>
+                  <SelectValue placeholder="Select Supplier" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Lazer">Lazer</SelectItem>
-                  <SelectItem value="Cort">Cort</SelectItem>
+                  {suppliers.map((supplier) => (
+                    <SelectItem
+                      key={supplier.S_supplierID}
+                      value={supplier.S_supplierName}>
+                      {supplier.S_supplierName}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 
               <label className="text-black font-semibold text-sm">Brand</label>
-              <Select value={selectedProduct.brand}>
+              <Select>
                 <SelectTrigger>
-                  <SelectValue placeholder={selectedProduct.brand}/>
+                  <SelectValue placeholder="Select Brand" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Cort">Cort</SelectItem>
-                  <SelectItem value="Lazer">Lazer</SelectItem>
+                  {brands.map((brand) => (
+                    <SelectItem
+                      key={brand.B_brandID}
+                      value={brand.B_brandName}>
+                      {brand.B_brandName}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 
               <label className="text-black font-semibold text-sm">Category</label>
-              <Select value={selectedProduct.category}>
+              <Select>
                 <SelectTrigger>
-                  <SelectValue placeholder={selectedProduct.category} />
+                  <SelectValue placeholder="Select Category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Guitar">Guitar</SelectItem>
-                  <SelectItem value="Drum">Drum</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem
+                      key={category.C_categoryID}
+                      value={category.C_categoryName}>
+                      {category.C_categoryName}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 
@@ -435,7 +801,7 @@ export default function ProductTable() {
               <Input type="text" defaultValue={selectedProduct.price} />
 
               <label className="text-black font-semibold text-sm">Selling Price</label>
-              <Input type="text" defaultValue={selectedProduct.sellingprice} />
+              <Input type="text" defaultValue={selectedProduct.sellingPrice} />
 
               <label className="text-black font-semibold text-sm">Product Status</label>
               <Select>
