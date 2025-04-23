@@ -11,9 +11,9 @@ import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, Dialog
 import { Search, ListFilter, Download, Trash2, Ellipsis } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
 
-//Not fetching from an API yet, so data is currently static
+// Not fetching from an API yet, so data is currently static
 
-// sample product data
+// Sample product data
 const products = [
   { productCode: "188090", brand: "Cort", category: "Guitar", quantity: 2 },
   { productCode: "188091", brand: "Lazer", category: "Drum", quantity: 1 },
@@ -26,7 +26,7 @@ const products = [
   { productCode: "188098", brand: "Lazer", category: "Drum", quantity: 3 },
 ];
 
-// sample deliveries data
+// Sample deliveries data
 const delivery = [
   { deliveryNum: "188090", supplier: "Lazer" },
   { deliveryNum: "188091", supplier: "Lazer" },
@@ -169,6 +169,18 @@ export default function OrdersPage() {
                         </DropdownMenuItem>
                       </DropdownMenuSubContent>
                     </DropdownMenuSub>
+
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>Date added</DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent>
+                        <DropdownMenuItem onClick={() => handleFilterSelect("Date added", "Low to High")}>
+                          Low to High
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleFilterSelect("Date added", "High to Low")}>
+                          High to Low
+                        </DropdownMenuItem>
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>                   
                   
                     <DropdownMenuItem 
                       onClick={() => handleFilterSelect(null, null)} 
@@ -214,7 +226,7 @@ export default function OrdersPage() {
                     <TableCell>{transaction.receiptNum}</TableCell>
                     <TableCell>{transaction.product}</TableCell>
                     <TableCell>{transaction.totalPrice}</TableCell>
-                {/*Details toggle button with modal pop-up */}              
+                    {/*Details toggle button with modal pop-up */}              
                     <TableCell className="flex space-x-2">              
                       <Dialog>
                         <DialogTrigger asChild>
@@ -258,7 +270,8 @@ export default function OrdersPage() {
                             <p className="text-gray-500">Product details not found.</p>
                           )}
                         </DialogContent>
-                      </Dialog>                     
+                      </Dialog>    
+                                       
                       {/* For deleting transactions */}
                       <Dialog>
                         <DialogTrigger asChild>
