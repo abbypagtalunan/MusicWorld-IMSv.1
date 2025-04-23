@@ -54,10 +54,10 @@ const updateProduct = (productCode, productData, callback) => {
   const { P_productName, P_unitPrice, P_sellingPrice, P_productStatusID, S_supplierID, B_brandID, C_categoryID, P_SKU, PS_StockDetailsID } = productData;
   const updateProductQuery = `
     UPDATE Products
-    SET P_productName = ?, P_quantity = ?, P_unitPrice = ?, P_sellingPrice = ?, P_productStatus = ?, C_categoryID = ?
+    SET P_productName = ?, P_unitPrice = ?, P_sellingPrice = ?, P_productStatusID = ?, S_supplierID = ?, B_brandID = ?, C_categoryID = ?, P_SKU = ?, PS_StockDetailsID = ?
     WHERE P_productCode = ?;
   `;
-  db.query(updateProductQuery, [P_productName, P_quantity, P_unitPrice, P_sellingPrice, P_productStatus, C_categoryID], (err, results) => {
+  db.query(updateProductQuery, [P_productName, P_unitPrice, P_sellingPrice, P_productStatusID, S_supplierID, B_brandID, C_categoryID, P_SKU, PS_StockDetailsID, productCode], (err, results) => {
     if (err) return callback(err);
     callback(null, results);
     }
@@ -66,23 +66,12 @@ const updateProduct = (productCode, productData, callback) => {
 
 // Delete a Product
 const deleteProduct = (productCode, callback) => {
-  const deleteSupplierQuery = `DELETE FROM ProductSupplier WHERE P_productCode = ?`;
-  const deleteBrandQuery = `DELETE FROM ProductBrand WHERE P_productCode = ?`;
   const deleteProductQuery = `DELETE FROM Products WHERE P_productCode = ?`;
 
-  db.query(deleteSupplierQuery, [productCode], (err) => {
+  db.query(deleteProductQuery, [productCode], (err, results) => {
     if (err) return callback(err);
-
-    db.query(deleteBrandQuery, [productCode], (err) => {
-      if (err) return callback(err);
-
-      db.query(deleteProductQuery, [productCode], (err, results) => {
-        if (err) return callback(err);
-
-        callback(null, results);
-      });
-    });
-  });
+    callback(null, results);
+  });  
 };
 
 module.exports = {

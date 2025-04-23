@@ -632,6 +632,9 @@ export default function ProductsPage() {
 
                     <Label>Product Name</Label>
                     <Input placeholder="Enter product name" required onChange={(e) => setValues({ ...values, [config.product.nameField]: e.target.value })}/>
+                    
+                    <Label>SKU</Label>
+                    <Input placeholder="Enter stock keeping unit" required onChange={(e) => setValues({ ...values, [config.product.skuField]: e.target.value })}/>
 
                     <Label>Quantity</Label>
                     <Input type="number" placeholder="Enter quantity" required onChange={(e) => setValues({ ...values, [config.product.quantityField]: e.target.value })}/>
@@ -910,6 +913,9 @@ export default function ProductsPage() {
 
               <label className="text-black font-semibold text-sm">Product Name</label>
               <Input placeholder={selectedProduct.product} />
+
+              <label className="text-black font-semibold text-sm">SKU</label>
+              <Input placeholder={selectedProduct.SKU} />
 
               <label className="text-black font-semibold text-sm">Quantity</label>
               <Input type="number" defaultValue={selectedProduct.quantity} />
