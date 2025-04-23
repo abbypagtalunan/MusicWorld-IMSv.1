@@ -9,6 +9,7 @@ import {
   Undo2Icon,
   ListIcon,
   ChartNoAxesCombinedIcon,
+  User,
   SettingsIcon,
 } from "lucide-react"
 import { NavMain } from "@/components/nav-main"
