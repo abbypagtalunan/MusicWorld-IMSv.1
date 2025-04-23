@@ -6,6 +6,7 @@ import { SidebarProvider } from "@/components/ui/sidebar"
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toast } from "react-hot-toast";
 import { Search, ListFilter, Download, FilePen, Trash2 } from "lucide-react";
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
@@ -26,11 +27,13 @@ export default function ProductsPage() {
       categoryField: "P_category",
       categoryID: "P_categoryID",
       nameField: "P_productName",
-      quantityField: "P_quantity",
+      skuField: "P_SKU",
+      stockField: "P_stock",
+      stockID: "P_StockDetailsID",
       unitpriceField: "P_unitPrice",
       sellingpriceField: "P_sellingPrice",
-      statusField: "P_productStatus",
-      statusId: "P_statusID",
+      statusField: "P_productStatusName",
+      statusId: "P_productStatusID",
       isAutoInc: false,
       api: {
         fetch: "http://localhost:8080/products", 
@@ -86,56 +89,57 @@ export default function ProductsPage() {
 
   const [data, setData] = useState([]);
   const [values, setValues] = useState({
-    [config.codeField]: "",
-    [config.dateField]: "",
-    [config.supplierField]: "",
-    [config.brandField]: "",
-    [config.categoryField]: "",
-    [config.nameField]: "",
-    [config.quantityField]: "",
-    [config.unitpriceField]: "",
-    [config.sellingpriceField]: "",
-    [config.statusField]: "",
+    [config.product.codeField]: "",
+    [config.product.dateField]: "",
+    [config.product.supplierField]: "",
+    [config.product.brandField]: "",
+    [config.product.categoryField]: "",
+    [config.product.nameField]: "",
+    [config.product.quantityField]: "",
+    [config.product.unitpriceField]: "",
+    [config.product.sellingpriceField]: "",
+    [config.product.statusField]: "",
   });
 
   const [editingItem, setEditingItem] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPID, setSelectedPID] = useState(null);
 
+  const normalizedData = (products) => products.data.map((item) => ({
+    productCode: item.P_productCode,
+    dateAdded: item.P_dateAdded,
+    supplier: item.supplier || "",
+    supplierID: item.S_supplierID,
+    brand: item.brand || "",
+    brandID: item.B_brandID,
+    category: item.category || "",
+    categoryID: item.C_categoryID,
+    productName: item.P_productName,
+    SKU: item.P_SKU,
+    stockNumber: item.stock || 0,
+    price: item.P_unitPrice,
+    sellingPrice: item.P_sellingPrice,
+    status: item.status 
+  }));
+
   // Fetch
   useEffect(() => {
     axios
       .get(config.product.api.fetch)
-      .then((res) => {
-        const normalizedData = res.data.map((item) => ({
-          productCode: item.P_productCode,
-          dateAdded: item.P_dateAdded,
-          supplier: item.supplier || "",
-          supplierID: item.S_supplierID,
-          brand: item.brand || "",
-          brandID: item.B_brandID,
-          category: item.category || "",
-          categoryID: item.C_categoryID,
-          productName: item.P_productName,
-          quantity: item.P_quantity,
-          price: item.P_unitPrice,
-          sellingPrice: item.P_sellingPrice,
-          status: item.P_productStatus 
-        }));
-        setData(normalizedData);})
+      .then((res) => setData(normalizedData(res)))
       .catch((error) => console.error("Error fetching data:", error));
     
       setValues({
-      [config.codeField]: "",
-      [config.dateField]: "",
-      [config.supplierField]: "",
-      [config.brandField]: "",
-      [config.categoryField]: "",
-      [config.nameField]: "",
-      [config.quantityField]: "",
-      [config.unitpriceField]: "",
-      [config.sellingpriceField]: "",
-      [config.statusField]: "",
+      [config.product.codeField]: "",
+      [config.product.dateField]: "",
+      [config.product.supplierField]: "",
+      [config.product.brandField]: "",
+      [config.product.categoryField]: "",
+      [config.product.nameField]: "",
+      [config.product.quantityField]: "",
+      [config.product.unitpriceField]: "",
+      [config.product.sellingpriceField]: "",
+      [config.product.statusField]: "",
     });
 
     setEditingItem(null);
@@ -144,8 +148,8 @@ export default function ProductsPage() {
 
   const refreshTable = () => {
     axios
-      .get(config.api.fetch)
-      .then((res) => setData(res.data))
+      .get(config.product.api.fetch)
+      .then((res) => setData(normalizedData(res)))
       .catch((error) => console.error("Error fetching data:", error));
   };
 
@@ -199,6 +203,14 @@ export default function ProductsPage() {
       const getPrice = (price) => {
         if (!price) return 0;
         return parseFloat(price.toString().replace(/[^\d.]/g, ""));
+      }
+
+      if (selectedFilter === "Date Added") {
+        sortedTransactions.sort((a, b) =>
+          selectedSubFilter === "Ascending"
+            ? a.dateAdded.localeCompare(b.dateAdded)
+            : b.dateAdded.localeCompare(a.dateAdded)
+        );
       }
       
       sortedTransactions.sort((a, b) =>
@@ -263,22 +275,23 @@ export default function ProductsPage() {
   const handleSubmit = (e) => {
     e.preventDefault();
     const payload = { 
-      [config.product.codeField]: values[config.product.codeField],
-      [config.product.dateField]: values[config.product.dateField],
-      [config.product.supplierField]: values[config.product.supplierField],
-      [config.product.brandField]: values[config.product.brandField],
-      [config.product.categoryField]: values[config.product.categoryField],
-      [config.product.nameField]: values[config.product.nameField],
-      [config.product.quantityField]: values[config.product.quantityField],
-      [config.product.unitpriceField]: values[config.product.unitpriceField],
-      [config.product.sellingpriceField]: values[config.product.sellingpriceField],
-      [config.product.statusField]: values[config.product.statusField],
+      P_productCode: values[config.product.codeField],
+      P_productName: values[config.product.nameField],
+      P_SKU: values[config.product.skuField],
+      P_StockDetailsID: stockIDMap[values[config.product.stockField]],
+      P_unitPrice: values[config.product.unitpriceField],
+      P_sellingPrice: values[config.product.sellingpriceField],
+      P_dateAdded: values[config.product.dateField],
+      P_productStatus: values[config.product.statusField],
+      S_supplierID: supplierIDMap[values[config.product.supplierField]] || "",
+      B_brandID: brandIDMap[values[config.product.brandField]] || "",
+      C_categoryID: categoryIDMap[values[config.product.categoryField]] || ""
     };
 
     axios
       .post(config.product.api.add, payload)
       .then(() => {
-        toast.success(`${config.label} updated successfully`);
+        toast.success(`${config.product.label} updated successfully`);
         refreshTable();
         resetForm();
       })
@@ -286,11 +299,11 @@ export default function ProductsPage() {
         console.error("Error response:", err.response);
 
         if (err.response?.data?.message?.includes('.PRIMARY')) {
-          toast.error(`${config.label} with given code already exists. Code must be unique.`);
+          toast.error(`${config.product.label} with given code already exists. Code must be unique.`);
         }
 
         if (err.response?.status === 409 || err.response?.data?.message?.includes('unique_name')) {
-          toast.error(`${config.label} with given name already exists. Name must be unique.`);
+          toast.error(`${config.product.label} with given name already exists. Name must be unique.`);
         } 
         else {
           toast.error(`Error adding ${config.label}`);
@@ -365,16 +378,26 @@ export default function ProductsPage() {
   };
 
   // Delete
-  const handleDelete = () => {
-    axios
-      .delete(`${config.api.delete}/${selectedPID}`)
+  const [adminPW, setAdminPW] = useState("");
+  const handleDelete = (productCode, adminPWInput) => {
+    axios({
+      method: 'delete',
+      url: `http://localhost:8080/products/${productCode}`,
+      data: { adminPW: adminPWInput }, 
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    })
       .then(() => {
-        toast.success(`${config.label} deleted`);
+        toast.success("Product deleted successfully");
         refreshTable();
       })
-      .catch(() => toast.error(`Error deleting ${config.label}`))
-      .finally(() => setOpenDialog(false));
+      .catch(err => {
+        console.error("Delete error:", err.response?.data || err);
+        toast.error(err.response?.data?.message || "Error deleting product");
+      });
   };
+  
 
   // Multiple Delete
   const [selectedProducts, setSelectedProducts] = useState([]);
@@ -401,14 +424,13 @@ export default function ProductsPage() {
     Promise.all(
       selectedProducts.map((code) =>
         axios.delete(`${config.product.api.delete}/${code}`, {
-          data: { password },
+          data: { adminPW },
         })
       )
     )
       .then(() => {
         toast.success("Selected products deleted.");
         refreshTable();
-        setSelectedProducts([]);
       })
       .catch(() => toast.error("Error deleting selected products."));
   };  
@@ -507,11 +529,11 @@ export default function ProductsPage() {
                     <DropdownMenuSub>
                       <DropdownMenuSubTrigger>Date added</DropdownMenuSubTrigger>
                       <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Date added", "Low to High")}>
-                          Low to High
+                        <DropdownMenuItem onClick={() => handleFilterSelect("Date added", "Ascending")}>
+                          Ascending
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Date added", "High to Low")}>
-                          High to Low
+                        <DropdownMenuItem onClick={() => handleFilterSelect("Date added", "Descending")}>
+                          Descending
                         </DropdownMenuItem>
                       </DropdownMenuSubContent>
                     </DropdownMenuSub>
@@ -555,7 +577,7 @@ export default function ProductsPage() {
                   </SheetHeader>
                   <div className="overflow-y-auto flex flex-col space-y-4">
                     <Label className>Product Code</Label>
-                    <Input placeholder="Enter product code" type="number" required onChange={(e) => setValues({...values, [config.codeField]: e.target.value})} />
+                    <Input placeholder="Enter product code" type="number" required onChange={(e) => setValues({...values, [config.product.codeField]: e.target.value})} />
 
                     <Label>Date Added</Label>
                     <Input type="date" name="Pdateadded"  required onChange={(e) => setValues({ ...values, [config.product.dateField]: e.target.value })}/>
@@ -710,16 +732,17 @@ export default function ProductsPage() {
                       </label>
                       <Input
                         type="password"
-                        id="password"
                         required
-                        placeholder="Enter valid password"
+                        placeholder="Enter admin password"
                         className="w-full"
+                        value={adminPW}
+                        onChange={(e) => setAdminPW(e.target.value)}
                       />
                     </div>
                     <Button
                       className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
                       onClick={() =>
-                        handleMultiDelete(document.getElementById("multi-delete-password").value)
+                        handleMultiDelete(adminPW)
                       }
                     >
                       DELETE TRANSACTIONS
@@ -743,6 +766,7 @@ export default function ProductsPage() {
                   <TableHead>Brand</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Product</TableHead>
+                  <TableHead>SKU (Stock Keeping Unit)</TableHead>
                   <TableHead>Quantity</TableHead>
                   <TableHead>Price</TableHead>
                   <TableHead>Selling Price</TableHead>
@@ -752,9 +776,9 @@ export default function ProductsPage() {
               </TableHeader>
               <TableBody>
               {getFilteredTransactions().filter(item =>
-                item.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                item.productCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                item.category.toLowerCase().includes(searchTerm.toLowerCase())
+                (item.productName?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+                (item.productCode?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+                (item.category?.toLowerCase() || "").includes(searchTerm.toLowerCase())                
               ).map((item) => (
                   <TableRow key={item.productCode} className={getStatusColor(item.status)}>
                     <TableCell>
@@ -770,6 +794,7 @@ export default function ProductsPage() {
                     <TableCell>{item.brand}</TableCell>
                     <TableCell>{item.category}</TableCell>
                     <TableCell>{item.productName}</TableCell>
+                    <TableCell>{item.stock}</TableCell>
                     <TableCell>{item.quantity} pcs</TableCell>
                     <TableCell>{item.price}</TableCell>
                     <TableCell>{item.sellingPrice}</TableCell>
@@ -798,16 +823,19 @@ export default function ProductsPage() {
                                 <label htmlFor={`password-${item.productCode}`} className="text-base font-medium text-gray-700 block mb-2">
                                   Admin Password
                                 </label>
-                                <Input type="password" id={`password-${item.productCode}`} required
-                                  placeholder="Enter valid password"  className="w-full" 
+                                <Input type="password" required placeholder="Enter valid password" className="w-full" value={adminPW}
+                                    onChange={(e) =>
+                                      setAdminPW(e.target.value)
+                                    }
                                 />
                               </div>
             
                               <Button 
                                 className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
                                 onClick={() => handleDelete(
-                                  item.productCode, 
-                                  document.getElementById(`password-${item.productCode}`).value)}
+                                  item.productCode,
+                                  adminPW
+                                )}
                               >
                                 DELETE TRANSACTION
                               </Button>

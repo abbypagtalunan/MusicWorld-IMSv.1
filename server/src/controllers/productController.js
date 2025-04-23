@@ -16,6 +16,7 @@ const getAllProducts = (req, res) => {
 
 // Route to add a new product
 const addProduct = (req, res) => {
+  console.log("🔍 Incoming payload:", req.body);
   const { P_productCode, P_productName, P_quantity, P_unitPrice, P_sellingPrice, P_dateAdded, P_productStatus, S_supplierID, B_brandID, C_categoryID } = req.body;
   if (!P_productCode || !P_productName || !P_productStatus) {
     return res.status(400).json({ message: 'Missing required fields' });
@@ -56,6 +57,12 @@ const updateProduct = (req, res) => {
 // Route to delete a product
 const deleteProduct = (req, res) => {
   const productCode = req.params.id;
+  const { adminPW } = req.body;
+
+  if (adminPW !== "2095") {
+    return res.status(403).json({ message: "Invalid admin password" });
+  }
+
   productModel.deleteProduct(productCode, (err, results) => {
     if (err) {
       console.error('Error deleting product:', err);
