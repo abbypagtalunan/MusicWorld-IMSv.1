@@ -14,15 +14,15 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "cors": "^2.8.5",
     "express": "^5.1.0",
     "mysql2": "^3.14.0",
-    "cors": "^2.8.5",
     "next": "^15.2.4",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.9",
-    "concurrently": "^9.1.2"
+    "concurrently": "^9.1.2",
+    "nodemon": "^3.1.9"
   }
 }

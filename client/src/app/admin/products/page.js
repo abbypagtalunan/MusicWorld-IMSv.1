@@ -376,6 +376,43 @@ export default function ProductsPage() {
       .finally(() => setOpenDialog(false));
   };
 
+  // Multiple Delete
+  const [selectedProducts, setSelectedProducts] = useState([]);
+
+  const handleSelectProduct = (productCode) => {
+    setSelectedProducts((prev) =>
+      prev.includes(productCode)
+        ? prev.filter((code) => code !== productCode)
+        : [...prev, productCode]
+    );
+  };
+  
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      const allCodes = getFilteredTransactions().map((item) => item.productCode);
+      setSelectedProducts(allCodes);
+    } else {
+      setSelectedProducts([]);
+    }
+  };
+
+  const handleMultiDelete = (password) => {
+    if (!password) return toast.error("Password is required.");
+    Promise.all(
+      selectedProducts.map((code) =>
+        axios.delete(`${config.product.api.delete}/${code}`, {
+          data: { password },
+        })
+      )
+    )
+      .then(() => {
+        toast.success("Selected products deleted.");
+        refreshTable();
+        setSelectedProducts([]);
+      })
+      .catch(() => toast.error("Error deleting selected products."));
+  };  
+
   return (
     <SidebarProvider>
       <div className="flex h-screen w-screen">
@@ -648,6 +685,48 @@ export default function ProductsPage() {
               <Button className="bg-blue-400 text-white">
                 <Download className="w-4 h-4" />
               </Button>
+
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button className="bg-red-500 text-white" disabled={selectedProducts.length === 0}>
+                    Delete Selected
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-3xl p-7 text-gray-700">
+                  <DialogHeader>
+                    <DialogTitle>
+                      <span className="text-lg text-red-900">Delete Multiple Transactions</span>
+                      <span className="text-lg text-gray-400 font-normal italic ml-2">({selectedProducts.length} items)</span>
+                    </DialogTitle>
+                    <DialogClose />
+                  </DialogHeader>
+                  <p className="text-sm text-gray-800 mt-2 pl-4">
+                    Deleting these transactions will reflect on Void Transactions. Enter the admin password to delete the selected products.
+                  </p>
+                  <div className="flex items-center gap-4 mt-4 pl-10">
+                    <div className="flex-1">
+                      <label htmlFor="password" className="text-base font-medium text-gray-700 block mb-2">
+                        Admin Password
+                      </label>
+                      <Input
+                        type="password"
+                        id="password"
+                        required
+                        placeholder="Enter valid password"
+                        className="w-full"
+                      />
+                    </div>
+                    <Button
+                      className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
+                      onClick={() =>
+                        handleMultiDelete(document.getElementById("multi-delete-password").value)
+                      }
+                    >
+                      DELETE TRANSACTIONS
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
           <div className="p-4 bg-white shadow-md rounded-lg flex flex-col overflow-auto w-full">
@@ -655,6 +734,9 @@ export default function ProductsPage() {
             <Table>
               <TableHeader className="sticky top-0 bg-white z-10">
                 <TableRow>
+                  <TableHead>
+                    <input type="checkbox" onChange={handleSelectAll} checked={selectedProducts.length === getFilteredTransactions().length && selectedProducts.length > 0} />
+                  </TableHead>
                   <TableHead>Product Code</TableHead>
                   <TableHead>Date Added</TableHead>
                   <TableHead>Supplier</TableHead>
@@ -675,6 +757,13 @@ export default function ProductsPage() {
                 item.category.toLowerCase().includes(searchTerm.toLowerCase())
               ).map((item) => (
                   <TableRow key={item.productCode} className={getStatusColor(item.status)}>
+                    <TableCell>
+                      <input
+                        type="checkbox"
+                        checked={selectedProducts.includes(item.productCode)}
+                        onChange={() => handleSelectProduct(item.productCode)}
+                      />
+                    </TableCell>
                     <TableCell>{item.productCode}</TableCell>
                     <TableCell>{new Date(item.dateAdded).toLocaleDateString()}</TableCell>
                     <TableCell>{item.supplier}</TableCell>
