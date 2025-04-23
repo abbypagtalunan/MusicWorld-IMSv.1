@@ -10,6 +10,7 @@ import {
   ListIcon,
   ChartNoAxesCombinedIcon,
   SettingsIcon,
+  User,
 } from "lucide-react"
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
@@ -73,7 +74,12 @@ const data = {
         title: "Configurations",
         url: "./configurations",
         icon: SettingsIcon
-      }
+    },
+    {
+      title: "Manage Accounts",
+      url: "./accounts",
+      icon: User
+    }
   ]
 };
 
