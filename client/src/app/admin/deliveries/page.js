@@ -187,8 +187,8 @@ export default function DeliveriesPage() {
                     <TableCell>{d.deliveryNum}</TableCell>
                     <TableCell>{d.supplier}</TableCell>
                     <TableCell>{d.totalCost}</TableCell>
+                    {/* Delivery Details dialog */}
                     <TableCell className="flex space-x-2">
-                      {/* Delivery Details dialog */}
                       <Dialog>
                         <DialogTrigger asChild>
                           <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600">
@@ -197,7 +197,7 @@ export default function DeliveriesPage() {
                         </DialogTrigger>
                         <DialogContent className="w-[90vw] sm:w-[600px] md:w-[750px] lg:w-[900px] xl:w-[1100px] max-w-[95vw] p-4 sm:p-6 overflow-y-auto max-h-[90vh]">
                           <DialogHeader>
-                            <DialogTitle className="text-xl text-gray-600 font-medium pb-0">Delivery Details</DialogTitle>
+                            <DialogTitle>Delivery Details</DialogTitle>
                             <DialogClose />
                           </DialogHeader>
                           
@@ -244,10 +244,14 @@ export default function DeliveriesPage() {
                                   </TableBody>
                                 </Table>
                               </div>
-                            </div>                            
+                            </div>    
+                                                    
                             {/* BOTTOM CONTENT: Delivery Payment Details Section */}
+                            <DialogHeader>
+                              <DialogTitle>Delivery Payment Details</DialogTitle>
+                              <DialogClose />
+                            </DialogHeader>
                             <div className="flex w-full">
-                              <h2 className="text-lg text-gray-600 font-medium mt-2 mb-6">Delivery Payment Details</h2>
                               <div className="grid grid-cols-12 gap-4">
                                 {/* First row */}
                                 <div className="col-span-3">
