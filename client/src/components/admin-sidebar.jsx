@@ -10,7 +10,6 @@ import {
   ListIcon,
   ChartNoAxesCombinedIcon,
   SettingsIcon,
-  User,
 } from "lucide-react"
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
@@ -24,6 +23,8 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+
 
 const data = {
   user: {
@@ -37,57 +38,74 @@ const data = {
       title: "Products",
       url: "./products",
       icon: ListIcon,
-      isActive: true,
+      path: "products"
     },
     {
       title: "Orders",
       url: "./orders",
       icon: ShoppingCartIcon,
-      isActive: true,
+      path: "orders"
     },
     {
       title: "Deliveries",
       url: "./deliveries",
       icon: TruckIcon,
+      path: "deliveries"
     },
     {
       title: "Returns",
       url: "./returns",
       icon: Undo2Icon,
+      path: "returns"
     },
     {
       title: "Discounts",
       url: "./discounts",
       icon: TicketPercentIcon,
+      path: "discounts"
     },
     {
       title: "Deleted Transactions",
       url: "./deleted",
       icon: CircleXIcon,
+      path: "deleted"
     },
     {
       title: "Reports",
       url: "./reports",
-      icon: ChartNoAxesCombinedIcon
+      icon: ChartNoAxesCombinedIcon,
+      path: "reports"
     },
     {
-        title: "Configurations",
-        url: "./configurations",
-        icon: SettingsIcon
+      title: "Configurations",
+      url: "./configurations",
+      icon: SettingsIcon,
+      path: "configurations"
     },
     {
       title: "Manage Accounts",
       url: "./accounts",
-      icon: User
+      icon: User,
+      path: "accounts"
     }
+
+
+
   ]
 };
+
 
 export function AppSidebar({
   ...props
 }) {
+  const pathname = usePathname();
+
+  const navMainWithActive = data.navMain.map(item => ({
+    ...item,
+    isActive: pathname.includes(item.path)
+  }));
   return (
-    <Sidebar variant="inset" {...props} className="bg-white">
+    <Sidebar variant="inset" {...props} className="bg-white hover:bg-muted/50">
       <SidebarHeader className="bg-white">
         <SidebarMenu>
           <SidebarMenuItem>
@@ -107,7 +125,7 @@ export function AppSidebar({
       </SidebarHeader>
 
       <SidebarContent className="bg-white">
-        <NavMain items={data.navMain} />
+        <NavMain items={navMainWithActive} />
       </SidebarContent>
 
       <SidebarFooter className="bg-white">
@@ -118,7 +136,6 @@ export function AppSidebar({
               <span className="ml-2">Log Out</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
-
         </SidebarMenu>
         <NavUser user={data.user} />
       </SidebarFooter>
