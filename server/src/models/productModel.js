@@ -5,22 +5,23 @@ const getAllProducts = (callback) => {
   const query = `
     SELECT 
       p.P_productCode,
+      c.C_categoryName as category,
+      p.P_SKU,
       p.P_productName,
+      b.B_brandName as brand,
+      s.S_supplierName as supplier,
+      pk.P_stockNum as stock,
       p.P_unitPrice,
       p.P_sellingPrice,
-      p.P_dateAdded,
-      p.P_SKU,
-      c.C_categoryName as category,
       ps.P_productStatusName as status,
-      pk.P_stockNum as stock,
-      s.S_supplierName as supplier,
-      b.B_brandName as brand
+      p.P_dateAdded
     FROM Products p
-    LEFT JOIN Suppliers s ON p.S_supplierID = s.S_supplierID
-    LEFT JOIN Brands b ON p.B_brandID = b.B_brandID
     LEFT JOIN Categories c ON p.C_categoryID = c.C_categoryID
-    LEFT JOIN ProductStatus ps ON p.P_productStatusID = ps.P_productStatusID
-    LEFT JOIN ProductStock pk ON p.PS_StockDetailsID = pk.PS_StockDetailsID;
+    LEFT JOIN Brands b ON p.B_brandID = b.B_brandID
+    LEFT JOIN Suppliers s ON p.S_supplierID = s.S_supplierID
+    LEFT JOIN ProductStock pk ON p.PS_StockDetailsID = pk.PS_StockDetailsID
+    LEFT JOIN ProductStatus ps ON p.P_productStatusID = ps.P_productStatusID;
+    
   `;
   
   db.query(query, (err, results) => {
@@ -34,13 +35,13 @@ const getAllProducts = (callback) => {
 
 // Add a new Product
 const addProduct = (productData, callback) => {
-  const { P_productCode, P_productName, P_unitPrice, P_sellingPrice, P_dateAdded, P_productStatusID, S_supplierID, B_brandID, C_categoryID, P_SKU, PS_StockDetailsID } = productData;
+  const { P_productCode, C_categoryID, P_SKU, P_productName, B_brandID, S_supplierID, PS_StockDetailsID, P_unitPrice, P_sellingPrice, P_productStatusID, P_dateAdded } = productData;
 
   const insertProductQuery = `
-    INSERT INTO Products (P_productCode, P_productName, P_unitPrice, P_sellingPrice, P_dateAdded, P_productStatusID, S_supplierID, B_brandID, C_categoryID, P_SKU, PS_StockDetailsID) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    INSERT INTO Products (P_productCode, C_categoryID, P_SKU, P_productName, B_brandID, S_supplierID, PS_StockDetailsID, P_unitPrice, P_sellingPrice, P_productStatusID, P_dateAdded) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
   db.query(
     insertProductQuery,
-    [ P_productCode, P_productName, P_unitPrice, P_sellingPrice, P_dateAdded, P_productStatusID, S_supplierID, B_brandID, C_categoryID, P_SKU, PS_StockDetailsID ],
+    [ P_productCode, C_categoryID, P_SKU, P_productName, B_brandID, S_supplierID, PS_StockDetailsID, P_unitPrice, P_sellingPrice, P_productStatusID, P_dateAdded ],
     (err, results) => {
       if (err) return callback(err);
       callback(null, results);
@@ -51,13 +52,13 @@ const addProduct = (productData, callback) => {
 
 // Update an existing brand
 const updateProduct = (productCode, productData, callback) => {
-  const { P_productName, P_unitPrice, P_sellingPrice, P_productStatusID, S_supplierID, B_brandID, C_categoryID, P_SKU, PS_StockDetailsID } = productData;
+  const { C_categoryID, P_SKU, P_productName, B_brandID, S_supplierID, PS_StockDetailsID, P_unitPrice, P_sellingPrice, P_productStatusID } = productData;
   const updateProductQuery = `
     UPDATE Products
-    SET P_productName = ?, P_unitPrice = ?, P_sellingPrice = ?, P_productStatusID = ?, S_supplierID = ?, B_brandID = ?, C_categoryID = ?, P_SKU = ?, PS_StockDetailsID = ?
+    SET  C_categoryID = ?, P_SKU = ?, P_productName = ?, B_brandID = ?, S_supplierID = ?, PS_StockDetailsID = ?, P_unitPrice = ?, P_sellingPrice = ?, P_productStatusID = ? 
     WHERE P_productCode = ?;
   `;
-  db.query(updateProductQuery, [P_productName, P_unitPrice, P_sellingPrice, P_productStatusID, S_supplierID, B_brandID, C_categoryID, P_SKU, PS_StockDetailsID, productCode], (err, results) => {
+  db.query(updateProductQuery, [ C_categoryID, P_SKU, P_productName, B_brandID, S_supplierID, PS_StockDetailsID, P_unitPrice, P_sellingPrice, P_productStatusID, P_productCode ], (err, results) => {
     if (err) return callback(err);
     callback(null, results);
     }

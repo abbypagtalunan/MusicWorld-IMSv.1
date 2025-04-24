@@ -19,21 +19,21 @@ export default function ProductsPage() {
     product: {
       label: "Product",
       codeField: "P_productCode",
-      dateField: "P_dateAdded",
-      supplierField: "P_supplier",
-      supplierID: "P_supplierID",
-      brandField: "P_brand",
-      brandID: "P_brandID",
       categoryField: "P_category",
       categoryID: "P_categoryID",
-      nameField: "P_productName",
       skuField: "P_SKU",
+      nameField: "P_productName",
+      brandField: "P_brand",
+      brandID: "P_brandID",
+      supplierField: "P_supplier",
+      supplierID: "P_supplierID",
       stockField: "P_stock",
       stockID: "P_StockDetailsID",
       unitpriceField: "P_unitPrice",
       sellingpriceField: "P_sellingPrice",
       statusField: "P_productStatusName",
       statusId: "P_productStatusID",
+      dateField: "P_dateAdded",
       isAutoInc: false,
       api: {
         fetch: "http://localhost:8080/products", 
@@ -42,14 +42,14 @@ export default function ProductsPage() {
         delete: "http://localhost:8080/products",
       },
     },
-
-    supplier: {
-      label: "Supplier",
-      idField: "SupplierID",
-      nameField: "SupplierName",
+    
+    category: {
+      label: "Category",
+      idField: "CategoryID",
+      nameField: "CategoryName",
       isAutoInc: false,
       api: {
-        fetch: "http://localhost:8080/suppliers",
+        fetch: "http://localhost:8080/categories",
       },
     },
 
@@ -62,17 +62,17 @@ export default function ProductsPage() {
         fetch: "http://localhost:8080/brands",
       },
     },
-
-    category: {
-      label: "Category",
-      idField: "CategoryID",
-      nameField: "CategoryName",
+    
+    supplier: {
+      label: "Supplier",
+      idField: "SupplierID",
+      nameField: "SupplierName",
       isAutoInc: false,
       api: {
-        fetch: "http://localhost:8080/categories",
+        fetch: "http://localhost:8080/suppliers",
       },
-    }, 
-    
+    },
+
     productStatus: {
       label: "Product Status",
       idField: "PStatusID",
@@ -90,15 +90,16 @@ export default function ProductsPage() {
   const [data, setData] = useState([]);
   const [values, setValues] = useState({
     [config.product.codeField]: "",
-    [config.product.dateField]: "",
-    [config.product.supplierField]: "",
-    [config.product.brandField]: "",
     [config.product.categoryField]: "",
+    [config.product.skuField]: "",    
     [config.product.nameField]: "",
-    [config.product.quantityField]: "",
+    [config.product.brandField]: "",
+    [config.product.supplierField]: "",
+    [config.product.stockField]: "",
     [config.product.unitpriceField]: "",
     [config.product.sellingpriceField]: "",
     [config.product.statusField]: "",
+    [config.product.dateField]: "",
   });
 
   const [editingItem, setEditingItem] = useState(null);
@@ -107,19 +108,20 @@ export default function ProductsPage() {
 
   const normalizedData = (products) => products.data.map((item) => ({
     productCode: item.P_productCode,
-    dateAdded: item.P_dateAdded,
-    supplier: item.supplier || "",
-    supplierID: item.S_supplierID,
-    brand: item.brand || "",
-    brandID: item.B_brandID,
     category: item.category || "",
     categoryID: item.C_categoryID,
-    productName: item.P_productName,
     SKU: item.P_SKU,
+    productName: item.P_productName,
+    brand: item.brand || "",
+    brandID: item.B_brandID,
+    supplier: item.supplier || "",
+    supplierID: item.S_supplierID,
     stockNumber: item.stock || 0,
+    stockID: item.P_StockDetailsID,
     price: item.P_unitPrice,
     sellingPrice: item.P_sellingPrice,
-    status: item.status 
+    status: item.status,
+    dateAdded: item.P_dateAdded
   }));
 
   // Fetch
