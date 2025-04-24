@@ -17,6 +17,7 @@ import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, Dialog
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Trash2, Ellipsis } from "lucide-react";
 import { useState, useEffect } from "react";
+import axios from "axios";
 
 
 // sample product data incl: quantity, product, brand, category
@@ -60,115 +61,147 @@ const deliveries = [
 
 
 export default function ReturnsPage() {
-  const [searchTerm] = useState("");
-  const [customerReturns, setCustomerReturns] = useState([]);
-  const [filteredSupplierReturns, setFilteredSupplierReturns] = useState([]);
-  const [selectedFilter] = useState("All");
-  const [ , setActiveTab] = useState("customer");
-  const [productName, setProductName] = useState("");
-  const [returnType, setReturnType] = useState("");
-  const [supplier, setSupplier] = useState("");
-  const [brand, setBrand] = useState("");
-  const [quantity, setQuantity] = useState("");
-  const [discount, setDiscount] = useState("");
-  const [price, setPrice] = useState("");
   
-  // Process and merge data from transactions and products tables for customer returns
-  useEffect(() => {
-    // Filter transactions to only include returns
-    const returnTransactions = transactions.filter(
-      transaction => transaction.transactionType === "Return"
-    );
-    
-    // Merge transaction data with product data
-    const processedReturns = returnTransactions.map(transaction => {
-      // Find the matching product
-      const productMatch = products.find(
-        product => product.productCode === transaction.productCode
-      );
-      
-      // Find supplier information from deliveries
-      const deliveryMatch = deliveries.find(
-        delivery => delivery.productCode === transaction.productCode
-      );
-      
-      // Create a new object with combined data
-      return {
-        dateAdded: transaction.dateAdded,
-        transactionID: transaction.transactionID,
-        transactionType: transaction.transactionType,
-        productCode: transaction.productCode,
-        receiptNum: `11${transaction.transactionID.slice(-4)}`, // Generate receipt number
-        product: productMatch ? productMatch.product : "Unknown Product",
-        quantity: productMatch ? productMatch.quantity : 0,
-        totalPrice: transaction.totalPrice,
-        discount: transaction.discount,
-        brand: productMatch ? productMatch.brand : "Unknown",
-        category: productMatch ? productMatch.category : "Unknown",
-        supplier: deliveryMatch ? deliveryMatch.supplier : "Unknown",
-        returnType: "Return to Inventory (Resellable)" // Default value for return type
-      };
-    });
-    
-    setCustomerReturns(processedReturns);
-    
-    // Process supplier returns data
-    const processedSupplierReturns = deliveries.map(returnItem => {
-      // Find the matching product for additional details
-      const productMatch = products.find(
-        product => product.productCode === returnItem.productCode
-      );
-      
-      return {
-        ...returnItem,
-        brand: productMatch ? productMatch.brand : "Unknown",
-        category: productMatch ? productMatch.category : "Unknown"
-      };
-    });
-    
-    setFilteredSupplierReturns(processedSupplierReturns);
-  }, []);
+  const configMap = {
+    return: {
+      label: "Return",
+      idField: "R_returnID",
+      nameField: "R_returnID", // Using ID as name since there's no specific name field
+      isAutoInc: true,
+      api: {
+        fetch: "http://localhost:8080/returns",
+        add: "http://localhost:8080/returns",
+        update: "http://localhost:8080/returns",
+        delete: "http://localhost:8080/returns",
+      },
+      fields: {
+        productCode: "P_productCode",
+        returnTypeID: "R_returnTypeID",
+        reason: "R_reasonOfReturn",
+        date: "R_dateOfReturn",
+        quantity: "R_returnQuantity",
+        discount: "R_discountAmount"
+      }
+    }
+  };
   
-  // Filter returns based on search term and filter selection
-  const filteredCustomerReturns = customerReturns.filter(item => {
-    const matchesSearch = 
-      item.product.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.transactionID.includes(searchTerm) ||
-      item.productCode.includes(searchTerm) ||
-      item.receiptNum.includes(searchTerm);
-    
-    if (selectedFilter === "All") return matchesSearch;
-    // Add additional filters here if needed
-    
-    return matchesSearch;
-  });
-  
+const [searchTerm, setSearchTerm] = useState("");
+const [customerReturns, setCustomerReturns] = useState([]);
+const [filteredSupplierReturns, setFilteredSupplierReturns] = useState([]);
+const [selectedFilter, setSelectedFilter] = useState("All");
+const [activeTab, setActiveTab] = useState("customer");
+const [productName, setProductName] = useState("");
+const [returnType, setReturnType] = useState("");
+const [supplier, setSupplier] = useState("");
+const [brand, setBrand] = useState("");
+const [quantity, setQuantity] = useState("");
+const [discount, setDiscount] = useState("");
+const [price, setPrice] = useState("");
+const [filteredCustomerReturns, setFilteredCustomerReturns] = useState([]);
+
+
+// Fetch all necessary data for returns
 useEffect(() => {
-  const filtered = deliveries
-    .map((item, index) => {
-      const productMatch = products.find(p => p.productCode === item.productCode);
-      return {
-        ...item,
-        returnID: `SR-${index.toString().padStart(3, "0")}`, // fake ID for display
-        product: productMatch ? productMatch.product : "Unknown",
-        brand: productMatch ? productMatch.brand : "Unknown",
-        category: productMatch ? productMatch.category : "Unknown",
-        quantity: productMatch ? productMatch.quantity : 0
-      };
-    })
-    .filter(item =>
-      item.product.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.productCode.includes(searchTerm) ||
-      item.supplier.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.returnID.includes(searchTerm)
+  // In your useEffect data fetching:
+const fetchData = async () => {
+  try {
+    // Fetch returns data
+    const returnsResponse = await axios.get("http://localhost:8080/returns");
+    const returnsData = returnsResponse.data;
+
+    // Process the data to match your table structure
+    const processedReturns = returnsData.map(item => ({
+      dateAdded: item.R_dateOfReturn, // Make sure this matches your backend field
+      transactionID: item.R_returnID,
+      product: item.P_productName || "Unknown Product", // Adjust based on joined data
+      quantity: item.R_returnQuantity,
+      totalPrice: `₱${item.R_totalPrice?.toLocaleString() || "0"}`, // Format price
+      returnType: item.RT_returnTypeDescription || "Unknown Type",
+      productCode: item.P_productCode,
+      supplier: item.S_supplierName || "Unknown Supplier",
+      brand: item.B_brandName || "Unknown Brand",
+      category: item.P_category || "Unknown Category"
+    }));
+
+    setCustomerReturns(processedReturns);
+    setFilteredCustomerReturns(processedReturns); // Initialize filtered data
+  } catch (error) {
+    console.error("Error fetching data:", error);
+    // You should have toast imported to use this
+    // toast.error("Failed to load returns data");
+  }
+};
+
+  fetchData();
+}, []);
+
+// Filter returns based on search and filters
+useEffect(() => {
+  let filtered = customerReturns;
+
+  // Apply search filter
+  if (searchTerm) {
+    filtered = filtered.filter(item =>
+      item.productCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.returnID.toString().includes(searchTerm)
     );
+  }
+
+  // Apply other filters
+  if (selectedFilter !== "All") {
+    filtered = filtered.filter(item => item.returnType === selectedFilter);
+  }
+
+  if (productName) {
+    filtered = filtered.filter(item =>
+      item.productName.toLowerCase().includes(productName.toLowerCase())
+    );
+  }
+
+  if (returnType) {
+    filtered = filtered.filter(item => item.returnType === returnType);
+  }
+
+  if (supplier) {
+    filtered = filtered.filter(item =>
+      item.supplier.toLowerCase().includes(supplier.toLowerCase())
+    );
+  }
+
+  if (brand) {
+    filtered = filtered.filter(item =>
+      item.brand.toLowerCase().includes(brand.toLowerCase())
+    );
+  }
+
+  if (quantity) {
+    filtered = filtered.filter(item => item.quantity === parseInt(quantity));
+  }
+
+  if (discount) {
+    filtered = filtered.filter(item => item.discount >= parseFloat(discount));
+  }
+
+  if (price) {
+    filtered = filtered.filter(item => item.price >= parseFloat(price));
+  }
 
   setFilteredSupplierReturns(filtered);
-}, [searchTerm]);
-
-
-
+}, [
+  searchTerm,
+  selectedFilter,
+  productName,
+  returnType,
+  supplier,
+  brand,
+  quantity,
+  discount,
+  price,
+  customerReturns
+]);
   return (
+    
     <SidebarProvider>
       <div className="flex h-screen w-screen">
         <AppSidebar />
@@ -198,7 +231,7 @@ useEffect(() => {
                         <TableHeader className="sticky top-0 bg-white z-10">
                             <TableRow>
                               <TableHead>Date</TableHead>
-                              <TableHead>Transaction ID</TableHead>
+                              <TableHead>Return ID</TableHead>
                               <TableHead>Product</TableHead>
                               <TableHead>Quantity</TableHead>
                               <TableHead>Total</TableHead>
@@ -381,7 +414,7 @@ useEffect(() => {
                           </SelectContent>
                         </Select>
                       </div>
-                      
+
                       <div>
                         <Label htmlFor="returnType">Return Type</Label>
                         <Input
@@ -642,4 +675,3 @@ useEffect(() => {
     </SidebarProvider>
   );
 }
-
