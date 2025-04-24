@@ -56,12 +56,6 @@ const data = {
       path: "returns"
     },
     {
-      title: "Discounts",
-      url: "./discounts",
-      icon: TicketPercentIcon,
-      path: "discounts"
-    },
-    {
       title: "Deleted Transactions",
       url: "./deleted",
       icon: CircleXIcon,
