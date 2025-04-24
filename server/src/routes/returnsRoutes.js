@@ -1,17 +1,16 @@
 const express = require('express');
 const router = express.Router();
-const controller = require('../controllers/returnsController');
+const {
+    getAllBrands,
+    addBrand,
+    updateBrand,
+    deleteBrand,
+} = require('../controllers/returnsController');
 
-// Returns Routes
-router.get('/returns', controller.getAllReturns);
-router.post('/returns', controller.addReturn);
-router.put('/returns/:id', controller.updateReturn);
-router.delete('/returns/:id', controller.deleteReturn);
-
-// Return Types Routes
-router.get('/returnTypes', controller.getAllReturnTypes);
-router.post('/returnTypes', controller.addReturnType);
-router.put('/returnTypes/:id', controller.updateReturnType);
-router.delete('/returnTypes/:id', controller.deleteReturnType);
+// Map endpoints to controller logic
+router.get('/', getAllBrands);
+router.post('/', addBrand);
+router.put('/:id', updateBrand);
+router.delete('/:id', deleteBrand);
 
 module.exports = router;

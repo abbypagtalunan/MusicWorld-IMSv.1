@@ -1,70 +1,44 @@
-const db = require('./db');
+const { Product, ReturnType, Return } = require('../models/returnsModel');
 
-// ====================== RETURNS =======================
+exports.addReturn = async (req, res) => {
+  try {
+    const { productName, returnType, quantity, reason, discount } = req.body;
 
-// Fetch all returns
-exports.getAllReturns = (req, res) => {
-  const query = `SELECT * FROM Returns ORDER BY R_returnID DESC`;
-  db.query(query, (err, results) => {
-    if (err) return res.status(500).json({ error: 'Error fetching returns' });
-    res.json(results);
-  });
-};
+    // Validate input
+    if (!productName || !returnType || !quantity || !reason || !discount) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
 
-// Add a return
-exports.addReturn = (req, res) => {
-  const {
-    P_productCode, R_returnTypeID, R_reasonOfReturn,
-    R_dateOfReturn, R_returnQuantity, R_discountAmount, R_totalPrice
-  } = req.body;
+    // Find the product by name
+    const product = await Product.findOne({
+      where: { P_productName: productName },
+    });
 
-  if (!P_productCode || !R_returnTypeID) {
-    return res.status(400).json({ message: 'Missing required fields' });
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    // Find the return type by description
+    const returnTypeObj = await ReturnType.findOne({
+      where: { RT_returnTypeDescription: returnType },
+    });
+
+    if (!returnTypeObj) {
+      return res.status(404).json({ error: 'Return type not found' });
+    }
+
+    // Create the return entry
+    const returnEntry = await Return.create({
+      P_productCode: product.P_productCode,
+      R_returnTypeID: returnTypeObj.RT_returnTypeID,
+      R_reasonOfReturn: reason,
+      R_returnQuantity: parseInt(quantity),
+      R_discountAmount: parseFloat(discount),
+    });
+
+    res.status(201).json({ message: 'Return added successfully', data: returnEntry });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
-
-  const query = `
-    INSERT INTO Returns 
-    (P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn, R_returnQuantity, R_discountAmount, R_totalPrice)
-    VALUES (?, ?, ?, ?, ?, ?, ?)`;
-
-  db.query(query, [
-    P_productCode, R_returnTypeID, R_reasonOfReturn,
-    R_dateOfReturn, R_returnQuantity, R_discountAmount, R_totalPrice
-  ], (err, results) => {
-    if (err) return res.status(500).json({ message: 'Error inserting return' });
-    res.status(201).json({ message: 'Return added', id: results.insertId });
-  });
-};
-
-// Update a return
-exports.updateReturn = (req, res) => {
-  const id = req.params.id;
-  const {
-    P_productCode, R_returnTypeID, R_reasonOfReturn,
-    R_dateOfReturn, R_returnQuantity, R_discountAmount, R_totalPrice
-  } = req.body;
-
-  const query = `
-    UPDATE Returns SET
-    P_productCode = ?, R_returnTypeID = ?, R_reasonOfReturn = ?, R_dateOfReturn = ?,
-    R_returnQuantity = ?, R_discountAmount = ?, R_totalPrice = ?
-    WHERE R_returnID = ?`;
-
-  db.query(query, [
-    P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn,
-    R_returnQuantity, R_discountAmount, R_totalPrice, id
-  ], (err, results) => {
-    if (err) return res.status(500).json({ message: 'Error updating return' });
-    res.json({ message: 'Return updated' });
-  });
-};
-
-// Delete a return
-exports.deleteReturn = (req, res) => {
-  const id = req.params.id;
-  const query = `DELETE FROM Returns WHERE R_returnID = ?`;
-  db.query(query, [id], (err, results) => {
-    if (err) return res.status(500).json({ message: 'Error deleting return' });
-    res.json({ message: 'Return deleted' });
-  });
 };
