@@ -50,12 +50,6 @@ const data = {
       path: "deliveries"
     },
     {
-      title: "Returns",
-      url: "./returns",
-      icon: Undo2Icon,
-      path: "returns"
-    },
-    {
       title: "Deleted Transactions",
       url: "./deleted",
       icon: CircleXIcon,
