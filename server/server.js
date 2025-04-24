@@ -34,6 +34,7 @@ app.use("/deliveryPayTypes", deliveryPaymentTypesRoutes);
 app.use("/deliveryPayStatus", deliveryPaymentStatusRoutes);
 app.use('/returns', returnsRoutes);
 app.use("/supBrdCatStatus", supBrdCatStatusRoutes);
+
 app.use(cors());
 
 // Log that server is running
