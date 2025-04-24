@@ -1,4 +1,4 @@
-const db = require('../db');
+const db = require('./db');
 
 // ====================== RETURNS =======================
 
@@ -68,71 +68,3 @@ exports.deleteReturn = (req, res) => {
     res.json({ message: 'Return deleted' });
   });
 };
-
-
-// ====================== RETURN TYPES =======================
-
-exports.getAllReturnTypes = (req, res) => {
-  const query = `SELECT * FROM ReturnTypes ORDER BY RT_returnTypeID`;
-  db.query(query, (err, results) => {
-    if (err) return res.status(500).json({ error: 'Error fetching return types' });
-    res.json(results);
-  });
-};
-
-exports.addReturnType = (req, res) => {
-  const { RT_returnTypeDescription } = req.body;
-  if (!RT_returnTypeDescription) {
-    return res.status(400).json({ message: 'Missing return type description' });
-  }
-
-  const query = `INSERT INTO ReturnTypes (RT_returnTypeDescription) VALUES (?)`;
-  db.query(query, [RT_returnTypeDescription], (err, results) => {
-    if (err) return res.status(500).json({ message: 'Error adding return type' });
-    res.status(201).json({ message: 'Return type added', id: results.insertId });
-  });
-};
-
-exports.updateReturnType = (req, res) => {
-  const id = req.params.id;
-  const { RT_returnTypeDescription } = req.body;
-  if (!RT_returnTypeDescription) {
-    return res.status(400).json({ message: 'Missing return type description' });
-  }
-
-  const query = `UPDATE ReturnTypes SET RT_returnTypeDescription = ? WHERE RT_returnTypeID = ?`;
-  db.query(query, [RT_returnTypeDescription, id], (err, results) => {
-    if (err) return res.status(500).json({ message: 'Error updating return type' });
-    res.json({ message: 'Return type updated' });
-  });
-};
-
-exports.deleteReturnType = (req, res) => {
-  const id = req.params.id;
-  const query = `DELETE FROM ReturnTypes WHERE RT_returnTypeID = ?`;
-  db.query(query, [id], (err, results) => {
-    if (err) return res.status(500).json({ message: 'Error deleting return type' });
-    res.json({ message: 'Return type deleted' });
-  });
-};
-
-exports.addReturn = (req, res) => {
-    const {
-      P_productCode, R_returnTypeID, R_reasonOfReturn,
-      R_dateOfReturn, R_returnQuantity, R_discountAmount, R_totalPrice
-    } = req.body;
-  
-    const query = `
-      INSERT INTO Returns 
-      (P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn, R_returnQuantity, R_discountAmount, R_totalPrice)
-      VALUES (?, ?, ?, ?, ?, ?, ?)`;
-  
-    db.query(query, [
-      P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn,
-      R_returnQuantity, R_discountAmount, R_totalPrice
-    ], (err, results) => {
-      if (err) return res.status(500).json({ message: 'Error inserting return', error: err });
-      res.status(201).json({ message: 'Return added', id: results.insertId });
-    });
-  };
-  

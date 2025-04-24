@@ -152,7 +152,7 @@ useEffect(() => {
     filtered = filtered.filter(item =>
       item.productCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.transactionIDtoString().includes(searchTerm)
+      item.transactionID.includes(searchTerm)
     );
   }
 
