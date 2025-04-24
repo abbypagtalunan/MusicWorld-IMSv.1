@@ -5,9 +5,8 @@ import { AppSidebar } from "@/components/staff-sidebar"
 import { SidebarProvider} from "@/components/ui/sidebar"
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogDescription } from "@/components/ui/dialog";
-import { Search, ListFilter, Download, Trash2, Ellipsis, RotateCcw } from "lucide-react";
+import { Search, ListFilter, Ellipsis} from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
 
 // sample product data

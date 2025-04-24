@@ -8,7 +8,7 @@ import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose, } from "@/components/ui/dialog";
-import { Search, ListFilter, Download, Trash2, Ellipsis } from "lucide-react";
+import { Search, ListFilter, Trash2, Ellipsis } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
 
 //Not fetching from an API yet, so data is currently static
@@ -156,14 +156,9 @@ export default function OrdersPage() {
                 </DropdownMenu>   
               </div>
             </div>
-            <div className="flex space-x-2">
-            <Button className="bg-blue-400 text-white">
-                <Download className="w-4 h-4"/>
-              </Button>
-            </div>
           </div>
           <div className="p-4 bg-white shadow-md rounded-lg flex flex-col overflow-auto w-full">
-          <h1 className="text-gray-600 font-bold">Customer Orders/Transactions</h1>
+          <h1 className="text-gray-600 font-bold">Customer Orders</h1>
             <Table>
               <TableHeader className="sticky top-0 bg-white z-10">
                 <TableRow>
