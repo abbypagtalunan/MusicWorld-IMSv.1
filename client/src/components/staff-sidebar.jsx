@@ -3,10 +3,9 @@ import * as React from "react"
 import {
   CircleXIcon,
   ShoppingCartIcon,
-  TicketPercentIcon,
+  ListIcon,
   LogOutIcon,
   TruckIcon,
-  Undo2Icon,
   House
 } from "lucide-react"
 import { NavMain } from "@/components/nav-main"
@@ -42,6 +41,12 @@ const data = {
       url: "./orders",
       icon: ShoppingCartIcon,
       path: "orders"
+    },
+    {
+      title: "Products",
+      url: "./products",
+      icon: ListIcon,
+      path: "products"
     },
     {
       title: "Deliveries",
