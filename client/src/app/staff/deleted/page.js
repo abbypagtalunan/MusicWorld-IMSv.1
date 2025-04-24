@@ -122,11 +122,6 @@ export default function DeletedPage() {
                 </DropdownMenu>
               </div>
             </div>
-            <div className="flex space-x-2">
-            <Button className="bg-blue-400 text-white">
-                <Download className="w-4 h-4"/>
-              </Button>
-            </div>
           </div>
           <div className="p-4 bg-white shadow-md rounded-lg flex flex-col overflow-auto w-full">
           <h1 className="text-gray-600 font-bold">Deleted Transactions</h1>
@@ -140,7 +135,6 @@ export default function DeletedPage() {
                   <TableHead>Product</TableHead>
                   <TableHead>Price</TableHead>
                   <TableHead>Details</TableHead>
-                  <TableHead>Retrieve/Delete</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -198,70 +192,6 @@ export default function DeletedPage() {
                           ) : (
                             <p className="text-gray-500">Product details not found.</p>
                           )}
-                        </DialogContent>
-                      </Dialog>
-                    </TableCell>
-                    {/* For retrieving transactions */}
-                    <TableCell className="flex items-center">           
-                      <Dialog>
-                        <DialogTrigger asChild> 
-                          <span className="cursor-pointer text-gray-500 hover:text-blue-600">
-                            <RotateCcw size={16} />
-                          </span>
-                        </DialogTrigger> 
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Are you sure you want to retrieve this transaction?</DialogTitle>
-                            <DialogDescription>
-                              This action will restore the transaction and update the sales report.
-                            </DialogDescription>
-                          </DialogHeader>
-                          <div className="flex justify-end gap-2 mt-4">
-                            <Button 
-                              className="bg-blue-400 text-white hover:bg-blue-700"
-                              onClick={() => handleRetrieve(transaction.transactionID)}
-                            >
-                              Confirm
-                            </Button>
-                            <DialogClose asChild>
-                              <Button variant="outline">Cancel</Button>
-                            </DialogClose>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
-                      {/* For deleting transactions */}
-                      <Dialog>
-                        <DialogTrigger asChild>
-                      <Button variant="ghost" size="sm" className="text-gray-500 hover:text-red-600">
-                        <Trash2 size={16} />
-                      </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-3xl p-7 text-gray-700">
-                        <DialogHeader>
-                            <DialogTitle>
-                              <span className="text-lg text-red-900">Delete Transaction</span>{" "}
-                              <span className="text-lg text-gray-400 font-normal italic">{transaction.transactionID}</span></DialogTitle>
-                            <DialogClose />
-                          </DialogHeader>
-                          <p className='text-sm text-gray-800 mt-2 pl-4'> Warning: This action will permanently remove the transaction from your records. Enter the admin password to continue. </p>
-                          <div className="flex items-center gap-4 mt-4 pl-10">          
-                            <div className="flex-1">
-                              <label htmlFor={`password-${transaction.transactionID}`} className="text-base font-medium text-gray-700 block mb-2">
-                                Admin Password
-                              </label>
-                              <Input type="password" id={`password-${transaction.transactionID}`} required
-                                placeholder="Enter valid password"  className="w-full" 
-                              />
-                            </div>
-          
-                            <Button 
-                              className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
-                              onClick={() => handleDelete(transaction.transactionID, 
-                                document.getElementById(`password-${transaction.transactionID}`).value)}
-                            >
-                              DELETE TRANSACTION
-                            </Button>
-                          </div>
                         </DialogContent>
                       </Dialog>
                     </TableCell>
