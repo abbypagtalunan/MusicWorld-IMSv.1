@@ -33,158 +33,226 @@ import {
   DialogTitle,
   DialogClose,
 } from "@/components/ui/dialog";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/ui/tabs";
 import { Trash2, Ellipsis } from "lucide-react";
 import { useState, useEffect } from "react";
-
-// Sample product data incl: quantity, product, brand, category
-const products = [
-  { productCode: "188090", product: "AD W/ W Case", quantity: 2, brand: "Yamaha", category: "Drums" },
-  { productCode: "188091", product: "Maple Snare Drum", quantity: 1, brand: "Pearl", category: "Drums" },
-  { productCode: "188092", product: "Cymbal Straight Stand", quantity: 3, brand: "Zildjian", category: "Accessories" },
-];
-
-// Sample transactions data incl: date, tid, total, discount
-const transactions = [
-  { dateAdded: "11/12/22", transactionID: "9090", transactionType: "Sales", productCode: "188090", totalPrice: "₱15,995", discount: "0%" },
-  { dateAdded: "11/12/22", transactionID: "9091", transactionType: "Return", productCode: "188091", totalPrice: "₱4,500", discount: "5%" },
-];
-
-// Sample data for deliveries with supplier information
-const deliveries = [
-  { dateAdded: "11/12/22", deliveryNum: "D-188090", supplier: "Lazer", productCode: "188090", totalCost: "₱15,995" },
-  { dateAdded: "11/12/22", deliveryNum: "D-188091", supplier: "Lazer", productCode: "188091", totalCost: "₱4,500" },
-];
+import axios from "axios";
 
 export default function ReturnsPage() {
-  const [searchTerm] = useState("");
+  // Configuration object
+  const config = {
+    returns: {
+      label: "Returns",
+      returnIDField: "R_returnID",
+      codeField: "P_productCode",
+      returnTypeField: "R_returnTypeID",
+      reasonField: "R_reasonOfReturn",
+      dateField: "P_dateAdded",
+      quantityField: "R_returnQuantity",
+      discountField: "R_discountAmount",
+      isAutoInc: false,
+      api: {
+        fetch: "http://localhost:8080/returns",
+        add: "http://localhost:8080/returns",
+        update: "http://localhost:8080/returns",
+        delete: "http://localhost:8080/returns",
+      },
+      returnTypes: {
+        label: "Return Types",
+        idField: "R_returnTypeDescription",
+        nameField: "returnTypeDescription",
+        isAutoInc: false,
+        api: {
+          fetch: "http://localhost:8080/returnTypes",
+        },
+      },
+    },
+    dropdowns: {
+      suppliers: {
+        label: "Suppliers",
+        api: {
+          fetch: "http://localhost:8080/suppliers",
+        },
+      },
+      brands: {
+        label: "Brands",
+        api: {
+          fetch: "http://localhost:8080/brands",
+        },
+      },
+      products: {
+        label: "Products",
+        api: {
+          fetch: "http://localhost:8080/products",
+        },
+      },
+      deliveryNumbers: {
+        label: "Delivery Numbers",
+        api: {
+          fetch: "http://localhost:8080/deliveries",
+        },
+      },
+    },
+  };
+
+  // State variables
+  const [searchTerm, setSearchTerm] = useState("");
   const [customerReturns, setCustomerReturns] = useState([]);
-  const [filteredSupplierReturns, setFilteredSupplierReturns] = useState([]);
-  const [selectedFilter] = useState("All");
-  const [, setActiveTab] = useState("customer");
+  const [supplierReturns, setSupplierReturns] = useState([]);
+  const [activeTab, setActiveTab] = useState("customer");
 
-  // State for form data
-  const [formData, setFormData] = useState({
-    productName: "",
-    supplier: "",
-    brand: "",
-    quantity: "",
-    returnType: "",
-    reasonOfReturn: "", // Added reason field
-    discount: "",
-    amount: "",
-  });
+  // Form state variables for Customer Returns
+  const [productName, setProductName] = useState("");
+  const [selectedSupplier, setSelectedSupplier] = useState("");
+  const [selectedBrand, setSelectedBrand] = useState("");
+  const [selectedQuantity, setSelectedQuantity] = useState("");
+  const [returnType, setReturnType] = useState("");
+  const [selectedDiscount, setSelectedDiscount] = useState("");
+  const [selectedPrice, setSelectedPrice] = useState("");
 
-  // Process and merge data from transactions and products tables for customer returns
+  // Form state variables for Supplier Returns
+  const [deliveryNumber, setDeliveryNumber] = useState("");
+  const [supplierName, setSupplierName] = useState("");
+  const [productItem, setProductItem] = useState("");
+  const [brand, setBrand] = useState("");
+  const [quantity, setQuantity] = useState("");
+  const [total, setTotal] = useState("");
+  const [amount, setAmount] = useState("");
+
+  // Dropdown state variables
+  const [suppliers, setSuppliers] = useState([]);
+  const [brands, setBrands] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [deliveryNumbers, setDeliveryNumbers] = useState([]);
+
+  // Fetch data from the API
   useEffect(() => {
-    const returnTransactions = transactions.filter(
-      (transaction) => transaction.transactionType === "Return"
-    );
-    const processedReturns = returnTransactions.map((transaction) => {
-      const productMatch = products.find(
-        (product) => product.productCode === transaction.productCode
-      );
-      const deliveryMatch = deliveries.find(
-        (delivery) => delivery.productCode === transaction.productCode
-      );
-      return {
-        dateAdded: transaction.dateAdded,
-        transactionID: transaction.transactionID,
-        transactionType: transaction.transactionType,
-        productCode: transaction.productCode,
-        receiptNum: `11${transaction.transactionID.slice(-4)}`,
-        product: productMatch ? productMatch.product : "Unknown Product",
-        quantity: productMatch ? productMatch.quantity : 0,
-        totalPrice: transaction.totalPrice,
-        discount: transaction.discount,
-        brand: productMatch ? productMatch.brand : "Unknown",
-        category: productMatch ? productMatch.category : "Unknown",
-        supplier: deliveryMatch ? deliveryMatch.supplier : "Unknown",
-        returnType: "Return to Inventory (Resellable)",
-      };
-    });
-    setCustomerReturns(processedReturns);
+    const fetchData = async () => {
+      try {
+        // Fetch returns data
+        const customerResponse = await axios.get(config.returns.api.fetch);
+        setCustomerReturns(customerResponse.data);
 
-    const processedSupplierReturns = deliveries.map((returnItem) => {
-      const productMatch = products.find(
-        (product) => product.productCode === returnItem.productCode
-      );
-      return {
-        ...returnItem,
-        brand: productMatch ? productMatch.brand : "Unknown",
-        category: productMatch ? productMatch.category : "Unknown",
-      };
-    });
-    setFilteredSupplierReturns(processedSupplierReturns);
+        const supplierResponse = await axios.get(config.returns.api.fetch);
+        setSupplierReturns(supplierResponse.data);
+
+        // Fetch dropdown data
+        const suppliersResponse = await axios.get(config.dropdowns.suppliers.api.fetch);
+        setSuppliers(suppliersResponse.data);
+
+        const brandsResponse = await axios.get(config.dropdowns.brands.api.fetch);
+        setBrands(brandsResponse.data);
+
+        const productsResponse = await axios.get(config.dropdowns.products.api.fetch);
+        setProducts(productsResponse.data);
+
+        const deliveryNumbersResponse = await axios.get(config.dropdowns.deliveryNumbers.api.fetch);
+        setDeliveryNumbers(deliveryNumbersResponse.data);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
+    fetchData();
   }, []);
 
-  // Filter returns based on search term and filter selection
-  const filteredCustomerReturns = customerReturns.filter((item) => {
-    const matchesSearch =
-      item.product.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.transactionID.includes(searchTerm) ||
-      item.productCode.includes(searchTerm) ||
-      item.receiptNum.includes(searchTerm);
-    if (selectedFilter === "All") return matchesSearch;
-    return matchesSearch;
-  });
+  // Handle adding a customer return
+  const handleAddCustomerReturn = async () => {
+    if (!productName || !selectedSupplier || !selectedBrand || !selectedQuantity || !returnType) {
+      alert("Please fill in all fields.");
+      return;
+    }
 
-  useEffect(() => {
-    const filtered = deliveries
-      .map((item, index) => {
-        const productMatch = products.find((p) => p.productCode === item.productCode);
-        return {
-          ...item,
-          returnID: `SR-${index.toString().padStart(3, "0")}`,
-          product: productMatch ? productMatch.product : "Unknown",
-          brand: productMatch ? productMatch.brand : "Unknown",
-          category: productMatch ? productMatch.category : "Unknown",
-          quantity: productMatch ? productMatch.quantity : 0,
-        };
-      })
-      .filter(
-        (item) =>
-          item.product.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          item.productCode.includes(searchTerm) ||
-          item.supplier.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          item.returnID.includes(searchTerm)
-      );
-    setFilteredSupplierReturns(filtered);
-  }, [searchTerm]);
+    const newReturn = {
+      dateAdded: new Date().toISOString(),
+      transactionID: `CR-${Math.floor(Math.random() * 10000)}`,
+      product: productName,
+      supplier: selectedSupplier,
+      brand: selectedBrand,
+      quantity: selectedQuantity,
+      returnType: returnType,
+      totalPrice: selectedPrice,
+      discount: selectedDiscount,
+    };
 
-  // Handle form submission
-  const handleSubmit = async (e) => {
-    e.preventDefault();
     try {
-      const response = await fetch("http://localhost:3000", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          productName: formData.productName, // Send product name to backend
-          returnType: formData.returnType,   // Send return type description to backend
-          quantity: parseInt(formData.quantity),
-          reason: formData.reasonOfReturn,   // Send reason of return
-          discount: parseFloat(formData.discount),
-        }),
-      });
-      if (response.ok) {
-        alert("Return added successfully!");
-        setFormData({
-          productName: "",
-          supplier: "",
-          brand: "",
-          quantity: "",
-          returnType: "",
-          reasonOfReturn: "", // Clear reason field
-          discount: "",
-          amount: "",
-        });
-      } else {
-        alert("Failed to add return.");
-      }
+      await axios.post(config.returns.api.add, newReturn);
+      alert("Customer return added successfully!");
+      resetCustomerForm();
     } catch (error) {
-      console.error("Error submitting return:", error);
-      alert("An error occurred while submitting the return.");
+      console.error("Error adding customer return:", error);
+      alert("Failed to add customer return. Please check your connection or backend.");
+    }
+  };
+
+  // Reset form fields for customer returns
+  const resetCustomerForm = () => {
+    setProductName("");
+    setSelectedSupplier("");
+    setSelectedBrand("");
+    setSelectedQuantity("");
+    setReturnType("");
+    setSelectedDiscount("");
+    setSelectedPrice("");
+  };
+
+  // Handle adding a supplier return
+  const handleAddSupplierReturn = async () => {
+    if (!deliveryNumber || !supplierName || !productItem || !brand || !quantity || !total || !amount) {
+      alert("Please fill in all fields.");
+      return;
+    }
+
+    const newReturn = {
+      dateAdded: new Date().toISOString(),
+      deliveryNumber,
+      supplier: supplierName,
+      product: productItem,
+      brand,
+      quantity,
+      total,
+      amount,
+    };
+
+    try {
+      await axios.post(config.returns.api.add, newReturn);
+      alert("Supplier return added successfully!");
+      resetSupplierForm();
+    } catch (error) {
+      console.error("Error adding supplier return:", error);
+      alert("Failed to add supplier return. Please check your connection or backend.");
+    }
+  };
+
+  // Reset form fields for supplier returns
+  const resetSupplierForm = () => {
+    setDeliveryNumber("");
+    setSupplierName("");
+    setProductItem("");
+    setBrand("");
+    setQuantity("");
+    setTotal("");
+    setAmount("");
+  };
+
+  // Handle deleting a transaction
+  const handleDelete = (id, password, type) => {
+    if (password !== "admin123") {
+      alert("Incorrect password.");
+      return;
+    }
+    if (type === "customer") {
+      setCustomerReturns((prevReturns) =>
+        prevReturns.filter((item) => item.transactionID !== id)
+      );
+    } else {
+      setSupplierReturns((prevReturns) =>
+        prevReturns.filter((item) => item.deliveryNumber !== id)
+      );
     }
   };
 
@@ -194,9 +262,7 @@ export default function ReturnsPage() {
         <AppSidebar />
         <div className="flex-1 p-4 flex flex-col w-full">
           <div className="flex items-center justify-between mb-4 bg-white p-2 rounded-lg">
-            <div>
-              <h1 className="text-lg text-gray-600 font-medium">Processing of Returns</h1>
-            </div>
+            <h1 className="text-lg text-gray-600 font-medium">Processing of Returns</h1>
           </div>
           <Tabs defaultValue="customer" className="w-full mb-4" onValueChange={setActiveTab}>
             <TabsList className="w-full flex justify-start bg-white shadow-md rounded-md px-6 py-6 mb-4">
@@ -219,7 +285,7 @@ export default function ReturnsPage() {
                         <TableHeader className="sticky top-0 bg-white z-10">
                           <TableRow>
                             <TableHead>Date</TableHead>
-                            <TableHead>Transaction ID</TableHead>
+                            <TableHead>Return ID</TableHead>
                             <TableHead>Product</TableHead>
                             <TableHead>Quantity</TableHead>
                             <TableHead>Total</TableHead>
@@ -228,8 +294,8 @@ export default function ReturnsPage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {filteredCustomerReturns.length > 0 ? (
-                            filteredCustomerReturns.map((item) => (
+                          {customerReturns.length > 0 ? (
+                            customerReturns.map((item) => (
                               <TableRow key={item.transactionID}>
                                 <TableCell>{item.dateAdded}</TableCell>
                                 <TableCell>{item.transactionID}</TableCell>
@@ -238,51 +304,51 @@ export default function ReturnsPage() {
                                 <TableCell>{item.totalPrice}</TableCell>
                                 <TableCell>{item.returnType}</TableCell>
                                 <TableCell className="flex space-x-2">
-                                  <Dialog>
-                                    <DialogTrigger asChild>
-                                      <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600">
-                                        <Ellipsis size={16} />
-                                      </Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="w-[90vw] sm:w-[600px] md:w-[750px] lg:w-[900px] xl:w-[1100px] max-w-[95vw] p-4 sm:p-6 overflow-y-auto max-h-[90vh]">
-                                      <DialogHeader>
-                                        <DialogTitle className="text-xl text-gray-600 font-medium pb-0">
-                                          Return Details
-                                        </DialogTitle>
-                                        <DialogClose />
-                                      </DialogHeader>
-                                      <div className="py-4">
-                                        <Table>
-                                          <TableHeader>
-                                            <TableRow>
-                                              <TableHead className="text-center">Date</TableHead>
-                                              <TableHead className="text-center">Product Code</TableHead>
-                                              <TableHead className="text-center">Supplier</TableHead>
-                                              <TableHead className="text-center">Brand</TableHead>
-                                              <TableHead className="text-center">Category</TableHead>
-                                              <TableHead className="text-center">Product</TableHead>
-                                              <TableHead className="text-center">Quantity</TableHead>
-                                              <TableHead className="text-center">Discount</TableHead>
-                                              <TableHead className="text-center">Total</TableHead>
-                                            </TableRow>
-                                          </TableHeader>
-                                          <TableBody>
-                                            <TableRow>
-                                              <TableCell className="text-center">{item.dateAdded}</TableCell>
-                                              <TableCell className="text-center">{item.productCode}</TableCell>
-                                              <TableCell className="text-center">{item.supplier}</TableCell>
-                                              <TableCell className="text-center">{item.brand}</TableCell>
-                                              <TableCell className="text-center">{item.category}</TableCell>
-                                              <TableCell className="text-center">{item.product}</TableCell>
-                                              <TableCell className="text-center">{item.quantity}</TableCell>
-                                              <TableCell className="text-center">{item.discount}</TableCell>
-                                              <TableCell className="text-center">{item.totalPrice}</TableCell>
-                                            </TableRow>
-                                          </TableBody>
-                                        </Table>
-                                      </div>
-                                    </DialogContent>
-                                  </Dialog>
+                                  {/* Details Dialog */}
+                                  {customerReturns.map((item) => (
+                                    <TableRow key={item.transactionID}>
+                                      <TableCell>{item.dateAdded}</TableCell>
+                                      <TableCell>{item.transactionID}</TableCell>
+                                      <TableCell>{item.product}</TableCell>
+                                      <TableCell>{item.quantity}</TableCell>
+                                      <TableCell>{item.totalPrice}</TableCell>
+                                      <TableCell>{item.returnType}</TableCell>
+                                      <TableCell className="flex space-x-2">
+                                        {/* Details Dialog */}
+                                        <Dialog key={`details-${item.transactionID}`}>
+                                          <DialogTrigger asChild>
+                                            <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600">
+                                              <Ellipsis size={16} />
+                                            </Button>
+                                          </DialogTrigger>
+                                          <DialogContent className="max-w-3xl p-7 text-gray-700">
+                                            <DialogHeader>
+                                              <DialogTitle className="text-xl text-gray-600 font-medium pb-0">
+                                                Return Details
+                                              </DialogTitle>
+                                              <DialogClose />
+                                            </DialogHeader>
+                                            <Table>
+                                              <TableBody>
+                                                <TableRow>
+                                                  <TableCell className="text-center">{item.dateAdded}</TableCell>
+                                                  <TableCell className="text-center">{item.productCode}</TableCell>
+                                                  <TableCell className="text-center">{item.supplier}</TableCell>
+                                                  <TableCell className="text-center">{item.brand}</TableCell>
+                                                  <TableCell className="text-center">{item.category}</TableCell>
+                                                  <TableCell className="text-center">{item.product}</TableCell>
+                                                  <TableCell className="text-center">{item.quantity}</TableCell>
+                                                  <TableCell className="text-center">{item.discount}</TableCell>
+                                                  <TableCell className="text-center">{item.totalPrice}</TableCell>
+                                                </TableRow>
+                                              </TableBody>
+                                            </Table>
+                                          </DialogContent>
+                                        </Dialog>
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                  {/* Delete Dialog */}
                                   <Dialog>
                                     <DialogTrigger asChild>
                                       <Button variant="ghost" size="sm" className="text-gray-500 hover:text-red-600">
@@ -293,9 +359,7 @@ export default function ReturnsPage() {
                                       <DialogHeader>
                                         <DialogTitle>
                                           <span className="text-lg text-red-900">Delete Transaction</span>{" "}
-                                          <span className="text-lg text-gray-400 font-normal italic">
-                                            {item.transactionID}
-                                          </span>
+                                          <span className="text-lg text-gray-400 font-normal italic">{item.transactionID}</span>
                                         </DialogTitle>
                                         <DialogClose />
                                       </DialogHeader>
@@ -320,7 +384,8 @@ export default function ReturnsPage() {
                                           onClick={() =>
                                             handleDelete(
                                               item.transactionID,
-                                              document.getElementById(`password-${item.transactionID}`).value
+                                              document.getElementById(`password-${item.transactionID}`).value,
+                                              "customer"
                                             )
                                           }
                                         >
@@ -344,131 +409,108 @@ export default function ReturnsPage() {
                     </div>
                   </CardContent>
                 </Card>
-
                 {/* Right side - Add product form */}
                 <Card className="w-full lg:w-1/3 flex flex-col justify-between text-gray-700">
                   <CardHeader className="pb-0">
                     <CardTitle className="text-center text-xl">Add Customer Product Return</CardTitle>
                   </CardHeader>
                   <CardContent className="p-4 flex flex-col flex-1 justify-between">
-                    <form onSubmit={handleSubmit}>
-                      <div className="space-y-3">
-                        <div>
-                          <Label htmlFor="productName">Product Name</Label>
-                          <Input
-                            id="productName"
-                            type="text"
-                            placeholder="Enter product name"
-                            value={formData.productName}
-                            onChange={(e) =>
-                              setFormData({ ...formData, productName: e.target.value })
-                            }
-                            required
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="supplier">Supplier</Label>
-                          <Select
-                            onValueChange={(value) => setFormData({ ...formData, supplier: value })}
-                            value={formData.supplier}
-                          >
-                            <SelectTrigger id="supplier" className="mt-1">
-                              <SelectValue placeholder="Select supplier" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Lazer">Lazer</SelectItem>
-                              <SelectItem value="Mirbros">Mirbros</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label htmlFor="brand">Brand</Label>
-                          <Select
-                            onValueChange={(value) => setFormData({ ...formData, brand: value })}
-                            value={formData.brand}
-                          >
-                            <SelectTrigger id="brand" className="mt-1">
-                              <SelectValue placeholder="Select brand" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Yamaha">Yamaha</SelectItem>
-                              <SelectItem value="Pearl">Pearl</SelectItem>
-                              <SelectItem value="Zildjian">Zildjian</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label htmlFor="quantity">Quantity</Label>
-                          <Input
-                            id="quantity"
-                            type="number"
-                            placeholder="Enter quantity"
-                            value={formData.quantity}
-                            onChange={(e) =>
-                              setFormData({ ...formData, quantity: e.target.value })
-                            }
-                            required
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="returnType">Return Type</Label>
-                          <Input
-                            id="returnType"
-                            type="text"
-                            placeholder="Enter return type"
-                            value={formData.returnType}
-                            onChange={(e) =>
-                              setFormData({ ...formData, returnType: e.target.value })
-                            }
-                            required
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="reasonOfReturn">Reason for Return</Label>
-                          <Input
-                            id="reasonOfReturn"
-                            type="text"
-                            placeholder="Enter reason for return"
-                            value={formData.reasonOfReturn}
-                            onChange={(e) =>
-                              setFormData({ ...formData, reasonOfReturn: e.target.value })
-                            }
-                            required
-                          />
-                        </div>
-                        <div>
-                          <Label>Discount</Label>
-                          <Input
-                            id="discount"
-                            type="number"
-                            placeholder="Enter discount percentage"
-                            value={formData.discount}
-                            onChange={(e) =>
-                              setFormData({ ...formData, discount: e.target.value })
-                            }
-                            required
-                          />
-                        </div>
-                        <div>
-                          <Label>Price/Amount</Label>
-                          <Input
-                            id="amount"
-                            type="number"
-                            placeholder="Enter amount"
-                            value={formData.amount}
-                            onChange={(e) =>
-                              setFormData({ ...formData, amount: e.target.value })
-                            }
-                            required
-                          />
-                        </div>
-                        <div className="flex justify-center mt-6">
-                          <Button className="w-2/3 bg-blue-500 text-white" type="submit">
-                            ADD RETURN
-                          </Button>
-                        </div>
+                    <div className="space-y-3">
+                      <div>
+                        <Label htmlFor="productName">Product Name</Label>
+                        <Select onValueChange={(value) => setProductName(value)}>
+                          <SelectTrigger id="productName" className="mt-1">
+                            <SelectValue placeholder="Select product" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {products.map((product) => (
+                              <SelectItem key={product.id} value={product.name}>
+                                {product.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
-                    </form>
+                      <div>
+                        <Label htmlFor="supplier">Supplier</Label>
+                        <Select onValueChange={(value) => setSelectedSupplier(value)}>
+                          <SelectTrigger id="supplier" className="mt-1">
+                            <SelectValue placeholder="Select supplier" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {suppliers.map((supplier) => (
+                              <SelectItem key={supplier.id} value={supplier.name}>
+                                {supplier.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="brand">Brand</Label>
+                        <Select onValueChange={(value) => setSelectedBrand(value)}>
+                          <SelectTrigger id="brand" className="mt-1">
+                            <SelectValue placeholder="Select brand" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {brands.map((brand) => (
+                              <SelectItem key={brand.id} value={brand.name}>
+                                {brand.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="quantity">Quantity</Label>
+                        <Input
+                          id="quantity"
+                          type="number"
+                          placeholder="Enter quantity"
+                          value={selectedQuantity}
+                          onChange={(e) => setSelectedQuantity(e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="returnType">Return Type</Label>
+                        <Input
+                          id="returnType"
+                          type="text"
+                          placeholder="Type return type"
+                          value={returnType}
+                          onChange={(e) => setReturnType(e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label>Discount</Label>
+                        <Input
+                          id="discount"
+                          type="text"
+                          placeholder="Enter discount"
+                          value={selectedDiscount}
+                          onChange={(e) => setSelectedDiscount(e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label>Price/Amount</Label>
+                        <Input
+                          id="amount"
+                          type="text"
+                          placeholder="Enter amount"
+                          value={selectedPrice}
+                          onChange={(e) => setSelectedPrice(e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div className="flex justify-center mt-6">
+                        <Button className="w-2/3 bg-blue-500 text-white" onClick={handleAddCustomerReturn}>
+                          ADD RETURN
+                        </Button>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               </div>
@@ -481,11 +523,11 @@ export default function ReturnsPage() {
                 <Card className="w-full lg:w-2/3 flex flex-col">
                   <CardContent className="p-4 flex flex-col justify-between flex-grow">
                     <div className="overflow-x-auto max-h-[60vh] flex-grow">
-                      <Table className="w-full">
+                      <Table>
                         <TableHeader>
                           <TableRow>
                             <TableHead className="w-24">Date</TableHead>
-                            <TableHead className="w-32">Product Code</TableHead>
+                            <TableHead className="w-32">Delivery Number</TableHead>
                             <TableHead className="w-32">Supplier</TableHead>
                             <TableHead className="w-40">Product</TableHead>
                             <TableHead className="w-20 text-center">Quantity</TableHead>
@@ -493,16 +535,17 @@ export default function ReturnsPage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {filteredSupplierReturns.length > 0 ? (
-                            filteredSupplierReturns.map((item) => (
-                              <TableRow key={item.returnID}>
+                          {supplierReturns.length > 0 ? (
+                            supplierReturns.map((item) => (
+                              <TableRow key={item.deliveryNumber}>
                                 <TableCell>{item.dateAdded}</TableCell>
-                                <TableCell>{item.productCode}</TableCell>
+                                <TableCell>{item.deliveryNumber}</TableCell>
                                 <TableCell>{item.supplier}</TableCell>
                                 <TableCell>{item.product}</TableCell>
                                 <TableCell className="text-center">{item.quantity}</TableCell>
-                                <TableCell className="text-center">{item.totalCost}</TableCell>
+                                <TableCell className="text-center">{item.total}</TableCell>
                                 <TableCell className="w-[50px] text-center">
+                                  {/* Delete Dialog */}
                                   <Dialog>
                                     <DialogTrigger asChild>
                                       <Button variant="ghost" size="sm" className="text-gray-500 hover:text-red-600">
@@ -513,9 +556,7 @@ export default function ReturnsPage() {
                                       <DialogHeader>
                                         <DialogTitle>
                                           <span className="text-lg text-red-900">Delete Transaction</span>{" "}
-                                          <span className="text-lg text-gray-400 font-normal italic">
-                                            {item.productCode}
-                                          </span>
+                                          <span className="text-lg text-gray-400 font-normal italic">{item.deliveryNumber}</span>
                                         </DialogTitle>
                                         <DialogClose />
                                       </DialogHeader>
@@ -524,12 +565,12 @@ export default function ReturnsPage() {
                                       </p>
                                       <div className="flex items-center gap-4 mt-4 pl-10">
                                         <div className="flex-1">
-                                          <label htmlFor={`password-${item.productCode}`} className="text-base font-medium text-gray-700 block mb-2">
+                                          <label htmlFor={`password-${item.deliveryNumber}`} className="text-base font-medium text-gray-700 block mb-2">
                                             Admin Password
                                           </label>
                                           <Input
                                             type="password"
-                                            id={`password-${item.productCode}`}
+                                            id={`password-${item.deliveryNumber}`}
                                             required
                                             placeholder="Enter valid password"
                                             className="w-full"
@@ -539,8 +580,9 @@ export default function ReturnsPage() {
                                           className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
                                           onClick={() =>
                                             handleDelete(
-                                              item.productCode,
-                                              document.getElementById(`password-${item.productCode}`).value
+                                              item.deliveryNumber,
+                                              document.getElementById(`password-${item.deliveryNumber}`).value,
+                                              "supplier"
                                             )
                                           }
                                         >
@@ -564,7 +606,6 @@ export default function ReturnsPage() {
                     </div>
                   </CardContent>
                 </Card>
-
                 {/* Right side - Add product form */}
                 <Card className="w-full lg:w-1/3 flex flex-col justify-between text-gray-700">
                   <CardHeader className="pb-0">
@@ -574,91 +615,99 @@ export default function ReturnsPage() {
                     <div className="space-y-3">
                       <div>
                         <Label>Delivery Number</Label>
-                        <Select>
+                        <Select onValueChange={(value) => setDeliveryNumber(value)}>
                           <SelectTrigger id="deliveryNumber" className="mt-1">
                             <SelectValue placeholder="Select delivery number" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="188090">188090</SelectItem>
-                            <SelectItem value="188091">188091</SelectItem>
+                            {deliveryNumbers.map((delivery) => (
+                              <SelectItem key={delivery.id} value={delivery.number}>
+                                {delivery.number}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>
                       <div>
                         <Label htmlFor="supplier">Supplier</Label>
-                        <Select>
+                        <Select onValueChange={(value) => setSupplierName(value)}>
                           <SelectTrigger id="supplier" className="mt-1">
                             <SelectValue placeholder="Select supplier" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="Lazer">Lazer</SelectItem>
-                            <SelectItem value="Mirbros">Mirbros</SelectItem>
+                            {suppliers.map((supplier) => (
+                              <SelectItem key={supplier.id} value={supplier.name}>
+                                {supplier.name}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>
                       <div>
                         <Label htmlFor="productItem">Product</Label>
-                        <Select>
+                        <Select onValueChange={(value) => setProductItem(value)}>
                           <SelectTrigger id="productItem" className="mt-1">
                             <SelectValue placeholder="Select product" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="Product A">Product A</SelectItem>
-                            <SelectItem value="Product B">Product B</SelectItem>
+                            {products.map((product) => (
+                              <SelectItem key={product.id} value={product.name}>
+                                {product.name}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>
                       <div>
                         <Label htmlFor="brand">Brand</Label>
-                        <Select>
+                        <Select onValueChange={(value) => setBrand(value)}>
                           <SelectTrigger id="brand" className="mt-1">
                             <SelectValue placeholder="Select brand" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="Yamaha">Yamaha</SelectItem>
-                            <SelectItem value="Pearl">Pearl</SelectItem>
-                            <SelectItem value="Zildjian">Zildjian</SelectItem>
+                            {brands.map((brand) => (
+                              <SelectItem key={brand.id} value={brand.name}>
+                                {brand.name}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>
                       <div>
                         <Label htmlFor="quantity">Quantity</Label>
-                        <Select>
-                          <SelectTrigger id="quantity" className="mt-1">
-                            <SelectValue placeholder="Select quantity" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="1">1</SelectItem>
-                            <SelectItem value="2">2</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <Input
+                          id="quantity"
+                          type="number"
+                          placeholder="Enter quantity"
+                          value={quantity}
+                          onChange={(e) => setQuantity(e.target.value)}
+                          className="mt-1"
+                        />
                       </div>
                       <div>
                         <Label>Total</Label>
-                        <Select>
-                          <SelectTrigger id="total" className="mt-1">
-                            <SelectValue placeholder="Select total" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="totalPrice1">₱7,995</SelectItem>
-                            <SelectItem value="totalPrice2">₱4,500</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <Input
+                          id="total"
+                          type="text"
+                          placeholder="Enter total"
+                          value={total}
+                          onChange={(e) => setTotal(e.target.value)}
+                          className="mt-1"
+                        />
                       </div>
                       <div>
                         <Label>Price/Amount</Label>
-                        <Select>
-                          <SelectTrigger id="amount" className="mt-1">
-                            <SelectValue placeholder="Select amount" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="price1">₱15,995</SelectItem>
-                            <SelectItem value="price2">₱10</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <Input
+                          id="amount"
+                          type="text"
+                          placeholder="Enter amount"
+                          value={amount}
+                          onChange={(e) => setAmount(e.target.value)}
+                          className="mt-1"
+                        />
                       </div>
                       <div className="flex justify-center mt-6">
-                        <Button className="w-2/3 bg-blue-500 text-white">
+                        <Button className="w-2/3 bg-blue-500 text-white" onClick={handleAddSupplierReturn}>
                           ADD RETURN
                         </Button>
                       </div>

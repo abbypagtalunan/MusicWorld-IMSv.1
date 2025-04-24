@@ -11,7 +11,7 @@ const deliveryPaymentTypesRoutes = require('./src/routes/deliveryPaymentTypesRou
 const deliveryPaymentStatusRoutes = require('./src/routes/deliveryPaymentStatusRoutes.js');
 const returnsRoutes = require('./src/routes/returnsRoutes.js');
 const supBrdCatStatusRoutes = require('./src/routes/SupBrdCatStatusRoutes.js');
-
+const returnTypeRoutes = require('./src/routes/returnTypeRoutes.js');
 app.use(
   cors({
     //allow origin port of frontend
@@ -34,6 +34,7 @@ app.use("/deliveryPayTypes", deliveryPaymentTypesRoutes);
 app.use("/deliveryPayStatus", deliveryPaymentStatusRoutes);
 app.use('/returns', returnsRoutes);
 app.use("/supBrdCatStatus", supBrdCatStatusRoutes);
+app.use(cors());
 
 // Log that server is running
 app.listen(8080, () => {

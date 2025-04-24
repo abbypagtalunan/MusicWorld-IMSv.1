@@ -1,77 +1,72 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+const db = require('../../db');
 
-// Define Product model
-const Product = sequelize.define('Product', {
-  P_productCode: {
-    type: DataTypes.STRING(10),
-    primaryKey: true,
-  },
-  P_productName: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  // Add other product fields as needed...
-}, {
-  tableName: 'Products',
-});
+// Get all Returns
+const getAllReturns = (callback) => {
+  const query = `
+    SELECT 
+      R_returnID,
+      P_productCode,
+      R_returnTypeID,
+      R_reasonOfReturn,
+      R_dateOfReturn,
+      R_returnQuantity,
+      R_discountAmount
+    FROM Returns;
+  `;
 
-// Define ReturnType model
-const ReturnType = sequelize.define('ReturnType', {
-  RT_returnTypeID: {
-    type: DataTypes.INTEGER,
-    primaryKey: true,
-    autoIncrement: true,
-  },
-  RT_returnTypeDescription: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-}, {
-  tableName: 'ReturnTypes',
-});
+  db.query(query, (err, results) => {
+    if (err) {
+      callback(err, null);
+    } else {
+      callback(null, results);
+    }
+  });
+};
 
-// Define Return model
-const Return = sequelize.define('Return', {
-  R_returnID: {
-    type: DataTypes.INTEGER,
-    primaryKey: true,
-    autoIncrement: true,
-  },
-  P_productCode: {
-    type: DataTypes.STRING(10),
-    allowNull: false,
-  },
-  R_returnTypeID: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-  },
-  R_reasonOfReturn: {
-    type: DataTypes.STRING(255),
-    allowNull: false,
-  },
-  R_dateOfReturn: {
-    type: DataTypes.DATE,
-    allowNull: false,
-    defaultValue: DataTypes.NOW,
-  },
-  R_returnQuantity: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-  },
-  R_discountAmount: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: false,
-  },
-}, {
-  tableName: 'Returns',
-});
+// Add a new Return
+const addReturn = (returnData, callback) => {
+  const { P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn, R_returnQuantity, R_discountAmount } = returnData;
 
-// Relationships
-Product.hasMany(Return, { foreignKey: 'P_productCode', sourceKey: 'P_productCode' });
-Return.belongsTo(Product, { foreignKey: 'P_productCode', targetKey: 'P_productCode' });
+  const insertReturnQuery = `
+    INSERT INTO Returns (P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn, R_returnQuantity, R_discountAmount) VALUES (?, ?, ?, ?, ?, ?)
+  `;
+  db.query(
+    insertReturnQuery,
+    [ P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn, R_returnQuantity, R_discountAmount ],
+    (err, results) => {
+      if (err) return callback(err);
+      callback(null, results);
+    }
+  );
+};
 
-ReturnType.hasMany(Return, { foreignKey: 'R_returnTypeID', sourceKey: 'RT_returnTypeID' });
-Return.belongsTo(ReturnType, { foreignKey: 'R_returnTypeID', targetKey: 'RT_returnTypeID' });
+// Update an existing Return
+const updateReturn = (returnID, returnData, callback) => {
+  const { P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn, R_returnQuantity, R_discountAmount } = returnData;
+  const updateReturnQuery = `
+    UPDATE Returns
+    SET P_productCode = ?, R_returnTypeID = ?, R_reasonOfReturn = ?, R_dateOfReturn = ?, R_returnQuantity = ?, R_discountAmount = ?
+    WHERE R_returnID = ?;
+  `;
+  db.query(updateReturnQuery, [P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn, R_returnQuantity, R_discountAmount, returnID], (err, results) => {
+    if (err) return callback(err);
+    callback(null, results);
+  });
+};
 
-module.exports = { Product, ReturnType, Return };
+// Delete a Return
+const deleteReturn = (returnID, callback) => {
+  const deleteReturnQuery = `DELETE FROM Returns WHERE R_returnID = ?`;
+
+  db.query(deleteReturnQuery, [returnID], (err, results) => {
+    if (err) return callback(err);
+    callback(null, results);
+  });
+};
+
+module.exports = {
+  getAllReturns,
+  addReturn,
+  updateReturn,
+  deleteReturn,
+};
