@@ -43,6 +43,9 @@ export default function DeliveriesPage() {
   const router = useRouter(); 
   const [selectedFilter, setSelectedFilter] = useState(null);
   const [selectedSubFilter, setSelectedSubFilter] = useState(null);
+  
+  const [searchValue, setSearchValue] = useState("");
+	const [searchResult, setSearchResult] = useState(null);
 
   const handleFilterSelect = (filter, subFilter = null) => {
     setSelectedFilter(filter);
@@ -50,6 +53,9 @@ export default function DeliveriesPage() {
   };
 
   const getFilteredTransactions = () => {
+    if (searchResult !== null) {
+    	return searchResult;
+  	}
     let sortedTransactions = [...delivery];
   
     if (!selectedFilter || !selectedSubFilter) return sortedTransactions;
@@ -85,16 +91,40 @@ export default function DeliveriesPage() {
         <div className="flex-1 p-4 flex flex-col w-full">
           <div className="flex items-center justify-between mb-4 bg-white p-2 rounded-lg">
             <div className="flex items-center space-x-2">
-              <div className="relative w-80">
-                <input
-                  type="text"
-                  placeholder="Search transaction, id, product"
-                  className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <div className="absolute left-3 top-2.5 text-gray-500">
-                  <Search className="w-5 h-5" />
-                </div>
-              </div>
+							<div className="relative flex items-center space-x-2 w-96">
+							  <div className="relative flex-1">
+							    <input
+							      type="text"
+							      value={searchValue}
+							      onChange={(e) => setSearchValue(e.target.value)}
+							      onKeyDown={(e) => {
+							        if (e.key === 'Enter') {
+							          const result = delivery.find((d) => d.deliveryNum === searchValue.trim());
+							          setSearchResult(result ? [result] : []);
+							        }
+							      }}
+							      placeholder="Search delivery number"
+							      className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+							    />
+							    <div className="absolute left-3 top-2.5 text-gray-500">
+							      <Search className="w-5 h-5" />
+							    </div>
+							  </div>
+
+							  {searchValue && (
+							    <Button
+							      variant="ghost"
+							      size="sm"
+							      className="text-gray-500 hover:text-red-600"
+							      onClick={() => {
+							        setSearchValue("");
+							        setSearchResult(null);
+							      }}
+							    >
+							      Clear
+							    </Button>
+							  )}
+							</div>
               <div className="flex items-center space-x-2">
                 {/* 
                   FILTER DROPDOWN: Allows users to filter deliveries by Delivery Number (ascending/descending), 
