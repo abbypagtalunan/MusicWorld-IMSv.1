@@ -1,48 +1,45 @@
 "use client";
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from 'next/navigation'
 import { AppSidebar } from "@/components/admin-sidebar"
 import { SidebarProvider } from "@/components/ui/sidebar"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, ListFilter, Trash2, Ellipsis, PackagePlus } from "lucide-react"
+import { Search, ListFilter, Trash2, Ellipsis, PackagePlus, Save } from "lucide-react"
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table"
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose, } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
 
-// Sample data for deliveries
-const delivery = [
-  { dateAdded: "11/12/22", deliveryNum: "12345", supplier: "Lazer", totalCost: "₱31,990" },
-  { dateAdded: "11/12/22", deliveryNum: "12346", supplier: "Lazer", totalCost: "₱4,500" },
-  { dateAdded: "11/12/22", deliveryNum: "12347", supplier: "Lazer", totalCost: "₱1,995" },
-  { dateAdded: "11/12/22", deliveryNum: "12348", supplier: "Mirbros", totalCost: "₱29,995" },
-  { dateAdded: "11/12/22", deliveryNum: "12349", supplier: "Mirbros", totalCost: "₱125" },
-  { dateAdded: "11/12/22", deliveryNum: "12350", supplier: "Mirbros", totalCost: "₱2,595" },
-  { dateAdded: "11/12/22", deliveryNum: "12351", supplier: "Lazer", totalCost: "₱395" },
-  { dateAdded: "11/12/22", deliveryNum: "12352", supplier: "Lazer", totalCost: "₱295" },
-  { dateAdded: "11/12/22", deliveryNum: "12353", supplier: "Lazer", totalCost: "₱15,995" },
-];
-
-// Sample data mapping for deliveries with their associated products
-const deliveryProducts = {
-  "12345": [{ productCode: "188090", supplier: "Lazer", brand: "Cort", product: "AD 890 NS W/ BAG", quantity: "2 pcs", unitPrice: "15,995", total: "31,990" }],
-  "12346": [{ productCode: "188091", supplier: "Lazer", brand: "Lazer", product: "Mapex Drumset", quantity: "1 set", unitPrice: "4,500", total: "4,500" }],
-  "12347": [{ productCode: "188092", supplier: "Lazer", brand: "Cort", product: "Guitar Strings", quantity: "3 pcs", unitPrice: "665", total: "1,995" }],
-  "12348": [{ productCode: "188093", supplier: "Mirbros", brand: "Yamaha", product: "Digital Piano", quantity: "1 pc", unitPrice: "29,995", total: "29,995" }],
-  "12349": [{ productCode: "188094", supplier: "Mirbros", brand: "Lazer", product: "Guitar Pick", quantity: "5 pcs", unitPrice: "25", total: "125" }],
-  "12350": [{ productCode: "188095", supplier: "Mirbros", brand: "Cort", product: "Guitar Capo", quantity: "1 pc", unitPrice: "2,595", total: "2,595" }],
-  "12351": [{ productCode: "188096", supplier: "Lazer", brand: "Lazer", product: "Drum Sticks", quantity: "1 pair", unitPrice: "395", total: "395" }],
-  "12352": [{ productCode: "188097", supplier: "Lazer", brand: "Lazer", product: "Guitar Strap", quantity: "1 pc", unitPrice: "295", total: "295" }],
-  "12353": [{ productCode: "188098", supplier: "Lazer", brand: "Cort", product: "Acoustic Guitar", quantity: "1 pc", unitPrice: "15,995", total: "15,995" }]
-};
+// Import data from temp_db.js
+import { db } from "./temp_db";
 
 export default function DeliveriesPage() {
   const router = useRouter(); 
   const [selectedFilter, setSelectedFilter] = useState(null);
   const [selectedSubFilter, setSelectedSubFilter] = useState(null);
+  
+  const [searchValue, setSearchValue] = useState("");
+  const [searchResult, setSearchResult] = useState(null);
+  
+  // State for all dynamic data
+  const [deliveries, setDeliveries] = useState([]);
+  const [deliveryProducts, setDeliveryProducts] = useState({});
+  const [paymentDetails, setPaymentDetails] = useState({});
+
+  // Load data from DB on component mount
+  useEffect(() => {
+    loadAllData();
+  }, []);
+
+  // Function to load all data from our DB
+  const loadAllData = () => {
+    setDeliveries(db.getDeliveries());
+    setDeliveryProducts(db.getDeliveryProducts());
+    setPaymentDetails(db.getPaymentDetails());
+  };
 
   const handleFilterSelect = (filter, subFilter = null) => {
     setSelectedFilter(filter);
@@ -50,7 +47,10 @@ export default function DeliveriesPage() {
   };
 
   const getFilteredTransactions = () => {
-    let sortedTransactions = [...delivery];
+    if (searchResult !== null) {
+      return searchResult;
+    }
+    let sortedTransactions = [...deliveries];
   
     if (!selectedFilter || !selectedSubFilter) return sortedTransactions;
   
@@ -78,6 +78,63 @@ export default function DeliveriesPage() {
     return sortedTransactions;
   };  
 
+  // Function to handle saving payment details
+  const handleSavePaymentDetails = (deliveryNum) => {
+    // Save to our database
+    db.updatePaymentDetails(deliveryNum, paymentDetails[deliveryNum]);
+    
+    // Refresh local state to reflect changes
+    setPaymentDetails({...db.getPaymentDetails()});
+    
+    // Show success message
+    alert("Payment details updated successfully!");
+  };
+
+  // Handle deletion of transactions
+  const handleDelete = (deliveryNum, password) => {
+    // In a real app, you would validate the password first
+    if (password) {
+      // Delete from our database
+      db.deleteDelivery(deliveryNum);
+      
+      // Refresh all data
+      loadAllData();
+      
+      // Clear search if it might have included the deleted item
+      if (searchResult && searchResult.some(d => d.deliveryNum === deliveryNum)) {
+        setSearchResult(null);
+        setSearchValue("");
+      }
+      
+      alert(`Transaction ${deliveryNum} has been deleted`);
+    } else {
+      alert("Please enter an admin password");
+    }
+  };
+
+  // Handle search
+  const handleSearch = () => {
+    if (!searchValue.trim()) {
+      setSearchResult(null);
+      return;
+    }
+    
+    const result = deliveries.find((d) => d.deliveryNum === searchValue.trim());
+    setSearchResult(result ? [result] : []);
+  };
+
+  // Handle payment detail changes
+  const updatePaymentDetail = (deliveryNum, field, value) => {
+    const updatedDetails = {
+      ...paymentDetails,
+      [deliveryNum]: {
+        ...paymentDetails[deliveryNum] || {},
+        [field]: value
+      }
+    };
+    setPaymentDetails(updatedDetails);
+  };
+
   return (
     <SidebarProvider>
       <div className="flex h-screen w-screen">
@@ -85,21 +142,43 @@ export default function DeliveriesPage() {
         <div className="flex-1 p-4 flex flex-col w-full">
           <div className="flex items-center justify-between mb-4 bg-white p-2 rounded-lg">
             <div className="flex items-center space-x-2">
-              <div className="relative w-80">
-                <input
-                  type="text"
-                  placeholder="Search transaction, id, product"
-                  className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <div className="absolute left-3 top-2.5 text-gray-500">
-                  <Search className="w-5 h-5" />
+              <div className="relative flex items-center space-x-2 w-96">
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    value={searchValue}
+                    onChange={(e) => setSearchValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleSearch();
+                      }
+                    }}
+                    placeholder="Search delivery number"
+                    className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <div className="absolute left-3 top-2.5 text-gray-500">
+                    <Search className="w-5 h-5" />
+                  </div>
                 </div>
+
+                {searchValue && (
+                  <div className="flex space-x-1">
+                    {searchResult && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-gray-500 hover:text-blue-600"
+                        onClick={() => {
+                          setSearchResult(null);
+                        }}
+                      >
+                        Show All
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="flex items-center space-x-2">
-                {/* 
-                  FILTER DROPDOWN: Allows users to filter deliveries by Delivery Number (ascending/descending), 
-                  Supplier (e.g., Cort, Lazer), or Total Cost (low to high, high to low)
-                */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" className="flex items-center space-x-2">
@@ -131,12 +210,15 @@ export default function DeliveriesPage() {
                         <DropdownMenuItem onClick={() => handleFilterSelect("Supplier", "Lazer")}>
                           Lazer
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleFilterSelect("Supplier", "Mirbros")}>
+                          Mirbros
+                        </DropdownMenuItem>
                       </DropdownMenuSubContent>
                     </DropdownMenuSub>
 
                     {/* Filter by Total Cost */}
                     <DropdownMenuSub>
-                      <DropdownMenuSubTrigger> Total Cost</DropdownMenuSubTrigger>
+                      <DropdownMenuSubTrigger>Total Cost</DropdownMenuSubTrigger>
                       <DropdownMenuSubContent>
                         <DropdownMenuItem onClick={() => handleFilterSelect("Price", "Low to High")}>
                           Low to High
@@ -160,7 +242,7 @@ export default function DeliveriesPage() {
             
             {/* Button to navigate to Add Delivery form page */}
             <div className="flex space-x-2">
-              <Button className="bg-blue-400 text-white" onClick={() => router.push("./deliveries-add-delivery")}>
+              <Button className="bg-blue-400 text-white" onClick={() => router.push("./deliveries/deliveries-add-delivery")}>
                 <PackagePlus size={16} />
                   Add Delivery
               </Button>
@@ -207,7 +289,7 @@ export default function DeliveriesPage() {
                             <div className="grid grid-cols-2 gap-4">
                               <div>
                                 <label className="text-sm font-medium">Date of Delivery</label>
-                                <Input type="date" defaultValue={d.dateAdded}  disabled/>
+                                <Input type="date" defaultValue={d.dateAdded} disabled/>
                               </div>
                               <div>
                                 <label className="text-sm font-medium">Delivery Number</label>
@@ -264,9 +346,12 @@ export default function DeliveriesPage() {
                                 </div>
                                 <div className="col-span-3">
                                   <Label htmlFor="paymentType" className="mb-1 block">Payment Type</Label>
-                                  <Select disabled>
+                                  <Select
+                                    value={paymentDetails[d.deliveryNum]?.paymentType || ""}
+                                    onValueChange={(value) => updatePaymentDetail(d.deliveryNum, 'paymentType', value)}
+                                  >
                                     <SelectTrigger id="paymentType">
-                                      <SelectValue/>
+                                      <SelectValue placeholder="Select payment type" />
                                     </SelectTrigger>
                                     <SelectContent>
                                       <SelectItem value="one-time">One-time, Full</SelectItem>
@@ -277,9 +362,12 @@ export default function DeliveriesPage() {
                                 </div>
                                 <div className="col-span-3">
                                   <Label htmlFor="paymentMode" className="mb-1 block">Mode of Payment</Label>
-                                  <Select disabled> 
+                                  <Select
+                                    value={paymentDetails[d.deliveryNum]?.paymentMode || ""}
+                                    onValueChange={(value) => updatePaymentDetail(d.deliveryNum, 'paymentMode', value)}
+                                  > 
                                     <SelectTrigger id="paymentMode">
-                                      <SelectValue/>
+                                      <SelectValue placeholder="Select payment mode" />
                                     </SelectTrigger>
                                     <SelectContent>
                                       <SelectItem value="cash">Cash</SelectItem>
@@ -289,11 +377,14 @@ export default function DeliveriesPage() {
                                   </Select>
                                 </div>
                                 {/* Second row */}
-                                <div className="col-span-3 flex justify-end mt-6">
+                                <div className="col-span-3">
                                   <Label htmlFor="paymentStatus" className="mb-1 block">Payment Status</Label>
-                                  <Select disabled>
+                                  <Select
+                                    value={paymentDetails[d.deliveryNum]?.paymentStatus || ""}
+                                    onValueChange={(value) => updatePaymentDetail(d.deliveryNum, 'paymentStatus', value)}
+                                  >
                                     <SelectTrigger id="paymentStatus">
-                                      <SelectValue/>
+                                      <SelectValue placeholder="Select status" />
                                     </SelectTrigger>
                                     <SelectContent>
                                       <SelectItem value="paid">PAID</SelectItem>
@@ -306,15 +397,41 @@ export default function DeliveriesPage() {
 
                                 <div className="col-span-3">
                                   <Label htmlFor="paymentDateDue" className="mb-1 block">Date of Payment Due</Label>
-                                  <Input id="paymentDateDue" type="date" defaultValue="2024-03-01"/>
+                                  <Input 
+                                    id="paymentDateDue" 
+                                    type="date" 
+                                    value={paymentDetails[d.deliveryNum]?.dateDue || ""}
+                                    onChange={(e) => updatePaymentDetail(d.deliveryNum, 'dateDue', e.target.value)}
+                                  />
                                 </div>
                                 <div className="col-span-3">
                                   <Label htmlFor="paymentDate1" className="mb-1 block">Date of Payment 1</Label>
-                                  <Input id="paymentDate1" type="date" defaultValue="2024-03-01" />
+                                  <Input 
+                                    id="paymentDate1" 
+                                    type="date" 
+                                    value={paymentDetails[d.deliveryNum]?.datePayment1 || ""}
+                                    onChange={(e) => updatePaymentDetail(d.deliveryNum, 'datePayment1', e.target.value)}
+                                  />
                                 </div>
                                 <div className="col-span-3">
                                   <Label htmlFor="paymentDate2" className="mb-1 block">Date of Payment 2</Label>
-                                  <Input id="paymentDate2" type="date" defaultValue="2024-03-01" />
+                                  <Input 
+                                    id="paymentDate2" 
+                                    type="date" 
+                                    value={paymentDetails[d.deliveryNum]?.datePayment2 || ""}
+                                    onChange={(e) => updatePaymentDetail(d.deliveryNum, 'datePayment2', e.target.value)}
+                                  />
+                                </div>
+                                
+                                {/* Save button for payment details */}
+                                <div className="col-span-12 mt-6 flex justify-end">
+                                  <Button 
+                                    onClick={() => handleSavePaymentDetails(d.deliveryNum)}
+                                    className="bg-green-600 hover:bg-green-700 text-white"
+                                  >
+                                    <Save className="w-4 h-4 mr-2" />
+                                    Save Payment Details
+                                  </Button>
                                 </div>
                               </div>
                             </div>
@@ -325,15 +442,16 @@ export default function DeliveriesPage() {
                       {/* For deleting transactions */}
                       <Dialog>
                         <DialogTrigger asChild>
-                      <Button variant="ghost" size="sm" className="text-gray-500 hover:text-red-600">
-                        <Trash2 size={16} />
-                      </Button>
+                          <Button variant="ghost" size="sm" className="text-gray-500 hover:text-red-600">
+                            <Trash2 size={16} />
+                          </Button>
                         </DialogTrigger>
                         <DialogContent className="max-w-3xl p-7 text-gray-700">
-                        <DialogHeader>
+                          <DialogHeader>
                             <DialogTitle>
                               <span className="text-lg text-red-900">Delete Transaction</span>{" "}
-                              <span className="text-lg text-gray-400 font-normal italic">{d.deliveryNum}</span></DialogTitle>
+                              <span className="text-lg text-gray-400 font-normal italic">{d.deliveryNum}</span>
+                            </DialogTitle>
                             <DialogClose />
                           </DialogHeader>
                           <p className='text-sm text-gray-800 mt-2 pl-4'> Deleting this transaction will reflect on Void Transactions. Enter the admin password to delete this transaction. </p>
