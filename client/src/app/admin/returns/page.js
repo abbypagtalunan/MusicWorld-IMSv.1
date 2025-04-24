@@ -17,7 +17,7 @@ import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, Dialog
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Trash2, Ellipsis } from "lucide-react";
 import { useState, useEffect } from "react";
-import axios from "axios";
+;
 
 
 // sample product data incl: quantity, product, brand, category
