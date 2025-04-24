@@ -69,10 +69,10 @@ export default function ReturnsPage() {
       nameField: "R_returnID", // Using ID as name since there's no specific name field
       isAutoInc: true,
       api: {
-        fetch: "http://localhost:8080/returns",
-        add: "http://localhost:8080/returns",
-        update: "http://localhost:8080/returns",
-        delete: "http://localhost:8080/returns",
+        fetch: "http://localhost:8080./admin/returns",
+        add: "http://localhost:8080/admin/returns",
+        update: "http://localhost:8080/admin/returns",
+        delete: "http://localhost:8080/admin/returns",
       },
       fields: {
         productCode: "P_productCode",
@@ -84,6 +84,16 @@ export default function ReturnsPage() {
       }
     }
   };
+
+  const [supplierReturn, setSupplierReturn] = useState({
+    deliveryNumber: "",
+    supplier: "",
+    productItem: "",
+    brand: "",
+    quantity: "",
+    total: "",
+    amount: ""
+  });
   
 const [searchTerm, setSearchTerm] = useState("");
 const [customerReturns, setCustomerReturns] = useState([]);
@@ -106,7 +116,7 @@ useEffect(() => {
 const fetchData = async () => {
   try {
     // Fetch returns data
-    const returnsResponse = await axios.get("http://localhost:8080/returns");
+    const returnsResponse = await axios.get("http://localhost:8080/admin/returns");
     const returnsData = returnsResponse.data;
 
     // Process the data to match your table structure
@@ -127,8 +137,6 @@ const fetchData = async () => {
     setFilteredCustomerReturns(processedReturns); // Initialize filtered data
   } catch (error) {
     console.error("Error fetching data:", error);
-    // You should have toast imported to use this
-    // toast.error("Failed to load returns data");
   }
 };
 
@@ -144,7 +152,7 @@ useEffect(() => {
     filtered = filtered.filter(item =>
       item.productCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.returnID.toString().includes(searchTerm)
+      item.transactionID.includes(searchTerm)
     );
   }
 
@@ -155,7 +163,7 @@ useEffect(() => {
 
   if (productName) {
     filtered = filtered.filter(item =>
-      item.productName.toLowerCase().includes(productName.toLowerCase())
+      item.product.toLowerCase().includes(productName.toLowerCase())
     );
   }
 

@@ -9,7 +9,7 @@ const productStatusRoutes = require('../server/src/routes/productStatusRoutes.js
 const deliveryModeOfPaymentRoutes = require('../server/src/routes/deliveryModeOfPaymentRouter.js');
 const deliveryPaymentTypesRoutes = require('./src/routes/deliveryPaymentTypesRoutes.js');
 const deliveryPaymentStatusRoutes = require('./src/routes/deliveryPaymentStatusRoutes.js');
-const returnTypeRoutes = require('./src/routes/returnTypeRoutes.js');
+const returnRoutes = require('../server/src/routes/returnsRoutes,js');
 const supBrdCatStatusRoutes = require('./src/routes/SupBrdCatStatusRoutes.js');
 
 app.use(
@@ -32,8 +32,10 @@ app.use("/productStatus", productStatusRoutes);
 app.use("/deliveryMOP", deliveryModeOfPaymentRoutes);
 app.use("/deliveryPayTypes", deliveryPaymentTypesRoutes);
 app.use("/deliveryPayStatus", deliveryPaymentStatusRoutes);
-app.use("/returnType", returnTypeRoutes);
+app.use('/returns', returnsRoutes);
 app.use("/supBrdCatStatus", supBrdCatStatusRoutes);
+app.use(cors());
+
 
 // Log that server is running
 app.listen(8080, () => {
