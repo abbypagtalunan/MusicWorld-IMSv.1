@@ -7,7 +7,7 @@ import { SidebarProvider } from "@/components/ui/sidebar"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, ListFilter, Trash2, Ellipsis, PackagePlus } from "lucide-react"
+import { Search, ListFilter, Trash2, Ellipsis, PackagePlus, Save } from "lucide-react"
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table"
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose, } from "@/components/ui/dialog"
@@ -39,13 +39,29 @@ const deliveryProducts = {
   "12353": [{ productCode: "188098", supplier: "Lazer", brand: "Cort", product: "Acoustic Guitar", quantity: "1 pc", unitPrice: "15,995", total: "15,995" }]
 };
 
+// Initial payment details for each delivery
+const initialPaymentDetails = {
+  "12345": { paymentType: "one-time", paymentMode: "cash", paymentStatus: "paid", dateDue: "2024-03-01", datePayment1: "2024-03-01", datePayment2: "" },
+  "12346": { paymentType: "one-time", paymentMode: "cash", paymentStatus: "paid", dateDue: "2024-03-01", datePayment1: "2024-03-01", datePayment2: "" },
+  "12347": { paymentType: "1 month", paymentMode: "check", paymentStatus: "partial1", dateDue: "2024-03-01", datePayment1: "2024-03-01", datePayment2: "" },
+  "12348": { paymentType: "2 months", paymentMode: "bank transfer", paymentStatus: "unpaid", dateDue: "2024-03-01", datePayment1: "", datePayment2: "" },
+  "12349": { paymentType: "one-time", paymentMode: "cash", paymentStatus: "paid", dateDue: "2024-03-01", datePayment1: "2024-03-01", datePayment2: "" },
+  "12350": { paymentType: "one-time", paymentMode: "cash", paymentStatus: "paid", dateDue: "2024-03-01", datePayment1: "2024-03-01", datePayment2: "" },
+  "12351": { paymentType: "2 months", paymentMode: "bank transfer", paymentStatus: "partial2", dateDue: "2024-03-01", datePayment1: "2024-03-01", datePayment2: "2024-04-01" },
+  "12352": { paymentType: "one-time", paymentMode: "cash", paymentStatus: "paid", dateDue: "2024-03-01", datePayment1: "2024-03-01", datePayment2: "" },
+  "12353": { paymentType: "one-time", paymentMode: "cash", paymentStatus: "paid", dateDue: "2024-03-01", datePayment1: "2024-03-01", datePayment2: "" }
+};
+
 export default function DeliveriesPage() {
   const router = useRouter(); 
   const [selectedFilter, setSelectedFilter] = useState(null);
   const [selectedSubFilter, setSelectedSubFilter] = useState(null);
   
   const [searchValue, setSearchValue] = useState("");
-	const [searchResult, setSearchResult] = useState(null);
+  const [searchResult, setSearchResult] = useState(null);
+  
+  // State to manage payment details for each delivery
+  const [paymentDetails, setPaymentDetails] = useState(initialPaymentDetails);
 
   const handleFilterSelect = (filter, subFilter = null) => {
     setSelectedFilter(filter);
@@ -54,8 +70,8 @@ export default function DeliveriesPage() {
 
   const getFilteredTransactions = () => {
     if (searchResult !== null) {
-    	return searchResult;
-  	}
+      return searchResult;
+    }
     let sortedTransactions = [...delivery];
   
     if (!selectedFilter || !selectedSubFilter) return sortedTransactions;
@@ -84,6 +100,26 @@ export default function DeliveriesPage() {
     return sortedTransactions;
   };  
 
+  // Function to handle saving payment details
+  const handleSavePaymentDetails = (deliveryNum) => {
+    // In a real app, you would send this data to your backend
+    console.log(`Saving payment details for delivery #${deliveryNum}:`, 
+      paymentDetails[deliveryNum]);
+    
+    // Show success message
+    alert("Payment details updated successfully!");
+  };
+
+  // Handle deletion of transactions
+  const handleDelete = (deliveryNum, password) => {
+    // In a real app, you would validate the password and then delete
+    if (password) {
+      alert(`Transaction ${deliveryNum} would be deleted with proper authentication`);
+    } else {
+      alert("Please enter an admin password");
+    }
+  };
+
   return (
     <SidebarProvider>
       <div className="flex h-screen w-screen">
@@ -91,45 +127,41 @@ export default function DeliveriesPage() {
         <div className="flex-1 p-4 flex flex-col w-full">
           <div className="flex items-center justify-between mb-4 bg-white p-2 rounded-lg">
             <div className="flex items-center space-x-2">
-							<div className="relative flex items-center space-x-2 w-96">
-							  <div className="relative flex-1">
-							    <input
-							      type="text"
-							      value={searchValue}
-							      onChange={(e) => setSearchValue(e.target.value)}
-							      onKeyDown={(e) => {
-							        if (e.key === 'Enter') {
-							          const result = delivery.find((d) => d.deliveryNum === searchValue.trim());
-							          setSearchResult(result ? [result] : []);
-							        }
-							      }}
-							      placeholder="Search delivery number"
-							      className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-							    />
-							    <div className="absolute left-3 top-2.5 text-gray-500">
-							      <Search className="w-5 h-5" />
-							    </div>
-							  </div>
+              <div className="relative flex items-center space-x-2 w-96">
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    value={searchValue}
+                    onChange={(e) => setSearchValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const result = delivery.find((d) => d.deliveryNum === searchValue.trim());
+                        setSearchResult(result ? [result] : []);
+                      }
+                    }}
+                    placeholder="Search delivery number"
+                    className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <div className="absolute left-3 top-2.5 text-gray-500">
+                    <Search className="w-5 h-5" />
+                  </div>
+                </div>
 
-							  {searchValue && (
-							    <Button
-							      variant="ghost"
-							      size="sm"
-							      className="text-gray-500 hover:text-red-600"
-							      onClick={() => {
-							        setSearchValue("");
-							        setSearchResult(null);
-							      }}
-							    >
-							      Clear
-							    </Button>
-							  )}
-							</div>
+                {searchValue && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-gray-500 hover:text-red-600"
+                    onClick={() => {
+                      setSearchValue("");
+                      setSearchResult(null);
+                    }}
+                  >
+                    Clear
+                  </Button>
+                )}
+              </div>
               <div className="flex items-center space-x-2">
-                {/* 
-                  FILTER DROPDOWN: Allows users to filter deliveries by Delivery Number (ascending/descending), 
-                  Supplier (e.g., Cort, Lazer), or Total Cost (low to high, high to low)
-                */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" className="flex items-center space-x-2">
@@ -237,7 +269,7 @@ export default function DeliveriesPage() {
                             <div className="grid grid-cols-2 gap-4">
                               <div>
                                 <label className="text-sm font-medium">Date of Delivery</label>
-                                <Input type="date" defaultValue={d.dateAdded}  disabled/>
+                                <Input type="date" defaultValue={d.dateAdded} disabled/>
                               </div>
                               <div>
                                 <label className="text-sm font-medium">Delivery Number</label>
@@ -294,9 +326,18 @@ export default function DeliveriesPage() {
                                 </div>
                                 <div className="col-span-3">
                                   <Label htmlFor="paymentType" className="mb-1 block">Payment Type</Label>
-                                  <Select disabled>
+                                  <Select
+                                    value={paymentDetails[d.deliveryNum]?.paymentType || ""}
+                                    onValueChange={(value) => setPaymentDetails({
+                                      ...paymentDetails,
+                                      [d.deliveryNum]: {
+                                        ...paymentDetails[d.deliveryNum],
+                                        paymentType: value
+                                      }
+                                    })}
+                                  >
                                     <SelectTrigger id="paymentType">
-                                      <SelectValue/>
+                                      <SelectValue placeholder="Select payment type" />
                                     </SelectTrigger>
                                     <SelectContent>
                                       <SelectItem value="one-time">One-time, Full</SelectItem>
@@ -307,9 +348,18 @@ export default function DeliveriesPage() {
                                 </div>
                                 <div className="col-span-3">
                                   <Label htmlFor="paymentMode" className="mb-1 block">Mode of Payment</Label>
-                                  <Select disabled> 
+                                  <Select
+                                    value={paymentDetails[d.deliveryNum]?.paymentMode || ""}
+                                    onValueChange={(value) => setPaymentDetails({
+                                      ...paymentDetails,
+                                      [d.deliveryNum]: {
+                                        ...paymentDetails[d.deliveryNum],
+                                        paymentMode: value
+                                      }
+                                    })}
+                                  > 
                                     <SelectTrigger id="paymentMode">
-                                      <SelectValue/>
+                                      <SelectValue placeholder="Select payment mode" />
                                     </SelectTrigger>
                                     <SelectContent>
                                       <SelectItem value="cash">Cash</SelectItem>
@@ -321,9 +371,18 @@ export default function DeliveriesPage() {
                                 {/* Second row */}
                                 <div className="col-span-3 flex justify-end mt-6">
                                   <Label htmlFor="paymentStatus" className="mb-1 block">Payment Status</Label>
-                                  <Select disabled>
+                                  <Select
+                                    value={paymentDetails[d.deliveryNum]?.paymentStatus || ""}
+                                    onValueChange={(value) => setPaymentDetails({
+                                      ...paymentDetails,
+                                      [d.deliveryNum]: {
+                                        ...paymentDetails[d.deliveryNum],
+                                        paymentStatus: value
+                                      }
+                                    })}
+                                  >
                                     <SelectTrigger id="paymentStatus">
-                                      <SelectValue/>
+                                      <SelectValue placeholder="Select status" />
                                     </SelectTrigger>
                                     <SelectContent>
                                       <SelectItem value="paid">PAID</SelectItem>
@@ -336,15 +395,59 @@ export default function DeliveriesPage() {
 
                                 <div className="col-span-3">
                                   <Label htmlFor="paymentDateDue" className="mb-1 block">Date of Payment Due</Label>
-                                  <Input id="paymentDateDue" type="date" defaultValue="2024-03-01"/>
+                                  <Input 
+                                    id="paymentDateDue" 
+                                    type="date" 
+                                    value={paymentDetails[d.deliveryNum]?.dateDue || ""}
+                                    onChange={(e) => setPaymentDetails({
+                                      ...paymentDetails,
+                                      [d.deliveryNum]: {
+                                        ...paymentDetails[d.deliveryNum],
+                                        dateDue: e.target.value
+                                      }
+                                    })}
+                                  />
                                 </div>
                                 <div className="col-span-3">
                                   <Label htmlFor="paymentDate1" className="mb-1 block">Date of Payment 1</Label>
-                                  <Input id="paymentDate1" type="date" defaultValue="2024-03-01" />
+                                  <Input 
+                                    id="paymentDate1" 
+                                    type="date" 
+                                    value={paymentDetails[d.deliveryNum]?.datePayment1 || ""}
+                                    onChange={(e) => setPaymentDetails({
+                                      ...paymentDetails,
+                                      [d.deliveryNum]: {
+                                        ...paymentDetails[d.deliveryNum],
+                                        datePayment1: e.target.value
+                                      }
+                                    })}
+                                  />
                                 </div>
                                 <div className="col-span-3">
                                   <Label htmlFor="paymentDate2" className="mb-1 block">Date of Payment 2</Label>
-                                  <Input id="paymentDate2" type="date" defaultValue="2024-03-01" />
+                                  <Input 
+                                    id="paymentDate2" 
+                                    type="date" 
+                                    value={paymentDetails[d.deliveryNum]?.datePayment2 || ""}
+                                    onChange={(e) => setPaymentDetails({
+                                      ...paymentDetails,
+                                      [d.deliveryNum]: {
+                                        ...paymentDetails[d.deliveryNum],
+                                        datePayment2: e.target.value
+                                      }
+                                    })}
+                                  />
+                                </div>
+                                
+                                {/* Save button for payment details */}
+                                <div className="col-span-12 mt-6 flex justify-end">
+                                  <Button 
+                                    onClick={() => handleSavePaymentDetails(d.deliveryNum)}
+                                    className="bg-green-600 hover:bg-green-700 text-white"
+                                  >
+                                    <Save className="w-4 h-4 mr-2" />
+                                    Save Payment Details
+                                  </Button>
                                 </div>
                               </div>
                             </div>
