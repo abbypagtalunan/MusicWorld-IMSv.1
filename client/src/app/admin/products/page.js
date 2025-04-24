@@ -6,7 +6,7 @@ import { SidebarProvider } from "@/components/ui/sidebar"
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { toast } from "react-hot-toast";
+import { toast, Toaster } from "react-hot-toast";
 import { Search, ListFilter, Download, FilePen, Trash2 } from "lucide-react";
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
@@ -27,7 +27,7 @@ export default function ProductsPage() {
       brandID: "P_brandID",
       supplierField: "P_supplier",
       supplierID: "P_supplierID",
-      stockField: "P_stock",
+      stockField: "stockAmt",
       stockID: "P_StockDetailsID",
       unitpriceField: "P_unitPrice",
       sellingpriceField: "P_sellingPrice",
@@ -82,6 +82,16 @@ export default function ProductsPage() {
         fetch: "http://localhost:8080/productStatus",
       },
     },
+
+    productStock: {
+      label: "Product Stock",
+      idField: "PStockID",
+      amtField: "PStockNum",
+      isAutoInc: false,
+      api: {
+        fetch: "http://localhost:8080/productStocks",
+      },
+    },
   };
 
   const [isSheetOpen, setSheetOpen] = useState(false);
@@ -104,7 +114,7 @@ export default function ProductsPage() {
 
   const [editingItem, setEditingItem] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedPID, setSelectedPID] = useState(null);
+  const [isAddSheetOpen, setAddSheetOpen] = useState(false);
 
   const normalizedData = (products) => products.data.map((item) => ({
     productCode: item.P_productCode,
@@ -132,16 +142,17 @@ export default function ProductsPage() {
       .catch((error) => console.error("Error fetching data:", error));
     
       setValues({
-      [config.product.codeField]: "",
-      [config.product.dateField]: "",
-      [config.product.supplierField]: "",
-      [config.product.brandField]: "",
-      [config.product.categoryField]: "",
-      [config.product.nameField]: "",
-      [config.product.quantityField]: "",
-      [config.product.unitpriceField]: "",
-      [config.product.sellingpriceField]: "",
-      [config.product.statusField]: "",
+        [config.product.codeField]: "",
+        [config.product.categoryField]: "",
+        [config.product.skuField]: "",    
+        [config.product.nameField]: "",
+        [config.product.brandField]: "",
+        [config.product.supplierField]: "",
+        [config.product.stockField]: "",
+        [config.product.unitpriceField]: "",
+        [config.product.sellingpriceField]: "",
+        [config.product.statusField]: "",
+        [config.product.dateField]: "",
     });
 
     setEditingItem(null);
@@ -155,8 +166,33 @@ export default function ProductsPage() {
       .catch((error) => console.error("Error fetching data:", error));
   };
 
-  const openEditSheet = (data) => {
-    setSelectedProduct(data);
+  const openEditSheet = (item) => {
+    const selectedSupplier = suppliers.find(s => s.S_supplierName === item.supplier);
+    const selectedBrand = brands.find(b => b.B_brandName === item.brand);
+    const selectedCategory = categories.find(c => c.C_categoryName === item.category);
+    const selectedStatus = pStatus.find(p => p.P_productStatusName === item.status);
+    const selectedStock = pStock.find(
+      (s) => s?.PS_StockDetailsID?.toString() === item.stockID?.toString()
+    );
+    const stockAmt =
+      selectedStock?.P_stockNum?.toString() ||
+      item.stockNumber?.toString() || "";
+  
+    setValues({
+      [config.product.codeField]: item.productCode,
+      [config.product.categoryField]: selectedCategory?.C_categoryID?.toString() || "",
+      [config.product.skuField]: item.SKU,
+      [config.product.nameField]: item.productName,
+      [config.product.brandField]: selectedBrand?.B_brandID?.toString() || "",
+      [config.product.supplierField]: selectedSupplier?.S_supplierID?.toString() || "",
+      [config.product.stockField]: stockAmt,
+      [config.product.unitpriceField]: item.price,
+      [config.product.sellingpriceField]: item.sellingPrice,
+      [config.product.statusID]: selectedStatus?.P_productStatusID?.toString() || "",
+      [config.product.dateField]: item.dateAdded,
+    });
+  
+    setSelectedProduct(item);
     setSheetOpen(true);
   };
 
@@ -165,7 +201,6 @@ export default function ProductsPage() {
   const [selectedSubFilter, setSelectedSubFilter] = useState(null);
 
   const getFilteredTransactions = () => {
-    const filteredItems =
     config?.nameField && config?.idField
       ? data.filter(
           (item) =>
@@ -206,19 +241,19 @@ export default function ProductsPage() {
         if (!price) return 0;
         return parseFloat(price.toString().replace(/[^\d.]/g, ""));
       }
-
-      if (selectedFilter === "Date Added") {
-        sortedTransactions.sort((a, b) =>
-          selectedSubFilter === "Ascending"
-            ? a.dateAdded.localeCompare(b.dateAdded)
-            : b.dateAdded.localeCompare(a.dateAdded)
-        );
-      }
       
       sortedTransactions.sort((a, b) =>
         selectedSubFilter === "Low to High"
           ? getPrice(a.price) - getPrice(b.price)
           : getPrice(b.price) - getPrice(a.price)
+      );
+    }
+
+    if (selectedFilter === "Date added") {
+      sortedTransactions.sort((a, b) =>
+        selectedSubFilter === "Ascending"
+          ? new Date(a.dateAdded) - new Date(b.dateAdded)
+          : new Date(b.dateAdded) - new Date(a.dateAdded)
       );
     }
 
@@ -238,64 +273,55 @@ export default function ProductsPage() {
       .then(res => setSuppliers(res.data))
       .catch((err) => console.error("Failed to fetch supplier options:", err));
   }, []);
-  const supplierIDMap = suppliers.reduce((map, supplier) => {
-    map[supplier.SupplierName] = supplier.SupplierID;
-    return map;
-  }, {});
   const[brands, setBrands] = useState([]);
   useEffect(() => {
     axios.get("http://localhost:8080/brands")
       .then(res => setBrands(res.data))
       .catch((err) => console.error("Failed to fetch brand options:", err));
   }, []);
-  const brandIDMap = brands.reduce((map, brand) => {
-    map[brand.BrandName] = brand.BrandID;
-    return map;
-  }, {});
   const[categories, setCategories] = useState([]);
   useEffect(() => {
     axios.get("http://localhost:8080/categories")
       .then(res => setCategories(res.data))
       .catch((err) => console.error("Failed to fetch category options:", err));
   }, []);
-  const categoryIDMap = categories.reduce((map, category) => {
-    map[category.CategoryName] = category.CategoryID;
-    return map;
-  }, {});
   const[pStatus, setPStatus] = useState([]);
   useEffect(() => {
     axios.get("http://localhost:8080/productStatus")
       .then(res => setPStatus(res.data))
       .catch((err) => console.error("Failed to fetch product status options:", err));
   }, []);
-  const pStatusIDMap = pStatus.reduce((map, pstatus) => {
-    map[pstatus.PStatusName] = pstatus.PStatusID;
-    return map;
-  }, {});
+  const[pStock, setPStock] = useState([]);
+  useEffect(() => {
+    axios.get("http://localhost:8080/productStocks")
+      .then(res => setPStock(res.data))
+      .catch((err) => console.error("Failed to fetch product status options:", err));
+  }, []);
  
   // Submit
   const handleSubmit = (e) => {
     e.preventDefault();
     const payload = { 
       P_productCode: values[config.product.codeField],
-      P_productName: values[config.product.nameField],
+      C_categoryID: values[config.product.categoryField],
       P_SKU: values[config.product.skuField],
-      P_StockDetailsID: stockIDMap[values[config.product.stockField]],
+      P_productName: values[config.product.nameField],
+      B_brandID: values[config.product.brandField],
+      S_supplierID: values[config.product.supplierField],
+      stockAmt: values[config.product.stockField],
       P_unitPrice: values[config.product.unitpriceField],
       P_sellingPrice: values[config.product.sellingpriceField],
-      P_dateAdded: values[config.product.dateField],
-      P_productStatus: values[config.product.statusField],
-      S_supplierID: supplierIDMap[values[config.product.supplierField]] || "",
-      B_brandID: brandIDMap[values[config.product.brandField]] || "",
-      C_categoryID: categoryIDMap[values[config.product.categoryField]] || ""
+      P_productStatusID: values[config.product.statusID],
+      P_dateAdded: values[config.product.dateField]
     };
 
     axios
       .post(config.product.api.add, payload)
       .then(() => {
-        toast.success(`${config.product.label} updated successfully`);
+        toast.success(`${config.product.label} added successfully`);
         refreshTable();
         resetForm();
+        setAddSheetOpen(false);
       })
       .catch((err) => {
         console.error("Error response:", err.response);
@@ -303,12 +329,12 @@ export default function ProductsPage() {
         if (err.response?.data?.message?.includes('.PRIMARY')) {
           toast.error(`${config.product.label} with given code already exists. Code must be unique.`);
         }
-
+        
         if (err.response?.status === 409 || err.response?.data?.message?.includes('unique_name')) {
           toast.error(`${config.product.label} with given name already exists. Name must be unique.`);
         } 
         else {
-          toast.error(`Error adding ${config.label}`);
+          toast.error(`Error adding ${config.product.label}`);
         }
       });
   };
@@ -316,52 +342,51 @@ export default function ProductsPage() {
   const resetForm = () => {
     setValues({
       [config.product.codeField]: "",
-      [config.product.dateField]: "",
-      [config.product.supplierField]: "",
-      [config.product.brandField]: "",
       [config.product.categoryField]: "",
+      [config.product.skuField]: "",    
       [config.product.nameField]: "",
-      [config.product.quantityField]: "",
+      [config.product.brandField]: "",
+      [config.product.supplierField]: "",
+      [config.product.stockField]: "",
       [config.product.unitpriceField]: "",
       [config.product.sellingpriceField]: "",
       [config.product.statusField]: "",
+      [config.product.dateField]: "",
     });
     setEditingItem(null);
   };
 
   // Edit
   const handleEdit = (item) => {
-    const selectedSupplier = suppliers.find(
-      (supplier) => supplier.SupplierName === item[config.supplierField]
-    );
-    const supplierID = selectedSupplier ? selectedSupplier.SupplierID : "";
-  
-    const selectedBrand = brands.find(
-      (brand) => brand.BrandName === item[config.brandField]
-    );
-    const brandID = selectedBrand ? selectedBrand.BrandID : "";
+    const payload = { 
+      C_categoryID: values[config.product.categoryField] || selectedProduct.categoryID,
+      P_SKU: values[config.product.skuField] || selectedProduct.SKU,
+      P_productName: values[config.product.nameField] || selectedProduct.productName,
+      B_brandID: values[config.product.brandField] || selectedProduct.brandID,
+      S_supplierID: values[config.product.supplierField] || selectedProduct.supplierID,
+      stockAmt: values[config.product.stockField] || selectedProduct.stockAmount,
+      P_unitPrice: values[config.product.unitpriceField] || selectedProduct.unitPrice,
+      P_sellingPrice: values[config.product.sellingpriceField] || selectedProduct.sellingPrice,
+      P_productStatusID: values[config.product.statusID] || selectedProduct.statusID
+    };
 
-    const selectedCategory = categories.find(
-      (category) => category.CategoryName === item[config.categoryField]
-    );
-    const categoryID = selectedCategory ? selectedCategory.CategoryID : "";
-  
-    const selectedStatus = pStatus.find(
-      (pstatus) => pstatus.PStatusName === item[config.statusField]
-    );
-    const pstatusID = selectedStatus ? selectedStatus.PStatusID : "";
-
-    setValues({
-      [config.supplierField]: supplierID,
-      [config.brandField]: brandID,
-      [config.categoryField]: categoryID,
-      [config.nameField]: item[config.nameField],
-      [config.quantityField]: item[config.quantityFieldField],
-      [config.unitpriceField]: item[config.unitpriceFieldField],
-      [config.sellingpriceField]: item[config.sellingpriceField],
-      [config.statusField]: pstatusID,
-    });  
-    setEditingItem(item);
+    axios
+      .put(`${config.product.api.update}/${values[config.product.codeField]}`, payload)
+      .then(() => {
+        toast.success(`${config.product.label} edited successfully`);
+        refreshTable();
+        setAddSheetOpen(false);
+      })
+      .catch((err) => {
+        console.error("Error response:", err.response);
+        
+        if (err.response?.status === 409 || err.response?.data?.message?.includes('unique_name')) {
+          toast.error(`${config.product.label} with given name already exists. Name must be unique.`);
+        } 
+        else {
+          toast.error(`Error editing ${config.product.label}`);
+        }
+      });
   };
 
   // Price edit
@@ -372,15 +397,17 @@ export default function ProductsPage() {
     const supplierID = selectedSupplier ? selectedSupplier.SupplierID : "";
   
     setValues({
-      [config.supplierField]: supplierID,
-      [config.nameField]: item[config.nameField],
-      [config.sellingpriceField]: item[config.sellingpriceField],
+      [config.product.supplierField]: supplierID,
+      [config.product.nameField]: item[config.nameField],
+      [config.product.sellingpriceField]: item[config.sellingpriceField],
     });  
     setEditingItem(item);
   };
 
   // Delete
   const [adminPW, setAdminPW] = useState("");
+  const [isDDOpen, setDDOpen] = useState("");
+  const [isMDDOpen, setMDDOpen] = useState("");
   const handleDelete = (productCode, adminPWInput) => {
     axios({
       method: 'delete',
@@ -393,6 +420,8 @@ export default function ProductsPage() {
       .then(() => {
         toast.success("Product deleted successfully");
         refreshTable();
+        setAdminPW("");
+        setDDOpen(false);
       })
       .catch(err => {
         console.error("Delete error:", err.response?.data || err);
@@ -425,14 +454,21 @@ export default function ProductsPage() {
     if (!password) return toast.error("Password is required.");
     Promise.all(
       selectedProducts.map((code) =>
-        axios.delete(`${config.product.api.delete}/${code}`, {
-          data: { adminPW },
+        axios({
+          method: 'delete',
+          url: `${config.product.api.delete}/${code}`,
+          data: { adminPW: password /*adminPWInput */ }, 
+          headers: {
+            'Content-Type': 'application/json',
+          }
         })
       )
     )
       .then(() => {
         toast.success("Selected products deleted.");
         refreshTable();
+        setAdminPW("");
+        setMDDOpen(false);
       })
       .catch(() => toast.error("Error deleting selected products."));
   };  
@@ -466,32 +502,6 @@ export default function ProductsPage() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start">
                     <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>Supplier</DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent>
-                        {suppliers.map((supplier) => (
-                          <DropdownMenuItem
-                            key={supplier.S_supplierName}
-                            onClick={() => handleFilterSelect("Supplier", supplier.S_supplierName)}>
-                            {supplier.S_supplierName}
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuSubContent>
-                    </DropdownMenuSub>
-                    
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>Brand</DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent>
-                        {brands.map((brand) => (
-                          <DropdownMenuItem
-                            key={brand.B_brandName}
-                            onClick={() => handleFilterSelect("Brand", brand.B_brandName)}>
-                            {brand.B_brandName}
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuSubContent>
-                    </DropdownMenuSub>
-
-                    <DropdownMenuSub>
                       <DropdownMenuSubTrigger>Category</DropdownMenuSubTrigger>
                       <DropdownMenuSubContent>
                         {categories.map((category) => (
@@ -515,6 +525,32 @@ export default function ProductsPage() {
                         </DropdownMenuItem>
                       </DropdownMenuSubContent>
                     </DropdownMenuSub>
+                    
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>Brand</DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent>
+                        {brands.map((brand) => (
+                          <DropdownMenuItem
+                            key={brand.B_brandName}
+                            onClick={() => handleFilterSelect("Brand", brand.B_brandName)}>
+                            {brand.B_brandName}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>Supplier</DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent>
+                        {suppliers.map((supplier) => (
+                          <DropdownMenuItem
+                            key={supplier.S_supplierName}
+                            onClick={() => handleFilterSelect("Supplier", supplier.S_supplierName)}>
+                            {supplier.S_supplierName}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
 
                     <DropdownMenuSub>
                       <DropdownMenuSubTrigger>Price</DropdownMenuSubTrigger>
@@ -524,6 +560,24 @@ export default function ProductsPage() {
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleFilterSelect("Price", "High to Low")}>
                           High to Low
+                        </DropdownMenuItem>
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+                    
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>Product Status</DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent>
+                        <DropdownMenuItem onClick={() => handleFilterSelect("Product Status", "Available")}>
+                          Available
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleFilterSelect("Product Status", "Out of Stock")}>
+                          Out of Stock
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleFilterSelect("Product Status", "Low Stock")}>
+                          Low Stock
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleFilterSelect("Product Status", "Discontinued")}>
+                          Discontinued
                         </DropdownMenuItem>
                       </DropdownMenuSubContent>
                     </DropdownMenuSub>
@@ -539,24 +593,6 @@ export default function ProductsPage() {
                         </DropdownMenuItem>
                       </DropdownMenuSubContent>
                     </DropdownMenuSub>
-                    
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>Product Status</DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Product Status", "Active")}>
-                          Active
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Product Status", "Out of Stock")}>
-                          Out of Stock
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Product Status", "Low Stock")}>
-                          Low Stock
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Product Status", "Discontinued")}>
-                          Discontinued
-                        </DropdownMenuItem>
-                      </DropdownMenuSubContent>
-                    </DropdownMenuSub>
 
                     <DropdownMenuItem 
                       onClick={() => handleFilterSelect(null, null)} 
@@ -569,7 +605,7 @@ export default function ProductsPage() {
               </div>
             </div>
             <div className="flex space-x-2">
-              <Sheet>
+              <Sheet open={isAddSheetOpen} onOpenChange={setAddSheetOpen}>
                 <SheetTrigger asChild>
                   <Button className="bg-blue-400 text-white">Add Product</Button>
                 </SheetTrigger>
@@ -581,24 +617,27 @@ export default function ProductsPage() {
                     <Label className>Product Code</Label>
                     <Input placeholder="Enter product code" type="number" required onChange={(e) => setValues({...values, [config.product.codeField]: e.target.value})} />
 
-                    <Label>Date Added</Label>
-                    <Input type="date" name="Pdateadded"  required onChange={(e) => setValues({ ...values, [config.product.dateField]: e.target.value })}/>
-
-                    <Label>Supplier</Label>
-                    <Select onValueChange={(value) => setValues({ ...values, [config.product.supplierField]: value })}>
+                    <Label>Category</Label>
+                    <Select onValueChange={(value) => setValues({ ...values, [config.product.categoryField]: value })}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select Supplier" />
+                        <SelectValue placeholder="Select Category"/>
                       </SelectTrigger>
                       <SelectContent>
-                        {suppliers.map((supplier) => (
+                        {categories.map((category) => (
                           <SelectItem
-                            key={supplier.S_supplierID}
-                            value={supplier.S_supplierName}>
-                            {supplier.S_supplierName}
+                            key={category.C_categoryID}
+                            value={category.C_categoryID.toString()}>
+                            {category.C_categoryName}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+                    
+                    <Label>SKU</Label>
+                    <Input placeholder="Enter stock keeping unit" required onChange={(e) => setValues({ ...values, [config.product.skuField]: e.target.value })}/>
+
+                    <Label>Product Name</Label>
+                    <Input placeholder="Enter product name" required onChange={(e) => setValues({ ...values, [config.product.nameField]: e.target.value })}/>
 
                     <Label>Brand</Label>
                     <Select onValueChange={(value) => setValues({ ...values, [config.product.brandField]: value })}>
@@ -609,37 +648,31 @@ export default function ProductsPage() {
                         {brands.map((brand) => (
                           <SelectItem
                             key={brand.B_brandID}
-                            value={brand.B_brandName}>
+                            value={brand.B_brandID.toString()}>
                             {brand.B_brandName}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
 
-                    <Label>Category</Label>
-                    <Select onValueChange={(value) => setValues({ ...values, [config.product.categoryField]: value })}>
+                    <Label>Supplier</Label>
+                    <Select onValueChange={(value) => setValues({ ...values, [config.product.supplierField]: value })}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select Category"/>
+                        <SelectValue placeholder="Select Supplier" />
                       </SelectTrigger>
                       <SelectContent>
-                        {categories.map((category) => (
+                        {suppliers.map((supplier) => (
                           <SelectItem
-                            key={category.C_categoryID}
-                            value={category.C_categoryName}>
-                            {category.C_categoryName}
+                            key={supplier.S_supplierID}
+                            value={supplier.S_supplierID.toString()}>
+                            {supplier.S_supplierName}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
 
-                    <Label>Product Name</Label>
-                    <Input placeholder="Enter product name" required onChange={(e) => setValues({ ...values, [config.product.nameField]: e.target.value })}/>
-                    
-                    <Label>SKU</Label>
-                    <Input placeholder="Enter stock keeping unit" required onChange={(e) => setValues({ ...values, [config.product.skuField]: e.target.value })}/>
-
-                    <Label>Quantity</Label>
-                    <Input type="number" placeholder="Enter quantity" required onChange={(e) => setValues({ ...values, [config.product.quantityField]: e.target.value })}/>
+                    <Label>Stock amount</Label>
+                    <Input type="number" placeholder="Enter Stock amount" required onChange={(e) => setValues({ ...values, [config.product.stockField]: e.target.value })}/>
 
                     <Label>Price</Label>
                     <Input placeholder="Enter price"  type="number" required onChange={(e) => setValues({ ...values, [config.product.unitpriceField]: e.target.value })}/>
@@ -648,17 +681,23 @@ export default function ProductsPage() {
                     <Input placeholder="Enter selling price"  type="number" required onChange={(e) => setValues({...values, [config.product.sellingpriceField]: e.target.value,})}/>
 
                     <Label>Product Status</Label>
-                    <Select onValueChange={(value) => setValues({ ...values, [config.product.statusField]: value })}>
+                    <Select onValueChange={(value) => setValues({ ...values, [config.product.statusID]: value })}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select Status"/>
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Active">Active</SelectItem>
-                        <SelectItem value="Out of Stock">Out of Stock</SelectItem>
-                        <SelectItem value="Low Stock">Low Stock</SelectItem>
-                        <SelectItem value="Discontinued">Discontinued</SelectItem>
+                        {pStatus.map((pstatus) => (
+                          <SelectItem
+                            key={pstatus.P_productStatusID}
+                            value={pstatus.P_productStatusID.toString()}>
+                            {pstatus.P_productStatusName}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
+
+                    <Label>Date Added</Label>
+                    <Input type="date" name="Pdateadded"  required onChange={(e) => setValues({ ...values, [config.product.dateField]: e.target.value })}/>
                     <Button className="bg-blue-400 text-white w-full mt-4" onClick={handleSubmit}>Add Product</Button>
                   </div>
                 </SheetContent>
@@ -713,7 +752,7 @@ export default function ProductsPage() {
                 <Download className="w-4 h-4" />
               </Button>
 
-              <Dialog>
+              <Dialog open={isMDDOpen} onOpenChange={setMDDOpen}>
                 <DialogTrigger asChild>
                   <Button className="bg-red-500 text-white" disabled={selectedProducts.length === 0}>
                     Delete Selected
@@ -766,16 +805,16 @@ export default function ProductsPage() {
                     <input type="checkbox" onChange={handleSelectAll} checked={selectedProducts.length === getFilteredTransactions().length && selectedProducts.length > 0} />
                   </TableHead>
                   <TableHead>Product Code</TableHead>
-                  <TableHead>Date Added</TableHead>
-                  <TableHead>Supplier</TableHead>
-                  <TableHead>Brand</TableHead>
                   <TableHead>Category</TableHead>
-                  <TableHead>Product</TableHead>
                   <TableHead>SKU (Stock Keeping Unit)</TableHead>
-                  <TableHead>Quantity</TableHead>
+                  <TableHead>Product</TableHead>
+                  <TableHead>Brand</TableHead>
+                  <TableHead>Supplier</TableHead>
+                  <TableHead>Stock amount</TableHead>
                   <TableHead>Price</TableHead>
                   <TableHead>Selling Price</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Date Added</TableHead>
                   <TableHead>View/Edit</TableHead>
                 </TableRow>
               </TableHeader>
@@ -794,22 +833,22 @@ export default function ProductsPage() {
                       />
                     </TableCell>
                     <TableCell>{item.productCode}</TableCell>
-                    <TableCell>{new Date(item.dateAdded).toLocaleDateString()}</TableCell>
-                    <TableCell>{item.supplier}</TableCell>
-                    <TableCell>{item.brand}</TableCell>
                     <TableCell>{item.category}</TableCell>
+                    <TableCell>{item.SKU}</TableCell>
                     <TableCell>{item.productName}</TableCell>
-                    <TableCell>{item.stock}</TableCell>
-                    <TableCell>{item.quantity} pcs</TableCell>
+                    <TableCell>{item.brand}</TableCell>
+                    <TableCell>{item.supplier}</TableCell>
+                    <TableCell>{item.stockNumber} pcs</TableCell>
                     <TableCell>{item.price}</TableCell>
                     <TableCell>{item.sellingPrice}</TableCell>
                     <TableCell className={`font-semibold ${getStatusTextColor(item.status)}`}>{item.status}</TableCell>
+                    <TableCell>{new Date(item.dateAdded).toLocaleDateString()}</TableCell>
                     <TableCell className="flex space-x-2">
-                      <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600" onClick={() => openEditSheet(product)}>
+                      <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600" onClick={() => openEditSheet(item)}>
                         <FilePen size={16} />
                       </Button>
                       {/* For deleting transactions */}
-                      <Dialog>
+                      <Dialog open={isDDOpen} onOpenChange={setDDOpen}>
                           <DialogTrigger asChild>
                         <Button variant="ghost" size="sm" className="text-gray-500 hover:text-red-600">
                           <Trash2 size={16} />
@@ -862,43 +901,8 @@ export default function ProductsPage() {
               <label className="text-black font-semibold text-sm">Product Code</label>
               <Input value={selectedProduct.productCode} disabled className="bg-gray-200" />
 
-              <label className="text-black font-semibold text-sm">Date Added</label>
-              <Input value={selectedProduct.dateAdded} disabled className="bg-gray-200" />
-
-              <label className="text-black font-semibold text-sm">Supplier</label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Supplier" />
-                </SelectTrigger>
-                <SelectContent>
-                  {suppliers.map((supplier) => (
-                    <SelectItem
-                      key={supplier.S_supplierID}
-                      value={supplier.S_supplierName}>
-                      {supplier.S_supplierName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <label className="text-black font-semibold text-sm">Brand</label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Brand" />
-                </SelectTrigger>
-                <SelectContent>
-                  {brands.map((brand) => (
-                    <SelectItem
-                      key={brand.B_brandID}
-                      value={brand.B_brandName}>
-                      {brand.B_brandName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
               <label className="text-black font-semibold text-sm">Category</label>
-              <Select>
+              <Select value={values[config.product.categoryField]} onValueChange={(value) => setValues({ ...values, [config.product.categoryField]: value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select Category" />
                 </SelectTrigger>
@@ -906,42 +910,80 @@ export default function ProductsPage() {
                   {categories.map((category) => (
                     <SelectItem
                       key={category.C_categoryID}
-                      value={category.C_categoryName}>
+                      value={category.C_categoryID.toString()}>
                       {category.C_categoryName}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
 
-              <label className="text-black font-semibold text-sm">Product Name</label>
-              <Input placeholder={selectedProduct.product} />
-
               <label className="text-black font-semibold text-sm">SKU</label>
-              <Input placeholder={selectedProduct.SKU} />
+              <Input value={values[config.product.skuField] ?? ""} onChange={(e) => setValues({ ...values, [config.product.skuField]: e.target.value })}/>
 
-              <label className="text-black font-semibold text-sm">Quantity</label>
-              <Input type="number" defaultValue={selectedProduct.quantity} />
+              <label className="text-black font-semibold text-sm">Product Name</label>
+              <Input value={values[config.product.nameField]  ?? ""} onChange={(e) => setValues({ ...values, [config.product.nameField]: e.target.value })}/>
 
-              <label className="text-black font-semibold text-sm">Price</label>
-              <Input type="text" defaultValue={selectedProduct.price} />
-
-              <label className="text-black font-semibold text-sm">Selling Price</label>
-              <Input type="text" defaultValue={selectedProduct.sellingPrice} />
-
-              <label className="text-black font-semibold text-sm">Product Status</label>
-              <Select>
+              <label className="text-black font-semibold text-sm">Brand</label>
+              <Select value={values[config.product.brandField]} onValueChange={(value) => setValues({ ...values, [config.product.brandField]: value })}>
                 <SelectTrigger>
-                  <SelectValue placeholder={selectedProduct.status} />
+                  <SelectValue placeholder="Select Brand" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Active">Active</SelectItem>
-                  <SelectItem value="Out of Stock">Out of Stock</SelectItem>
-                  <SelectItem value="Low Stock">Low Stock</SelectItem>
-                  <SelectItem value="Discontinued">Discontinued</SelectItem>
+                  {brands.map((brand) => (
+                    <SelectItem
+                      key={brand.B_brandID}
+                      value={brand.B_brandID.toString()}>
+                      {brand.B_brandName}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 
-              <Button className="bg-blue-400 text-white w-full mt-4">Save Edit</Button>
+              <label className="text-black font-semibold text-sm">Supplier</label>
+              <Select value={values[config.product.supplierField]} onValueChange={(value) => setValues({ ...values, [config.product.supplierField]: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Supplier" />
+                </SelectTrigger>
+                <SelectContent>
+                  {suppliers.map((supplier) => (
+                    <SelectItem
+                      key={supplier.S_supplierID}
+                      value={supplier.S_supplierID.toString()}>
+                      {supplier.S_supplierName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <label className="text-black font-semibold text-sm">Stock amount</label>
+              <Input type="number" value={values[config.product.stockField]  ?? ""} /*defaultValue={selectedProduct.quantity}*/ onChange={(e) => setValues({ ...values, [config.product.stockField]: e.target.value })}/>
+
+              <label className="text-black font-semibold text-sm">Price</label>
+              <Input type="text" value={values[config.product.unitpriceField]  ?? ""} /*defaultValue={selectedProduct.price}*/ onChange={(e) => setValues({ ...values, [config.product.unitpriceField]: e.target.value })}/>
+
+              <label className="text-black font-semibold text-sm">Selling Price</label>
+              <Input type="text" value={values[config.product.sellingpriceField] ?? ""} /*defaultValue={selectedProduct.sellingPrice}*/ onChange={(e) => setValues({...values, [config.product.sellingpriceField]: e.target.value,})}/>
+
+              <label className="text-black font-semibold text-sm">Product Status</label>
+              <Select value={values[config.product.statusID]} onValueChange={(value) => setValues({ ...values, [config.product.statusID]: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Status"/>
+                </SelectTrigger>
+                <SelectContent>
+                  {pStatus.map((pstatus) => (
+                    <SelectItem
+                      key={pstatus.P_productStatusID}
+                      value={pstatus.P_productStatusID.toString()}>
+                      {pstatus.P_productStatusName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <label className="text-black font-semibold text-sm">Date Added</label>
+              <Input value={selectedProduct.dateAdded} disabled className="bg-gray-200" />
+
+              <Button className="bg-blue-400 text-white w-full mt-4" onClick={handleEdit}>Save Edit</Button>
             </div>
           )}
         </SheetContent>
@@ -949,6 +991,7 @@ export default function ProductsPage() {
         </div>
       </div>
     </div>
+    <Toaster position="top-center"/>
     </SidebarProvider>
   );
 }

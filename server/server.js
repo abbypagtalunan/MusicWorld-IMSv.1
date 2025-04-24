@@ -4,12 +4,13 @@ const app = express();
 const supplierRoutes = require('../server/src/routes/supplierRoutes.js');
 const brandRoutes = require('../server/src/routes/brandRoutes.js');
 const categoryRoutes = require('../server/src/routes/categoryRoutes.js');
-const productRoutes = require('../server/src/routes/productRoutes.js')
+const productRoutes = require('../server/src/routes/productRoutes.js');
+const productStockRoutes = require('../server/src/routes/productStockRoutes.js');
 const productStatusRoutes = require('../server/src/routes/productStatusRoutes.js');
 const deliveryModeOfPaymentRoutes = require('../server/src/routes/deliveryModeOfPaymentRouter.js');
 const deliveryPaymentTypesRoutes = require('./src/routes/deliveryPaymentTypesRoutes.js');
 const deliveryPaymentStatusRoutes = require('./src/routes/deliveryPaymentStatusRoutes.js');
-const returnRoutes = require('../server/src/routes/returnsRoutes,js');
+const returnRoutes = require('../server/src/routes/returnsRoutes.js');
 const supBrdCatStatusRoutes = require('./src/routes/SupBrdCatStatusRoutes.js');
 
 app.use(
@@ -28,11 +29,12 @@ app.use("/suppliers", supplierRoutes);
 app.use("/brands", brandRoutes);
 app.use("/categories", categoryRoutes);
 app.use("/products", productRoutes);
+app.use("/productStocks", productStockRoutes);
 app.use("/productStatus", productStatusRoutes);
 app.use("/deliveryMOP", deliveryModeOfPaymentRoutes);
 app.use("/deliveryPayTypes", deliveryPaymentTypesRoutes);
 app.use("/deliveryPayStatus", deliveryPaymentStatusRoutes);
-app.use('/returns', returnsRoutes);
+app.use('/returns', returnRoutes);
 app.use("/supBrdCatStatus", supBrdCatStatusRoutes);
 app.use(cors());
 
