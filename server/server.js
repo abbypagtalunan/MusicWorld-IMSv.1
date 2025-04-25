@@ -9,7 +9,7 @@ const productStatusRoutes = require('../server/src/routes/productStatusRoutes.js
 const deliveryModeOfPaymentRoutes = require('../server/src/routes/deliveryModeOfPaymentRouter.js');
 const deliveryPaymentTypesRoutes = require('./src/routes/deliveryPaymentTypesRoutes.js');
 const deliveryPaymentStatusRoutes = require('./src/routes/deliveryPaymentStatusRoutes.js');
-const returnsRoutes = require('../server/src/routes/returnsRoutes,js');
+const returnRoutes = require('../server/src/routes/returnsRoutes,js');
 const supBrdCatStatusRoutes = require('./src/routes/SupBrdCatStatusRoutes.js');
 
 app.use(
@@ -20,9 +20,7 @@ app.use(
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ['Content-Type']
   })
-);
-app.use(express.json());
-
+)
 // Use all routes for each entity here
 app.use("/suppliers", supplierRoutes);
 app.use("/brands", brandRoutes);
@@ -35,6 +33,7 @@ app.use("/deliveryPayStatus", deliveryPaymentStatusRoutes);
 app.use('/returns', returnsRoutes);
 app.use("/supBrdCatStatus", supBrdCatStatusRoutes);
 app.use(cors());
+app.use(express.json());
 
 
 // Log that server is running
