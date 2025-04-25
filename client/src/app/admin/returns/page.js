@@ -340,8 +340,51 @@ export default function ReturnsPage() {
                                 <TableCell className="text-center">{item.R_returnQuantity}</TableCell>
                                 <TableCell className="text-center">{item.R_returnTypeID}</TableCell>
                                 <TableCell className="text-center">{item.R_reasonOfReturn}</TableCell>
-                                <TableCell className="text-center flex space-x-2 justify-center">
-                                  {/* Delete Dialog */}
+                                <TableCell className="flex space-x-2">
+                                  <Dialog>
+                                    <DialogTrigger asChild>
+                                      <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600">
+                                        <Ellipsis size={16} />
+                                      </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="w-[90vw] sm:w-[600px] md:w-[750px] lg:w-[900px] xl:w-[1100px] max-w-[95vw] p-4 sm:p-6 overflow-y-auto max-h-[90vh]">
+                                      <DialogHeader>
+                                        <DialogTitle className="text-xl text-gray-600 font-medium pb-0">Return Details</DialogTitle>
+                                        <DialogClose />
+                                      </DialogHeader>
+                                      <div className="py-4">
+                                        <Table>
+                                          <TableHeader>
+                                            <TableRow>
+                                              <TableHead className="text-center">Date</TableHead>
+                                              <TableHead className="text-center">Product Code</TableHead>
+                                              <TableHead className="text-center">Supplier</TableHead>
+                                              <TableHead className="text-center">Brand</TableHead>
+                                              <TableHead className="text-center">Category</TableHead>
+                                              <TableHead className="text-center">Product</TableHead>
+                                              <TableHead className="text-center">Quantity</TableHead>
+                                              <TableHead className="text-center">Discount</TableHead>
+                                              <TableHead className="text-center">Total</TableHead>
+                                            </TableRow>
+                                          </TableHeader>
+                                          <TableBody>
+                                            <TableRow>
+                                              <TableCell className="text-center">{item.dateAdded}</TableCell>
+                                              <TableCell className="text-center">{item.productCode}</TableCell>
+                                              <TableCell className="text-center">{item.supplier}</TableCell>
+                                              <TableCell className="text-center">{item.brand}</TableCell>
+                                              <TableCell className="text-center">{item.category}</TableCell>
+                                              <TableCell className="text-center">{item.product}</TableCell>
+                                              <TableCell className="text-center">{item.quantity}</TableCell>
+                                              <TableCell className="text-center">{item.discount}</TableCell>
+                                              <TableCell className="text-center">{item.totalPrice}</TableCell>
+                                            </TableRow>
+                                          </TableBody>
+                                        </Table>
+                                      </div>
+                                    </DialogContent>
+                                  </Dialog>
+                                  {/* For delete transactions */}
                                   <Dialog>
                                     <DialogTrigger asChild>
                                       <Button variant="ghost" size="sm" className="text-gray-500 hover:text-red-600">
@@ -352,21 +395,21 @@ export default function ReturnsPage() {
                                       <DialogHeader>
                                         <DialogTitle>
                                           <span className="text-lg text-red-900">Delete Transaction</span>{" "}
-                                          <span className="text-lg text-gray-400 font-normal italic">{item.R_returnID}</span>
+                                          <span className="text-lg text-gray-400 font-normal italic">{item.transactionID}</span>
                                         </DialogTitle>
                                         <DialogClose />
                                       </DialogHeader>
-                                      <p className="text-sm text-gray-800 mt-2 pl-4">
+                                      <p className='text-sm text-gray-800 mt-2 pl-4'>
                                         Deleting this transaction will reflect on Void Transactions. Enter the admin password to delete this transaction.
                                       </p>
                                       <div className="flex items-center gap-4 mt-4 pl-10">
                                         <div className="flex-1">
-                                          <Label htmlFor={`password-${item.R_returnID}`} className="text-base font-medium text-gray-700 block mb-2">
+                                          <label htmlFor={`password-${item.transactionID}`} className="text-base font-medium text-gray-700 block mb-2">
                                             Admin Password
-                                          </Label>
+                                          </label>
                                           <Input
                                             type="password"
-                                            id={`password-${item.R_returnID}`}
+                                            id={`password-${item.transactionID}`}
                                             required
                                             placeholder="Enter valid password"
                                             className="w-full"
@@ -376,9 +419,8 @@ export default function ReturnsPage() {
                                           className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
                                           onClick={() =>
                                             handleDelete(
-                                              item.R_returnID,
-                                              document.getElementById(`password-${item.R_returnID}`).value,
-                                              "customer"
+                                              item.transactionID,
+                                              document.getElementById(`password-${item.transactionID}`).value
                                             )
                                           }
                                         >
