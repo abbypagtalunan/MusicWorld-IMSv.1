@@ -70,7 +70,7 @@ const deleteReturn = (req, res) => {
   const { adminPW } = req.body;
 
   // Validate admin password
-  if (adminPW !== "2095") {
+  if (adminPW !== "2095") { // Ensure this matches the password used in the frontend
     return res.status(403).json({ message: "Invalid admin password" });
   }
 
@@ -78,9 +78,12 @@ const deleteReturn = (req, res) => {
   returnModel.deleteReturn(returnID, (err, results) => {
     if (err) {
       console.error('Error deleting return:', err);
-      res.status(500).json({ message: 'Error deleting return', results });
+      res.status(500).json({ message: 'Error deleting return' });
     } else {
-      res.status(200).json({ message: 'Return deleted successfully', results });
+      if (results.affectedRows === 0) {
+        return res.status(404).json({ message: 'Return not found' });
+      }
+      res.status(200).json({ message: 'Return deleted successfully' });
     }
   });
 };
