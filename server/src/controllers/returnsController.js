@@ -1,70 +1,96 @@
-const db = require('./db');
+const returnModel = require('../models/returnsModel'); // Import the return model
 
-// ====================== RETURNS =======================
-
-// Fetch all returns
-exports.getAllReturns = (req, res) => {
-  const query = `SELECT * FROM Returns ORDER BY R_returnID DESC`;
-  db.query(query, (err, results) => {
-    if (err) return res.status(500).json({ error: 'Error fetching returns' });
-    res.json(results);
+// Route to fetch all returns
+const getAllReturns = (req, res) => {
+  // Access the getAllReturns method from the return model
+  returnModel.getAllReturns((err, results) => {
+    if (err) {
+      console.error('Error fetching data from database:', err);
+      res.status(500).json({ error: 'Error fetching data' });
+    } else {
+      res.json(results);
+    }
   });
 };
 
-// Add a return
-exports.addReturn = (req, res) => {
-  const {
-    P_productCode, R_returnTypeID, R_reasonOfReturn,
-    R_dateOfReturn, R_returnQuantity, R_discountAmount, R_totalPrice
-  } = req.body;
+// Route to add a new return
+const addReturn = (req, res) => {
+  const { P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn, R_returnQuantity, R_discountAmount } = req.body;
 
-  if (!P_productCode || !R_returnTypeID) {
+  // Validate required fields
+  if (!P_productCode || !R_returnTypeID || !R_reasonOfReturn || !R_dateOfReturn || !R_returnQuantity) {
     return res.status(400).json({ message: 'Missing required fields' });
   }
 
-  const query = `
-    INSERT INTO Returns 
-    (P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn, R_returnQuantity, R_discountAmount, R_totalPrice)
-    VALUES (?, ?, ?, ?, ?, ?, ?)`;
+  // Call the addReturn method from the return model
+  returnModel.addReturn(
+    { P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn, R_returnQuantity, R_discountAmount },
+    (err, returnId) => {
+      if (err) {
+        console.error('Error inserting return:', err);
+        res.status(500).json({ message: 'Error inserting return' });
+      } else {
+        res.status(201).json({ message: 'Return added successfully', id: returnId });
+      }
+    }
+  );
+};
 
-  db.query(query, [
-    P_productCode, R_returnTypeID, R_reasonOfReturn,
-    R_dateOfReturn, R_returnQuantity, R_discountAmount, R_totalPrice
-  ], (err, results) => {
-    if (err) return res.status(500).json({ message: 'Error inserting return' });
-    res.status(201).json({ message: 'Return added', id: results.insertId });
+// Route to update a return record
+const updateReturn = (req, res) => {
+  const returnID = req.params.id; // Extract return ID from the URL parameter
+  const { P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn, R_returnQuantity, R_discountAmount } = req.body;
+
+  // Validate required fields
+  if (!P_productCode || !R_returnTypeID || !R_reasonOfReturn || !R_dateOfReturn || !R_returnQuantity) {
+    return res.status(400).json({ message: 'Missing required fields' });
+  }
+
+  // Call the updateReturn method from the return model
+  returnModel.updateReturn(
+    returnID,
+    { P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn, R_returnQuantity, R_discountAmount },
+    (err, results) => {
+      if (err) {
+        console.error('Error updating return:', err);
+        return res.status(500).json({ message: 'Error updating return' });
+      }
+
+      if (results.affectedRows === 0) {
+        return res.status(404).json({ message: 'Return not found' });
+      }
+      res.status(200).json({ message: 'Return updated successfully' });
+    }
+  );
+};
+
+// Route to delete a return record
+const deleteReturn = (req, res) => {
+  const returnID = req.params.id; // Extract return ID from the URL parameter
+  const { adminPW } = req.body;
+
+  // Validate admin password
+  if (adminPW !== "2095") { // Ensure this matches the password used in the frontend
+    return res.status(403).json({ message: "Invalid admin password" });
+  }
+
+  // Call the deleteReturn method from the return model
+  returnModel.deleteReturn(returnID, (err, results) => {
+    if (err) {
+      console.error('Error deleting return:', err);
+      res.status(500).json({ message: 'Error deleting return' });
+    } else {
+      if (results.affectedRows === 0) {
+        return res.status(404).json({ message: 'Return not found' });
+      }
+      res.status(200).json({ message: 'Return deleted successfully' });
+    }
   });
 };
 
-// Update a return
-exports.updateReturn = (req, res) => {
-  const id = req.params.id;
-  const {
-    P_productCode, R_returnTypeID, R_reasonOfReturn,
-    R_dateOfReturn, R_returnQuantity, R_discountAmount, R_totalPrice
-  } = req.body;
-
-  const query = `
-    UPDATE Returns SET
-    P_productCode = ?, R_returnTypeID = ?, R_reasonOfReturn = ?, R_dateOfReturn = ?,
-    R_returnQuantity = ?, R_discountAmount = ?, R_totalPrice = ?
-    WHERE R_returnID = ?`;
-
-  db.query(query, [
-    P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn,
-    R_returnQuantity, R_discountAmount, R_totalPrice, id
-  ], (err, results) => {
-    if (err) return res.status(500).json({ message: 'Error updating return' });
-    res.json({ message: 'Return updated' });
-  });
-};
-
-// Delete a return
-exports.deleteReturn = (req, res) => {
-  const id = req.params.id;
-  const query = `DELETE FROM Returns WHERE R_returnID = ?`;
-  db.query(query, [id], (err, results) => {
-    if (err) return res.status(500).json({ message: 'Error deleting return' });
-    res.json({ message: 'Return deleted' });
-  });
+module.exports = {
+  getAllReturns,
+  addReturn,
+  updateReturn,
+  deleteReturn,
 };

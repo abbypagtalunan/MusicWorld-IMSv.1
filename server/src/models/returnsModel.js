@@ -1,63 +1,66 @@
-const db = require('../db');
+const db = require('../../db');
 
-// Get all returns
+// Get all Returns
 const getAllReturns = (callback) => {
-  const query = `SELECT * FROM Returns ORDER BY R_returnID DESC`;
+  const query = `
+    SELECT 
+      R_returnID,
+      P_productCode,
+      R_returnTypeID,
+      R_reasonOfReturn,
+      R_dateOfReturn,
+      R_returnQuantity,
+      R_discountAmount
+    FROM Returns;
+  `;
+
   db.query(query, (err, results) => {
-    if (err) callback(err, null);
-    else callback(null, results);
+    if (err) {
+      callback(err, null);
+    } else {
+      callback(null, results);
+    }
   });
 };
 
-// Add a new return
-const addReturn = (data, callback) => {
-  const {
-    P_productCode, R_returnTypeID, R_reasonOfReturn,
-    R_dateOfReturn, R_returnQuantity, R_discountAmount, R_totalPrice
-  } = data;
+// Add a new Return
+const addReturn = (returnData, callback) => {
+  const { P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn, R_returnQuantity, R_discountAmount } = returnData;
 
-  const query = `
-    INSERT INTO Returns 
-    (P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn, R_returnQuantity, R_discountAmount, R_totalPrice)
-    VALUES (?, ?, ?, ?, ?, ?, ?)`;
+  const insertReturnQuery = `
+    INSERT INTO Returns (P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn, R_returnQuantity, R_discountAmount) VALUES (?, ?, ?, ?, ?, ?)
+  `;
+  db.query(
+    insertReturnQuery,
+    [ P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn, R_returnQuantity, R_discountAmount ],
+    (err, results) => {
+      if (err) return callback(err);
+      callback(null, results);
+    }
+  );
+};
 
-  db.query(query, [
-    P_productCode, R_returnTypeID, R_reasonOfReturn,
-    R_dateOfReturn, R_returnQuantity, R_discountAmount, R_totalPrice
-  ], (err, results) => {
-    if (err) callback(err, null);
-    else callback(null, results.insertId);
+// Update an existing Return
+const updateReturn = (returnID, returnData, callback) => {
+  const { P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn, R_returnQuantity, R_discountAmount } = returnData;
+  const updateReturnQuery = `
+    UPDATE Returns
+    SET P_productCode = ?, R_returnTypeID = ?, R_reasonOfReturn = ?, R_dateOfReturn = ?, R_returnQuantity = ?, R_discountAmount = ?
+    WHERE R_returnID = ?;
+  `;
+  db.query(updateReturnQuery, [P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn, R_returnQuantity, R_discountAmount, returnID], (err, results) => {
+    if (err) return callback(err);
+    callback(null, results);
   });
 };
 
-// Update return
-const updateReturn = (id, data, callback) => {
-  const {
-    P_productCode, R_returnTypeID, R_reasonOfReturn,
-    R_dateOfReturn, R_returnQuantity, R_discountAmount, R_totalPrice
-  } = data;
+// Delete a Return
+const deleteReturn = (returnID, callback) => {
+  const deleteReturnQuery = `DELETE FROM Returns WHERE R_returnID = ?`;
 
-  const query = `
-    UPDATE Returns SET
-    P_productCode = ?, R_returnTypeID = ?, R_reasonOfReturn = ?, R_dateOfReturn = ?,
-    R_returnQuantity = ?, R_discountAmount = ?, R_totalPrice = ?
-    WHERE R_returnID = ?`;
-
-  db.query(query, [
-    P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn,
-    R_returnQuantity, R_discountAmount, R_totalPrice, id
-  ], (err, results) => {
-    if (err) callback(err, null);
-    else callback(null, results);
-  });
-};
-
-// Delete return
-const deleteReturn = (id, callback) => {
-  const query = `DELETE FROM Returns WHERE R_returnID = ?`;
-  db.query(query, [id], (err, results) => {
-    if (err) callback(err, null);
-    else callback(null, results);
+  db.query(deleteReturnQuery, [returnID], (err, results) => {
+    if (err) return callback(err);
+    callback(null, results);
   });
 };
 
@@ -65,5 +68,5 @@ module.exports = {
   getAllReturns,
   addReturn,
   updateReturn,
-  deleteReturn
+  deleteReturn,
 };

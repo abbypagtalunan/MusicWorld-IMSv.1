@@ -1,17 +1,16 @@
 const express = require('express');
 const router = express.Router();
-const controller = require('../controllers/returnsController');
+const {
+  getAllReturns,
+  addReturn,
+  updateReturn,
+  deleteReturn,
+} = require('../controllers/returnsController'); // Import the return controller
 
-// Returns Routes
-router.get('/returns', controller.getAllReturns);
-router.post('/returns', controller.addReturn);
-router.put('/returns/:id', controller.updateReturn);
-router.delete('/returns/:id', controller.deleteReturn);
-
-// Return Types Routes
-router.get('/returnTypes', controller.getAllReturnTypes);
-router.post('/returnTypes', controller.addReturnType);
-router.put('/returnTypes/:id', controller.updateReturnType);
-router.delete('/returnTypes/:id', controller.deleteReturnType);
+// Map endpoints to controller logic for the Returns table
+router.get('/', getAllReturns); // Fetch all returns
+router.post('/', addReturn); // Add a new return
+router.put('/:id', updateReturn); // Update an existing return
+router.delete('/:id', deleteReturn); // Delete a return
 
 module.exports = router;
