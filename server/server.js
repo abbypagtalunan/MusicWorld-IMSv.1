@@ -22,8 +22,6 @@ app.use(
     allowedHeaders: ['Content-Type']
   })
 )
-app.use(express.json());
-
 // Use all routes for each entity here
 app.use("/suppliers", supplierRoutes);
 app.use("/brands", brandRoutes);
@@ -37,6 +35,7 @@ app.use("/deliveryPayStatus", deliveryPaymentStatusRoutes);
 app.use('/returns', returnRoutes);
 app.use("/supBrdCatStatus", supBrdCatStatusRoutes);
 app.use(cors());
+app.use(express.json());
 
 
 // Log that server is running
