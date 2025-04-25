@@ -5,22 +5,22 @@ const getAllProducts = (callback) => {
   const query = `
     SELECT 
       p.P_productCode,
+      c.C_categoryName as category,
+      p.P_SKU,
       p.P_productName,
+      b.B_brandName as brand,
+      s.S_supplierName as supplier,
+      pk.P_stockNum as stock,
       p.P_unitPrice,
       p.P_sellingPrice,
-      p.P_dateAdded,
-      p.P_SKU,
-      c.C_categoryName as category,
       ps.P_productStatusName as status,
-      pk.P_stockNum as stock,
-      s.S_supplierName as supplier,
-      b.B_brandName as brand
+      p.P_dateAdded
     FROM Products p
-    LEFT JOIN Suppliers s ON p.S_supplierID = s.S_supplierID
-    LEFT JOIN Brands b ON p.B_brandID = b.B_brandID
     LEFT JOIN Categories c ON p.C_categoryID = c.C_categoryID
-    LEFT JOIN ProductStatus ps ON p.P_productStatusID = ps.P_productStatusID
-    LEFT JOIN ProductStock pk ON p.PS_StockDetailsID = pk.PS_StockDetailsID;
+    LEFT JOIN Brands b ON p.B_brandID = b.B_brandID
+    LEFT JOIN Suppliers s ON p.S_supplierID = s.S_supplierID
+    LEFT JOIN ProductStock pk ON p.PS_StockDetailsID = pk.PS_StockDetailsID
+    LEFT JOIN ProductStatus ps ON p.P_productStatusID = ps.P_productStatusID;
   `;
   
   db.query(query, (err, results) => {
@@ -34,34 +34,79 @@ const getAllProducts = (callback) => {
 
 // Add a new Product
 const addProduct = (productData, callback) => {
-  const { P_productCode, P_productName, P_unitPrice, P_sellingPrice, P_dateAdded, P_productStatusID, S_supplierID, B_brandID, C_categoryID, P_SKU, PS_StockDetailsID } = productData;
+  const { P_productCode, C_categoryID, P_SKU, P_productName, B_brandID, S_supplierID, stockAmt, P_unitPrice, P_sellingPrice, P_productStatusID, P_dateAdded } = productData;
 
-  const insertProductQuery = `
-    INSERT INTO Products (P_productCode, P_productName, P_unitPrice, P_sellingPrice, P_dateAdded, P_productStatusID, S_supplierID, B_brandID, C_categoryID, P_SKU, PS_StockDetailsID) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-  db.query(
-    insertProductQuery,
-    [ P_productCode, P_productName, P_unitPrice, P_sellingPrice, P_dateAdded, P_productStatusID, S_supplierID, B_brandID, C_categoryID, P_SKU, PS_StockDetailsID ],
-    (err, results) => {
-      if (err) return callback(err);
-      callback(null, results);
+  const checkquery = `SELECT PS_StockDetailsID FROM ProductStock WHERE P_stockNum = ? LIMIT 1`;
+
+  db.query(checkquery, [stockAmt], (err, checkres) => {
+    if (err) return callback(err);
+
+    const stockE = checkres[0];
+
+    const insertProductStock = (PS_StockDetailsID) => {
+      const insertProductQuery = `INSERT INTO Products (P_productCode, C_categoryID, P_SKU, P_productName, B_brandID, S_supplierID, PS_StockDetailsID, P_unitPrice, P_sellingPrice, P_productStatusID, P_dateAdded) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+      db.query(
+        insertProductQuery,
+        [ P_productCode, C_categoryID, P_SKU, P_productName, B_brandID, S_supplierID, PS_StockDetailsID, P_unitPrice, P_sellingPrice, P_productStatusID, P_dateAdded ],
+        (err, results) => {
+          if (err) return callback(err);
+          callback(null, results);
+        }
+      );
+    };
+
+    if (stockE) {
+      insertProductStock(stockE.PS_StockDetailsID);
+    } else {
+      const insertStockQuery = `INSERT INTO ProductStock (P_stockNum) VALUES (?)`;
+      db.query(insertStockQuery, [ stockAmt ], (err, stockres) => {
+          if (err) return callback(err);
+          insertProductStock(stockres.insertId);
+      });
     }
-  );
+  });
 };
 
 
 // Update an existing brand
 const updateProduct = (productCode, productData, callback) => {
-  const { P_productName, P_unitPrice, P_sellingPrice, P_productStatusID, S_supplierID, B_brandID, C_categoryID, P_SKU, PS_StockDetailsID } = productData;
-  const updateProductQuery = `
-    UPDATE Products
-    SET P_productName = ?, P_unitPrice = ?, P_sellingPrice = ?, P_productStatusID = ?, S_supplierID = ?, B_brandID = ?, C_categoryID = ?, P_SKU = ?, PS_StockDetailsID = ?
-    WHERE P_productCode = ?;
-  `;
-  db.query(updateProductQuery, [P_productName, P_unitPrice, P_sellingPrice, P_productStatusID, S_supplierID, B_brandID, C_categoryID, P_SKU, PS_StockDetailsID, productCode], (err, results) => {
+  const { C_categoryID, P_SKU, P_productName, B_brandID, S_supplierID, stockAmt, P_unitPrice, P_sellingPrice, P_productStatusID } = productData;
+
+  const checkquery = `SELECT PS_StockDetailsID FROM ProductStock WHERE P_stockNum = ? LIMIT 1`;
+
+  db.query(checkquery, [stockAmt], (err, checkRes) => {
     if (err) return callback(err);
-    callback(null, results);
+
+    const stockE = checkRes[0];
+
+    const updateProductStock = (stockID) => {
+      const updateProductQuery = `
+        UPDATE Products
+        SET  C_categoryID = ?, P_SKU = ?, P_productName = ?, B_brandID = ?, S_supplierID = ?, PS_StockDetailsID = ?, P_unitPrice = ?, P_sellingPrice = ?, P_productStatusID = ? 
+        WHERE P_productCode = ?;
+      `;
+
+      db.query(
+        updateProductQuery,
+        [ C_categoryID, P_SKU, P_productName, B_brandID, S_supplierID, stockID, P_unitPrice, P_sellingPrice, P_productStatusID, productCode ],
+        (err, results) => {
+          if (err) return callback(err);
+          callback(null, results);
+        }
+      );
+    };
+
+    if (stockE) {
+      updateProductStock(stockE.PS_StockDetailsID);
+    } else {
+      const insertStockQuery = `INSERT INTO ProductStock (P_stockNum) VALUES (?)`;
+      db.query(insertStockQuery, [ stockAmt ], (err, stockRes) => {
+          if (err) return callback(err);
+          updateProductStock(stockRes.insertId);
+      });
     }
-  );
+  });
 };
 
 // Delete a Product
