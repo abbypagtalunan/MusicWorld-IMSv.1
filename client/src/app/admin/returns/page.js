@@ -72,9 +72,9 @@ export default function ReturnsPage() {
         isAutoInc: false,
         api: {
           fetch: "http://localhost:8080/returnTypes",
-            add: "http://localhost:8080/returns",
-            update: "http://localhost:8080/returns",
-            delete: "http://localhost:8080/returns",
+          add: "http://localhost:8080/returns",
+          update: "http://localhost:8080/returns",
+          delete: "http://localhost:8080/returns",
         },
       },
     },
@@ -111,16 +111,16 @@ export default function ReturnsPage() {
         delete: "http://localhost:8080/products",
       },
     },
-    deliveries: { // New configuration for deliveries
+    deliveries: {
       label: "Delivery",
       idField: "D_deliveryNumber",
-      supplierField: "supplierName", // Field to map delivery to supplier
+      supplierField: "supplierName",
       isAutoInc: false,
       api: {
         fetch: "http://localhost:8080/deliveries",
         add: "http://localhost:8080/deliveries",
         update: "http://localhost:8080/deliveries",
-        delete: "http://localhost:8080/deliveries", // Endpoint to fetch deliveries
+        delete: "http://localhost:8080/deliveries",
       },
     },
   };
@@ -168,15 +168,17 @@ export default function ReturnsPage() {
         console.log("Supplier Returns:", supplierResponse.data); // Log the response
         setSupplierReturns(supplierResponse.data);
   
-        // Fetch dropdown data
+        // Fetch suppliers data
         const suppliersResponse = await axios.get(config.suppliers.api.fetch);
         console.log("Suppliers:", suppliersResponse.data); // Log the response
         setSuppliers(suppliersResponse.data);
   
+        // Fetch brands data
         const brandsResponse = await axios.get(config.brands.api.fetch);
         console.log("Brands:", brandsResponse.data); // Log the response
         setBrands(brandsResponse.data);
   
+        // Fetch products data
         const productsResponse = await axios.get(config.product.api.fetch);
         console.log("Products:", productsResponse.data); // Log the response
         setProducts(productsResponse.data);
@@ -184,18 +186,15 @@ export default function ReturnsPage() {
         // Fetch deliveries
         const deliveriesResponse = await axios.get(config.deliveries.api.fetch);
         console.log("Deliveries:", deliveriesResponse.data); // Log the response
-  
-        // Map each delivery to its supplier
         const mappedDeliveries = deliveriesResponse.data.map((delivery) => {
           const supplier = suppliers.find(
-            (supplier) => supplier.S_supplierID === delivery.supplierID
+            (supplier) => supplier.S_supplierID === delivery.S_supplierID
           );
           return {
             ...delivery,
             supplierName: supplier ? supplier.SupplierName : "Unknown Supplier",
           };
         });
-  
         setDeliveryNumbers(mappedDeliveries);
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -211,10 +210,9 @@ export default function ReturnsPage() {
       return;
     }
     const newReturn = {
-      dateAdded: format(new Date(), "yyyy-MM-dd HH:mm:ss"), // Updated date format
+      dateAdded: format(new Date(), "yyyy-MM-dd HH:mm:ss"),
       transactionID: `CR-${Math.floor(Math.random() * 10000)}`,
       product: productName,
-      supplier: selectedSupplier,
       brand: selectedBrand,
       quantity: selectedQuantity,
       returnType: returnType,
@@ -249,7 +247,7 @@ export default function ReturnsPage() {
       return;
     }
     const newReturn = {
-      dateAdded: format(new Date(), "yyyy-MM-dd HH:mm:ss"), // Updated date format
+      dateAdded: format(new Date(), "yyyy-MM-dd HH:mm:ss"),
       deliveryNumber,
       supplier: supplierName,
       product: productItem,
@@ -325,7 +323,7 @@ export default function ReturnsPage() {
                           <TableRow>
                             <TableHead className="text-center">Date</TableHead>
                             <TableHead className="text-center">Return ID</TableHead>
-                            <TableHead className="text-center">Product</TableHead>
+                            <TableHead className="text-center">Product </TableHead>
                             <TableHead className="text-center">Quantity</TableHead>
                             <TableHead className="text-center">Total</TableHead>
                             <TableHead className="text-center">Return Type</TableHead>
@@ -338,7 +336,7 @@ export default function ReturnsPage() {
                               <TableRow key={item.R_returnID}>
                                 <TableCell className="text-center">{new Date(item.R_dateOfReturn).toLocaleDateString()}</TableCell>
                                 <TableCell className="text-center">{item.R_returnID}</TableCell>
-                                <TableCell className="text-center">{item.P_productCode}</TableCell>
+                                <TableCell className="text-center">{products.find(product => product.P_productCode === item.P_productCode)?.P_productName || "Unknown Product" }</TableCell>
                                 <TableCell className="text-center">{item.R_returnQuantity}</TableCell>
                                 <TableCell className="text-center">{item.R_returnTypeID}</TableCell>
                                 <TableCell className="text-center">{item.R_reasonOfReturn}</TableCell>
@@ -434,7 +432,7 @@ export default function ReturnsPage() {
                           </SelectTrigger>
                           <SelectContent>
                             {suppliers.map((supplier) => (
-                              <SelectItem key={supplier.SupplierID} value={supplier.SupplierName}>
+                              <SelectItem key={supplier.supplierID} value={supplier.SupplierName}>
                                 {supplier.SupplierName}
                               </SelectItem>
                             ))}
@@ -521,7 +519,7 @@ export default function ReturnsPage() {
                         <TableHeader>
                           <TableRow>
                             <TableHead className="text-center w-24">Date</TableHead>
-                            <TableHead className="text-center w-32">Delivery Number</TableHead>
+                            <TableHead className="text-center w-32">Product Code</TableHead>
                             <TableHead className="text-center w-32">Supplier</TableHead>
                             <TableHead className="text-center w-40">Product</TableHead>
                             <TableHead className="text-center w-20">Quantity</TableHead>
@@ -530,74 +528,73 @@ export default function ReturnsPage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                        {supplierReturns.length > 0 ? (
-                          supplierReturns.map((item) => (
-                            <TableRow key={item.R_returnID}>
-                              <TableCell className="text-center">{new Date(item.R_dateOfReturn).toLocaleDateString()}</TableCell>
-                              <TableCell className="text-center">{item.D_deliveryNumber}</TableCell>
-                              <TableCell className="text-center">{item.S_supplierID}  
-                              </TableCell>
-                              <TableCell className="text-center">{item.P_productCode}</TableCell>
-                              <TableCell className="text-center">{item.R_returnQuantity}</TableCell>
-                              <TableCell className="text-center">{item.total}</TableCell>
-                              <TableCell className="text-center w-[50px]">
-                                {/* Delete Dialog */}
-                                <Dialog>
-                                  <DialogTrigger asChild>
-                                    <Button variant="ghost" size="sm" className="text-gray-500 hover:text-red-600">
-                                      <Trash2 size={16} />
-                                    </Button>
-                                  </DialogTrigger>
-                                  <DialogContent className="max-w-3xl p-7 text-gray-700">
-                                    <DialogHeader>
-                                      <DialogTitle>
-                                        <span className="text-lg text-red-900">Delete Transaction</span>{" "}
-                                        <span className="text-lg text-gray-400 font-normal italic">{item.deliveryNumber}</span>
-                                      </DialogTitle>
-                                      <DialogClose />
-                                    </DialogHeader>
-                                    <p className="text-sm text-gray-800 mt-2 pl-4">
-                                      Deleting this transaction will reflect on Void Transactions. Enter the admin password to delete this transaction.
-                                    </p>
-                                    <div className="flex items-center gap-4 mt-4 pl-10">
-                                      <div className="flex-1">
-                                        <Label htmlFor={`password-${item.deliveryNumber}`} className="text-base font-medium text-gray-700 block mb-2">
-                                          Admin Password
-                                        </Label>
-                                        <Input
-                                          type="password"
-                                          id={`password-${item.deliveryNumber}`}
-                                          required
-                                          placeholder="Enter valid password"
-                                          className="w-full"
-                                        />
-                                      </div>
-                                      <Button
-                                        className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
-                                        onClick={() =>
-                                          handleDelete(
-                                            item.deliveryNumber,
-                                            document.getElementById(`password-${item.deliveryNumber}`).value,
-                                            "supplier"
-                                          )
-                                        }
-                                      >
-                                        DELETE TRANSACTION
+                          {supplierReturns.length > 0 ? (
+                            supplierReturns.map((item) => (
+                              <TableRow key={item.R_returnID}>
+                                <TableCell className="text-center">{new Date(item.R_dateOfReturn).toLocaleDateString()}</TableCell>
+                                <TableCell className="text-center">{item.P_productCode}</TableCell>
+                                <TableCell className="text-center">{item.S_supplierID}</TableCell>
+                                <TableCell className="text-center">{products.find(product => product.P_productCode === item.P_productCode)?.P_productName || "Unknown Product" }</TableCell>
+                                <TableCell className="text-center">{item.R_returnQuantity}</TableCell>
+                                <TableCell className="text-center">{item.total}</TableCell>
+                                <TableCell className="text-center w-[50px]">
+                                  {/* Delete Dialog */}
+                                  <Dialog>
+                                    <DialogTrigger asChild>
+                                      <Button variant="ghost" size="sm" className="text-gray-500 hover:text-red-600">
+                                        <Trash2 size={16} />
                                       </Button>
-                                    </div>
-                                  </DialogContent>
-                                </Dialog>
+                                    </DialogTrigger>
+                                    <DialogContent className="max-w-3xl p-7 text-gray-700">
+                                      <DialogHeader>
+                                        <DialogTitle>
+                                          <span className="text-lg text-red-900">Delete Transaction</span>{" "}
+                                          <span className="text-lg text-gray-400 font-normal italic">{item.D_deliveryNumber}</span>
+                                        </DialogTitle>
+                                        <DialogClose />
+                                      </DialogHeader>
+                                      <p className="text-sm text-gray-800 mt-2 pl-4">
+                                        Deleting this transaction will reflect on Void Transactions. Enter the admin password to delete this transaction.
+                                      </p>
+                                      <div className="flex items-center gap-4 mt-4 pl-10">
+                                        <div className="flex-1">
+                                          <Label htmlFor={`password-${item.D_deliveryNumber}`} className="text-base font-medium text-gray-700 block mb-2">
+                                            Admin Password
+                                          </Label>
+                                          <Input
+                                            type="password"
+                                            id={`password-${item.D_deliveryNumber}`}
+                                            required
+                                            placeholder="Enter valid password"
+                                            className="w-full"
+                                          />
+                                        </div>
+                                        <Button
+                                          className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
+                                          onClick={() =>
+                                            handleDelete(
+                                              item.D_deliveryNumber,
+                                              document.getElementById(`password-${item.D_deliveryNumber}`).value,
+                                              "supplier"
+                                            )
+                                          }
+                                        >
+                                          DELETE TRANSACTION
+                                        </Button>
+                                      </div>
+                                    </DialogContent>
+                                  </Dialog>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          ) : (
+                            <TableRow>
+                              <TableCell colSpan={8} className="text-center py-10 text-gray-500">
+                                No supplier return records found
                               </TableCell>
                             </TableRow>
-                          ))
-                        ) : (
-                          <TableRow>
-                            <TableCell colSpan={8} className="text-center py-10 text-gray-500">
-                              No supplier return records found
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
+                          )}
+                        </TableBody>
                       </Table>
                     </div>
                   </CardContent>
@@ -609,7 +606,7 @@ export default function ReturnsPage() {
                   </CardHeader>
                   <CardContent className="p-4 flex flex-col flex-1 justify-between">
                     <div className="space-y-3">
-                    <div>
+                      <div>
                         <Label>Delivery Number</Label>
                         <Select onValueChange={(value) => {
                           const selectedDelivery = deliveryNumbers.find(delivery => delivery.DeliveryNumber === value);
@@ -624,22 +621,22 @@ export default function ReturnsPage() {
                           <SelectContent>
                             {deliveryNumbers.map((delivery) => (
                               <SelectItem key={delivery.DeliveryNumber} value={delivery.DeliveryNumber}>
-                                {`${delivery.DeliveryNumber} - ${delivery.supplierName}`} {/* Show both delivery number and supplier name */}
+                                {`${delivery.supplierName}`} {/* Show both delivery number and supplier name */}
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       </div>
                       <div>
-                      <Label>Supplier</Label>
-                      <Input
-                        id="supplier"
-                        type="text"
-                        value={supplierName}
-                        readOnly // Make it read-only since it's auto-populated
-                        className="mt-1 cursor-not-allowed"
-                      />
-                    </div>
+                        <Label>Supplier</Label>
+                        <Input
+                          id="supplier"
+                          type="text"
+                          value={supplierName}
+                          readOnly // Make it read-only since it's auto-populated
+                          className="mt-1 cursor-not-allowed"
+                        />
+                      </div>
                       <div>
                         <Label htmlFor="productItem">Product</Label>
                         <Select onValueChange={(value) => setProductItem(value)}>
