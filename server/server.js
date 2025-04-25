@@ -24,7 +24,13 @@ app.use(
 app.use(express.json());
 
 // Use all routes for each entity here
-
+app.use("/suppliers", supplierRoutes);
+app.use("/brands", brandRoutes);
+app.use("/categories", categoryRoutes);
+app.use("/products", productRoutes);
+app.use("/productStatus", productStatusRoutes);
+app.use("/deliveryMOP", deliveryModeOfPaymentRoutes);
+app.use("/deliveryPayTypes", deliveryPaymentTypesRoutes);
 app.use("/deliveryPayStatus", deliveryPaymentStatusRoutes);
 app.use('/returns', returnsRoutes);
 app.use("/supBrdCatStatus", supBrdCatStatusRoutes);
