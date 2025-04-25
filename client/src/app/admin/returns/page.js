@@ -1,6 +1,8 @@
 "use client";
-import { AppSidebar } from "@/components/admin-sidebar";
+import { useState, useEffect } from "react";
+import axios from "axios";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/admin-sidebar";
 import {
   Table,
   TableBody,
@@ -40,8 +42,6 @@ import {
   TabsContent,
 } from "@/components/ui/tabs";
 import { Trash2, Ellipsis } from "lucide-react";
-import { useState, useEffect } from "react";
-import axios from "axios";
 
 export default function ReturnsPage() {
   // Configuration object
@@ -72,33 +72,53 @@ export default function ReturnsPage() {
         },
       },
     },
-    dropdowns: {
-      suppliers: {
-        label: "Suppliers",
+    
+    suppliers: {
+        label: "Supplier",
+        idField: "S_supplierID",
+        isAutoInc: false,
         api: {
           fetch: "http://localhost:8080/suppliers",
+          add: "http://localhost:8080/suppliers",
+          update: "http://localhost:8080/suppliers",
+          delete: "http://localhost:8080/suppliers",
         },
       },
       brands: {
-        label: "Brands",
+        label: "Brand",
+        idField: "B_brandID",
+        isAutoInc: false,
         api: {
           fetch: "http://localhost:8080/brands",
+          add: "http://localhost:8080/brands",
+          update: "http://localhost:8080/brands",
+          delete: "http://localhost:8080/brands"
         },
       },
-      products: {
-        label: "Products",
+      product: {
+          label: "Product",
+          codeField: "P_productCode",
+          isAutoInc: false,
         api: {
           fetch: "http://localhost:8080/products",
+          add: "http://localhost:8080/products",
+          update: "http://localhost:8080/products",
+          delete: "http://localhost:8080/products",
         },
       },
       deliveryNumbers: {
         label: "Delivery Numbers",
+        idField: "D_deliveryNumber",
+        isAutoInc: false,
         api: {
           fetch: "http://localhost:8080/deliveries",
+          add: "http://localhost:8080/deliveries",
+          update: "http://localhost:8080/deliveries",
+          delete: "http://localhost:8080/deliveries",
         },
       },
-    },
-  };
+    };
+  
 
   // State variables
   const [searchTerm, setSearchTerm] = useState("");
@@ -159,6 +179,27 @@ export default function ReturnsPage() {
     };
     fetchData();
   }, []);
+
+  // ID Mapping for Dropdowns
+  const supplierIDMap = suppliers.reduce((map, supplier) => {
+    map[supplier.SupplierName] = supplier.SupplierID;
+    return map;
+  }, {});
+
+  const brandIDMap = brands.reduce((map, brand) => {
+    map[brand.BrandName] = brand.BrandID;
+    return map;
+  }, {});
+
+  const productIDMap = products.reduce((map, product) => {
+    map[product.ProductName] = product.ProductID;
+    return map;
+  }, {});
+
+  const deliveryNumberIDMap = deliveryNumbers.reduce((map, delivery) => {
+    map[delivery.DeliveryNumber] = delivery.DeliveryID;
+    return map;
+  }, {});
 
   // Handle adding a customer return
   const handleAddCustomerReturn = async () => {
@@ -245,6 +286,7 @@ export default function ReturnsPage() {
       alert("Incorrect password.");
       return;
     }
+
     if (type === "customer") {
       setCustomerReturns((prevReturns) =>
         prevReturns.filter((item) => item.transactionID !== id)
@@ -264,6 +306,7 @@ export default function ReturnsPage() {
           <div className="flex items-center justify-between mb-4 bg-white p-2 rounded-lg">
             <h1 className="text-lg text-gray-600 font-medium">Processing of Returns</h1>
           </div>
+
           <Tabs defaultValue="customer" className="w-full mb-4" onValueChange={setActiveTab}>
             <TabsList className="w-full flex justify-start bg-white shadow-md rounded-md px-6 py-6 mb-4">
               <TabsTrigger value="customer" className="data-[state=active]:text-indigo-600 hover:text-black">
@@ -290,64 +333,20 @@ export default function ReturnsPage() {
                             <TableHead>Quantity</TableHead>
                             <TableHead>Total</TableHead>
                             <TableHead>Return Type</TableHead>
-                            <TableHead>Details</TableHead>
+                            <TableHead>Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {customerReturns.length > 0 ? (
                             customerReturns.map((item) => (
                               <TableRow key={item.transactionID}>
-                                <TableCell>{item.dateAdded}</TableCell>
+                                <TableCell>{new Date(item.dateAdded).toLocaleDateString()}</TableCell>
                                 <TableCell>{item.transactionID}</TableCell>
                                 <TableCell>{item.product}</TableCell>
                                 <TableCell>{item.quantity}</TableCell>
                                 <TableCell>{item.totalPrice}</TableCell>
                                 <TableCell>{item.returnType}</TableCell>
                                 <TableCell className="flex space-x-2">
-                                  {/* Details Dialog */}
-                                  {customerReturns.map((item) => (
-                                    <TableRow key={item.transactionID}>
-                                      <TableCell>{item.dateAdded}</TableCell>
-                                      <TableCell>{item.transactionID}</TableCell>
-                                      <TableCell>{item.product}</TableCell>
-                                      <TableCell>{item.quantity}</TableCell>
-                                      <TableCell>{item.totalPrice}</TableCell>
-                                      <TableCell>{item.returnType}</TableCell>
-                                      <TableCell className="flex space-x-2">
-                                        {/* Details Dialog */}
-                                        <Dialog key={`details-${item.transactionID}`}>
-                                          <DialogTrigger asChild>
-                                            <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600">
-                                              <Ellipsis size={16} />
-                                            </Button>
-                                          </DialogTrigger>
-                                          <DialogContent className="max-w-3xl p-7 text-gray-700">
-                                            <DialogHeader>
-                                              <DialogTitle className="text-xl text-gray-600 font-medium pb-0">
-                                                Return Details
-                                              </DialogTitle>
-                                              <DialogClose />
-                                            </DialogHeader>
-                                            <Table>
-                                              <TableBody>
-                                                <TableRow>
-                                                  <TableCell className="text-center">{item.dateAdded}</TableCell>
-                                                  <TableCell className="text-center">{item.productCode}</TableCell>
-                                                  <TableCell className="text-center">{item.supplier}</TableCell>
-                                                  <TableCell className="text-center">{item.brand}</TableCell>
-                                                  <TableCell className="text-center">{item.category}</TableCell>
-                                                  <TableCell className="text-center">{item.product}</TableCell>
-                                                  <TableCell className="text-center">{item.quantity}</TableCell>
-                                                  <TableCell className="text-center">{item.discount}</TableCell>
-                                                  <TableCell className="text-center">{item.totalPrice}</TableCell>
-                                                </TableRow>
-                                              </TableBody>
-                                            </Table>
-                                          </DialogContent>
-                                        </Dialog>
-                                      </TableCell>
-                                    </TableRow>
-                                  ))}
                                   {/* Delete Dialog */}
                                   <Dialog>
                                     <DialogTrigger asChild>
@@ -368,9 +367,9 @@ export default function ReturnsPage() {
                                       </p>
                                       <div className="flex items-center gap-4 mt-4 pl-10">
                                         <div className="flex-1">
-                                          <label htmlFor={`password-${item.transactionID}`} className="text-base font-medium text-gray-700 block mb-2">
+                                          <Label htmlFor={`password-${item.transactionID}`} className="text-base font-medium text-gray-700 block mb-2">
                                             Admin Password
-                                          </label>
+                                          </Label>
                                           <Input
                                             type="password"
                                             id={`password-${item.transactionID}`}
@@ -409,6 +408,7 @@ export default function ReturnsPage() {
                     </div>
                   </CardContent>
                 </Card>
+
                 {/* Right side - Add product form */}
                 <Card className="w-full lg:w-1/3 flex flex-col justify-between text-gray-700">
                   <CardHeader className="pb-0">
@@ -424,8 +424,8 @@ export default function ReturnsPage() {
                           </SelectTrigger>
                           <SelectContent>
                             {products.map((product) => (
-                              <SelectItem key={product.id} value={product.name}>
-                                {product.name}
+                              <SelectItem key={product.ProductID} value={product.ProductName}>
+                                {product.ProductName}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -439,8 +439,8 @@ export default function ReturnsPage() {
                           </SelectTrigger>
                           <SelectContent>
                             {suppliers.map((supplier) => (
-                              <SelectItem key={supplier.id} value={supplier.name}>
-                                {supplier.name}
+                              <SelectItem key={supplier.SupplierID} value={supplier.SupplierName}>
+                                {supplier.SupplierName}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -454,8 +454,8 @@ export default function ReturnsPage() {
                           </SelectTrigger>
                           <SelectContent>
                             {brands.map((brand) => (
-                              <SelectItem key={brand.id} value={brand.name}>
-                                {brand.name}
+                              <SelectItem key={brand.BrandID} value={brand.BrandName}>
+                                {brand.BrandName}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -532,13 +532,14 @@ export default function ReturnsPage() {
                             <TableHead className="w-40">Product</TableHead>
                             <TableHead className="w-20 text-center">Quantity</TableHead>
                             <TableHead className="w-24 text-center">Total</TableHead>
+                            <TableHead className="w-[50px] text-center">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {supplierReturns.length > 0 ? (
                             supplierReturns.map((item) => (
                               <TableRow key={item.deliveryNumber}>
-                                <TableCell>{item.dateAdded}</TableCell>
+                                <TableCell>{new Date(item.dateAdded).toLocaleDateString()}</TableCell>
                                 <TableCell>{item.deliveryNumber}</TableCell>
                                 <TableCell>{item.supplier}</TableCell>
                                 <TableCell>{item.product}</TableCell>
@@ -565,9 +566,9 @@ export default function ReturnsPage() {
                                       </p>
                                       <div className="flex items-center gap-4 mt-4 pl-10">
                                         <div className="flex-1">
-                                          <label htmlFor={`password-${item.deliveryNumber}`} className="text-base font-medium text-gray-700 block mb-2">
+                                          <Label htmlFor={`password-${item.deliveryNumber}`} className="text-base font-medium text-gray-700 block mb-2">
                                             Admin Password
-                                          </label>
+                                          </Label>
                                           <Input
                                             type="password"
                                             id={`password-${item.deliveryNumber}`}
@@ -606,6 +607,7 @@ export default function ReturnsPage() {
                     </div>
                   </CardContent>
                 </Card>
+
                 {/* Right side - Add product form */}
                 <Card className="w-full lg:w-1/3 flex flex-col justify-between text-gray-700">
                   <CardHeader className="pb-0">
@@ -621,8 +623,8 @@ export default function ReturnsPage() {
                           </SelectTrigger>
                           <SelectContent>
                             {deliveryNumbers.map((delivery) => (
-                              <SelectItem key={delivery.id} value={delivery.number}>
-                                {delivery.number}
+                              <SelectItem key={delivery.DeliveryID} value={delivery.DeliveryNumber}>
+                                {delivery.DeliveryNumber}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -636,8 +638,8 @@ export default function ReturnsPage() {
                           </SelectTrigger>
                           <SelectContent>
                             {suppliers.map((supplier) => (
-                              <SelectItem key={supplier.id} value={supplier.name}>
-                                {supplier.name}
+                              <SelectItem key={supplier.SupplierID} value={supplier.SupplierName}>
+                                {supplier.SupplierName}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -651,8 +653,8 @@ export default function ReturnsPage() {
                           </SelectTrigger>
                           <SelectContent>
                             {products.map((product) => (
-                              <SelectItem key={product.id} value={product.name}>
-                                {product.name}
+                              <SelectItem key={product.ProductID} value={product.ProductName}>
+                                {product.ProductName}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -666,8 +668,8 @@ export default function ReturnsPage() {
                           </SelectTrigger>
                           <SelectContent>
                             {brands.map((brand) => (
-                              <SelectItem key={brand.id} value={brand.name}>
-                                {brand.name}
+                              <SelectItem key={brand.BrandID} value={brand.BrandName}>
+                                {brand.BrandName}
                               </SelectItem>
                             ))}
                           </SelectContent>
