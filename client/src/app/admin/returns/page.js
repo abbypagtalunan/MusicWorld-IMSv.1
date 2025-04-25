@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/admin-sidebar";
+import { format } from 'date-fns'; // Add this import at the top
 import {
   Table,
   TableBody,
@@ -27,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
 import {
   Dialog,
   DialogTrigger,
@@ -52,7 +54,7 @@ export default function ReturnsPage() {
       codeField: "P_productCode",
       returnTypeField: "R_returnTypeID",
       reasonField: "R_reasonOfReturn",
-      dateField: "P_dateAdded",
+      dateField: "P_dateOfReturn",
       quantityField: "R_returnQuantity",
       discountField: "R_discountAmount",
       isAutoInc: false,
@@ -106,17 +108,7 @@ export default function ReturnsPage() {
           delete: "http://localhost:8080/products",
         },
       },
-      deliveryNumbers: {
-        label: "Delivery Numbers",
-        idField: "D_deliveryNumber",
-        isAutoInc: false,
-        api: {
-          fetch: "http://localhost:8080/deliveries",
-          add: "http://localhost:8080/deliveries",
-          update: "http://localhost:8080/deliveries",
-          delete: "http://localhost:8080/deliveries",
-        },
-      },
+    
     };
   
 
@@ -156,23 +148,26 @@ export default function ReturnsPage() {
       try {
         // Fetch returns data
         const customerResponse = await axios.get(config.returns.api.fetch);
+        console.log("Customer Returns:", customerResponse.data); // Log the response
         setCustomerReturns(customerResponse.data);
-
+  
         const supplierResponse = await axios.get(config.returns.api.fetch);
+        console.log("Supplier Returns:", supplierResponse.data); // Log the response
         setSupplierReturns(supplierResponse.data);
-
+  
         // Fetch dropdown data
-        const suppliersResponse = await axios.get(config.dropdowns.suppliers.api.fetch);
+        const suppliersResponse = await axios.get(config.suppliers.api.fetch);
+        console.log("Suppliers:", suppliersResponse.data); // Log the response
         setSuppliers(suppliersResponse.data);
-
-        const brandsResponse = await axios.get(config.dropdowns.brands.api.fetch);
+  
+        const brandsResponse = await axios.get(config.brands.api.fetch);
+        console.log("Brands:", brandsResponse.data); // Log the response
         setBrands(brandsResponse.data);
-
-        const productsResponse = await axios.get(config.dropdowns.products.api.fetch);
+  
+        const productsResponse = await axios.get(config.product.api.fetch);
+        console.log("Products:", productsResponse.data); // Log the response
         setProducts(productsResponse.data);
-
-        const deliveryNumbersResponse = await axios.get(config.dropdowns.deliveryNumbers.api.fetch);
-        setDeliveryNumbers(deliveryNumbersResponse.data);
+       
       } catch (error) {
         console.error("Error fetching data:", error);
       }
@@ -180,36 +175,14 @@ export default function ReturnsPage() {
     fetchData();
   }, []);
 
-  // ID Mapping for Dropdowns
-  const supplierIDMap = suppliers.reduce((map, supplier) => {
-    map[supplier.SupplierName] = supplier.SupplierID;
-    return map;
-  }, {});
-
-  const brandIDMap = brands.reduce((map, brand) => {
-    map[brand.BrandName] = brand.BrandID;
-    return map;
-  }, {});
-
-  const productIDMap = products.reduce((map, product) => {
-    map[product.ProductName] = product.ProductID;
-    return map;
-  }, {});
-
-  const deliveryNumberIDMap = deliveryNumbers.reduce((map, delivery) => {
-    map[delivery.DeliveryNumber] = delivery.DeliveryID;
-    return map;
-  }, {});
-
   // Handle adding a customer return
   const handleAddCustomerReturn = async () => {
     if (!productName || !selectedSupplier || !selectedBrand || !selectedQuantity || !returnType) {
       alert("Please fill in all fields.");
       return;
     }
-
     const newReturn = {
-      dateAdded: new Date().toISOString(),
+      dateAdded: format(new Date(), "yyyy-MM-dd HH:mm:ss"), // Updated date format
       transactionID: `CR-${Math.floor(Math.random() * 10000)}`,
       product: productName,
       supplier: selectedSupplier,
@@ -219,7 +192,6 @@ export default function ReturnsPage() {
       totalPrice: selectedPrice,
       discount: selectedDiscount,
     };
-
     try {
       await axios.post(config.returns.api.add, newReturn);
       alert("Customer return added successfully!");
@@ -247,9 +219,8 @@ export default function ReturnsPage() {
       alert("Please fill in all fields.");
       return;
     }
-
     const newReturn = {
-      dateAdded: new Date().toISOString(),
+      dateAdded: format(new Date(), "yyyy-MM-dd HH:mm:ss"), // Updated date format
       deliveryNumber,
       supplier: supplierName,
       product: productItem,
@@ -258,7 +229,6 @@ export default function ReturnsPage() {
       total,
       amount,
     };
-
     try {
       await axios.post(config.returns.api.add, newReturn);
       alert("Supplier return added successfully!");
@@ -337,73 +307,73 @@ export default function ReturnsPage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {customerReturns.length > 0 ? (
-                            customerReturns.map((item) => (
-                              <TableRow key={item.transactionID}>
-                                <TableCell>{new Date(item.dateAdded).toLocaleDateString()}</TableCell>
-                                <TableCell>{item.transactionID}</TableCell>
-                                <TableCell>{item.product}</TableCell>
-                                <TableCell>{item.quantity}</TableCell>
-                                <TableCell>{item.totalPrice}</TableCell>
-                                <TableCell>{item.returnType}</TableCell>
-                                <TableCell className="flex space-x-2">
-                                  {/* Delete Dialog */}
-                                  <Dialog>
-                                    <DialogTrigger asChild>
-                                      <Button variant="ghost" size="sm" className="text-gray-500 hover:text-red-600">
-                                        <Trash2 size={16} />
-                                      </Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="max-w-3xl p-7 text-gray-700">
-                                      <DialogHeader>
-                                        <DialogTitle>
-                                          <span className="text-lg text-red-900">Delete Transaction</span>{" "}
-                                          <span className="text-lg text-gray-400 font-normal italic">{item.transactionID}</span>
-                                        </DialogTitle>
-                                        <DialogClose />
-                                      </DialogHeader>
-                                      <p className="text-sm text-gray-800 mt-2 pl-4">
-                                        Deleting this transaction will reflect on Void Transactions. Enter the admin password to delete this transaction.
-                                      </p>
-                                      <div className="flex items-center gap-4 mt-4 pl-10">
-                                        <div className="flex-1">
-                                          <Label htmlFor={`password-${item.transactionID}`} className="text-base font-medium text-gray-700 block mb-2">
-                                            Admin Password
-                                          </Label>
-                                          <Input
-                                            type="password"
-                                            id={`password-${item.transactionID}`}
-                                            required
-                                            placeholder="Enter valid password"
-                                            className="w-full"
-                                          />
-                                        </div>
-                                        <Button
-                                          className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
-                                          onClick={() =>
-                                            handleDelete(
-                                              item.transactionID,
-                                              document.getElementById(`password-${item.transactionID}`).value,
-                                              "customer"
-                                            )
-                                          }
-                                        >
-                                          DELETE TRANSACTION
-                                        </Button>
+                        {customerReturns.length > 0 ? (
+                          customerReturns.map((item) => (
+                            <TableRow key={item.R_returnID}>
+                              <TableCell>{new Date(item.R_dateOfReturn).toLocaleDateString()}</TableCell>
+                              <TableCell>{item.R_returnID}</TableCell>
+                              <TableCell>{item.P_productCode}</TableCell>
+                              <TableCell>{item.R_reasonOfReturn}</TableCell>
+                              <TableCell>{item.R_returnTypeID}</TableCell>
+                              <TableCell>{item.R_returnQuantity}</TableCell>
+                              <TableCell className="flex space-x-2">
+                                {/* Delete Dialog */}
+                                <Dialog>
+                                  <DialogTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="text-gray-500 hover:text-red-600">
+                                      <Trash2 size={16} />
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent className="max-w-3xl p-7 text-gray-700">
+                                    <DialogHeader>
+                                      <DialogTitle>
+                                        <span className="text-lg text-red-900">Delete Transaction</span>{" "}
+                                        <span className="text-lg text-gray-400 font-normal italic">{item.R_returnID}</span>
+                                      </DialogTitle>
+                                      <DialogClose />
+                                    </DialogHeader>
+                                    <p className="text-sm text-gray-800 mt-2 pl-4">
+                                      Deleting this transaction will reflect on Void Transactions. Enter the admin password to delete this transaction.
+                                    </p>
+                                    <div className="flex items-center gap-4 mt-4 pl-10">
+                                      <div className="flex-1">
+                                        <Label htmlFor={`password-${item.R_returnID}`} className="text-base font-medium text-gray-700 block mb-2">
+                                          Admin Password
+                                        </Label>
+                                        <Input
+                                          type="password"
+                                          id={`password-${item.R_returnID}`}
+                                          required
+                                          placeholder="Enter valid password"
+                                          className="w-full"
+                                        />
                                       </div>
-                                    </DialogContent>
-                                  </Dialog>
-                                </TableCell>
-                              </TableRow>
-                            ))
-                          ) : (
-                            <TableRow>
-                              <TableCell colSpan={8} className="text-center py-10 text-gray-500">
-                                No return records found
+                                      <Button
+                                        className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
+                                        onClick={() =>
+                                          handleDelete(
+                                            item.R_returnID,
+                                            document.getElementById(`password-${item.R_returnID}`).value,
+                                            "customer"
+                                          )
+                                        }
+                                      >
+                                        DELETE TRANSACTION
+                                      </Button>
+                                    </div>
+                                  </DialogContent>
+                                </Dialog>
                               </TableCell>
                             </TableRow>
-                          )}
-                        </TableBody>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={8} className="text-center py-10 text-gray-500">
+                              No return records found
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
                       </Table>
                     </div>
                   </CardContent>
@@ -538,7 +508,7 @@ export default function ReturnsPage() {
                         <TableBody>
                           {supplierReturns.length > 0 ? (
                             supplierReturns.map((item) => (
-                              <TableRow key={item.deliveryNumber}>
+                              <TableRow key={item.R_returnID}>
                                 <TableCell>{new Date(item.dateAdded).toLocaleDateString()}</TableCell>
                                 <TableCell>{item.deliveryNumber}</TableCell>
                                 <TableCell>{item.supplier}</TableCell>
