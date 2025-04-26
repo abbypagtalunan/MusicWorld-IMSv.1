@@ -10,6 +10,7 @@ const getAllProducts = (callback) => {
       p.P_productName,
       b.B_brandName as brand,
       s.S_supplierName as supplier,
+      p.S_supplierID,
       pk.P_stockNum as stock,
       p.P_unitPrice,
       p.P_sellingPrice,
@@ -109,6 +110,25 @@ const updateProduct = (productCode, productData, callback) => {
   });
 };
 
+const updateProductPrice = (productData, callback) => {
+  const { productCode, P_sellingPrice } = productData;
+
+  const updateProductQuery = `
+    UPDATE Products
+    SET  P_sellingPrice = ?
+    WHERE P_productCode = ?;
+  `;
+
+  db.query(
+    updateProductQuery,
+    [ P_sellingPrice, productCode ],
+    (err, results) => {
+      if (err) return callback(err);
+      callback(null, results);
+    }
+  );
+};
+
 // Delete a Product
 const deleteProduct = (productCode, callback) => {
   const deleteProductQuery = `DELETE FROM Products WHERE P_productCode = ?`;
@@ -123,5 +143,6 @@ module.exports = {
   getAllProducts,
   addProduct,
   updateProduct,
+  updateProductPrice,
   deleteProduct,
 };

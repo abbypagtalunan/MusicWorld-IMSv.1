@@ -94,7 +94,6 @@ export default function ProductsPage() {
     },
   };
 
-  const [isSheetOpen, setSheetOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
   const [data, setData] = useState([]);
@@ -112,7 +111,6 @@ export default function ProductsPage() {
     [config.product.dateField]: "",
   });
 
-  const [editingItem, setEditingItem] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddSheetOpen, setAddSheetOpen] = useState(false);
 
@@ -155,7 +153,6 @@ export default function ProductsPage() {
         [config.product.dateField]: "",
     });
 
-    setEditingItem(null);
     setSearchTerm("");
   }, []);
 
@@ -193,7 +190,7 @@ export default function ProductsPage() {
     });
   
     setSelectedProduct(item);
-    setSheetOpen(true);
+    setEditSheetOpen(true);
   };
 
   // Search
@@ -275,25 +272,29 @@ export default function ProductsPage() {
   }, []);
   const[brands, setBrands] = useState([]);
   useEffect(() => {
-    axios.get("http://localhost:8080/brands")
+    axios
+      .get("http://localhost:8080/brands")
       .then(res => setBrands(res.data))
       .catch((err) => console.error("Failed to fetch brand options:", err));
   }, []);
   const[categories, setCategories] = useState([]);
   useEffect(() => {
-    axios.get("http://localhost:8080/categories")
+    axios
+      .get("http://localhost:8080/categories")
       .then(res => setCategories(res.data))
       .catch((err) => console.error("Failed to fetch category options:", err));
   }, []);
   const[pStatus, setPStatus] = useState([]);
   useEffect(() => {
-    axios.get("http://localhost:8080/productStatus")
+    axios
+      .get("http://localhost:8080/productStatus")
       .then(res => setPStatus(res.data))
       .catch((err) => console.error("Failed to fetch product status options:", err));
   }, []);
   const[pStock, setPStock] = useState([]);
   useEffect(() => {
-    axios.get("http://localhost:8080/productStocks")
+    axios
+      .get("http://localhost:8080/productStocks")
       .then(res => setPStock(res.data))
       .catch((err) => console.error("Failed to fetch product status options:", err));
   }, []);
@@ -339,7 +340,7 @@ export default function ProductsPage() {
       });
   };
 
-  const resetForm = () => {
+  const resetForm = (customFields = {}) => {
     setValues({
       [config.product.codeField]: "",
       [config.product.categoryField]: "",
@@ -352,12 +353,13 @@ export default function ProductsPage() {
       [config.product.sellingpriceField]: "",
       [config.product.statusField]: "",
       [config.product.dateField]: "",
+      ...customFields
     });
-    setEditingItem(null);
   };
 
-  // Edit
-  const handleEdit = (item) => {
+  // Edit  
+  const [isEditSheetOpen, setEditSheetOpen] = useState(false);
+  const handleEdit = () => {
     const payload = { 
       C_categoryID: values[config.product.categoryField] || selectedProduct.categoryID,
       P_SKU: values[config.product.skuField] || selectedProduct.SKU,
@@ -375,7 +377,7 @@ export default function ProductsPage() {
       .then(() => {
         toast.success(`${config.product.label} edited successfully`);
         refreshTable();
-        setAddSheetOpen(false);
+        setEditSheetOpen(false);
       })
       .catch((err) => {
         console.error("Error response:", err.response);
@@ -390,18 +392,28 @@ export default function ProductsPage() {
   };
 
   // Price edit
-  const handlePriceEdit = (item) => {
-    const selectedSupplier = suppliers.find(
-      (supplier) => supplier.SupplierName === item[config.supplierField]
-    );
-    const supplierID = selectedSupplier ? selectedSupplier.SupplierID : "";
-  
-    setValues({
-      [config.product.supplierField]: supplierID,
-      [config.product.nameField]: item[config.nameField],
-      [config.product.sellingpriceField]: item[config.sellingpriceField],
-    });  
-    setEditingItem(item);
+  const [isPDOpen, setPDopen] = useState(false);
+  const handlePriceUpdate = async () => {
+    const productCode = values[config.product.codeField];;
+    const P_sellingPrice = values[config.product.sellingpriceField];
+
+    axios
+      .put(`http://localhost:8080/products/update-price/${productCode}`, { P_sellingPrice })
+      .then(() => {
+        toast.success("Price updated");
+        refreshTable();
+        resetForm({
+          [config.product.codeField]: "",
+          [config.product.nameField]: "",
+          [config.product.supplierField]: "",
+          [config.product.sellingpriceField]: "",
+        });
+        setPDopen(false);
+      })  
+      .catch((err) => {
+        console.error("Update error:", err?.response?.data || err.message || err);
+        toast.error("Failed to update price");
+      });
   };
 
   // Delete
@@ -703,7 +715,7 @@ export default function ProductsPage() {
                 </SheetContent>
               </Sheet>
 
-              <Dialog>
+              <Dialog open={isPDOpen} onOpenChange={setPDopen}>
                 <DialogTrigger asChild>
                   <Button className="bg-blue-400 text-white">Update Price</Button>
                 </DialogTrigger>
@@ -713,11 +725,38 @@ export default function ProductsPage() {
                   </DialogHeader>
 
                   <div className="flex flex-col space-y-3">
+                    <Label>Product Code</Label>
+                    <Input disabled placeholder="Auto-filled" className="bg-gray-300" value={values[config.product.codeField] ?? ""}/>
+                    
                     <Label>Product Name</Label>
-                    <Input placeholder="Enter product name" />
+                    <Select onValueChange={(value) => {
+                      const selected = data.find(p => p.productCode === value);
+                      if (selected) {
+                        setValues({
+                          ...values,
+                          [config.product.codeField]: selected.productCode,
+                          [config.product.nameField]: selected.productName,
+                          [config.product.supplierField]: selected.supplierID.toString(),
+                          [config.product.sellingpriceField]: selected.sellingPrice,
+                        });
+                      }
+                    }}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Product" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {data.map((product) => (
+                          <SelectItem
+                            key={product.productCode}
+                            value={product.productCode}>
+                            {product.productName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>  
+                    </Select>
 
                     <Label>Supplier</Label>
-                    <Select>
+                    <Select value = {values[config.product.supplierField] ?? ""}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select Supplier" />
                       </SelectTrigger>
@@ -725,25 +764,22 @@ export default function ProductsPage() {
                         {suppliers.map((supplier) => (
                           <SelectItem
                             key={supplier.S_supplierID}
-                            value={supplier.S_supplierName}>
+                            value={supplier.S_supplierID.toString()}>
                             {supplier.S_supplierName}
                           </SelectItem>
                         ))}
                       </SelectContent>  
                     </Select>
 
-                    <Label>Product Code</Label>
-                    <Input disabled placeholder="Auto-filled" className="bg-gray-300" />
-
                     <Label>Price</Label>
-                    <Input disabled placeholder="Auto-filled" className="bg-gray-300" />
+                    <Input disabled placeholder="Auto-filled" className="bg-gray-300" value={values[config.product.sellingpriceField] ?? ""}/>
 
                     <Label>Updated Price</Label>
-                    <Input type="text" placeholder="Enter new price" />
+                    <Input type="number" placeholder="Enter new price" required onChange={(e) => setValues({...values, [config.product.sellingpriceField]: e.target.value,})}/>
                   </div>
 
                   <DialogFooter>
-                    <Button className="bg-blue-500 text-white w-full">Update Product Price</Button>
+                    <Button className="bg-blue-500 text-white w-full" onClick={handlePriceUpdate}>Update Product Price </Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
@@ -891,7 +927,7 @@ export default function ProductsPage() {
               ))}
             </TableBody>
           </Table>
-          <Sheet open={isSheetOpen} onOpenChange={setSheetOpen}>
+      <Sheet open={isEditSheetOpen} onOpenChange={setEditSheetOpen}>
         <SheetContent side="right" className="w-[400px] h-full flex flex-col">
           <SheetHeader>
             <SheetTitle className="text-blue-400 text-xl font-bold">Edit Product Details</SheetTitle>

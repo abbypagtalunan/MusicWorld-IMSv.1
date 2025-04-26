@@ -49,6 +49,28 @@ const updateProduct = (req, res) => {
   });
 };
 
+const updateProductPrice = (req, res) => {
+  const { productCode } = req.params;
+  const { P_sellingPrice } = req.body;
+
+  const productData = {
+    productCode,
+    P_sellingPrice,
+  };
+
+  productModel.updateProductPrice(productData, (err, results) => {
+    if (err) {
+      console.error('Error updating product price:', err);
+      return res.status(500).json({ message: 'Error updating product price' });
+    }
+
+    if (results.affectedRows === 0) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+    res.status(200).json({ message: 'Product price updated successfully' });
+  });
+};
+
 // Route to delete a product
 const deleteProduct = (req, res) => {
   const productCode = req.params.id;
@@ -72,5 +94,6 @@ module.exports = {
     getAllProducts,
     addProduct,
     updateProduct,
+    updateProductPrice,
     deleteProduct,
 };
