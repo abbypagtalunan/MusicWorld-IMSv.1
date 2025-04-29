@@ -1,23 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react"
-import { useRouter } from 'next/navigation'
-import { AppSidebar } from "@/components/admin-sidebar"
-import { SidebarProvider } from "@/components/ui/sidebar"
-import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Search, ListFilter, Trash2, Ellipsis, PackagePlus, Save } from "lucide-react"
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table"
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose, } from "@/components/ui/dialog"
+import { useState, useEffect } from "react";
+import { useRouter } from 'next/navigation';
+import axios from "axios";
+import { AppSidebar } from "@/components/admin-sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { toast, Toaster } from "react-hot-toast";
+import { Search, ListFilter, Trash2, Ellipsis, PackagePlus, Save } from "lucide-react";
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table";
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
 
-// Import data from temp_db.js
-import { db } from "./temp_db";
-
 export default function DeliveriesPage() {
-  const router = useRouter(); 
+  const router = useRouter();
   const [selectedFilter, setSelectedFilter] = useState(null);
   const [selectedSubFilter, setSelectedSubFilter] = useState(null);
   
@@ -28,17 +27,171 @@ export default function DeliveriesPage() {
   const [deliveries, setDeliveries] = useState([]);
   const [deliveryProducts, setDeliveryProducts] = useState({});
   const [paymentDetails, setPaymentDetails] = useState({});
+  const [suppliers, setSuppliers] = useState([]);
+  const [paymentTypes, setPaymentTypes] = useState([]);
+  const [paymentModes, setPaymentModes] = useState([]);
+  const [paymentStatuses, setPaymentStatuses] = useState([]);
+
+  // API endpoints configuration
+  const config = {
+    deliveries: {
+      fetch: "http://localhost:8080/deliveries",
+      delete: "http://localhost:8080/deliveries",
+    },
+    deliveryProducts: {
+      fetch: "http://localhost:8080/deliveryProducts",
+    },
+    paymentDetails: {
+      fetch: "http://localhost:8080/deliveryPaymentDetails",
+      update: "http://localhost:8080/deliveryPaymentDetails",
+    },
+    suppliers: {
+      fetch: "http://localhost:8080/suppliers",
+    },
+    paymentTypes: {
+      fetch: "http://localhost:8080/deliveryPaymentTypes",
+    },
+    paymentModes: {
+      fetch: "http://localhost:8080/deliveryModeOfPayment",
+    },
+    paymentStatuses: {
+      fetch: "http://localhost:8080/deliveryPaymentStatus",
+    }
+  };
 
   // Load data from DB on component mount
   useEffect(() => {
     loadAllData();
   }, []);
 
-  // Function to load all data from our DB
+  // Function to load all data from the remote database
   const loadAllData = () => {
-    setDeliveries(db.getDeliveries());
-    setDeliveryProducts(db.getDeliveryProducts());
-    setPaymentDetails(db.getPaymentDetails());
+    // Fetch deliveries
+    axios.get(config.deliveries.fetch)
+      .then(res => {
+        setDeliveries(normalizeDeliveryData(res.data));
+      })
+      .catch(error => {
+        console.error("Error fetching deliveries:", error);
+        toast.error("Failed to load deliveries");
+      });
+
+    // Fetch delivery products
+    axios.get(config.deliveryProducts.fetch)
+      .then(res => {
+        const grouped = groupDeliveryProducts(res.data);
+        setDeliveryProducts(grouped);
+      })
+      .catch(error => {
+        console.error("Error fetching delivery products:", error);
+        toast.error("Failed to load delivery products");
+      });
+
+    // Fetch payment details
+    axios.get(config.paymentDetails.fetch)
+      .then(res => {
+        const detailsMap = {};
+        res.data.forEach(item => {
+          detailsMap[item.D_deliveryNumber] = {
+            paymentType: item.D_paymentTypeID.toString(),
+            paymentMode: item.D_modeOfPaymentID.toString(),
+            paymentStatus: item.D_paymentStatusID.toString(),
+            dateDue: formatDateForInput(item.DPD_dateOfPaymentDue),
+            datePayment1: formatDateForInput(item.DPD_dateOfPayment1),
+            datePayment2: formatDateForInput(item.DPD_dateOfPayment2) || "",
+          };
+        });
+        setPaymentDetails(detailsMap);
+      })
+      .catch(error => {
+        console.error("Error fetching payment details:", error);
+        toast.error("Failed to load payment details");
+      });
+
+    // Fetch suppliers
+    axios.get(config.suppliers.fetch)
+      .then(res => {
+        setSuppliers(res.data);
+      })
+      .catch(error => {
+        console.error("Error fetching suppliers:", error);
+      });
+
+    // Fetch payment types
+    axios.get(config.paymentTypes.fetch)
+      .then(res => {
+        setPaymentTypes(res.data);
+      })
+      .catch(error => {
+        console.error("Error fetching payment types:", error);
+      });
+
+    // Fetch payment modes
+    axios.get(config.paymentModes.fetch)
+      .then(res => {
+        setPaymentModes(res.data);
+      })
+      .catch(error => {
+        console.error("Error fetching payment modes:", error);
+      });
+
+    // Fetch payment statuses
+    axios.get(config.paymentStatuses.fetch)
+      .then(res => {
+        setPaymentStatuses(res.data);
+      })
+      .catch(error => {
+        console.error("Error fetching payment statuses:", error);
+      });
+  };
+
+  // Helper function to normalize delivery data from API
+  const normalizeDeliveryData = (data) => {
+    return data.map(item => ({
+      deliveryNum: item.D_deliveryNumber,
+      dateAdded: formatDateForDisplay(item.D_deliveryDate),
+      supplier: item.supplierName || item.S_supplierID,
+      supplierID: item.S_supplierID,
+      totalCost: item.totalCost ? `₱${parseFloat(item.totalCost).toFixed(2)}` : "₱0.00"
+    }));
+  };
+
+  // Helper function to group delivery products by delivery number
+  const groupDeliveryProducts = (data) => {
+    const grouped = {};
+    data.forEach(item => {
+      if (!grouped[item.D_deliveryNumber]) {
+        grouped[item.D_deliveryNumber] = [];
+      }
+      
+      grouped[item.D_deliveryNumber].push({
+        productCode: item.P_productCode,
+        supplier: item.supplierName || "",
+        brand: item.brandName || "",
+        product: item.productName || "",
+        quantity: item.DPD_quantity,
+        unitPrice: `₱${parseFloat(item.DPD_unitPrice).toFixed(2)}`,
+        total: `₱${(parseFloat(item.DPD_unitPrice) * item.DPD_quantity).toFixed(2)}`
+      });
+    });
+    return grouped;
+  };
+
+  // Helper functions for date formatting
+  const formatDateForDisplay = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+  };
+
+  const formatDateForInput = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toISOString().split('T')[0];
   };
 
   const handleFilterSelect = (filter, subFilter = null) => {
@@ -63,7 +216,8 @@ export default function DeliveriesPage() {
     }
   
     if (selectedFilter === "Supplier") {
-      sortedTransactions = sortedTransactions.filter((item) => item.supplier === selectedSubFilter);
+      sortedTransactions = sortedTransactions.filter((item) => 
+        item.supplier === selectedSubFilter);
     }
   
     if (selectedFilter === "Price") {
@@ -80,36 +234,62 @@ export default function DeliveriesPage() {
 
   // Function to handle saving payment details
   const handleSavePaymentDetails = (deliveryNum) => {
-    // Save to our database
-    db.updatePaymentDetails(deliveryNum, paymentDetails[deliveryNum]);
-    
-    // Refresh local state to reflect changes
-    setPaymentDetails({...db.getPaymentDetails()});
-    
-    // Show success message
-    alert("Payment details updated successfully!");
+    const detail = paymentDetails[deliveryNum];
+    if (!detail) {
+      toast.error("No payment details to save");
+      return;
+    }
+
+    const payload = {
+      D_paymentTypeID: parseInt(detail.paymentType),
+      D_modeOfPaymentID: parseInt(detail.paymentMode),
+      D_paymentStatusID: parseInt(detail.paymentStatus),
+      DPD_dateOfPaymentDue: detail.dateDue,
+      DPD_dateOfPayment1: detail.datePayment1,
+      DPD_dateOfPayment2: detail.datePayment2 || null
+    };
+
+    axios.put(`${config.paymentDetails.update}/${deliveryNum}`, payload)
+      .then(() => {
+        toast.success("Payment details updated successfully!");
+      })
+      .catch(err => {
+        console.error("Error updating payment details:", err.response?.data || err);
+        toast.error("Failed to update payment details");
+      });
   };
 
   // Handle deletion of transactions
   const handleDelete = (deliveryNum, password) => {
-    // In a real app, you would validate the password first
-    if (password) {
-      // Delete from our database
-      db.deleteDelivery(deliveryNum);
-      
-      // Refresh all data
-      loadAllData();
-      
-      // Clear search if it might have included the deleted item
-      if (searchResult && searchResult.some(d => d.deliveryNum === deliveryNum)) {
-        setSearchResult(null);
-        setSearchValue("");
-      }
-      
-      alert(`Transaction ${deliveryNum} has been deleted`);
-    } else {
-      alert("Please enter an admin password");
+    if (!password) {
+      toast.error("Please enter admin password");
+      return;
     }
+
+    axios({
+      method: 'delete',
+      url: `${config.deliveries.delete}/${deliveryNum}`,
+      data: { adminPW: password },
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    })
+      .then(() => {
+        toast.success(`Transaction ${deliveryNum} has been deleted`);
+        
+        // Refresh all data
+        loadAllData();
+        
+        // Clear search if it might have included the deleted item
+        if (searchResult && searchResult.some(d => d.deliveryNum === deliveryNum)) {
+          setSearchResult(null);
+          setSearchValue("");
+        }
+      })
+      .catch(err => {
+        console.error("Delete error:", err.response?.data || err);
+        toast.error(err.response?.data?.message || "Error deleting delivery");
+      });
   };
 
   // Handle search
@@ -119,8 +299,20 @@ export default function DeliveriesPage() {
       return;
     }
     
-    const result = deliveries.find((d) => d.deliveryNum === searchValue.trim());
-    setSearchResult(result ? [result] : []);
+    axios.get(`${config.deliveries.fetch}/search?deliveryNumber=${searchValue.trim()}`)
+      .then(res => {
+        if (res.data && res.data.length > 0) {
+          setSearchResult(normalizeDeliveryData(res.data));
+        } else {
+          setSearchResult([]);
+          toast.error("No delivery found with that number");
+        }
+      })
+      .catch(error => {
+        console.error("Search error:", error);
+        toast.error("Error searching for delivery");
+        setSearchResult([]);
+      });
   };
 
   // Handle payment detail changes
@@ -170,6 +362,7 @@ export default function DeliveriesPage() {
                         className="text-gray-500 hover:text-blue-600"
                         onClick={() => {
                           setSearchResult(null);
+                          setSearchValue("");
                         }}
                       >
                         Show All
@@ -204,15 +397,14 @@ export default function DeliveriesPage() {
                     <DropdownMenuSub>
                       <DropdownMenuSubTrigger>Supplier</DropdownMenuSubTrigger>
                       <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Supplier", "Cort")}>
-                          Cort
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Supplier", "Lazer")}>
-                          Lazer
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Supplier", "Mirbros")}>
-                          Mirbros
-                        </DropdownMenuItem>
+                        {suppliers.map(supplier => (
+                          <DropdownMenuItem 
+                            key={supplier.S_supplierID}
+                            onClick={() => handleFilterSelect("Supplier", supplier.S_supplierName)}
+                          >
+                            {supplier.S_supplierName}
+                          </DropdownMenuItem>
+                        ))}
                       </DropdownMenuSubContent>
                     </DropdownMenuSub>
 
@@ -232,8 +424,8 @@ export default function DeliveriesPage() {
                     <DropdownMenuItem 
                       onClick={() => handleFilterSelect(null, null)} 
                       className="text-red-500 font-medium"
-                      >
-                        Reset Filters
+                    >
+                      Reset Filters
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -243,15 +435,15 @@ export default function DeliveriesPage() {
             {/* Button to navigate to Add Delivery form page */}
             <div className="flex space-x-2">
               <Button className="bg-blue-400 text-white" onClick={() => router.push("./deliveries/deliveries-add-delivery")}>
-                <PackagePlus size={16} />
-                  Add Delivery
+                <PackagePlus size={16} className="mr-2" />
+                Add Delivery
               </Button>
             </div>
           </div>
 
           <div className="p-4 bg-white shadow-md rounded-lg flex flex-col overflow-auto w-full">
-          {/* Deliveries Table */}
-          <h1 className="text-gray-600 font-bold">Deliveries</h1>
+            {/* Deliveries Table */}
+            <h1 className="text-gray-600 font-bold">Deliveries</h1>
             <Table>
               <TableHeader className="sticky top-0 bg-white z-10">
                 <TableRow>
@@ -263,7 +455,7 @@ export default function DeliveriesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-              {getFilteredTransactions().map((d) => (
+                {getFilteredTransactions().map((d) => (
                   <TableRow key={d.deliveryNum}>
                     <TableCell>{d.dateAdded}</TableCell>
                     <TableCell>{d.deliveryNum}</TableCell>
@@ -289,16 +481,16 @@ export default function DeliveriesPage() {
                             <div className="grid grid-cols-2 gap-4">
                               <div>
                                 <label className="text-sm font-medium">Date of Delivery</label>
-                                <Input type="date" defaultValue={d.dateAdded} disabled/>
+                                <Input type="date" value={formatDateForInput(d.dateAdded)} disabled/>
                               </div>
                               <div>
                                 <label className="text-sm font-medium">Delivery Number</label>
-                                <Input value= {`DR-${d.deliveryNum}`} className="text-center" readOnly />
+                                <Input value={`DR-${d.deliveryNum}`} className="text-center" readOnly />
                               </div>
                             </div>                            
-                            {/* TOP CONTENT: Product items table - showing single product per delivery */}
+                            {/* TOP CONTENT: Product items table - showing products per delivery */}
                             <div className="w-full">
-                             <div className="overflow-x-auto">
+                              <div className="overflow-x-auto">
                                 <Table>
                                   <TableHeader className="bg-gray-100 sticky top-0">
                                     <TableRow>
@@ -331,7 +523,6 @@ export default function DeliveriesPage() {
                             {/* BOTTOM CONTENT: Delivery Payment Details Section */}
                             <DialogHeader>
                               <DialogTitle>Delivery Payment Details</DialogTitle>
-                              <DialogClose />
                             </DialogHeader>
                             <div className="flex w-full">
                               <div className="grid grid-cols-12 gap-4">
@@ -354,9 +545,11 @@ export default function DeliveriesPage() {
                                       <SelectValue placeholder="Select payment type" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      <SelectItem value="one-time">One-time, Full</SelectItem>
-                                      <SelectItem value="1 month">1 month installment</SelectItem>
-                                      <SelectItem value="2 months">2 months installment</SelectItem>
+                                      {paymentTypes.map(type => (
+                                        <SelectItem key={type.D_paymentTypeID} value={type.D_paymentTypeID.toString()}>
+                                          {type.D_paymentName}
+                                        </SelectItem>
+                                      ))}
                                     </SelectContent>
                                   </Select>
                                 </div>
@@ -370,9 +563,11 @@ export default function DeliveriesPage() {
                                       <SelectValue placeholder="Select payment mode" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      <SelectItem value="cash">Cash</SelectItem>
-                                      <SelectItem value="check">Check</SelectItem>
-                                      <SelectItem value="bank transfer">Bank Transfer</SelectItem>
+                                      {paymentModes.map(mode => (
+                                        <SelectItem key={mode.D_modeOfPaymentID} value={mode.D_modeOfPaymentID.toString()}>
+                                          {mode.D_mopName}
+                                        </SelectItem>
+                                      ))}
                                     </SelectContent>
                                   </Select>
                                 </div>
@@ -387,10 +582,11 @@ export default function DeliveriesPage() {
                                       <SelectValue placeholder="Select status" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      <SelectItem value="paid">PAID</SelectItem>
-                                      <SelectItem value="unpaid">UNPAID</SelectItem>
-                                      <SelectItem value="partial1">1ST MONTH INSTALLMENT</SelectItem>
-                                      <SelectItem value="partial2">PAID: 2ND MONTH</SelectItem>
+                                      {paymentStatuses.map(status => (
+                                        <SelectItem key={status.D_paymentStatusID} value={status.D_paymentStatusID.toString()}>
+                                          {status.D_statusName}
+                                        </SelectItem>
+                                      ))}
                                     </SelectContent>
                                   </Select>
                                 </div>
@@ -482,6 +678,7 @@ export default function DeliveriesPage() {
           </div>
         </div>
       </div>
+      <Toaster position="top-right" />
     </SidebarProvider>
   );
 }
