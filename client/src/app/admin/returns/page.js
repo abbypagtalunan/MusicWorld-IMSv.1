@@ -56,7 +56,7 @@ export default function ReturnsPage() {
       dateField: "P_dateOfReturn",
       quantityField: "R_returnQuantity",
       discountField: "R_discountAmount",
-      deliiveryField: "D_deliveryNumber",
+      deliveryField: "D_deliveryNumber",
       supplierField: "S_supplierID",
       isAutoInc: false,
       api: {
@@ -114,7 +114,6 @@ export default function ReturnsPage() {
     deliveries: {
       label: "Delivery",
       idField: "D_deliveryNumber",
-      supplierField: "supplierName",
       isAutoInc: false,
       api: {
         fetch: "http://localhost:8080/deliveries",
@@ -123,7 +122,16 @@ export default function ReturnsPage() {
         delete: "http://localhost:8080/deliveries",
       },
     },
-  };
+    category: {
+      label: "Category",
+      idField: "CategoryID",
+      nameField: "CategoryName",
+      isAutoInc: false,
+      api: {
+        fetch: "http://localhost:8080/categories",
+      },
+  },
+}
 
   // State variables
   const [searchTerm, setSearchTerm] = useState("");
@@ -137,8 +145,10 @@ export default function ReturnsPage() {
   const [selectedBrand, setSelectedBrand] = useState("");
   const [selectedQuantity, setSelectedQuantity] = useState("");
   const [returnType, setReturnType] = useState("");
-  const [selectedDiscount, setSelectedDiscount] = useState("");
   const [selectedPrice, setSelectedPrice] = useState("");
+  const [selectedDiscount, setSelectedDiscount] = useState("");
+  const total = parseFloat(selectedPrice || 0) * (1 - parseFloat(selectedDiscount || 0) / 100);
+  
 
   // Form state variables for Supplier Returns
   const [deliveryNumber, setDeliveryNumber] = useState("");
@@ -146,7 +156,6 @@ export default function ReturnsPage() {
   const [productItem, setProductItem] = useState("");
   const [brand, setBrand] = useState("");
   const [quantity, setQuantity] = useState("");
-  const [total, setTotal] = useState("");
   const [amount, setAmount] = useState("");
 
   // Dropdown state variables
@@ -154,6 +163,8 @@ export default function ReturnsPage() {
   const [brands, setBrands] = useState([]);
   const [products, setProducts] = useState([]);
   const [deliveryNumbers, setDeliveryNumbers] = useState([]);
+  const [returnTypes, setReturnTypes] = useState([]);
+
 
   // Fetch data from the API
   useEffect(() => {
@@ -182,20 +193,22 @@ export default function ReturnsPage() {
         const productsResponse = await axios.get(config.product.api.fetch);
         console.log("Products:", productsResponse.data); // Log the response
         setProducts(productsResponse.data);
-  
-        // Fetch deliveries
-        const deliveriesResponse = await axios.get(config.deliveries.api.fetch);
-        console.log("Deliveries:", deliveriesResponse.data); // Log the response
-        const mappedDeliveries = deliveriesResponse.data.map((delivery) => {
-          const supplier = suppliers.find(
-            (supplier) => supplier.S_supplierID === delivery.S_supplierID
-          );
-          return {
-            ...delivery,
-            supplierName: supplier ? supplier.SupplierName : "Unknown Supplier",
-          };
-        });
-        setDeliveryNumbers(mappedDeliveries);
+
+      // Fetch deliveries
+      const deliveriesResponse = await axios.get(config.deliveries.api.fetch);
+      console.log("Deliveries:", deliveriesResponse.data); // Log the response
+
+      const mappedDeliveries = deliveriesResponse.data.map((delivery) => {
+        const supplier = suppliersResponse.data.find(
+          (supplier) => supplier.S_supplierID === delivery.S_supplierID
+        );
+        return {
+          ...delivery,
+          supplierName: supplier ? supplier.SupplierName : "Unknown Supplier",
+          D_deliveryNumber: delivery.D_deliveryNumber,
+        };
+      });
+      setDeliveryNumbers(mappedDeliveries);      
       } catch (error) {
         console.error("Error fetching data:", error);
       }
@@ -205,19 +218,17 @@ export default function ReturnsPage() {
 
   // Handle adding a customer return
   const handleAddCustomerReturn = async () => {
-    if (!productName || !selectedSupplier || !selectedBrand || !selectedQuantity || !returnType) {
+    if (!productName || !selectedSupplier || !selectedBrand || !selectedQuantity || !returnType || selectedDiscount === "" ||
+      selectedPrice === "") {
       alert("Please fill in all fields.");
       return;
     }
     const newReturn = {
-      dateAdded: format(new Date(), "yyyy-MM-dd HH:mm:ss"),
-      transactionID: `CR-${Math.floor(Math.random() * 10000)}`,
-      product: productName,
-      brand: selectedBrand,
-      quantity: selectedQuantity,
-      returnType: returnType,
-      totalPrice: selectedPrice,
-      discount: selectedDiscount,
+      P_productCode: productName,
+      R_returnQuantity: selectedQuantity,
+      R_returnTypeID: returnType,
+      R_discountAmount: selectedDiscount,
+      R_dateOfReturn: format(new Date(), "yyyy-MM-dd HH:mm:ss"),
     };
     try {
       await axios.post(config.returns.api.add, newReturn);
@@ -248,7 +259,7 @@ export default function ReturnsPage() {
     }
     const newReturn = {
       dateAdded: format(new Date(), "yyyy-MM-dd HH:mm:ss"),
-      deliveryNumber,
+      deliveryNumbe,
       supplier: supplierName,
       product: productItem,
       brand,
@@ -285,11 +296,11 @@ export default function ReturnsPage() {
     }
     if (type === "customer") {
       setCustomerReturns((prevReturns) =>
-        prevReturns.filter((item) => item.transactionID !== id)
+        prevReturns.filter((item) => item.T_transactionID !== id)
       );
     } else {
       setSupplierReturns((prevReturns) =>
-        prevReturns.filter((item) => item.deliveryNumber !== id)
+        prevReturns.filter((item) => item.D_deliveryNumber !== id)
       );
     }
   };
@@ -338,7 +349,7 @@ export default function ReturnsPage() {
                                 <TableCell className="text-center">{item.R_returnID}</TableCell>
                                 <TableCell className="text-center">{products.find(product => product.P_productCode === item.P_productCode)?.P_productName || "Unknown Product" }</TableCell>
                                 <TableCell className="text-center">{item.R_returnQuantity}</TableCell>
-                                <TableCell className="text-center">{item.R_returnTypeID}</TableCell>
+                                <TableCell className="text-center">{item.R_returnType}</TableCell>
                                 <TableCell className="text-center">{item.R_reasonOfReturn}</TableCell>
                                 <TableCell className="flex space-x-2">
                                   <Dialog>
@@ -369,14 +380,14 @@ export default function ReturnsPage() {
                                           </TableHeader>
                                           <TableBody>
                                             <TableRow>
-                                              <TableCell className="text-center">{item.dateAdded}</TableCell>
-                                              <TableCell className="text-center">{item.productCode}</TableCell>
-                                              <TableCell className="text-center">{item.supplier}</TableCell>
-                                              <TableCell className="text-center">{item.brand}</TableCell>
-                                              <TableCell className="text-center">{item.category}</TableCell>
-                                              <TableCell className="text-center">{item.product}</TableCell>
-                                              <TableCell className="text-center">{item.quantity}</TableCell>
-                                              <TableCell className="text-center">{item.discount}</TableCell>
+                                              <TableCell className="text-center">{item.R_dateOfReturn}</TableCell>
+                                              <TableCell className="text-center">{item.P_productCode}</TableCell>
+                                              <TableCell className="text-center">{item.S_supplierID}</TableCell>
+                                              <TableCell className="text-center">{item.B_brandName}</TableCell>
+                                              <TableCell className="text-center">{item.C_category}</TableCell>
+                                              <TableCell className="text-center">{products.find(product => product.P_productCode === item.P_productCode)?.P_productName || "Unknown Product" }</TableCell>
+                                              <TableCell className="text-center">{item.R_returnQuantity}</TableCell>
+                                              <TableCell className="text-center">{item.R_discountAmount}</TableCell>
                                               <TableCell className="text-center">{item.totalPrice}</TableCell>
                                             </TableRow>
                                           </TableBody>
@@ -459,8 +470,8 @@ export default function ReturnsPage() {
                           </SelectTrigger>
                           <SelectContent>
                             {products.map((product) => (
-                              <SelectItem key={product.ProductID} value={product.ProductName}>
-                                {product.ProductName}
+                              <SelectItem key={product.P_productID} value={product.P_productName}>
+                                {product.P_productName}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -474,8 +485,8 @@ export default function ReturnsPage() {
                           </SelectTrigger>
                           <SelectContent>
                             {suppliers.map((supplier) => (
-                              <SelectItem key={supplier.supplierID} value={supplier.SupplierName}>
-                                {supplier.SupplierName}
+                              <SelectItem key={supplier.S_supplierID} value={supplier.S_supplierName}>
+                                {supplier.S_supplierName}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -483,14 +494,14 @@ export default function ReturnsPage() {
                       </div>
                       <div>
                         <Label htmlFor="brand">Brand</Label>
-                        <Select onValueChange={(value) => setSelectedBrand(value)}>
+                        <Select onValueChange={(value) => setBrand(value)}>
                           <SelectTrigger id="brand" className="mt-1">
                             <SelectValue placeholder="Select brand" />
                           </SelectTrigger>
                           <SelectContent>
                             {brands.map((brand) => (
-                              <SelectItem key={brand.BrandID} value={brand.BrandName}>
-                                {brand.BrandName}
+                              <SelectItem key={brand.B_brandID} value={brand.B_brandName}>
+                                {brand.B_brandName}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -648,36 +659,49 @@ export default function ReturnsPage() {
                   </CardHeader>
                   <CardContent className="p-4 flex flex-col flex-1 justify-between">
                     <div className="space-y-3">
-                      <div>
+                    <div>
                         <Label>Delivery Number</Label>
-                        <Select onValueChange={(value) => {
-                          const selectedDelivery = deliveryNumbers.find(delivery => delivery.DeliveryNumber === value);
-                          if (selectedDelivery) {
-                            setDeliveryNumber(selectedDelivery.DeliveryNumber);
-                            setSupplierName(selectedDelivery.supplierName); // Automatically populate supplier name
-                          }
-                        }}>
+                        <Select
+                          onValueChange={(value) => {
+                            const selectedDelivery = deliveryNumber.find(
+                              (delivery) => delivery.D_deliveryNumber === value
+                            );
+                            if (selectedDelivery) {
+                              setDeliveryNumber(selectedDelivery.D_deliveryNumber);
+                              setSupplierName(selectedDelivery.supplierName); // this still auto-fills the supplier input
+                            }
+                          }}
+                        >
                           <SelectTrigger id="deliveryNumber" className="mt-1">
                             <SelectValue placeholder="Select delivery number" />
                           </SelectTrigger>
                           <SelectContent>
                             {deliveryNumbers.map((delivery) => (
-                              <SelectItem key={delivery.DeliveryNumber} value={delivery.DeliveryNumber}>
-                                {`${delivery.supplierName}`} {/* Show both delivery number and supplier name */}
+                              <SelectItem
+                                key={delivery.D_deliveryNumber}
+                                value={delivery.D_deliveryNumber}
+                              >
+                                {delivery.D_deliveryNumber}
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       </div>
+
                       <div>
                         <Label>Supplier</Label>
-                        <Input
-                          id="supplier"
-                          type="text"
-                          value={supplierName}
-                          readOnly // Make it read-only since it's auto-populated
-                          className="mt-1 cursor-not-allowed"
-                        />
+                        <Select onValueChange={(value) => setSelectedSupplier(value)}>
+                          <SelectTrigger id="supplier" className="mt-1">
+                            <SelectValue placeholder="Select supplier" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {suppliers.map((supplier) => (
+                              <SelectItem key={supplier.S_supplierID} value={supplier.S_supplierName}>
+                                {supplier.S_supplierName}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div>
                         <Label htmlFor="productItem">Product</Label>
@@ -687,8 +711,8 @@ export default function ReturnsPage() {
                           </SelectTrigger>
                           <SelectContent>
                             {products.map((product) => (
-                              <SelectItem key={product.ProductID} value={product.ProductName}>
-                                {product.ProductName}
+                              <SelectItem key={product.P_productID} value={product.P_productName}>
+                                {product.P_productName}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -702,8 +726,8 @@ export default function ReturnsPage() {
                           </SelectTrigger>
                           <SelectContent>
                             {brands.map((brand) => (
-                              <SelectItem key={brand.BrandID} value={brand.BrandName}>
-                                {brand.BrandName}
+                              <SelectItem key={brand.B_brandID} value={brand.B_brandName}>
+                                {brand.B_brandName}
                               </SelectItem>
                             ))}
                           </SelectContent>
