@@ -343,11 +343,11 @@ const OrderDashboard = () => {
               <div>
                 <label className="block text-sm">Stock Available</label>
                 <input
-                type="number"
-                value={selectedProduct?.stock ?? 0}
-                disabled
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-gray-100 text-gray-500"
-              />
+                  type="number"
+                  value={selectedProduct?.stock ?? 0}
+                  disabled
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-gray-100 text-gray-500"
+                />
               </div>
 
               <div>
@@ -355,9 +355,21 @@ const OrderDashboard = () => {
                 <input
                   type="number"
                   value={orderQuantity}
-                  onChange={(e) => setOrderQuantity(e.target.value)}
-                  className={`w-full border rounded-md px-3 py-2 text-sm ${isNaN(orderQuantity) ? 'border-red-500' : 'border-gray-300'}`}
+                  onChange={(e) => {
+                    let quantity = e.target.value;
+                    quantity = quantity.replace(/\+/g, '');
+                    // Ensure the value is a positive number and does not exceed the stock
+                    if (quantity >= 1 && quantity <= selectedProduct?.stock) {
+                      setOrderQuantity(quantity);
+                    }
+                  }}
+                  className={`w-full border rounded-md px-3 py-2 text-sm ${orderQuantity <= 0 || orderQuantity > selectedProduct?.stock ? 'border-red-500' : 'border-gray-300'}`}
                 />
+                {(orderQuantity <= 0 || orderQuantity > selectedProduct?.stock) && (
+                  <p className="text-red-500 text-xs">
+                    Quantity must be greater than 0 and cannot exceed the available stock.
+                  </p>
+                )}
               </div>
 
               <div>
