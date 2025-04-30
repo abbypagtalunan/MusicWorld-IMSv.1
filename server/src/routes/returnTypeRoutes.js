@@ -1,16 +1,16 @@
-const express = require('express');
-const router = express.Router();
 const {
   getAllReturnTypes,
   addReturnType,
   updateReturnType,
   deleteReturnType,
+  getOrCreateReturnTypeID, // 👈 Import here
 } = require('../controllers/returnTypeController');
 
-// Map endpoints to controller logic
-router.get('/', getAllReturnTypes); // Fetch all return types
-router.post('/', addReturnType); // Add a new return type
-router.put('/:id', updateReturnType); // Update an existing return type
-router.delete('/:id', deleteReturnType); // Delete a return type
+// Map endpoints
+router.get('/', getAllReturnTypes);
+router.post('/', addReturnType);
+router.put('/:id', updateReturnType);
+router.delete('/:id', deleteReturnType);
 
-module.exports = router;
+// Add this route 👇
+router.post('/get-or-create', getOrCreateReturnTypeID);
