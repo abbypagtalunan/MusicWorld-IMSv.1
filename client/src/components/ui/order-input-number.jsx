@@ -20,7 +20,7 @@ const InputNumber = ({ label, type = "number", min = 0, className = "", ...props
         min={min}
         onInput={handleInput}
         onKeyDown={handleKeyDown}
-        className={`w-full p-2 border rounded-md text-center 
+        className={`w-full border border-gray-300 rounded-md px-2 py-1 text-sm text-[15px] w-full p-2 border rounded-md
         [&::-webkit-outer-spin-button]:appearance-none 
         [&::-webkit-inner-spin-button]:appearance-none ${className}`}
         {...props}

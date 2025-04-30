@@ -9,21 +9,41 @@ const getColumns = (handleDelete) => [
       header: "Product Code",
     },
     {
-      accessorKey: "Supplier",
-      header: "Supplier",
+      accessorKey: "Product",
+      header: "Product",
     },
     {
       accessorKey: "Brand",
       header: "Brand",
     },
     {
-      accessorKey: "Product",
-      header: "Product",
+      accessorKey: "Supplier",
+      header: "Supplier",
     },
     {
       accessorKey: "Price",
       header: "Price",
+      cell: ({ row }) => {
+        const amount = parseFloat(row.getValue("Price"));
+        const formatted = new Intl.NumberFormat("en-PH", {
+          style: "currency",
+          currency: "PHP",
+        }).format(amount);
+        return <div className="font-medium">{formatted}</div>;
+      },
     },
+    {
+      accessorKey: "Discount",
+      header: "Discount",
+      cell: ({ row }) => {
+        const amount = parseFloat(row.getValue("Discount"));
+        const formatted = new Intl.NumberFormat("en-PH", {
+          style: "currency",
+          currency: "PHP",
+        }).format(amount);
+        return <div className="font-medium">{formatted}</div>;
+      },
+    },    
     {
       accessorKey: "Quantity",
       header: "Quantity",
