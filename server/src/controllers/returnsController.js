@@ -15,7 +15,8 @@ const getAllReturns = (req, res) => {
 
 // Route to add a new return
 const addReturn = (req, res) => {
-  const { P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn, R_returnQuantity, R_discountAmount, S_supplierID } = req.body;
+  const { P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn,
+    R_returnQuantity, R_discountAmount, D_deliveryNumber, S_supplierID} = req.body;
 
   // Validate required fields
   if (!P_productCode || !R_returnTypeID || !R_reasonOfReturn || !R_dateOfReturn || !R_returnQuantity) {
@@ -24,7 +25,8 @@ const addReturn = (req, res) => {
 
   // Call the addReturn method from the return model
   returnModel.addReturn(
-    { P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn, R_returnQuantity, R_discountAmount, S_supplierID },
+    { P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn,
+      R_returnQuantity, R_discountAmount, D_deliveryNumber, S_supplierID},
     (err, returnId) => {
       if (err) {
         console.error('Error inserting return:', err);
@@ -39,7 +41,8 @@ const addReturn = (req, res) => {
 // Route to update a return record
 const updateReturn = (req, res) => {
   const returnID = req.params.id; // Extract return ID from the URL parameter
-  const { P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn, R_returnQuantity, R_discountAmount, S_supplierID } = req.body;
+  const { P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn,
+    R_returnQuantity, R_discountAmount, D_deliveryNumber, S_supplierID } = req.body;
 
   // Validate required fields
   if (!P_productCode || !R_returnTypeID || !R_reasonOfReturn || !R_dateOfReturn || !R_returnQuantity) {
@@ -49,7 +52,8 @@ const updateReturn = (req, res) => {
   // Call the updateReturn method from the return model
   returnModel.updateReturn(
     returnID,
-    { P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn, R_returnQuantity, R_discountAmount, S_supplierID },
+    { P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn,
+      R_returnQuantity, R_discountAmount, D_deliveryNumber, S_supplierID },
     (err, results) => {
       if (err) {
         console.error('Error updating return:', err);

@@ -1,68 +1,31 @@
-const returnTypeModel = require('../models/returnTypeModel');
+const db = require('../../db');
 
-// Route to fetch all return types
-const getAllReturnTypes = (req, res) => {
-  returnTypeModel.getAllReturnTypes((err, results) => {
-    if (err) {
-      console.error('Error fetching return types:', err);
-      res.status(500).json({ error: 'Error fetching return types' });
-    } else {
-      res.json(results);
-    }
-  });
-};
-
-// Route to add a new return type
-const addReturnType = (req, res) => {
+// Add this to the bottom of returnTypeController.js
+const getOrCreateReturnTypeID = (req, res) => {
   const { RT_returnTypeDescription } = req.body;
 
   if (!RT_returnTypeDescription) {
-    return res.status(400).json({ message: 'Return type description is required' });
+    return res.status(400).json({ message: 'Description is required' });
   }
 
-  returnTypeModel.addReturnType({ RT_returnTypeDescription }, (err, returnTypeId) => {
-    if (err) {
-      console.error('Error inserting return type:', err);
-      res.status(500).json({ message: 'Error inserting return type' });
-    } else {
-      res.status(201).json({ message: 'Return type added successfully', id: returnTypeId });
-    }
-  });
-};
+  const selectQuery = `
+    SELECT RT_returnTypeID FROM ReturnTypes WHERE RT_returnTypeDescription = ?
+  `;
+  const insertQuery = `
+    INSERT INTO ReturnTypes (RT_returnTypeDescription) VALUES (?)
+  `;
 
-// Route to update a return type
-const updateReturnType = (req, res) => {
-  const returnTypeID = req.params.id;
-  const { RT_returnTypeDescription } = req.body;
+  db.query(selectQuery, [RT_returnTypeDescription], (err, results) => {
+    if (err) return res.status(500).json({ error: 'Error checking return type' });
 
-  if (!RT_returnTypeDescription) {
-    return res.status(400).json({ message: 'Return type description is required' });
-  }
-
-  returnTypeModel.updateReturnType(returnTypeID, { RT_returnTypeDescription }, (err, results) => {
-    if (err) {
-      console.error('Error updating return type:', err);
-      return res.status(500).json({ message: 'Error updating return type' });
+    if (results.length > 0) {
+      return res.status(200).json({ RT_returnTypeID: results[0].RT_returnTypeID });
     }
 
-    if (results.affectedRows === 0) {
-      return res.status(404).json({ message: 'Return type not found' });
-    }
-    res.status(200).json({ message: 'Return type updated successfully' });
-  });
-};
-
-// Route to delete a return type
-const deleteReturnType = (req, res) => {
-  const returnTypeID = req.params.id;
-
-  returnTypeModel.deleteReturnType(returnTypeID, (err, results) => {
-    if (err) {
-      console.error('Error deleting return type:', err);
-      res.status(500).json({ message: 'Error deleting return type' });
-    } else {
-      res.status(200).json({ message: 'Return type deleted successfully' });
-    }
+    db.query(insertQuery, [RT_returnTypeDescription], (err, insertResult) => {
+      if (err) return res.status(500).json({ error: 'Error inserting return type' });
+      res.status(201).json({ RT_returnTypeID: insertResult.insertId });
+    });
   });
 };
 
@@ -71,4 +34,5 @@ module.exports = {
   addReturnType,
   updateReturnType,
   deleteReturnType,
+  getOrCreateReturnTypeID, // 👈 Add this to exports
 };
