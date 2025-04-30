@@ -259,7 +259,7 @@ export default function ReturnsPage() {
     }
     const newReturn = {
       dateAdded: format(new Date(), "yyyy-MM-dd HH:mm:ss"),
-      deliveryNumbe,
+      deliveryNumber,
       supplier: supplierName,
       product: productItem,
       brand,
