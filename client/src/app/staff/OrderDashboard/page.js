@@ -346,7 +346,7 @@ const OrderDashboard = () => {
                   type="number"
                   value={selectedProduct?.stock ?? 0}
                   disabled
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-gray-100 text-gray-500"
+                  className="w-full border border-gray-300 rounded-md px-5 py-2 text-sm bg-gray-100 text-gray-500"
                 />
               </div>
 
@@ -363,7 +363,7 @@ const OrderDashboard = () => {
                       setOrderQuantity(quantity);
                     }
                   }}
-                  className={`w-full border rounded-md px-3 py-2 text-sm ${orderQuantity <= 0 || orderQuantity > selectedProduct?.stock ? 'border-red-500' : 'border-gray-300'}`}
+                  className={`w-full border rounded-md px-5 py-2 text-sm ${orderQuantity <= 0 || orderQuantity > selectedProduct?.stock ? 'border-red-500' : 'border-gray-300'}`}
                 />
                 {(orderQuantity <= 0 || orderQuantity > selectedProduct?.stock) && (
                   <p className="text-red-500 text-xs">
@@ -374,20 +374,22 @@ const OrderDashboard = () => {
 
               <div>
                 <label className="block text-sm">Discount Amount</label>
-                  <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">₱</span>
-                  <input
-                    type="number"
-                    value={orderDiscount === 0 ? "" : orderDiscount}
-                    onFocus={(e) => {
-                      if (orderDiscount === 0) e.target.select();
-                    }}
-                    // If disc amt left empty, make the value 0
-                    onChange={(e) => {
-                      const value = parseFloat(e.target.value);
-                      setOrderDiscount(isNaN(value) ? 0 : value);
-                    }}
-                    className="w-full pl-6 border border-gray-300 rounded-md px-3 py-2 text-sm"
-                  />
+                <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">₱</span>
+                <input
+                  type="text"
+                  value={orderDiscount === 0 ? "" : orderDiscount}
+                  onFocus={(e) => {
+                    if (orderDiscount === 0) e.target.select();
+                  }}
+                  onChange={(e) => {
+                    // Only allow numbers and one decimal point
+                    const value = e.target.value;
+                    if (/^(\d+(\.\d{0,2})?)?$/.test(value)) {
+                      setOrderDiscount(value);
+                    }
+                  }}
+                  className="w-full pl-6 border border-gray-300 rounded-md px-3 py-2 text-sm"
+                />
               </div>
 
               <button
@@ -442,7 +444,7 @@ const OrderDashboard = () => {
                     type="number"
                     value={freebieQuantity}
                     onChange={(e) => setFreebieQuantity(parseInt(e.target.value) || 1)}
-                    className="w-full border rounded-md px-3 py-2 text-sm border-gray-300"
+                    className="w-full border rounded-md px-5 py-2 text-sm border-gray-300"
                   />
                 </div>
 
@@ -464,4 +466,3 @@ const OrderDashboard = () => {
 };
 
 export default OrderDashboard;
-
