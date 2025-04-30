@@ -8,7 +8,7 @@ import DataTable from "../../../components/ui/data-table";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
-import { FilePen, ChevronDown, Check } from "lucide-react";
+import { ChevronDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import axios from "axios";
 
@@ -16,8 +16,7 @@ const OrderDashboard = () => {
   const [data, setData] = useState([]);
   const [discount, setDiscount] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [payment, setPayment] = useState("");
-
+  const [payment, setPayment] = useState(0); 
   const [products, setProducts] = useState([]);
   const [openProduct, setOpenProduct] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -30,11 +29,14 @@ const OrderDashboard = () => {
   const [orderQuantity, setOrderQuantity] = useState(1);
   const [orderDiscount, setOrderDiscount] = useState(0);
 
+  const [hasInteractedWithPayModal, setHasInteractedWithPayModal] = useState(false);
+
   const totalAmount = data.reduce((sum, item) => sum + parseFloat(item.Total), 0);
   const discountedTotal = Math.max(totalAmount - discount, 0);
-  const change = Math.max((parseFloat(payment.replace(/,/g, "")) || 0) - discountedTotal, 0);
+  const parsedPayment = parseFloat(payment.toString().replace(/,/g, "")) || 0;
+  const change = Math.max(parsedPayment - discountedTotal, 0);
   const isInvalidDiscount = discount > totalAmount;
-  
+    
   // Fetch data
   useEffect(() => {
     axios
@@ -97,17 +99,15 @@ const OrderDashboard = () => {
         "Quantity": orderQuantity,
         "Total": total,
       };
-  
       setData((prevData) => [...prevData, newItem]);
     }
   
-    // Reset after adding or updating
+    // Reset
     setSelectedProduct(null);
     setOrderQuantity(1);
     setOrderDiscount(0);
     setIsEditMode(false); // Reset to add mode
   };
-  
 
   const handleEdit = (row) => {
     const {
@@ -128,23 +128,22 @@ const OrderDashboard = () => {
     }
   };
   
-  
   const handleAddFreebie = () => {
-    if (!selectedFreebie || freebieQuantity <= 0) return;
-    const newFreebie = {
-      "Product Code": selectedFreebie.code,
-      "Supplier": selectedFreebie.supplier,
-      "Brand": selectedFreebie.brand,
-      "Product": `${selectedFreebie.name} (Freebie)`,
-      "Price": 0,
-      "Discount": 0,
-      "Quantity": freebieQuantity,
-      "Total": 0,
-    };
-    setData((prevData) => [...prevData, newFreebie]);
-    setSelectedFreebie(null);
-    setFreebieQuantity(1);
+  if (!selectedFreebie || freebieQuantity <= 0) return;
+  const newFreebie = {
+    "Product Code": selectedFreebie.code,
+    "Supplier": selectedFreebie.supplier,
+    "Brand": selectedFreebie.brand,
+    "Product": `${selectedFreebie.name} (Freebie)`,
+    "Price": 0,
+    "Discount": 0,
+    "Quantity": freebieQuantity,
+    "Total": 0,
   };
+  setData((prevData) => [...prevData, newFreebie]);
+  setSelectedFreebie(null);
+  setFreebieQuantity(1);
+};
   
   const handleFreebieSelect = (product) => {
     setSelectedFreebie(product);
@@ -161,8 +160,11 @@ const OrderDashboard = () => {
     if (!value) return "";
     const [integerPart, decimalPart] = value.replace(/[^0-9.]/g, "").split(".");
     const formattedInteger = parseInt(integerPart || "0", 10).toLocaleString("en-PH");
-    return decimalPart !== undefined ? `${formattedInteger}.${decimalPart.slice(0, 2)}` : formattedInteger;
+    return decimalPart !== undefined
+      ? `₱${formattedInteger}.${decimalPart.slice(0, 2)}`
+      : `₱${formattedInteger}`;
   };
+  
   const parseNumberInput = (value) => value.replace(/[^0-9.]/g, "");
 
   return (
@@ -196,15 +198,14 @@ const OrderDashboard = () => {
                     <label className={`text-sm text-[15px] ${isInvalidDiscount ? "text-red-600" : "text-blue-600"}`}>
                       {isInvalidDiscount ? "Invalid Discount Amount" : "APPLY PURCHASE DISCOUNT"}
                     </label>
-
                     <input
                       type="text"
                       value={discount === 0 ? "" : formatNumberWithCommas(discount.toString())}
                       onChange={(e) => {
-                        const rawValue = e.target.value.replace(/,/g, "");
-                        setDiscount(rawValue === "" ? "" : parseFloat(rawValue) || "");
+                        const rawValue = e.target.value.replace(/[^0-9.]/g, ""); 
+                        setDiscount(rawValue === "" ? "" : parseFloat(rawValue) || 0); 
                       }}
-                      className={`px-2 x-1 w-full border rounded-md text-[13px] text-center focus:outline-none ${isInvalidDiscount ? "border-red-600 text-red-600" : "border-blue-600 text-blue-600"}`}
+                      className={`px-2 py-1 w-full border rounded-md text-[13px] text-center focus:outline-none ${isInvalidDiscount ? "border-red-600 text-red-600" : "border-blue-600 text-black"}`}
                     />
                   </div>
 
@@ -219,36 +220,58 @@ const OrderDashboard = () => {
                         <p className="text-[45px] font-bold text-blue-600">
                           {new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(discountedTotal)}
                         </p>
-                        <label className={`pl-9 mt-2 text-start text-[13px] block ${(parseFloat(payment.replace(/,/g, "")) || 0) < discountedTotal ? "text-red-600" : "text-blue-600"}`}>
-                          {(parseFloat(payment.replace(/,/g, "")) || 0) < discountedTotal ? "Invalid Payment Amount" : "PAYMENT GIVEN"}
+                        <label
+                          className={`pl-9 mt-2 text-start text-[15px] block ${
+                            hasInteractedWithPayModal && (parseFloat(payment.toString().replace(/,/g, "")) || 0) < discountedTotal
+                              ? "text-red-600"
+                              : "text-black"
+                          }`}
+                        >
+                          {hasInteractedWithPayModal && (parseFloat(payment.toString().replace(/,/g, "")) || 0) < discountedTotal
+                            ? "Invalid Payment Amount"
+                            : "Given Payment"}
                         </label>
+
                         <input
                           type="text"
-                          value={payment}
+                          value={payment === 0 ? "" : payment.toLocaleString("en-PH")}
                           onChange={(e) => {
-                            const rawValue = parseNumberInput(e.target.value);
-                            setPayment(formatNumberWithCommas(rawValue));
+                            setHasInteractedWithPayModal(true);
+                            const rawValue = e.target.value.replace(/[^0-9.]/g, "");
+                            const updatedPayment = rawValue === "" ? 0 : parseFloat(rawValue);
+                            setPayment(updatedPayment);
+                            console.log("Updated payment amount:", updatedPayment);  // Log payment update
                           }}
-                          className={`w-[80%] border rounded-md text-center focus:outline-none ${parseFloat(payment.replace(/,/g, "")) < discountedTotal ? "border-red-600 text-red-600" : "border-blue-600 text-blue-600"}`}
+                          className={`w-[80%] px-2 py-1 border rounded-md text-center focus:outline-none ${
+                            hasInteractedWithPayModal && payment < discountedTotal 
+                              ? "border-red-600 text-red-600" 
+                              : "border-gray-300 text-black"
+                          }`}
                         />
 
-                        {/* ADD RECEIPT NUMBER NOT FUNCTIONAL YET */}
-                        <label className="pl-9 mt-2 text-start text-[13px] block text-blue-600">ENTER RECEIPT NUMBER</label>
+                        <label className="pl-9 mt-2 text-start text-[15px] block  text-black">Enter Receipt Number</label>
                         <input
                           type="number"
-                          className="w-[80%] border rounded-md text-center focus:outline-none border-blue-600" 
+                          className="w-[80%] px-2 py-1 border rounded-md text-center focus:outline-none border-gray-300 text-black" 
+                          onChange={(e) => console.log("Entered receipt number:", e.target.value)} // Log receipt number
                         />
+
                         <button
-                          className="mt-4 p-1 text-[13px] w-[80%] bg-blue-600 text-white rounded-md"
+                          className="mt-4 p-1 text-[15px] w-[80%] bg-blue-600 text-white rounded-md"
                           onClick={() => {
                             setIsModalOpen(false);
+                            console.log("Payment confirmed. Amount:", payment);  // Log when payment is confirmed
                             window.location.reload();
                           }}
                         >
-                          ENTER PAYMENT
+                          Enter Payment
                         </button>
-                        <p className="pl-9 mb-5 mt-2 text-start text-[12px] font-bold text-blue-600">
-                          CHANGE: {new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(change)}
+
+                        <p className="pl-9 mb-5 mt-2 text-start text-[13px] font-bold text-blue-600">
+                          CHANGE: {new Intl.NumberFormat("en-PH", { 
+                            style: "currency", 
+                            currency: "PHP" 
+                          }).format(change)}
                         </p>
                       </div>
                     </div>
@@ -270,158 +293,157 @@ const OrderDashboard = () => {
                 }
               }}
             >
-                {/* ADD PRODUCT/ITEM */}
-                <h2 className="text-xl text-center font-semibold text-blue-600 pb-4">Add Product to Order/s</h2>
-                <form className="text-[15px] space-y-2">
-                  <div className="text-left">
-                    <label className="block mb-1 text-sm">Product</label>
-                    <Popover open={openProduct} onOpenChange={setOpenProduct}>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" role="combobox" aria-expanded={openProduct} className="w-full justify-between">
-                          {selectedProduct ? selectedProduct.name : "Select product..."}
-                          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-full p-0">
-                        <Command>
-                          <CommandInput placeholder="Search product..." />
-                          <CommandEmpty>No product found.</CommandEmpty>
-                          <CommandGroup>
-                            {products.map((product) => (
-                              <CommandItem
-                                key={product.code}
-                                value={product.name}
-                                onSelect={() => handleProductSelect(product)}
-                              >
-                                <Check className={cn("mr-2 h-4 w-4", selectedProduct?.code === product.code ? "opacity-100" : "opacity-0")} />
-                                {product.name}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
 
-                  <div>
-                    <label className="block text-sm">Price</label>
-                    <div className="relative">
-                      <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">₱</span>
-                      <input
-                        type="text"
-                        value={selectedProduct ? new Intl.NumberFormat("en-PH", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(parseFloat(selectedProduct.price) || 0) : "0"}
-                        disabled
-                        className="w-full pl-6 border border-gray-300 rounded-md px-3 py-2 text-sm bg-gray-100 text-gray-500"
-                      />
-                    </div>
-                  </div>
+            {/* ADD PRODUCT/ITEM */}
+            <h2 className="text-xl text-center font-semibold text-blue-600 pb-4">Add Product to Order/s</h2>
+            <form className="text-[15px] space-y-2">
+              <div className="text-left">
+                
+                {/* COMBOBOX SEARCH PRODUCT */}
+                <label className="block mb-1 text-sm">Product</label>
+                <Popover open={openProduct} onOpenChange={setOpenProduct}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" role="combobox" aria-expanded={openProduct} className="w-full justify-between">
+                      {selectedProduct ? selectedProduct.name : "Select product..."}
+                      <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Search product..." />
+                      <CommandEmpty>No product found.</CommandEmpty>
+                      <CommandGroup>
+                        {products.map((product) => (
+                          <CommandItem
+                            key={product.code}
+                            value={product.name}
+                            onSelect={() => handleProductSelect(product)}
+                          >
+                            <Check className={cn("mr-2 h-4 w-4", selectedProduct?.code === product.code ? "opacity-100" : "opacity-0")} />
+                            {product.name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
 
-                  <div>
-                    <label className="block text-sm">Stock Available</label>
-                    <input
-                    type="number"
-                    value={selectedProduct?.stock ?? 0}
+              <div>
+                <label className="block text-sm">Price</label>
+                  <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">₱</span>
+                  <input
+                    type="text"
+                    value={selectedProduct ? new Intl.NumberFormat("en-PH", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(parseFloat(selectedProduct.price) || 0) : "0"}
                     disabled
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-gray-100 text-gray-500"
+                    className="w-full pl-6 border border-gray-300 rounded-md px-3 py-2 text-sm bg-gray-100 text-gray-500"
                   />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm">Quantity</label>
-                    <input
-                      type="number"
-                      value={orderQuantity}
-                      onChange={(e) => setOrderQuantity(e.target.value)}
-                      className={`w-full border rounded-md px-3 py-2 text-sm ${isNaN(orderQuantity) ? 'border-red-500' : 'border-gray-300'}`}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm">Discount Amount</label>
-                    <div className="relative">
-                      <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">₱</span>
-                      <input
-                        type="number"
-                        value={orderDiscount === 0 ? "" : orderDiscount}
-                        onFocus={(e) => {
-                          if (orderDiscount === 0) e.target.select();
-                        }}
-                        // If disc amt left empty, make the value 0
-                        onChange={(e) => {
-                          const value = parseFloat(e.target.value);
-                          setOrderDiscount(isNaN(value) ? 0 : value);
-                        }}
-                        className="w-full pl-6 border border-gray-300 rounded-md px-3 py-2 text-sm"
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    className="w-full mt-4 bg-blue-600 text-white py-2 rounded-md"
-                    onClick={handleAddOrderItem}
-                  >
-                    {isEditMode ? "Update Item" : "Add Product"}
-                  </button>
-                </form>
               </div>
 
-              <div className="bg-white shadow-lg p-5 rounded-xl">
-                <h2 className="text-xl text-center font-semibold text-blue-600 pb-4">Add Freebie/s</h2>
-                <form className="text-[15px] space-y-2">
-                  <div className="text-left">
-                    <label className="block mb-1 text-sm">Product</label>
-                    <Popover open={openFreebie} onOpenChange={setOpenFreebie}>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" role="combobox" aria-expanded={openFreebie} className="w-full justify-between">
-                          {selectedFreebie ? selectedFreebie.label : "Select product..."}
-                          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-full p-0">
-                        <Command>
-                          <CommandInput placeholder="Search product..." />
-                          <CommandEmpty>No freebie found.</CommandEmpty>
-                          {/* SHOW PRODUCT ONLY QUANTITY > 0 */}
-                          <CommandGroup>
-                          {products
-                            .filter(product => product.stock > 0)
-                            .map((product) => (
-                              <CommandItem
-                                key={product.code}
-                                value={product.label}
-                                onSelect={() => handleFreebieSelect(product)}
-                              >
-                                <Check className={cn("mr-2 h-4 w-4", selectedFreebie?.code === product.code ? "opacity-100" : "opacity-0")} />
-                                {product.label}
-                              </CommandItem>
-                          ))}
-                        </CommandGroup>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm">Quantity</label>
-                    <input
-                      type="number"
-                      value={freebieQuantity}
-                      onChange={(e) => setFreebieQuantity(parseInt(e.target.value) || 1)}
-                      className="w-full border rounded-md px-3 py-2 text-sm border-gray-300"
-                    />
-                  </div>
-
-                  <button
-                    type="button"
-                    className="w-full mt-4 bg-blue-600 text-white py-2 rounded-md"
-                    onClick={handleAddFreebie}
-                  >
-                    Add Freebie
-                  </button>
-                </form>
+              <div>
+                <label className="block text-sm">Stock Available</label>
+                <input
+                type="number"
+                value={selectedProduct?.stock ?? 0}
+                disabled
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-gray-100 text-gray-500"
+              />
               </div>
+
+              <div>
+                <label className="block text-sm">Quantity</label>
+                <input
+                  type="number"
+                  value={orderQuantity}
+                  onChange={(e) => setOrderQuantity(e.target.value)}
+                  className={`w-full border rounded-md px-3 py-2 text-sm ${isNaN(orderQuantity) ? 'border-red-500' : 'border-gray-300'}`}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm">Discount Amount</label>
+                  <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">₱</span>
+                  <input
+                    type="number"
+                    value={orderDiscount === 0 ? "" : orderDiscount}
+                    onFocus={(e) => {
+                      if (orderDiscount === 0) e.target.select();
+                    }}
+                    // If disc amt left empty, make the value 0
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value);
+                      setOrderDiscount(isNaN(value) ? 0 : value);
+                    }}
+                    className="w-full pl-6 border border-gray-300 rounded-md px-3 py-2 text-sm"
+                  />
+              </div>
+
+              <button
+                type="button"
+                className="w-full mt-4 bg-blue-600 text-white py-2 rounded-md"
+                onClick={handleAddOrderItem}
+              >
+                {isEditMode ? "Update Item" : "Add Product"}
+              </button>
+            </form>
+          </div>
+
+            <div className="bg-white shadow-lg p-5 rounded-xl">
+              <h2 className="text-xl text-center font-semibold text-blue-600 pb-4">Add Freebie/s</h2>
+              <form className="text-[15px] space-y-2">
+                <div className="text-left">
+                  <label className="block mb-1 text-sm">Product</label>
+                  <Popover open={openFreebie} onOpenChange={setOpenFreebie}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" role="combobox" aria-expanded={openFreebie} className="w-full justify-between">
+                        {selectedFreebie ? selectedFreebie.label : "Select product..."}
+                        <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0">
+                      <Command>
+                        <CommandInput placeholder="Search product..." />
+                        <CommandEmpty>No freebie found.</CommandEmpty>
+                        {/* SHOW PRODUCT ONLY QUANTITY > 0 */}
+                        <CommandGroup>
+                        {products
+                          .filter(product => product.stock > 0)
+                          .map((product) => (
+                            <CommandItem
+                              key={product.code}
+                              value={product.label}
+                              onSelect={() => handleFreebieSelect(product)}
+                            >
+                              <Check className={cn("mr-2 h-4 w-4", selectedFreebie?.code === product.code ? "opacity-100" : "opacity-0")} />
+                              {product.label}
+                            </CommandItem>
+                        ))}
+                      </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div>
+                  <label className="block text-sm">Quantity</label>
+                  <input
+                    type="number"
+                    value={freebieQuantity}
+                    onChange={(e) => setFreebieQuantity(parseInt(e.target.value) || 1)}
+                    className="w-full border rounded-md px-3 py-2 text-sm border-gray-300"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  className="w-full mt-4 bg-blue-600 text-white py-2 rounded-md"
+                  onClick={handleAddFreebie}
+                >
+                  Add Freebie
+                </button>
+              </form>
             </div>
+          </div>
           </div>
         </div>
       </div>
@@ -430,3 +452,4 @@ const OrderDashboard = () => {
 };
 
 export default OrderDashboard;
+
