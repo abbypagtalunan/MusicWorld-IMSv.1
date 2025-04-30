@@ -1,77 +1,94 @@
 "use client";
 
 import React from "react";
-import { Trash2 } from "lucide-react";
+import { Trash2, FilePen } from "lucide-react";
 
-const getColumns = (handleDelete) => [
-    {
-      accessorKey: "Product Code",
-      header: "Product Code",
+const getColumns = (handleDelete, handleEdit) => [
+  {
+    accessorKey: "Product Code",
+    header: "Product Code",
+  },
+  {
+    accessorKey: "Product",
+    header: "Product",
+  },
+  {
+    accessorKey: "Brand",
+    header: "Brand",
+  },
+  {
+    accessorKey: "Supplier",
+    header: "Supplier",
+  },
+  {
+    accessorKey: "Quantity",
+    header: "Quantity",
+  },
+  {
+    accessorKey: "Price",
+    header: "Price",
+    cell: ({ row }) => {
+      const value = row.getValue("Price");
+      const amount = parseFloat(value) || 0;
+      const formatted = new Intl.NumberFormat("en-PH", {
+        style: "currency",
+        currency: "PHP",
+      }).format(amount);
+      return <div className="font-medium">{formatted}</div>;
     },
-    {
-      accessorKey: "Product",
-      header: "Product",
+  },
+  {
+    accessorKey: "Discount",
+    header: "Discount",
+    cell: ({ row }) => {
+      const value = row.getValue("Discount");
+      const amount = parseFloat(value) || 0;
+      const formatted = new Intl.NumberFormat("en-PH", {
+        style: "currency",
+        currency: "PHP",
+      }).format(amount);
+      return <div className="font-medium">{formatted}</div>;
     },
-    {
-      accessorKey: "Brand",
-      header: "Brand",
+  },
+  {
+    accessorKey: "Total",
+    header: () => <div className="text-center">Total</div>,
+    cell: ({ row }) => {
+      const value = row.getValue("Total");
+      const amount = parseFloat(value) || 0;
+      const formatted = new Intl.NumberFormat("en-PH", {
+        style: "currency",
+        currency: "PHP",
+      }).format(amount);
+      return <div className="font-medium text-center">{formatted}</div>;
     },
-    {
-      accessorKey: "Supplier",
-      header: "Supplier",
+  },
+  {
+    id: "actions",
+    header: "",
+    cell: ({ row }) => {
+      const isFreebie = row.original.Product.toLowerCase().includes("(freebie)");
+      return (
+        <div className="flex items-center gap-3">
+          {isFreebie ? (
+            <span className=" inline-block" /> 
+          ) : (
+            <FilePen size={16}
+              className="text-gray-500 cursor-pointer"
+              onClick={() => handleEdit(row.original)}
+            />
+          )}
+          <button
+            className="text-gray-500 hover:text-red-700"
+            onClick={() => handleDelete(row.original["Product Code"])}
+            type="button"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      );
     },
-    {
-      accessorKey: "Price",
-      header: "Price",
-      cell: ({ row }) => {
-        const amount = parseFloat(row.getValue("Price"));
-        const formatted = new Intl.NumberFormat("en-PH", {
-          style: "currency",
-          currency: "PHP",
-        }).format(amount);
-        return <div className="font-medium">{formatted}</div>;
-      },
-    },
-    {
-      accessorKey: "Discount",
-      header: "Discount",
-      cell: ({ row }) => {
-        const amount = parseFloat(row.getValue("Discount"));
-        const formatted = new Intl.NumberFormat("en-PH", {
-          style: "currency",
-          currency: "PHP",
-        }).format(amount);
-        return <div className="font-medium">{formatted}</div>;
-      },
-    },    
-    {
-      accessorKey: "Quantity",
-      header: "Quantity",
-    },
-    {
-      accessorKey: "Total",
-      header: () => <div className="text-center">Total</div>,
-      cell: ({ row }) => {
-        const amount = parseFloat(row.getValue("Total"));
-        const formatted = new Intl.NumberFormat("en-PH", {
-          style: "currency",
-          currency: "PHP",
-        }).format(amount);
-        return <div className="font-medium">{formatted}</div>;
-      },
-    },
-    {
-      accessorKey: "Delete",
-      header: "",
-      cell: ({ row }) => (
-        <button
-          className="text-red-500 hover:text-red-700"
-          onClick={() => handleDelete(row.original["Product Code"])}
-        >
-          <Trash2 size={15} />
-        </button>
-      ),
-    },
+  },
 ];
 
 export default getColumns;

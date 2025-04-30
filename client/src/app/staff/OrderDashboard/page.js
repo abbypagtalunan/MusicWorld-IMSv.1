@@ -8,7 +8,7 @@ import DataTable from "../../../components/ui/data-table";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, Check } from "lucide-react";
+import { FilePen, ChevronDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import axios from "axios";
 
@@ -21,6 +21,7 @@ const OrderDashboard = () => {
   const [products, setProducts] = useState([]);
   const [openProduct, setOpenProduct] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   const [openFreebie, setOpenFreebie] = useState(false);
   const [selectedFreebie, setSelectedFreebie] = useState(null);
@@ -65,40 +66,69 @@ const OrderDashboard = () => {
 
   const handleAddOrderItem = () => {
     if (!selectedProduct || orderQuantity <= 0) return;
+  
     const price = selectedProduct.price;
     const discountAmount = orderDiscount || 0;
-    const total = ( price * orderQuantity) - discountAmount;
+    const total = (price * orderQuantity) - discountAmount;
   
-    const newItem = {
-      "Product Code": selectedProduct.code,
-      "Supplier": selectedProduct.supplier, 
-      "Brand": selectedProduct.brand,
-      "Product": selectedProduct.name, 
-      "Price": price, 
-      "Discount": orderDiscount,           
-      "Quantity": orderQuantity,        
-      "Total": total,
-    };
+    if (isEditMode) {
+      // Update the item
+      setData((prevData) => {
+        return prevData.map((item) =>
+          item["Product Code"] === selectedProduct.code
+            ? {
+                ...item,
+                "Quantity": orderQuantity,
+                "Discount": orderDiscount,
+                "Total": total,
+              }
+            : item
+        );
+      });
+    } else {
+      // Add a new item
+      const newItem = {
+        "Product Code": selectedProduct.code,
+        "Supplier": selectedProduct.supplier,
+        "Brand": selectedProduct.brand,
+        "Product": selectedProduct.name,
+        "Price": price,
+        "Discount": orderDiscount,
+        "Quantity": orderQuantity,
+        "Total": total,
+      };
   
-    // Update the data state with the new item for reflection in the DataTable
-    setData((prevData) => [...prevData, newItem]);
+      setData((prevData) => [...prevData, newItem]);
+    }
   
-    // Reset the form fields after adding the order
+    // Reset after adding or updating
     setSelectedProduct(null);
     setOrderQuantity(1);
     setOrderDiscount(0);
+    setIsEditMode(false); // Reset to add mode
   };
-
-  // VIEW ROW NOT YET FIXED
-  const handleRowClick = (row) => {
-    const { "Product Code": productCode, "Product": productName, "Price": price, "Quantity": quantity, "Discount": discount, "Total": total } = row;
-    const selectedProduct = products.find(product => product.code === productCode);
   
-    setSelectedProduct(selectedProduct);  // Set the selected product based on the clicked row
-    setOrderQuantity(quantity);           // Set the order quantity
-    setOrderDiscount(parseFloat(discount)); // Set the discount if any
-  };
 
+  const handleEdit = (row) => {
+    const {
+      "Product Code": code,
+      "Product": name,
+      "Price": price,
+      "Quantity": quantity,
+      "Discount": discount,
+      "Total": total,
+    } = row;
+  
+    const selectedProduct = products.find(product => product.code === code);
+    if (selectedProduct) {
+      setSelectedProduct(selectedProduct);
+      setOrderQuantity(quantity);
+      setOrderDiscount(parseFloat(discount));
+      setIsEditMode(true);
+    }
+  };
+  
+  
   const handleAddFreebie = () => {
     if (!selectedFreebie || freebieQuantity <= 0) return;
     const newFreebie = {
@@ -122,7 +152,7 @@ const OrderDashboard = () => {
     setOpenFreebie(false);
   };
   
-  // DELETES THE WHOLE ORDER LIST NOT FIXED
+  // DELETE BOTH OCCURRENCE IF SAME PRODUCT CODE
   const handleDelete = (productCode) => {
     setData((prevData) => prevData.filter(item => item["Product Code"] !== productCode));
   };
@@ -147,14 +177,14 @@ const OrderDashboard = () => {
             {/* Left Section */}
             {/* TABLE */}
             <div className="flex-1 space-y-4">
-              <div className="h-[50%] bg-white shadow-md p-4 rounded-xl">
+              <div className="h-[50%] text-xl bg-white shadow-md p-4 rounded-xl">
               <DataTable 
-                columns={getColumns(handleDelete)} 
-                data={data} 
-                onRowClick={(row) => handleRowClick(row)}
+                columns={getColumns(handleDelete, handleEdit)} 
+                data={data}
               />
               </div>
 
+              {/* TOTAL AMOUNT - PAYMENT */}
               <div className="bg-white shadow-lg p-6 text-center rounded-xl">
                 <h2 className="text-lg text-blue-600">TOTAL AMOUNT</h2>
                 <p className="text-5xl font-bold text-blue-600">
@@ -174,7 +204,7 @@ const OrderDashboard = () => {
                         const rawValue = e.target.value.replace(/,/g, "");
                         setDiscount(rawValue === "" ? "" : parseFloat(rawValue) || "");
                       }}
-                      className={`px-2 py-1 w-full border rounded-md text-[13px] text-center focus:outline-none ${isInvalidDiscount ? "border-red-600 text-red-600" : "border-blue-600 text-blue-600"}`}
+                      className={`px-2 x-1 w-full border rounded-md text-[13px] text-center focus:outline-none ${isInvalidDiscount ? "border-red-600 text-red-600" : "border-blue-600 text-blue-600"}`}
                     />
                   </div>
 
@@ -229,8 +259,17 @@ const OrderDashboard = () => {
 
             {/* Right Section */}
             <div className="w-1/4 space-y-4">
-              <div className="bg-white shadow-lg p-6 rounded-xl">
-
+            <div
+              className="bg-white shadow-lg p-6 rounded-xl"
+              onMouseLeave={() => {
+                if (isEditMode) {
+                  setIsEditMode(false);
+                  setSelectedProduct(null);
+                  setOrderQuantity(1);
+                  setOrderDiscount(0);
+                }
+              }}
+            >
                 {/* ADD PRODUCT/ITEM */}
                 <h2 className="text-xl text-center font-semibold text-blue-600 pb-4">Add Product to Order/s</h2>
                 <form className="text-[15px] space-y-2">
@@ -270,12 +309,21 @@ const OrderDashboard = () => {
                       <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">₱</span>
                       <input
                         type="text"
-                        value={selectedProduct 
-                          ? new Intl.NumberFormat("en-PH", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(parseFloat(selectedProduct.price)) : ""
-                        } disabled
-                        className="w-full pl-6 border border-gray-300 rounded-md px-3 py-2 text-sm"
+                        value={selectedProduct ? new Intl.NumberFormat("en-PH", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(parseFloat(selectedProduct.price) || 0) : "0"}
+                        disabled
+                        className="w-full pl-6 border border-gray-300 rounded-md px-3 py-2 text-sm bg-gray-100 text-gray-500"
                       />
                     </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm">Stock Available</label>
+                    <input
+                    type="number"
+                    value={selectedProduct?.stock ?? 0}
+                    disabled
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-gray-100 text-gray-500"
+                  />
                   </div>
 
                   <div>
@@ -310,10 +358,10 @@ const OrderDashboard = () => {
 
                   <button
                     type="button"
-                    className="mt-4 px-2 py-1 w-full bg-blue-600 text-white rounded-md text-[14px]"
+                    className="w-full mt-4 bg-blue-600 text-white py-2 rounded-md"
                     onClick={handleAddOrderItem}
                   >
-                    ADD ORDER
+                    {isEditMode ? "Update Item" : "Add Product"}
                   </button>
                 </form>
               </div>
@@ -366,10 +414,10 @@ const OrderDashboard = () => {
 
                   <button
                     type="button"
-                    className="mt-4 px-2 py-1 w-full bg-blue-600 text-white rounded-md text-[14px]"
+                    className="w-full mt-4 bg-blue-600 text-white py-2 rounded-md"
                     onClick={handleAddFreebie}
                   >
-                    ADD TO ORDER
+                    Add Freebie
                   </button>
                 </form>
               </div>
