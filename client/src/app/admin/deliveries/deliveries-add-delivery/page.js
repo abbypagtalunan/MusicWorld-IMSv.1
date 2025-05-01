@@ -476,8 +476,8 @@ export default function BatchDeliveriesPage() {
     <SidebarProvider>
       <div className="flex h-screen w-screen">
         <AppSidebar />
-        <div className="flex-1 p-4 flex flex-col w-full h-full overflow-y-auto">
-          <div className="flex justify-between items-center mb-6">
+        <div className="flex-1 flex flex-col w-full overflow-hidden">
+        <div className="flex items-center justify-between bg-white p-4 sticky top-2 z-10 shadow-sm">
             <div>
               <h1 className="text-xl text-gray-600 font-medium">Batching of Deliveries</h1>
             </div>
@@ -490,6 +490,7 @@ export default function BatchDeliveriesPage() {
           </div>
 
           {/* Filter Card */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
           <Card className="mb-4">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -515,7 +516,7 @@ export default function BatchDeliveriesPage() {
                   </div>
                   <div className="flex items-end">
                     <Button 
-                      className="bg-blue-500 text-white"
+                      className="bg-blue-400 text-white"
                       onClick={handleApplyFilter}
                       disabled={loading}
                     >
@@ -534,9 +535,9 @@ export default function BatchDeliveriesPage() {
             <Card className="w-full lg:w-2/3 flex flex-col">
               <CardContent className="p-4 flex flex-col justify-between flex-grow">
                 {/* Product items table with scrollable container */}
-                <div className="overflow-x-auto max-h-[60vh] flex-grow">
+                <div className="flex flex-col overflow-auto max-h-[60vh] w-full">
                   <Table>
-                    <TableHeader className="bg-gray-100 sticky top-0">
+                  <TableHeader className="sticky top-0 z-10 bg-white">
                       <TableRow>
                         <TableHead>Product Code</TableHead>
                         <TableHead>Supplier</TableHead>
@@ -722,7 +723,7 @@ export default function BatchDeliveriesPage() {
                   
                   <div className="flex justify-center mt-6">
                     <Button 
-                      className="w-2/3 bg-blue-500 text-white"
+                      className="w-2/3 bg-blue-400 text-white"
                       onClick={handleAddProduct}
                       disabled={loading}
                     >
@@ -848,7 +849,7 @@ export default function BatchDeliveriesPage() {
 
               <div className="flex justify-end mt-6">
                 <Button 
-                  className="bg-blue-600 text-white"
+                  className="bg-blue-400 text-white"
                   onClick={handleSavePaymentDetails}
                   disabled={loading}
                 >
@@ -858,6 +859,7 @@ export default function BatchDeliveriesPage() {
             </CardContent>
           </Card>
           <Toaster position="top-right" />
+        </div>
         </div>
       </div>
     </SidebarProvider>
