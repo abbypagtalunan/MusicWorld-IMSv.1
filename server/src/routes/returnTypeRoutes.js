@@ -1,16 +1,26 @@
+// server/src/routes/returnTypeRoutes.js
+
+const express = require('express');
+const router = express.Router();
 const {
-  getAllReturnTypes,
-  addReturnType,
-  updateReturnType,
-  deleteReturnType,
-  getOrCreateReturnTypeID, // 👈 Import here
+  getOrCreateReturnTypeId,
 } = require('../controllers/returnTypeController');
 
-// Map endpoints
-router.get('/', getAllReturnTypes);
-router.post('/', addReturnType);
-router.put('/:id', updateReturnType);
-router.delete('/:id', deleteReturnType);
+// Route to get or create a return type by description
+router.post('/get-or-create', (req, res) => {
+  const { returnTypeDescription } = req.body;
 
-// Add this route 👇
-router.post('/get-or-create', getOrCreateReturnTypeID);
+  if (!returnTypeDescription) {
+    return res.status(400).json({ error: 'Return type description is required' });
+  }
+
+  getOrCreateReturnTypeId(returnTypeDescription, (err, RT_returnTypeID) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: 'Failed to process return type' });
+    }
+    res.json({ RT_returnTypeID });
+  });
+});
+
+module.exports = router;
