@@ -3,7 +3,9 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/admin-sidebar";
-import { format } from 'date-fns'; // Add this import at the top
+import { format } from 'date-fns';
+
+// UI Components
 import {
   Table,
   TableBody,
@@ -45,7 +47,6 @@ import {
 import { Trash2, Ellipsis } from "lucide-react";
 
 export default function ReturnsPage() {
-  // Configuration object
   const config = {
     returns: {
       label: "Returns",
@@ -53,7 +54,7 @@ export default function ReturnsPage() {
       codeField: "P_productCode",
       returnTypeField: "R_returnTypeID",
       reasonField: "R_reasonOfReturn",
-      dateField: "P_dateOfReturn",
+      dateField: "R_dateOfReturn",
       quantityField: "R_returnQuantity",
       discountField: "R_discountAmount",
       deliveryField: "D_deliveryNumber",
@@ -65,18 +66,6 @@ export default function ReturnsPage() {
         update: "http://localhost:8080/returns",
         delete: "http://localhost:8080/returns",
       },
-      returnTypes: {
-        label: "Return Types",
-        idField: "R_returnTypeDescription",
-        nameField: "returnTypeDescription",
-        isAutoInc: false,
-        api: {
-          fetch: "http://localhost:8080/returnTypes",
-          add: "http://localhost:8080/returns",
-          update: "http://localhost:8080/returns",
-          delete: "http://localhost:8080/returns",
-        },
-      },
     },
     suppliers: {
       label: "Supplier",
@@ -84,9 +73,6 @@ export default function ReturnsPage() {
       isAutoInc: false,
       api: {
         fetch: "http://localhost:8080/suppliers",
-        add: "http://localhost:8080/suppliers",
-        update: "http://localhost:8080/suppliers",
-        delete: "http://localhost:8080/suppliers",
       },
     },
     brands: {
@@ -95,9 +81,6 @@ export default function ReturnsPage() {
       isAutoInc: false,
       api: {
         fetch: "http://localhost:8080/brands",
-        add: "http://localhost:8080/brands",
-        update: "http://localhost:8080/brands",
-        delete: "http://localhost:8080/brands",
       },
     },
     product: {
@@ -106,9 +89,6 @@ export default function ReturnsPage() {
       isAutoInc: false,
       api: {
         fetch: "http://localhost:8080/products",
-        add: "http://localhost:8080/products",
-        update: "http://localhost:8080/products",
-        delete: "http://localhost:8080/products",
       },
     },
     deliveries: {
@@ -117,29 +97,17 @@ export default function ReturnsPage() {
       isAutoInc: false,
       api: {
         fetch: "http://localhost:8080/deliveries",
-        add: "http://localhost:8080/deliveries",
-        update: "http://localhost:8080/deliveries",
-        delete: "http://localhost:8080/deliveries",
       },
     },
-    category: {
-      label: "Category",
-      idField: "CategoryID",
-      nameField: "CategoryName",
-      isAutoInc: false,
-      api: {
-        fetch: "http://localhost:8080/categories",
-      },
-  },
-}
+  };
 
-  // State variables
+  // State
   const [searchTerm, setSearchTerm] = useState("");
   const [customerReturns, setCustomerReturns] = useState([]);
   const [supplierReturns, setSupplierReturns] = useState([]);
   const [activeTab, setActiveTab] = useState("customer");
 
-  // Form state variables for Customer Returns
+  // Customer Return Form
   const [productName, setProductName] = useState("");
   const [selectedSupplier, setSelectedSupplier] = useState("");
   const [selectedBrand, setSelectedBrand] = useState("");
@@ -147,10 +115,8 @@ export default function ReturnsPage() {
   const [returnType, setReturnType] = useState("");
   const [selectedPrice, setSelectedPrice] = useState("");
   const [selectedDiscount, setSelectedDiscount] = useState("");
-  const total = parseFloat(selectedPrice || 0) * (1 - parseFloat(selectedDiscount || 0) / 100);
-  
 
-  // Form state variables for Supplier Returns
+  // Supplier Return Form
   const [deliveryNumber, setDeliveryNumber] = useState("");
   const [supplierName, setSupplierName] = useState("");
   const [productItem, setProductItem] = useState("");
@@ -158,150 +124,135 @@ export default function ReturnsPage() {
   const [quantity, setQuantity] = useState("");
   const [amount, setAmount] = useState("");
 
-  // Dropdown state variables
+  // Dropdown Options
   const [suppliers, setSuppliers] = useState([]);
   const [brands, setBrands] = useState([]);
   const [products, setProducts] = useState([]);
   const [deliveryNumbers, setDeliveryNumbers] = useState([]);
-  const [returnTypes, setReturnTypes] = useState([]);
 
-
-  // Fetch data from the API
+  // Fetch Data on Load
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch returns data
-        const customerResponse = await axios.get(config.returns.api.fetch);
-        console.log("Customer Returns:", customerResponse.data); // Log the response
-        setCustomerReturns(customerResponse.data);
-  
-        const supplierResponse = await axios.get(config.returns.api.fetch);
-        console.log("Supplier Returns:", supplierResponse.data); // Log the response
-        setSupplierReturns(supplierResponse.data);
-  
-        // Fetch suppliers data
-        const suppliersResponse = await axios.get(config.suppliers.api.fetch);
-        console.log("Suppliers:", suppliersResponse.data); // Log the response
-        setSuppliers(suppliersResponse.data);
-  
-        // Fetch brands data
-        const brandsResponse = await axios.get(config.brands.api.fetch);
-        console.log("Brands:", brandsResponse.data); // Log the response
-        setBrands(brandsResponse.data);
-  
-        // Fetch products data
-        const productsResponse = await axios.get(config.product.api.fetch);
-        console.log("Products:", productsResponse.data); // Log the response
-        setProducts(productsResponse.data);
+        // Fetch filtered returns
+        const customerRes = await axios.get(`${config.returns.api.fetch}?source=customer`);
+        setCustomerReturns(customerRes.data);
 
-      // Fetch deliveries
-      const deliveriesResponse = await axios.get(config.deliveries.api.fetch);
-      console.log("Deliveries:", deliveriesResponse.data); // Log the response
+        const supplierRes = await axios.get(`${config.returns.api.fetch}?source=supplier`);
+        setSupplierReturns(supplierRes.data);
 
-      const mappedDeliveries = deliveriesResponse.data.map((delivery) => {
-        const supplier = suppliersResponse.data.find(
-          (supplier) => supplier.S_supplierID === delivery.S_supplierID
-        );
-        return {
-          ...delivery,
-          supplierName: supplier ? supplier.SupplierName : "Unknown Supplier",
-          D_deliveryNumber: delivery.D_deliveryNumber,
-        };
-      });
-      setDeliveryNumbers(mappedDeliveries);      
-      } catch (error) {
-        console.error("Error fetching data:", error);
+        // Fetch dropdown options
+        const suppliersRes = await axios.get(config.suppliers.api.fetch);
+        setSuppliers(suppliersRes.data);
+
+        const brandsRes = await axios.get(config.brands.api.fetch);
+        setBrands(brandsRes.data);
+
+        const productsRes = await axios.get(config.product.api.fetch);
+        setProducts(productsRes.data);
+
+        const deliveriesRes = await axios.get(config.deliveries.api.fetch);
+        setDeliveryNumbers(deliveriesRes.data);
+      } catch (err) {
+        console.error("Error fetching data:", err);
       }
     };
     fetchData();
   }, []);
 
-  // Handle adding a customer return
+  // Handle Add Customer Return
   const handleAddCustomerReturn = async () => {
-    if (!productName || !selectedSupplier || !selectedBrand || !selectedQuantity || !returnType || selectedDiscount === "" ||
-      selectedPrice === "") {
+    if (
+      !productName ||
+      !selectedSupplier ||
+      !selectedBrand ||
+      !selectedQuantity ||
+      !returnType ||
+      selectedDiscount === "" ||
+      selectedPrice === ""
+    ) {
       alert("Please fill in all fields.");
       return;
     }
+  
     const newReturn = {
       P_productCode: productName,
-      R_returnQuantity: selectedQuantity,
-      R_returnTypeID: returnType,
-      R_discountAmount: selectedDiscount,
+      returnTypeDescription: "Customer Return", // <-- Add this
+      R_reasonOfReturn: returnType,
       R_dateOfReturn: format(new Date(), "yyyy-MM-dd HH:mm:ss"),
+      R_returnQuantity: selectedQuantity,
+      R_discountAmount: selectedDiscount,
+      D_deliveryNumber: "1", // dummy value
+      S_supplierID: selectedSupplier,
     };
+  
     try {
       await axios.post(config.returns.api.add, newReturn);
       alert("Customer return added successfully!");
       resetCustomerForm();
     } catch (error) {
       console.error("Error adding customer return:", error);
-      alert("Failed to add customer return. Please check your connection or backend.");
+      alert("Failed to add customer return.");
     }
   };
 
-  // Reset form fields for customer returns
   const resetCustomerForm = () => {
     setProductName("");
     setSelectedSupplier("");
     setSelectedBrand("");
     setSelectedQuantity("");
     setReturnType("");
-    setSelectedDiscount("");
     setSelectedPrice("");
+    setSelectedDiscount("");
   };
 
-  // Handle adding a supplier return
+  // Handle Add Supplier Return
   const handleAddSupplierReturn = async () => {
-    if (!deliveryNumber || !supplierName || !productItem || !brand || !quantity || !total || !amount) {
+    if (!deliveryNumber || !supplierName || !productItem || !brand || !quantity || !amount) {
       alert("Please fill in all fields.");
       return;
     }
+  
     const newReturn = {
-      dateAdded: format(new Date(), "yyyy-MM-dd HH:mm:ss"),
-      deliveryNumber,
-      supplier: supplierName,
-      product: productItem,
-      brand,
-      quantity,
-      total,
-      amount,
+      P_productCode: productItem,
+      returnTypeDescription: "Supplier Return", // <-- Add this
+      R_reasonOfReturn: "Supplier Defect",
+      R_dateOfReturn: format(new Date(), "yyyy-MM-dd HH:mm:ss"),
+      R_returnQuantity: quantity,
+      R_discountAmount: 0, // default
+      D_deliveryNumber: deliveryNumber,
+      S_supplierID: supplierName,
     };
+  
     try {
       await axios.post(config.returns.api.add, newReturn);
       alert("Supplier return added successfully!");
       resetSupplierForm();
     } catch (error) {
       console.error("Error adding supplier return:", error);
-      alert("Failed to add supplier return. Please check your connection or backend.");
+      alert("Failed to add supplier return.");
     }
   };
 
-  // Reset form fields for supplier returns
   const resetSupplierForm = () => {
     setDeliveryNumber("");
     setSupplierName("");
     setProductItem("");
     setBrand("");
     setQuantity("");
-    setTotal("");
     setAmount("");
   };
-
-  // Handle deleting a transaction
+  // Handle Delete
   const handleDelete = (id, password, type) => {
     if (password !== "admin123") {
       alert("Incorrect password.");
       return;
     }
+  
     if (type === "customer") {
-      setCustomerReturns((prevReturns) =>
-        prevReturns.filter((item) => item.T_transactionID !== id)
-      );
+      setCustomerReturns((prev) => prev.filter((item) => item.R_returnID !== id));
     } else {
-      setSupplierReturns((prevReturns) =>
-        prevReturns.filter((item) => item.D_deliveryNumber !== id)
-      );
+      setSupplierReturns((prev) => prev.filter((item) => item.R_returnID !== id));
     }
   };
 
@@ -309,12 +260,13 @@ export default function ReturnsPage() {
     <SidebarProvider>
       <div className="flex h-screen w-screen">
         <AppSidebar />
-        <div className="flex-1 p-4 flex flex-col overflow-hidden">
-          <div className="z-10 sticky top-0 mb-4 bg-white p-4 rounded-lg">
+        <div className="flex-1 p-4 flex flex-col w-full">
+          <div className="flex items-center justify-between mb-4 bg-white p-2 rounded-lg">
             <h1 className="text-lg text-gray-600 font-medium">Processing of Returns</h1>
           </div>
-          <Tabs defaultValue="customer" className="w-full z-10 sticky top-14" onValueChange={setActiveTab}>
-            <TabsList className="w-full flex justify-start bg-white rounded-md shadow-md px-6 py-6 space-x-4">
+
+          <Tabs defaultValue="customer" onValueChange={setActiveTab}>
+            <TabsList className="w-full flex justify-start bg-white shadow-md rounded-md px-6 py-6 mb-4">
               <TabsTrigger value="customer" className="data-[state=active]:text-indigo-600 hover:text-black">
                 RETURN FROM CUSTOMER
               </TabsTrigger>
@@ -322,22 +274,20 @@ export default function ReturnsPage() {
                 RETURN TO SUPPLIER
               </TabsTrigger>
             </TabsList>
-          </Tabs> 
-            {/* Customer Returns Tab Content */}
-          <div className ="flex-1 overflow-y-auto p-4 space-y-4">
-            <Tabs defaultValue="customer" onValueChange={setActiveTab}>
-            <TabsContent value="customer" className="mt-0">
+
+            {/* Customer Returns Tab */}
+            <TabsContent value="customer">
               <div className="flex flex-col lg:flex-row gap-4 items-stretch">
                 {/* Left side - Product items table */}
                 <Card className="w-full lg:w-2/3 flex flex-col">
                   <CardContent className="p-4 flex flex-col justify-between flex-grow">
-                    <div className="flex flex-col overflow-auto max-h-[60vh] w-full">
+                    <div className="overflow-x-auto max-h-[60vh] flex-grow">
                       <Table>
-                        <TableHeader className="sticky top-0 z-10 bg-white">
+                        <TableHeader className="sticky top-0 bg-white z-10">
                           <TableRow>
                             <TableHead className="text-center">Date</TableHead>
                             <TableHead className="text-center">Return ID</TableHead>
-                            <TableHead className="text-center">Product </TableHead>
+                            <TableHead className="text-center">Product</TableHead>
                             <TableHead className="text-center">Quantity</TableHead>
                             <TableHead className="text-center">Total</TableHead>
                             <TableHead className="text-center">Return Type</TableHead>
@@ -350,9 +300,11 @@ export default function ReturnsPage() {
                               <TableRow key={item.R_returnID}>
                                 <TableCell className="text-center">{new Date(item.R_dateOfReturn).toLocaleDateString()}</TableCell>
                                 <TableCell className="text-center">{item.R_returnID}</TableCell>
-                                <TableCell className="text-center">{products.find(product => product.P_productCode === item.P_productCode)?.P_productName || "Unknown Product" }</TableCell>
+                                <TableCell className="text-center">
+                                  {products.find(p => p.P_productCode === item.P_productCode)?.P_productName || "Unknown"}
+                                </TableCell>
                                 <TableCell className="text-center">{item.R_returnQuantity}</TableCell>
-                                <TableCell className="text-center">{item.R_returnType}</TableCell>
+                                <TableCell className="text-center">{item.totalPrice}</TableCell>
                                 <TableCell className="text-center">{item.R_reasonOfReturn}</TableCell>
                                 <TableCell className="flex space-x-2">
                                   <Dialog>
@@ -361,44 +313,42 @@ export default function ReturnsPage() {
                                         <Ellipsis size={16} />
                                       </Button>
                                     </DialogTrigger>
-                                    <DialogContent className="w-[90vw] sm:w-[600px] md:w-[750px] lg:w-[900px] xl:w-[1100px] max-w-[95vw] p-4 sm:p-6 overflow-y-auto max-h-[90vh]">
+                                    <DialogContent className="max-w-3xl p-7 text-gray-700">
                                       <DialogHeader>
-                                        <DialogTitle className="text-xl text-gray-600 font-medium pb-0">Return Details</DialogTitle>
+                                        <DialogTitle>Return Details</DialogTitle>
                                         <DialogClose />
                                       </DialogHeader>
-                                      <div className="py-4">
-                                        <Table>
-                                          <TableHeader>
-                                            <TableRow>
-                                              <TableHead className="text-center">Date</TableHead>
-                                              <TableHead className="text-center">Product Code</TableHead>
-                                              <TableHead className="text-center">Supplier</TableHead>
-                                              <TableHead className="text-center">Brand</TableHead>
-                                              <TableHead className="text-center">Category</TableHead>
-                                              <TableHead className="text-center">Product</TableHead>
-                                              <TableHead className="text-center">Quantity</TableHead>
-                                              <TableHead className="text-center">Discount</TableHead>
-                                              <TableHead className="text-center">Total</TableHead>
-                                            </TableRow>
-                                          </TableHeader>
-                                          <TableBody>
-                                            <TableRow>
-                                              <TableCell className="text-center">{item.R_dateOfReturn}</TableCell>
-                                              <TableCell className="text-center">{item.P_productCode}</TableCell>
-                                              <TableCell className="text-center">{item.S_supplierID}</TableCell>
-                                              <TableCell className="text-center">{item.B_brandName}</TableCell>
-                                              <TableCell className="text-center">{item.C_category}</TableCell>
-                                              <TableCell className="text-center">{products.find(product => product.P_productCode === item.P_productCode)?.P_productName || "Unknown Product" }</TableCell>
-                                              <TableCell className="text-center">{item.R_returnQuantity}</TableCell>
-                                              <TableCell className="text-center">{item.R_discountAmount}</TableCell>
-                                              <TableCell className="text-center">{item.totalPrice}</TableCell>
-                                            </TableRow>
-                                          </TableBody>
-                                        </Table>
-                                      </div>
+                                      <Table>
+                                        <TableHeader>
+                                          <TableRow>
+                                            <TableHead>Date</TableHead>
+                                            <TableHead>Product Code</TableHead>
+                                            <TableHead>Supplier</TableHead>
+                                            <TableHead>Brand</TableHead>
+                                            <TableHead>Category</TableHead>
+                                            <TableHead>Product</TableHead>
+                                            <TableHead>Quantity</TableHead>
+                                            <TableHead>Discount</TableHead>
+                                            <TableHead>Total</TableHead>
+                                          </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                          <TableRow>
+                                            <TableCell>{item.R_dateOfReturn}</TableCell>
+                                            <TableCell>{item.P_productCode}</TableCell>
+                                            <TableCell>{item.S_supplierID}</TableCell>
+                                            <TableCell>{item.B_brandName}</TableCell>
+                                            <TableCell>{item.C_category}</TableCell>
+                                            <TableCell>{item.P_productName}</TableCell>
+                                            <TableCell>{item.R_returnQuantity}</TableCell>
+                                            <TableCell>{item.R_discountAmount}</TableCell>
+                                            <TableCell>{item.totalPrice}</TableCell>
+                                          </TableRow>
+                                        </TableBody>
+                                      </Table>
                                     </DialogContent>
                                   </Dialog>
-                                  {/* For delete transactions */}
+
                                   <Dialog>
                                     <DialogTrigger asChild>
                                       <Button variant="ghost" size="sm" className="text-gray-500 hover:text-red-600">
@@ -409,22 +359,22 @@ export default function ReturnsPage() {
                                       <DialogHeader>
                                         <DialogTitle>
                                           <span className="text-lg text-red-900">Delete Transaction</span>{" "}
-                                          <span className="text-lg text-gray-400 font-normal italic">{item.transactionID}</span>
+                                          <span className="text-lg text-gray-400 italic">{item.R_returnID}</span>
                                         </DialogTitle>
                                         <DialogClose />
                                       </DialogHeader>
-                                      <p className='text-sm text-gray-800 mt-2 pl-4'>
-                                        Deleting this transaction will reflect on Void Transactions. Enter the admin password to delete this transaction.
+                                      <p className="mt-2 pl-4 text-sm text-gray-800">
+                                        Deleting this transaction will reflect on Void Transactions.
+                                        Enter the admin password to delete this transaction.
                                       </p>
                                       <div className="flex items-center gap-4 mt-4 pl-10">
                                         <div className="flex-1">
-                                          <label htmlFor={`password-${item.transactionID}`} className="text-base font-medium text-gray-700 block mb-2">
+                                          <Label htmlFor={`password-${item.R_returnID}`} className="block mb-2 text-base font-medium text-gray-700">
                                             Admin Password
-                                          </label>
+                                          </Label>
                                           <Input
+                                            id={`password-${item.R_returnID}`}
                                             type="password"
-                                            id={`password-${item.transactionID}`}
-                                            required
                                             placeholder="Enter valid password"
                                             className="w-full"
                                           />
@@ -433,8 +383,9 @@ export default function ReturnsPage() {
                                           className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
                                           onClick={() =>
                                             handleDelete(
-                                              item.transactionID,
-                                              document.getElementById(`password-${item.transactionID}`).value
+                                              item.R_returnID,
+                                              document.getElementById(`password-${item.R_returnID}`).value,
+                                              "customer"
                                             )
                                           }
                                         >
@@ -448,8 +399,8 @@ export default function ReturnsPage() {
                             ))
                           ) : (
                             <TableRow>
-                              <TableCell colSpan={8} className="text-center py-10 text-gray-500">
-                                No return records found
+                              <TableCell colSpan={7} className="text-center py-10 text-gray-500">
+                                No customer returns found
                               </TableCell>
                             </TableRow>
                           )}
@@ -458,7 +409,8 @@ export default function ReturnsPage() {
                     </div>
                   </CardContent>
                 </Card>
-                {/* Right side - Add product form */}
+
+                {/* Right side - Add form */}
                 <Card className="w-full lg:w-1/3 flex flex-col justify-between text-gray-700">
                   <CardHeader className="pb-0">
                     <CardTitle className="text-center text-xl">Add Customer Product Return</CardTitle>
@@ -467,37 +419,52 @@ export default function ReturnsPage() {
                     <div className="space-y-3">
                       <div>
                         <Label htmlFor="productName">Product Name</Label>
-                        <Select onValueChange={(value) => setProductName(value)}>
-                          <SelectTrigger id="productName" className="mt-1">
-                            <SelectValue placeholder="Select product" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {products.map((product) => (
-                              <SelectItem key={product.P_productID} value={product.P_productName}>
-                                {product.P_productName}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <Select onValueChange={(selectedName) => {
+                      const product = products.find(p => p.P_productName === selectedName);
+                      if (product) {
+                        setProductName(product.P_productCode); // Save the CODE
+                      }
+                    }}>
+                      <SelectTrigger id="productName">
+                        <SelectValue placeholder="Select product" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {products.map((product) => (
+                          <SelectItem key={product.P_productID} value={product.P_productName}>
+                            {product.P_productName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                       </div>
                       <div>
-                        <Label htmlFor="supplier">Supplier</Label>
-                        <Select onValueChange={(value) => setSelectedSupplier(value)}>
-                          <SelectTrigger id="supplier" className="mt-1">
-                            <SelectValue placeholder="Select supplier" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {suppliers.map((supplier) => (
-                              <SelectItem key={supplier.S_supplierID} value={supplier.S_supplierName}>
-                                {supplier.S_supplierName}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                      <Label htmlFor="supplier">Supplier</Label>
+<Select onValueChange={(selectedName) => {
+  const selected = suppliers.find(s => s.S_supplierName === selectedName);
+  if (selected) {
+    setSelectedSupplier(selected.S_supplierID); // Save the ID, not the name
+  } else {
+    setSelectedSupplier(""); // Fallback
+  }
+}}>
+  <SelectTrigger id="supplier" className="mt-1">
+    <SelectValue placeholder="Select supplier" />
+  </SelectTrigger>
+  <SelectContent>
+    {suppliers.map((supplier) => (
+      <SelectItem 
+        key={supplier.S_supplierID} 
+        value={supplier.S_supplierName}  // Display name in dropdown
+      >
+        {supplier.S_supplierName}
+      </SelectItem>
+    ))}
+  </SelectContent>
+</Select>
                       </div>
                       <div>
                         <Label htmlFor="brand">Brand</Label>
-                        <Select onValueChange={(value) => setBrand(value)}>
+                        <Select onValueChange={(value) => setSelectedBrand(value)}>
                           <SelectTrigger id="brand" className="mt-1">
                             <SelectValue placeholder="Select brand" />
                           </SelectTrigger>
@@ -533,7 +500,7 @@ export default function ReturnsPage() {
                         />
                       </div>
                       <div>
-                        <Label>Discount</Label>
+                        <Label htmlFor="discount">Discount (%)</Label>
                         <Input
                           id="discount"
                           type="text"
@@ -544,9 +511,9 @@ export default function ReturnsPage() {
                         />
                       </div>
                       <div>
-                        <Label>Price/Amount</Label>
+                        <Label htmlFor="price">Price/Amount</Label>
                         <Input
-                          id="amount"
+                          id="price"
                           type="text"
                           placeholder="Enter amount"
                           value={selectedPrice}
@@ -564,23 +531,24 @@ export default function ReturnsPage() {
                 </Card>
               </div>
             </TabsContent>
-            {/* Supplier Returns Tab Content */}
-            <TabsContent value="supplier" className="mt-0">
+
+            {/* Supplier Returns Tab */}
+            <TabsContent value="supplier">
               <div className="flex flex-col lg:flex-row gap-4 items-stretch">
                 {/* Left side - Product items table */}
                 <Card className="w-full lg:w-2/3 flex flex-col">
                   <CardContent className="p-4 flex flex-col justify-between flex-grow">
-                    <div className="flex flex-col overflow-auto max-h-[60vh] w-full">
+                    <div className="overflow-x-auto max-h-[60vh] flex-grow">
                       <Table>
-                        <TableHeader className="sticky top-0 z-10 bg-white">
+                        <TableHeader>
                           <TableRow>
-                            <TableHead className="text-center w-24">Date</TableHead>
-                            <TableHead className="text-center w-32">Product Code</TableHead>
-                            <TableHead className="text-center w-32">Supplier</TableHead>
-                            <TableHead className="text-center w-40">Product</TableHead>
-                            <TableHead className="text-center w-20">Quantity</TableHead>
-                            <TableHead className="text-center w-24">Total</TableHead>
-                            <TableHead className="text-center w-[50px]">Actions</TableHead>
+                            <TableHead className="text-center">Date</TableHead>
+                            <TableHead className="text-center">Product Code</TableHead>
+                            <TableHead className="text-center">Supplier</TableHead>
+                            <TableHead className="text-center">Product</TableHead>
+                            <TableHead className="text-center">Quantity</TableHead>
+                            <TableHead className="text-center">Total</TableHead>
+                            <TableHead className="text-center">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -590,11 +558,12 @@ export default function ReturnsPage() {
                                 <TableCell className="text-center">{new Date(item.R_dateOfReturn).toLocaleDateString()}</TableCell>
                                 <TableCell className="text-center">{item.P_productCode}</TableCell>
                                 <TableCell className="text-center">{item.S_supplierID}</TableCell>
-                                <TableCell className="text-center">{products.find(product => product.P_productCode === item.P_productCode)?.P_productName || "Unknown Product" }</TableCell>
+                                <TableCell className="text-center">
+                                  {products.find(p => p.P_productCode === item.P_productCode)?.P_productName || "Unknown"}
+                                </TableCell>
                                 <TableCell className="text-center">{item.R_returnQuantity}</TableCell>
                                 <TableCell className="text-center">{item.total}</TableCell>
-                                <TableCell className="text-center w-[50px]">
-                                  {/* Delete Dialog */}
+                                <TableCell className="text-center">
                                   <Dialog>
                                     <DialogTrigger asChild>
                                       <Button variant="ghost" size="sm" className="text-gray-500 hover:text-red-600">
@@ -610,7 +579,8 @@ export default function ReturnsPage() {
                                         <DialogClose />
                                       </DialogHeader>
                                       <p className="text-sm text-gray-800 mt-2 pl-4">
-                                        Deleting this transaction will reflect on Void Transactions. Enter the admin password to delete this transaction.
+                                        Deleting this transaction will reflect on Void Transactions.
+                                        Enter the admin password to delete this transaction.
                                       </p>
                                       <div className="flex items-center gap-4 mt-4 pl-10">
                                         <div className="flex-1">
@@ -618,8 +588,8 @@ export default function ReturnsPage() {
                                             Admin Password
                                           </Label>
                                           <Input
-                                            type="password"
                                             id={`password-${item.D_deliveryNumber}`}
+                                            type="password"
                                             required
                                             placeholder="Enter valid password"
                                             className="w-full"
@@ -629,8 +599,8 @@ export default function ReturnsPage() {
                                           className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
                                           onClick={() =>
                                             handleDelete(
-                                              item.D_deliveryNumber,
-                                              document.getElementById(`password-${item.D_deliveryNumber}`).value,
+                                              item.R_returnID,
+                                              document.getElementById(`password-${item.R_returnID}`).value,
                                               "supplier"
                                             )
                                           }
@@ -645,8 +615,8 @@ export default function ReturnsPage() {
                             ))
                           ) : (
                             <TableRow>
-                              <TableCell colSpan={8} className="text-center py-10 text-gray-500">
-                                No supplier return records found
+                              <TableCell colSpan={7} className="text-center py-10 text-gray-500">
+                                No supplier returns found
                               </TableCell>
                             </TableRow>
                           )}
@@ -655,75 +625,83 @@ export default function ReturnsPage() {
                     </div>
                   </CardContent>
                 </Card>
-                {/* Right side - Add product form */}
+
+                {/* Right side - Add form */}
                 <Card className="w-full lg:w-1/3 flex flex-col justify-between text-gray-700">
                   <CardHeader className="pb-0">
                     <CardTitle className="text-center text-xl">Add Product Return to Supplier</CardTitle>
                   </CardHeader>
                   <CardContent className="p-4 flex flex-col flex-1 justify-between">
                     <div className="space-y-3">
-                    <div>
-                        <Label>Delivery Number</Label>
-                        <Select
-                          onValueChange={(value) => {
-                            const selectedDelivery = deliveryNumber.find(
-                              (delivery) => delivery.D_deliveryNumber === value
-                            );
-                            if (selectedDelivery) {
-                              setDeliveryNumber(selectedDelivery.D_deliveryNumber);
-                              setSupplierName(selectedDelivery.supplierName); // this still auto-fills the supplier input
-                            }
-                          }}
-                        >
+                      <div>
+                        <Label htmlFor="deliveryNumber">Delivery Number</Label>
+                        <Select onValueChange={(value) => {
+                          const selected = deliveryNumbers.find(d => d.D_deliveryNumber === value);
+                          if (selected) {
+                            setDeliveryNumber(selected.D_deliveryNumber);
+                            setSupplierName(selected.supplierName); // auto-fill supplier
+                          }
+                        }}>
                           <SelectTrigger id="deliveryNumber" className="mt-1">
                             <SelectValue placeholder="Select delivery number" />
                           </SelectTrigger>
                           <SelectContent>
-                            {deliveryNumbers.map((delivery) => (
-                              <SelectItem
-                                key={delivery.D_deliveryNumber}
-                                value={delivery.D_deliveryNumber}
-                              >
-                                {delivery.D_deliveryNumber}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div>
-                        <Label>Supplier</Label>
-                        <Select onValueChange={(value) => setSelectedSupplier(value)}>
-                          <SelectTrigger id="supplier" className="mt-1">
-                            <SelectValue placeholder="Select supplier" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {suppliers.map((supplier) => (
-                              <SelectItem key={supplier.S_supplierID} value={supplier.S_supplierName}>
-                                {supplier.S_supplierName}
+                            {deliveryNumbers.map((d) => (
+                              <SelectItem key={d.D_deliveryNumber} value={d.D_deliveryNumber}>
+                                {d.D_deliveryNumber}
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       </div>
                       <div>
-                        <Label htmlFor="productItem">Product</Label>
-                        <Select onValueChange={(value) => setProductItem(value)}>
-                          <SelectTrigger id="productItem" className="mt-1">
-                            <SelectValue placeholder="Select product" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {products.map((product) => (
-                              <SelectItem key={product.P_productID} value={product.P_productName}>
-                                {product.P_productName}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <Label htmlFor="supplier">Supplier</Label>
+<Select onValueChange={(selectedName) => {
+  const selected = suppliers.find(s => s.S_supplierName === selectedName);
+  if (selected) {
+    setSelectedSupplier(selected.S_supplierID); // Save the ID, not the name
+  } else {
+    setSelectedSupplier(""); // Fallback
+  }
+}}>
+  <SelectTrigger id="supplier" className="mt-1">
+    <SelectValue placeholder="Select supplier" />
+  </SelectTrigger>
+  <SelectContent>
+    {suppliers.map((supplier) => (
+      <SelectItem 
+        key={supplier.S_supplierID} 
+        value={supplier.S_supplierName}  // Display name in dropdown
+      >
+        {supplier.S_supplierName}
+      </SelectItem>
+    ))}
+  </SelectContent>
+</Select>
                       </div>
                       <div>
-                        <Label htmlFor="brand">Brand</Label>
-                        <Select onValueChange={(value) => setBrand(value)}>
+                      <Label htmlFor="productName">Product Name</Label>
+                        <Select onValueChange={(selectedName) => {
+                      const product = products.find(p => p.P_productName === selectedName);
+                      if (product) {
+                        setProductName(product.P_productCode); // Save the CODE
+                      }
+                    }}>
+                      <SelectTrigger id="productName">
+                        <SelectValue placeholder="Select product" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {products.map((product) => (
+                          <SelectItem key={product.P_productID} value={product.P_productName}>
+                            {product.P_productName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                      </div>
+                      <div>
+                      <Label htmlFor="brand">Brand</Label>
+                        <Select onValueChange={(value) => setSelectedBrand(value)}>
                           <SelectTrigger id="brand" className="mt-1">
                             <SelectValue placeholder="Select brand" />
                           </SelectTrigger>
@@ -748,18 +726,18 @@ export default function ReturnsPage() {
                         />
                       </div>
                       <div>
-                        <Label>Total</Label>
+                        <Label htmlFor="total">Total</Label>
                         <Input
                           id="total"
                           type="text"
                           placeholder="Enter total"
-                          value={total}
-                          onChange={(e) => setTotal(e.target.value)}
+                          value={amount}
+                          onChange={(e) => setAmount(e.target.value)}
                           className="mt-1"
                         />
                       </div>
                       <div>
-                        <Label>Price/Amount</Label>
+                        <Label htmlFor="amount">Price/Amount</Label>
                         <Input
                           id="amount"
                           type="text"
@@ -780,7 +758,6 @@ export default function ReturnsPage() {
               </div>
             </TabsContent>
           </Tabs>
-          </div>
         </div>
       </div>
     </SidebarProvider>

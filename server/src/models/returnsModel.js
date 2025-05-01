@@ -1,6 +1,6 @@
 const db = require('../../db');
 
-// Get all Returns
+// Get all Returns (basic)
 const getAllReturns = (callback) => {
   const query = `
     SELECT 
@@ -16,6 +16,17 @@ const getAllReturns = (callback) => {
     FROM Returns;
   `;
 
+  db.query(query, (err, results) => {
+    if (err) {
+      callback(err, null);
+    } else {
+      callback(null, results);
+    }
+  });
+};
+
+// NEW FUNCTION — Allows custom WHERE clause for filtering
+const getAllReturnsCustomQuery = (query, callback) => {
   db.query(query, (err, results) => {
     if (err) {
       callback(err, null);
@@ -45,6 +56,7 @@ const addReturn = (returnData, callback) => {
     )
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `;
+
   db.query(
     insertReturnQuery,
     [
@@ -121,8 +133,10 @@ const deleteReturn = (returnID, callback) => {
   });
 };
 
+// Export all model functions
 module.exports = {
   getAllReturns,
+  getAllReturnsCustomQuery,
   addReturn,
   updateReturn,
   deleteReturn,

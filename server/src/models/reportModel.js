@@ -1,4 +1,5 @@
-const db = require("../config/db"); // adjust according to your DB setup
+// reportModel.js
+const db = require("../config/db"); // Adjust according to your DB setup
 
 exports.fetchReports = async ({ search = "", from, to }) => {
   let sql = `
@@ -40,10 +41,42 @@ exports.fetchReports = async ({ search = "", from, to }) => {
 
   sql += ` ORDER BY T.T_transactionDate DESC`;
 
-  const [rows] = await db.query(sql, params);
-  return rows;
+  try {
+    const [rows] = await db.query(sql, params);
+    return rows;
+  } catch (error) {
+    console.error("Error fetching reports:", error);
+    throw new Error("Failed to fetch reports");
+  }
 };
 
-exports.deleteTransaction = async (transactionID) => {
-  await db.query("DELETE FROM Transactions WHERE T_transactionID = ?", [transactionID]);
+exports.deleteTransaction = async (transactionID, adminPassword) => {
+  // You can add password validation here if needed
+  try {
+    const result = await db.query(
+      "DELETE FROM Transactions WHERE T_transactionID = ?",
+      [transactionID]
+    );
+    return result.affectedRows > 0;
+  } catch (error) {
+    console.error("Error deleting transaction:", error);
+    throw new Error("Failed to delete transaction");
+  }
+};
+
+exports.deleteMultipleTransactions = async (transactionIDs, adminPassword) => {
+  if (!Array.isArray(transactionIDs) || transactionIDs.length === 0) {
+    throw new Error("No transaction IDs provided");
+  }
+
+  try {
+    const result = await db.query(
+      "DELETE FROM Transactions WHERE T_transactionID IN (?)",
+      [transactionIDs]
+    );
+    return result.affectedRows > 0;
+  } catch (error) {
+    console.error("Error deleting multiple transactions:", error);
+    throw new Error("Failed to delete multiple transactions");
+  }
 };

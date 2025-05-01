@@ -52,60 +52,6 @@ const transactions = [
   { dateAdded: "11/12/22", transactionID: "9098", productCode: "188098", receiptNum: "118098",  product: "Cymbal Straight Stand", price: "₱15,995", sales: "₱15,995", cogs: "₱14,995", net: "₱1,000" }, 
 ];
 
-const configMap = {
-    products: {
-      label: "Product",
-      idField: "P_productID",
-      nameField: "P_productCode",
-      isAutoInc: true,
-      api: {
-        fetch: "http://localhost:8080/products",
-        add: "http://localhost:8080/products",
-        update: "http://localhost:8080/products",
-        delete: "http://localhost:8080/products",
-      },
-    },
-
-    transactions: {
-      label: "Transaction",
-      idField: "T_transactionID",
-      nameField: "T_transactionID",
-      isAutoInc: true,
-      api: {
-        fetch: "http://localhost:8080/transactions",
-        add: "http://localhost:8080/transactions",
-        update: "http://localhost:8080/transactions",
-        delete: "http://localhost:8080/transactions",
-      },
-    },
-
-    orders: {
-      label: "Orders",
-      idField: "O_orderID",
-      nameField: "O_receiptNumber",
-      isAutoInc: true,
-      api: {
-        fetch: "http://localhost:8080/transactions",
-        add: "http://localhost:8080/transactions",
-        update: "http://localhost:8080/transactions",
-        delete: "http://localhost:8080/transactions",
-      },
-    },
-
-    reports: {
-      label: "Sales Report",
-      idField: "R_reportID",
-      nameField: "R_reporID",
-      isAutoInc: true,
-      api: {
-        fetch: "http://localhost:8080/reports",
-        add: "http://localhost:8080/reports",
-        update: "http://localhost:8080/reports",
-        delete: "http://localhost:8080/reports",
-      },
-    },
-  };
-
 export default function ReportsPage() {
   const totalSales = transactions.reduce((total, transaction) => {
     const amount = parseFloat(transaction.sales.replace("₱", "").replace(",", "")) || 0;
@@ -190,7 +136,7 @@ export default function ReportsPage() {
       selectedProducts.map((code) =>
         axios({
           method: 'delete',
-          url: `${configMap.products.api.delete}/${code}`,
+          url: `${config.product.api.delete}/${code}`,
           data: { adminPW: password /*adminPWInput */ }, 
           headers: {
             'Content-Type': 'application/json',

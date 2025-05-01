@@ -1,9 +1,31 @@
 const returnModel = require('../models/returnsModel');
 const { getOrCreateReturnTypeId } = require('./returnTypeController');
 
-// Route to fetch all returns
+// Fetch all returns with type filter (customer/supplier)
 const getAllReturns = (req, res) => {
-  returnModel.getAllReturns((err, results) => {
+  const typeFilter = req.query.type; // e.g., ?type=customer or ?type=supplier
+
+  let query = `
+    SELECT 
+      R_returnID,
+      P_productCode,
+      R_returnTypeID,
+      R_reasonOfReturn,
+      R_dateOfReturn,
+      R_returnQuantity,
+      R_discountAmount,
+      D_deliveryNumber,
+      S_supplierID
+    FROM Returns
+  `;
+
+  if (typeFilter === 'customer') {
+    query += " WHERE R_returnTypeID IN (SELECT RT_returnTypeID FROM ReturnTypes WHERE returnTypeDescription LIKE '%Customer%')";
+  } else if (typeFilter === 'supplier') {
+    query += " WHERE R_returnTypeID IN (SELECT RT_returnTypeID FROM ReturnTypes WHERE returnTypeDescription LIKE '%Supplier%')";
+  }
+
+  returnModel.getAllReturnsCustomQuery(query, (err, results) => {
     if (err) {
       console.error('Error fetching data from database:', err);
       res.status(500).json({ error: 'Error fetching data' });
@@ -13,7 +35,7 @@ const getAllReturns = (req, res) => {
   });
 };
 
-// Route to add a new return
+// Add new return
 const addReturn = (req, res) => {
   const {
     P_productCode,
@@ -31,14 +53,12 @@ const addReturn = (req, res) => {
     return res.status(400).json({ message: 'Missing required fields' });
   }
 
-  // Get or create return type ID
   getOrCreateReturnTypeId(returnTypeDescription, (err, RT_returnTypeID) => {
     if (err) {
       console.error('Error getting or creating return type:', err);
       return res.status(500).json({ message: 'Error processing return type' });
     }
 
-    // Now insert the return record
     const insertReturnQuery = `
       INSERT INTO Returns (
         P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn,
@@ -68,7 +88,7 @@ const addReturn = (req, res) => {
   });
 };
 
-// Route to update a return record
+// Update an existing return
 const updateReturn = (req, res) => {
   const returnID = req.params.id;
   const {
@@ -112,7 +132,7 @@ const updateReturn = (req, res) => {
   );
 };
 
-// Route to delete a return record
+// Delete a return
 const deleteReturn = (req, res) => {
   const returnID = req.params.id;
   const { adminPW } = req.body;
