@@ -318,15 +318,17 @@ export default function ConfigurationsPage() {
   return (
     <SidebarProvider>
       <div className="flex h-screen w-screen">
+        
         <AppSidebar />
-        <div className="flex-1 p-4 flex flex-col" onClick={handleCardClick}>
+        <div className="flex-1 p-4 flex flex-col overflow-hidden" onClick={handleCardClick}>
           <Toaster position="top-center" />
-          <h1 className="text-lg font-medium text-gray-600 mt-4 mb-6">
-            Configurations
-          </h1>
+            <div className="z-10 sticky top-0 mb-4 bg-white p-4 rounded-lg">
+              <h1 className="text-lg text-gray-600 font-medium">Configuration</h1>
+            </div>
 
-          <Tabs defaultValue={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="w-full flex justify-start bg-white shadow-md rounded-md px-6 py-6 mb-4">
+          <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+            <div className="w-full z-10 sticky">
+            <TabsList className="w-full flex justify-start bg-white rounded-md shadow-md px-6 py-6 space-x-4">
               {Object.entries(configMap).map(([key, cfg]) => (
                 <TabsTrigger
                   key={key}
@@ -337,7 +339,9 @@ export default function ConfigurationsPage() {
                 </TabsTrigger>
               ))}
             </TabsList>
+          </div>
 
+          <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-4">
             {Object.entries(configMap).map(([key, cfg]) => (
               <TabsContent key={key} value={key}>
                 <div className="flex flex-col lg:flex-row gap-6">
@@ -528,6 +532,7 @@ export default function ConfigurationsPage() {
                 </div>
               </TabsContent>
             ))}
+            </div>
           </Tabs>
         </div>
       </div>

@@ -235,13 +235,17 @@ const OrderDashboard = () => {
       <div className="flex w-full min-h-screen overflow-x-hidden">
         <AppSidebar />
 
-        <div className="flex flex-col flex-grow p-8">
-          <h1 className="text-2xl font-bold pt-2">Summary of Order/s</h1>
-          <div className="flex gap-6 mt-4 w-full">
+        <div className="flex flex-col flex-grow h-screen overflow-y-auto relative">
+          <div className="rounded-lg shadow-sm border-b sticky top-0 z-20 bg-white px-8 py-8">
+            <h1 className="text-3xl text-black font-bold">Summary of Order/s</h1>
+          </div>
+
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-4 w-full p-4">
             
             {/* Left Section */}
             {/* TABLE */}
-            <div className="flex-1 space-y-4">
+            <div className="lg:col-span-2 space-y-4 min-w-0">
               <div className="h-[50%] text-xl bg-white shadow-md p-4 rounded-xl">
               <DataTable 
                 columns={getColumns(handleDelete, handleEdit)} 
@@ -340,7 +344,7 @@ const OrderDashboard = () => {
             </div>
 
             {/* Right Section */}
-            <div className="w-1/4 space-y-4">
+            <div className="space-y-4 min-w-0">
             <div
               className="bg-white shadow-lg p-6 rounded-xl"
               onMouseLeave={() => {
@@ -390,7 +394,7 @@ const OrderDashboard = () => {
 
               <div>
                 <label className="block text-sm">Price</label>
-                  <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">₱</span>
+                  <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500"></span>
                   <input
                     type="text"
                     value={selectedProduct ? new Intl.NumberFormat("en-PH", { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(parseFloat(selectedProduct.price) || 0) : "0"}

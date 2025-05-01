@@ -265,8 +265,9 @@ export default function ReturnsPage() {
             <h1 className="text-lg text-gray-600 font-medium">Processing of Returns</h1>
           </div>
 
-          <Tabs defaultValue="customer" onValueChange={setActiveTab}>
-            <TabsList className="w-full flex justify-start bg-white shadow-md rounded-md px-6 py-6 mb-4">
+          <Tabs defaultValue="customer" onValueChange={setActiveTab}  className="flex-1 flex flex-col overflow-hidden">
+            <div className="w-full z-10 sticky">
+            <TabsList className="w-full flex justify-start bg-white rounded-md shadow-md px-6 py-6 space-x-4">
               <TabsTrigger value="customer" className="data-[state=active]:text-indigo-600 hover:text-black">
                 RETURN FROM CUSTOMER
               </TabsTrigger>
@@ -274,9 +275,11 @@ export default function ReturnsPage() {
                 RETURN TO SUPPLIER
               </TabsTrigger>
             </TabsList>
+            </div>
 
-            {/* Customer Returns Tab */}
-            <TabsContent value="customer">
+            {/* Customer Returns Tab Content */}
+          <div className ="flex-1 overflow-y-auto p-4 space-y-4">
+            <TabsContent value="customer" className="mt-0">
               <div className="flex flex-col lg:flex-row gap-4 items-stretch">
                 {/* Left side - Product items table */}
                 <Card className="w-full lg:w-2/3 flex flex-col">
@@ -757,9 +760,10 @@ export default function ReturnsPage() {
                 </Card>
               </div>
             </TabsContent>
+            </div>
           </Tabs>
+          </div>
         </div>
-      </div>
     </SidebarProvider>
   );
 }
