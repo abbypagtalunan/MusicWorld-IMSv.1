@@ -313,7 +313,9 @@ export default function ReturnsPage() {
           <div className="z-10 sticky top-0 mb-4 bg-white p-4 rounded-lg">
             <h1 className="text-lg text-gray-600 font-medium">Processing of Returns</h1>
           </div>
-          <Tabs defaultValue="customer" className="w-full z-10 sticky top-14" onValueChange={setActiveTab}>
+
+          <Tabs defaultValue="customer" onValueChange={setActiveTab}  className="flex-1 flex flex-col overflow-hidden">
+            <div className="w-full z-10 sticky">
             <TabsList className="w-full flex justify-start bg-white rounded-md shadow-md px-6 py-6 space-x-4">
               <TabsTrigger value="customer" className="data-[state=active]:text-indigo-600 hover:text-black">
                 RETURN FROM CUSTOMER
@@ -322,10 +324,10 @@ export default function ReturnsPage() {
                 RETURN TO SUPPLIER
               </TabsTrigger>
             </TabsList>
-          </Tabs> 
+            </div>
+
             {/* Customer Returns Tab Content */}
           <div className ="flex-1 overflow-y-auto p-4 space-y-4">
-            <Tabs defaultValue="customer" onValueChange={setActiveTab}>
             <TabsContent value="customer" className="mt-0">
               <div className="flex flex-col lg:flex-row gap-4 items-stretch">
                 {/* Left side - Product items table */}
@@ -779,10 +781,10 @@ export default function ReturnsPage() {
                 </Card>
               </div>
             </TabsContent>
+            </div>
           </Tabs>
           </div>
         </div>
-      </div>
     </SidebarProvider>
   );
 }
