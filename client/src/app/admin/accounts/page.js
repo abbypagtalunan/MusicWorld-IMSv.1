@@ -110,20 +110,22 @@ return (
     <SidebarProvider>
         <div className="flex h-screen w-screen">
             <AppSidebar />
-            <div className="flex-1 p-4 flex flex-col w-full">
-                <div className="flex items-center justify-between mb-4 bg-white p-2 rounded-lg">
-                <div>
+            <div className="flex-1 p-4 flex flex-col overflow-hidden">
+                <div className="z-10 sticky top-0 mb-4 bg-white p-4 rounded-lg">
                     <h1 className="text-lg text-gray-600 font-medium">Manage Accounts</h1>
-                </div>  
-            </div>
-            <Tabs defaultValue="my-account" className="w-full mb-4" onValueChange={setActiveTab}>
-            <TabsList className="w-full flex justify-start bg-white shadow-md rounded-md px-6 py-6 mb-4">
-                <TabsTrigger value="my-account" className="data-[state=active]:text-indigo-600 hover:text-black">MY ACCOUNT</TabsTrigger>
-                <TabsTrigger value="staff" className="data-[state=active]:text-indigo-600 hover:text-black">STAFF</TabsTrigger>
-            </TabsList>
+                </div>
 
-            <TabsContent value="my-account" className="mt-4">
-            <div className="flex flex-col lg:flex-row gap-4">
+            <Tabs defaultValue="my-account"  onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+                <div className="w-full z-10 sticky">
+                <TabsList className="w-full flex justify-start bg-white rounded-md shadow-md px-6 py-6 space-x-4">
+                    <TabsTrigger value="my-account" className="data-[state=active]:text-indigo-600 hover:text-black">MY ACCOUNT</TabsTrigger>
+                    <TabsTrigger value="staff" className="data-[state=active]:text-indigo-600 hover:text-black">STAFF</TabsTrigger>
+                </TabsList>
+                </div>
+                
+            <div className ="flex-1 overflow-y-auto p-4 space-y-4">
+            <TabsContent value="my-account" className="mt-0">
+            <div className="flex flex-col lg:flex-row gap-4 items-stretch">
                 <Card className="w-full lg:w-2/3 text-gray-700 content-center">
                 <CardHeader className="pb-0">
                     <CardTitle className="text-xl text-center">Account Information</CardTitle>
@@ -234,7 +236,7 @@ return (
             </TabsContent>
 
         {/* STAFF TAB */}
-        <TabsContent value="staff" className="mt-4 text-gray-700">
+        <TabsContent value="staff" className="mt-0">
             <div className="mb-4">
                 <h2 className="text-xl font-semibold text-gray-800">Staff ({staffs.length})</h2>
             </div>
@@ -583,9 +585,10 @@ return (
                 </CardContent>
             </Card>
         </TabsContent>
-    </Tabs>
-    </div>
-    </div>
+        </div>
+        </Tabs>
+        </div>
+    </div>  
     </SidebarProvider>
   );
 }
