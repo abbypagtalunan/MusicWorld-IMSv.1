@@ -335,7 +335,7 @@ export default function ReportsPage() {
               </TableBody>
               <TableFooter>
                 <TableRow className="bg-white">  
-                  <TableCell colSpan={5} className="text-right font-bold">Total:</TableCell>
+                  <TableCell colSpan={6} className="text-right font-bold">Total:</TableCell>
                   <TableCell className="font-bold">₱{totalSales.toLocaleString()}</TableCell>
                   <TableCell className="font-bold">₱{totalCogs.toLocaleString()}</TableCell>
                   <TableCell className="font-bold">₱{totalNet.toLocaleString()}</TableCell>
