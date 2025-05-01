@@ -1,55 +1,152 @@
 "use client";
 
-import { useState } from "react"
-import { AppSidebar } from "@/components/admin-sidebar"
-import { SidebarProvider } from "@/components/ui/sidebar"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Search, ListFilter, Download, Trash2, Ellipsis, RotateCcw } from "lucide-react"
-import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table"
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogDescription } from "@/components/ui/dialog"
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu"
-
-// Sample deliveries data
-const delivery = [
-  { deliveryNum: "188090", supplier: "Lazer" },
-  { deliveryNum: "188091", supplier: "Lazer" },
-  { deliveryNum: "188092", supplier: "Lazer" },
-  { deliveryNum: "188093", supplier: "Mirbros" },
-  { deliveryNum: "188094", supplier: "Mirbros" },
-  { deliveryNum: "188095", supplier: "Mirbros" },
-  { deliveryNum: "188096", supplier: "Lazer" },
-  { deliveryNum: "188097", supplier: "Lazer" },
-  { deliveryNum: "188098", supplier: "Lazer" },
-];
-
-// Sample product data
-const products = [
-  { productCode: "188090", brand: "Cort", category: "Guitar", quantity: 2 },
-  { productCode: "188091", brand: "Lazer", category: "Drum", quantity: 1 },
-  { productCode: "188092", brand: "Lazer", category: "Drum", quantity: 3 },
-  { productCode: "188093", brand: "Alice", category: "Violin String", quantity: 0 },
-  { productCode: "188094", brand: "Bee", category: "Harmonica", quantity: 0 },
-  { productCode: "188095", brand: "Cort", category: "Guitar", quantity: 2 },
-  { productCode: "188096", brand: "Cort", category: "Guitar", quantity: 2 },
-  { productCode: "188097", brand: "Lazer", category: "Drum", quantity: 1 },
-  { productCode: "188098", brand: "Lazer", category: "Drum", quantity: 3 },
-];
-
-// Sample transaction data
-const transactions = [
-  { dateAdded: "11/12/22", transactionID: "9090", productCode: "188090", receiptNum: "110090", product: "AD W/ W Case", totalPrice: "₱15,995" },
-  { dateAdded: "11/12/22", transactionID: "9091", productCode: "188091", receiptNum: "111091",  product: "Maple Snare Drum", totalPrice: "₱4,500"},
-  { dateAdded: "11/12/22", transactionID: "9092", productCode: "188092", receiptNum: "112092",  product: "Cymbal Straight Stand", totalPrice: "₱1,995"},
-  { dateAdded: "11/12/22", transactionID: "9093", productCode: "188093", receiptNum: "113093",  product: "Alice Violin String", totalPrice: "₱29,995"},
-  { dateAdded: "11/12/22", transactionID: "9094", productCode: "188094", receiptNum: "114094",  product: "Bee Harmonica", totalPrice: "₱125"},
-  { dateAdded: "11/12/22", transactionID: "9095", productCode: "188095", receiptNum: "115095",  product: "Cort Acoustic Guitar", totalPrice: "₱2,595"},
-  { dateAdded: "11/12/22", transactionID: "9096", productCode: "188096", receiptNum: "116096",  product: "AD W/ W Case", totalPrice: "₱395"},
-  { dateAdded: "11/12/22", transactionID: "9097", productCode: "188097", receiptNum: "117097",  product: "Maple Snare Drum", totalPrice: "₱295"},
-  { dateAdded: "11/12/22", transactionID: "9098", productCode: "188098", receiptNum: "118098",  product: "Cymbal Straight Stand", totalPrice: "₱15,995"}, 
-];
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { AppSidebar } from "@/components/admin-sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { toast, Toaster } from "react-hot-toast";
+import { Search, ListFilter, Download, Trash2, Ellipsis, RotateCcw } from "lucide-react";
+import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table";
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogDescription } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
 
 export default function DeletedPage() {
+  const config = {
+    deleted: {
+      label: "Deleted",
+      deletedID: "DT_deletedID",
+      DdateField: "DT_deletionTime",
+      transactionField: "T_transactionID",
+      codeField: "P_productCode",
+      receiptField: "O_receiptNumber",
+      nameField: "P_productName",
+      sellingpriceField: "P_sellingPrice",
+      TdateField: "T_transactionDate",
+      supplierField: "P_supplier",
+      supplierID: "P_supplierID",
+      brandField: "P_brand",
+      brandID: "P_brandID",
+      categoryField: "P_category",
+      categoryID: "P_categoryID",
+      unitpriceField: "OD_unitPrice",
+      quantityField: "OD_quantity",
+      api: {
+        fetch: "http://localhost:8080/deleted", 
+        add: "http://localhost:8080/deleted",  
+        update: "http://localhost:8080/deleted", 
+        delete: "http://localhost:8080/deleted",
+      },
+    },
+    
+    product: {
+      label: "Product",
+      idField: "ProductID",
+      nameField: "ProductName",
+      isAutoInc: false,
+      api: {
+        fetch: "http://localhost:8080/products",
+      },
+    },
+
+    supplier: {
+      label: "Supplier",
+      idField: "SupplierID",
+      nameField: "SupplierName",
+      isAutoInc: false,
+      api: {
+        fetch: "http://localhost:8080/suppliers",
+      },
+    },
+
+    brand: {
+      label: "Brand",
+      idField: "BrandID",
+      nameField: "BrandName",
+      isAutoInc: false,
+      api: {
+        fetch: "http://localhost:8080/brands",
+      },
+    },
+    
+    category: {
+      label: "Category",
+      idField: "CategoryID",
+      nameField: "CategoryName",
+      isAutoInc: false,
+      api: {
+        fetch: "http://localhost:8080/categories",
+      },
+    },
+  };
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [data, setData] = useState([]);
+  const [values, setValues] = useState({
+    [config.deleted.DdateField]: "",
+    [config.deleted.transactionField]: "",
+    [config.deleted.codeField]: "",
+    [config.deleted.receiptField]: "",    
+    [config.deleted.nameField]: "",
+    [config.deleted.sellingpriceField]: "",
+    [config.deleted.TdateField]: "",
+    [config.deleted.supplierField]: "",
+    [config.deleted.brandField]: "",
+    [config.deleted.categoryField]: "",
+    [config.deleted.quantityField]: "",
+  });
+
+  const normalizedData = (deleted) => deleted.data.map((item) => ({
+    Ddate: item.DT_deletionTime,
+    transactionID: item.T_transactionID,
+    productCode: item.P_productCode,
+    receiptNum: item.O_receiptNumber,
+    productName: item.P_productName,
+    sellingPrice: item.P_sellingPrice,
+    Tdate: item.T_transactionDate,
+    supplier: item.supplier || "",
+    supplierID: item.S_supplierID,
+    brand: item.brand || "",
+    brandID: item.B_brandID,
+    category: item.category || "",
+    categoryID: item.C_categoryID,
+    price: item.P_unitPrice,
+    quantity: item.OD_quantity
+  }));
+
+  // Fetch
+  useEffect(() => {
+    axios
+      .get(config.deleted.api.fetch)
+      .then((res) => setData(normalizedData(res)))
+      .catch((error) => console.error("Error fetching data:", error));
+      
+      setValues({
+        [config.deleted.DdateField]: "",
+        [config.deleted.transactionField]: "",
+        [config.deleted.codeField]: "",
+        [config.deleted.receiptField]: "",    
+        [config.deleted.nameField]: "",
+        [config.deleted.sellingpriceField]: "",
+        [config.deleted.TdateField]: "",
+        [config.deleted.supplierField]: "",
+        [config.deleted.brandField]: "",
+        [config.deleted.categoryField]: "",
+        [config.deleted.quantityField]: "",
+      });
+  
+    setSearchTerm("");
+  }, []);
+
+  const refreshTable = () => {
+    axios
+      .get(config.api.fetch)
+      .then((res) => setData(res.data))
+      .catch((error) => console.error("Error fetching data:", error));
+  };
+
+  // Search
   const [selectedFilter, setSelectedFilter] = useState(null);
   const [selectedSubFilter, setSelectedSubFilter] = useState(null);
 
@@ -59,8 +156,9 @@ export default function DeletedPage() {
   };
 
   const getFilteredTransactions = () => {
-    let sortedTransactions = [...transactions];
-  
+    let sortedTransactions = [...data];
+    if (!selectedFilter || !selectedSubFilter) return sortedTransactions;
+
     if (!selectedFilter || !selectedSubFilter) return sortedTransactions;
   
     if (selectedFilter === "Receipt Number") {
@@ -87,26 +185,27 @@ export default function DeletedPage() {
           : getPrice(b.totalPrice) - getPrice(a.totalPrice)
       );
     }
+
     return sortedTransactions;
   };  
 
   // Multiple Delete
-  const [selectedProducts, setSelectedProducts] = useState([]);
+  const [selectedTransactions, setSelectedTransactions] = useState([]);
 
-  const handleSelectProduct = (productCode) => {
-    setSelectedProducts((prev) =>
-      prev.includes(productCode)
-        ? prev.filter((code) => code !== productCode)
-        : [...prev, productCode]
+  const handleSelectTransaction = (transactionID) => {
+    setSelectedTransactions((prev) =>
+      prev.includes(transactionID)
+        ? prev.filter((code) => code !== transactionID)
+        : [...prev, transactionID]
     );
   };
   
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      const allCodes = getFilteredTransactions().map((item) => item.productCode);
-      setSelectedProducts(allCodes);
+      const allCodes = getFilteredTransactions().map((item) => item.transactionID);
+      setSelectedTransactions(allCodes);
     } else {
-      setSelectedProducts([]);
+      setSelectedTransactions([]);
     }
   };
 
@@ -139,7 +238,7 @@ export default function DeletedPage() {
   const handleMultiDelete = (password) => {
     if (!password) return toast.error("Password is required.");
     Promise.all(
-      selectedProducts.map((code) =>
+      selectedTransactions.map((code) =>
         axios({
           method: 'delete',
           url: `${config.product.api.delete}/${code}`,
@@ -236,7 +335,7 @@ export default function DeletedPage() {
 
               <Dialog open={isMDDOpen} onOpenChange={setMDDOpen}>
                 <DialogTrigger asChild>
-                  <Button className="bg-red-500 text-white" disabled={selectedProducts.length === 0}>
+                  <Button className="bg-red-500 text-white" disabled={selectedTransactions.length === 0}>
                     Delete Selected
                   </Button>
                 </DialogTrigger>
@@ -244,7 +343,7 @@ export default function DeletedPage() {
                   <DialogHeader>
                     <DialogTitle>
                       <span className="text-lg text-red-900">Delete Multiple Transactions</span>
-                      <span className="text-lg text-gray-400 font-normal italic ml-2">({selectedProducts.length} items)</span>
+                      <span className="text-lg text-gray-400 font-normal italic ml-2">({selectedTransactions.length} items)</span>
                     </DialogTitle>
                     <DialogClose />
                   </DialogHeader>
@@ -285,7 +384,7 @@ export default function DeletedPage() {
               <TableHeader className="sticky top-0 bg-white z-10">
                 <TableRow>
                   <TableHead>
-                    <input type="checkbox" onChange={handleSelectAll} checked={selectedProducts.length === getFilteredTransactions().length && selectedProducts.length > 0} />
+                    <input type="checkbox" onChange={handleSelectAll} checked={selectedTransactions.length === getFilteredTransactions().length && selectedTransactions.length > 0} />
                   </TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Transaction ID</TableHead>
@@ -298,24 +397,25 @@ export default function DeletedPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {getFilteredTransactions().map((transaction) => {
-                  const product = products.find((p) => p.productCode === transaction.productCode) || {};
-                  const deliveries = delivery.find((d) => d.deliveryNum === transaction.productCode) || {};
-                  return (
-                    <TableRow key={transaction.transactionID}>
+              {getFilteredTransactions().filter(item =>
+                (item.productName?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+                (item.transactionID?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+                (item.receiptNum?.toLowerCase() || "").includes(searchTerm.toLowerCase())                
+              ).map((item) => (
+                    <TableRow key={item.transactionID}>                   
                       <TableCell>
                       <input
                         type="checkbox"
-                        checked={selectedProducts.includes(transaction.productCode)}
-                        onChange={() => handleSelectProduct(transaction.productCode)}
+                        checked={selectedTransactions.includes(item.transactionID)}
+                        onChange={() => handleSelectTransaction(item.transactionID)}
                       />
-                      </TableCell>
-                      <TableCell>{transaction.dateAdded}</TableCell>
-                      <TableCell>{transaction.transactionID}</TableCell>
-                      <TableCell>{transaction.productCode}</TableCell>
-                      <TableCell>{transaction.receiptNum}</TableCell>
-                      <TableCell>{transaction.product}</TableCell>
-                      <TableCell>{transaction.totalPrice}</TableCell>
+                      </TableCell>                      
+                      <TableCell>{new Date(item.Ddate).toLocaleDateString()}</TableCell>
+                      <TableCell>{item.transactionID}</TableCell>
+                      <TableCell>{item.productCode}</TableCell>
+                      <TableCell>{item.receiptNum}</TableCell>
+                      <TableCell>{item.productName}</TableCell>
+                      <TableCell>{item.sellingPrice}</TableCell>
                       <TableCell>
                         <Dialog>
                           <DialogTrigger asChild>
@@ -343,14 +443,14 @@ export default function DeletedPage() {
                               </TableHeader>
                               <TableBody>
                                 <TableRow>
-                                  <TableCell>{transaction.dateAdded}</TableCell>
-                                  <TableCell>{transaction.productCode}</TableCell>
-                                  <TableCell>{deliveries.supplier}</TableCell>
-                                  <TableCell>{product.brand}</TableCell>
-                                  <TableCell>{product.category}</TableCell>
-                                  <TableCell>{transaction.product}</TableCell>
-                                  <TableCell>{product.quantity}</TableCell>
-                                  <TableCell>{transaction.totalPrice}</TableCell>
+                                  <TableCell>{new Date(item.Tdate).toLocaleDateString()}</TableCell>
+                                  <TableCell>{item.productCode}</TableCell>
+                                  <TableCell>{item.supplier}</TableCell>
+                                  <TableCell>{item.brand}</TableCell>
+                                  <TableCell>{item.category}</TableCell>
+                                  <TableCell>{item.productName}</TableCell>
+                                  <TableCell>{item.quantity}</TableCell>
+                                  <TableCell>{item.price}</TableCell>
                                 </TableRow>
                               </TableBody>
                             </Table>
@@ -374,7 +474,7 @@ export default function DeletedPage() {
                             <div className="flex justify-end gap-2 mt-4">
                               <Button
                                 className="bg-blue-400 text-white hover:bg-blue-700"
-                                onClick={() => handleRetrieve(transaction.transactionID)}
+                                onClick={() => handleRetrieve(item.transactionID)}
                               >
                                 Confirm
                               </Button>
@@ -394,7 +494,7 @@ export default function DeletedPage() {
                             <DialogHeader>
                               <DialogTitle>
                                 <span className="text-lg text-red-900">Delete Transaction</span>{" "}
-                                <span className="text-lg text-gray-400 font-normal italic">{transaction.transactionID}</span>
+                                <span className="text-lg text-gray-400 font-normal italic">{item.transactionID}</span>
                               </DialogTitle>
                               <DialogClose />
                             </DialogHeader>
@@ -403,12 +503,12 @@ export default function DeletedPage() {
                             </p>
                             <div className="flex items-center gap-4 mt-4 pl-10">
                               <div className="flex-1">
-                                <label htmlFor={`password-${transaction.transactionID}`} className="text-base font-medium text-gray-700 block mb-2">
+                                <label htmlFor={`password-${item.transactionID}`} className="text-base font-medium text-gray-700 block mb-2">
                                   Admin Password
                                 </label>
                                 <Input
                                   type="password"
-                                  id={`password-${transaction.transactionID}`}
+                                  id={`password-${item.transactionID}`}
                                   required
                                   placeholder="Enter valid password"
                                   className="w-full"
@@ -416,8 +516,8 @@ export default function DeletedPage() {
                               </div>
                               <Button
                                 className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
-                                onClick={() => handleDelete(transaction.transactionID,
-                                  document.getElementById(`password-${transaction.transactionID}`).value)}
+                                onClick={() => handleDelete(item.transactionID,
+                                  document.getElementById(`password-${item.transactionID}`).value)}
                               >
                                 DELETE TRANSACTION
                               </Button>
@@ -426,8 +526,7 @@ export default function DeletedPage() {
                         </Dialog>
                       </TableCell>
                     </TableRow>
-                  );
-                })}
+              ))}
               </TableBody>
             </Table>
           </div>
