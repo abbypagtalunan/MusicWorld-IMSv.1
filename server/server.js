@@ -25,7 +25,7 @@ const deliveryRoutes = require('./src/routes/deliveryRoutes');
 const deliveryModeOfPaymentRoutes = require('./src/routes/deliveryModeOfPaymentRouter');
 const deliveryPaymentTypesRoutes = require('./src/routes/deliveryPaymentTypesRoutes');
 const deliveryPaymentStatusRoutes = require('./src/routes/deliveryPaymentStatusRoutes');
-const returnRoutes = require('./src/routes/returnRoutes');
+const returnsRoutes = require('./src/routes/returnsRoutes');
 const supBrdCatStatusRoutes = require('./src/routes/SupBrdCatStatusRoutes');
 const returnTypeRoutes = require('./src/routes/returnTypeRoutes'); // ←
 const discountRoutes = require('./src/routes/discountRoutes');
@@ -45,11 +45,12 @@ app.use('/deliveries', deliveryRoutes);
 app.use("/deliveryModeOfPayment", deliveryModeOfPaymentRoutes);
 app.use("/deliveryPaymentTypes", deliveryPaymentTypesRoutes);
 app.use("/deliveryPaymentStatus", deliveryPaymentStatusRoutes);
-app.use('/returns', returnRoutes);
+app.use('/returns', returnsRoutes);
 app.use("/supBrdCatStatus", supBrdCatStatusRoutes);
 
 //Routes for Transaction - Ordering - Discounts
 app.use('/discounts', discountRoutes);
+app.use("/returnTypes", returnTypeRoutes);
 
 // Log that server is running
 const PORT = process.env.PORT || 8080;
