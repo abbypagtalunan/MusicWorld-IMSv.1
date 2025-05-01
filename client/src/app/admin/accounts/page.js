@@ -370,9 +370,10 @@ return (
             </div>
 
             <Card className="w-full">
-                <CardContent className="p-4 overflow-x-auto">
+                <CardContent className="p-4 flex flex-col justify-between flex-grow">
+                    <div className="flex flex-col overflow-auto max-h-[60vh] w-full">
                 <Table>
-                    <TableHeader>
+                <TableHeader className="sticky top-0 z-10 bg-white">
                     <TableRow>
                         <TableHead>Date Created</TableHead>
                         <TableHead>Name</TableHead>
@@ -582,6 +583,7 @@ return (
                     ))}
                     </TableBody>
                 </Table>
+                </div>
                 </CardContent>
             </Card>
         </TabsContent>
