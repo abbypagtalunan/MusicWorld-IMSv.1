@@ -1,38 +1,35 @@
-const db = require('../../db');
+// server/src/controllers/returnTypeController.js
 
-// Add this to the bottom of returnTypeController.js
-const getOrCreateReturnTypeID = (req, res) => {
-  const { RT_returnTypeDescription } = req.body;
+const { addReturnType } = require('../models/returnTypeModel');
 
-  if (!RT_returnTypeDescription) {
-    return res.status(400).json({ message: 'Description is required' });
-  }
-
-  const selectQuery = `
-    SELECT RT_returnTypeID FROM ReturnTypes WHERE RT_returnTypeDescription = ?
+// Get or create a return type by description
+const getOrCreateReturnTypeId = (description, callback) => {
+  const query = `
+    INSERT INTO ReturnTypes (RT_returnTypeDescription)
+    SELECT ? AS RT_returnTypeDescription
+    FROM DUAL
+    WHERE NOT EXISTS (
+      SELECT 1
+      FROM ReturnTypes
+      WHERE RT_returnTypeDescription = ?
+    )
+    ON DUPLICATE KEY UPDATE RT_returnTypeDescription = VALUES(RT_returnTypeDescription);
   `;
-  const insertQuery = `
-    INSERT INTO ReturnTypes (RT_returnTypeDescription) VALUES (?)
-  `;
 
-  db.query(selectQuery, [RT_returnTypeDescription], (err, results) => {
-    if (err) return res.status(500).json({ error: 'Error checking return type' });
+  const db = require('../../db');
+  db.query(query, [description, description], (err, results) => {
+    if (err) return callback(err);
 
-    if (results.length > 0) {
-      return res.status(200).json({ RT_returnTypeID: results[0].RT_returnTypeID });
-    }
-
-    db.query(insertQuery, [RT_returnTypeDescription], (err, insertResult) => {
-      if (err) return res.status(500).json({ error: 'Error inserting return type' });
-      res.status(201).json({ RT_returnTypeID: insertResult.insertId });
+    // Now select the ID
+    db.query('SELECT RT_returnTypeID FROM ReturnTypes WHERE RT_returnTypeDescription = ?', [description], (err, rows) => {
+      if (err) return callback(err);
+      if (rows.length === 0) return callback(new Error("Could not find return type ID"));
+      callback(null, rows[0].RT_returnTypeID);
     });
   });
 };
 
 module.exports = {
-  getAllReturnTypes,
-  addReturnType,
-  updateReturnType,
-  deleteReturnType,
-  getOrCreateReturnTypeID, // 👈 Add this to exports
+  getOrCreateReturnTypeId,
+  
 };

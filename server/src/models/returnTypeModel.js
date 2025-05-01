@@ -1,3 +1,5 @@
+// server/src/models/returnTypeModel.js
+
 const db = require('../../db');
 
 // Get all Return Types

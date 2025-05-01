@@ -1,8 +1,8 @@
-const returnModel = require('../models/returnsModel'); // Import the return model
+const returnModel = require('../models/returnsModel');
+const { getOrCreateReturnTypeId } = require('./returnTypeController');
 
 // Route to fetch all returns
 const getAllReturns = (req, res) => {
-  // Access the getAllReturns method from the return model
   returnModel.getAllReturns((err, results) => {
     if (err) {
       console.error('Error fetching data from database:', err);
@@ -15,45 +15,89 @@ const getAllReturns = (req, res) => {
 
 // Route to add a new return
 const addReturn = (req, res) => {
-  const { P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn,
-    R_returnQuantity, R_discountAmount, D_deliveryNumber, S_supplierID} = req.body;
+  const {
+    P_productCode,
+    returnTypeDescription,
+    R_reasonOfReturn,
+    R_dateOfReturn,
+    R_returnQuantity,
+    R_discountAmount,
+    D_deliveryNumber,
+    S_supplierID
+  } = req.body;
 
   // Validate required fields
-  if (!P_productCode || !R_returnTypeID || !R_reasonOfReturn || !R_dateOfReturn || !R_returnQuantity) {
+  if (!P_productCode || !returnTypeDescription || !R_reasonOfReturn || !R_dateOfReturn || !R_returnQuantity || !R_discountAmount || !D_deliveryNumber || !S_supplierID) {
     return res.status(400).json({ message: 'Missing required fields' });
   }
 
-  // Call the addReturn method from the return model
-  returnModel.addReturn(
-    { P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn,
-      R_returnQuantity, R_discountAmount, D_deliveryNumber, S_supplierID},
-    (err, returnId) => {
-      if (err) {
-        console.error('Error inserting return:', err);
-        res.status(500).json({ message: 'Error inserting return' });
-      } else {
-        res.status(201).json({ message: 'Return added successfully', id: returnId });
-      }
+  // Get or create return type ID
+  getOrCreateReturnTypeId(returnTypeDescription, (err, RT_returnTypeID) => {
+    if (err) {
+      console.error('Error getting or creating return type:', err);
+      return res.status(500).json({ message: 'Error processing return type' });
     }
-  );
+
+    // Now insert the return record
+    const insertReturnQuery = `
+      INSERT INTO Returns (
+        P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn,
+        R_returnQuantity, R_discountAmount, D_deliveryNumber, S_supplierID
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+
+    returnModel.addReturn(
+      {
+        P_productCode,
+        R_returnTypeID: RT_returnTypeID,
+        R_reasonOfReturn,
+        R_dateOfReturn,
+        R_returnQuantity,
+        R_discountAmount,
+        D_deliveryNumber,
+        S_supplierID
+      },
+      (err, results) => {
+        if (err) {
+          console.error('Error inserting return:', err);
+          return res.status(500).json({ message: 'Error inserting return' });
+        }
+        res.status(201).json({ message: 'Return added successfully', id: results.insertId });
+      }
+    );
+  });
 };
 
 // Route to update a return record
 const updateReturn = (req, res) => {
-  const returnID = req.params.id; // Extract return ID from the URL parameter
-  const { P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn,
-    R_returnQuantity, R_discountAmount, D_deliveryNumber, S_supplierID } = req.body;
+  const returnID = req.params.id;
+  const {
+    P_productCode,
+    R_returnTypeID,
+    R_reasonOfReturn,
+    R_dateOfReturn,
+    R_returnQuantity,
+    R_discountAmount,
+    D_deliveryNumber,
+    S_supplierID
+  } = req.body;
 
-  // Validate required fields
   if (!P_productCode || !R_returnTypeID || !R_reasonOfReturn || !R_dateOfReturn || !R_returnQuantity) {
     return res.status(400).json({ message: 'Missing required fields' });
   }
 
-  // Call the updateReturn method from the return model
   returnModel.updateReturn(
     returnID,
-    { P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn,
-      R_returnQuantity, R_discountAmount, D_deliveryNumber, S_supplierID },
+    {
+      P_productCode,
+      R_returnTypeID,
+      R_reasonOfReturn,
+      R_dateOfReturn,
+      R_returnQuantity,
+      R_discountAmount,
+      D_deliveryNumber,
+      S_supplierID
+    },
     (err, results) => {
       if (err) {
         console.error('Error updating return:', err);
@@ -70,15 +114,13 @@ const updateReturn = (req, res) => {
 
 // Route to delete a return record
 const deleteReturn = (req, res) => {
-  const returnID = req.params.id; // Extract return ID from the URL parameter
+  const returnID = req.params.id;
   const { adminPW } = req.body;
 
-  // Validate admin password
-  if (adminPW !== "2095") { // Ensure this matches the password used in the frontend
+  if (adminPW !== "2095") {
     return res.status(403).json({ message: "Invalid admin password" });
   }
 
-  // Call the deleteReturn method from the return model
   returnModel.deleteReturn(returnID, (err, results) => {
     if (err) {
       console.error('Error deleting return:', err);

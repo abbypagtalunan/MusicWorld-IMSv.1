@@ -27,6 +27,7 @@ const deliveryPaymentTypesRoutes = require('./src/routes/deliveryPaymentTypesRou
 const deliveryPaymentStatusRoutes = require('./src/routes/deliveryPaymentStatusRoutes');
 const returnRoutes = require('./src/routes/returnsRoutes');
 const supBrdCatStatusRoutes = require('./src/routes/SupBrdCatStatusRoutes');
+const returnTypeRoutes = require('./src/routes/returnTypeRoutes'); // ←
 
 // Setup delivery products and payment details routes
 app.use('/deliveryProducts', require('./src/routes/deliveryRoutes'));
@@ -45,6 +46,7 @@ app.use("/deliveryPaymentTypes", deliveryPaymentTypesRoutes);
 app.use("/deliveryPaymentStatus", deliveryPaymentStatusRoutes);
 app.use('/returns', returnRoutes);
 app.use("/supBrdCatStatus", supBrdCatStatusRoutes);
+app.use("/returnTypes", returnTypeRoutes); // ← Add this line
 
 // Log that server is running
 const PORT = process.env.PORT || 8080;
