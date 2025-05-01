@@ -14,7 +14,7 @@ app.use(
 // Parse JSON bodies
 app.use(express.json());
 
-// Import all routes
+// Routes for Configurations
 const supplierRoutes = require('./src/routes/supplierRoutes');
 const brandRoutes = require('./src/routes/brandRoutes');
 const categoryRoutes = require('./src/routes/categoryRoutes');
@@ -27,8 +27,9 @@ const deliveryPaymentTypesRoutes = require('./src/routes/deliveryPaymentTypesRou
 const deliveryPaymentStatusRoutes = require('./src/routes/deliveryPaymentStatusRoutes');
 const returnRoutes = require('./src/routes/returnsRoutes');
 const supBrdCatStatusRoutes = require('./src/routes/SupBrdCatStatusRoutes');
+const discountRoutes = require('./src/routes/discountRoutes');
 
-// Setup delivery products and payment details routes
+// Routes for Deliveries
 app.use('/deliveryProducts', require('./src/routes/deliveryRoutes'));
 app.use('/deliveryPaymentDetails', require('./src/routes/deliveryRoutes'));
 
@@ -45,6 +46,9 @@ app.use("/deliveryPaymentTypes", deliveryPaymentTypesRoutes);
 app.use("/deliveryPaymentStatus", deliveryPaymentStatusRoutes);
 app.use('/returns', returnRoutes);
 app.use("/supBrdCatStatus", supBrdCatStatusRoutes);
+
+//Routes for Transaction - Ordering - Discounts
+app.use('/discounts', discountRoutes);
 
 // Log that server is running
 const PORT = process.env.PORT || 8080;

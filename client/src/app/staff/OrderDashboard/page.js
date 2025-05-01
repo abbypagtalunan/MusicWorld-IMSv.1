@@ -5,6 +5,14 @@ import { AppSidebar } from "@/components/staff-sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import getColumns from "../../../components/ui/columns";
 import DataTable from "../../../components/ui/data-table";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
@@ -31,11 +39,55 @@ const OrderDashboard = () => {
 
   const [hasInteractedWithPayModal, setHasInteractedWithPayModal] = useState(false);
 
+  const [productDiscounts, setProductDiscounts] = useState([]);
+  const [selectedProductDiscount, setSelectedProductDiscount] = useState(null);
+
   const totalAmount = data.reduce((sum, item) => sum + parseFloat(item.Total), 0);
   const discountedTotal = Math.max(totalAmount - discount, 0);
   const parsedPayment = parseFloat(payment.toString().replace(/,/g, "")) || 0;
   const change = Math.max(parsedPayment - discountedTotal, 0);
   const isInvalidDiscount = discount > totalAmount;
+
+
+  const handlePaymentConfirmation = async () => {
+    try {
+      // 1. Create the Order
+      const orderResponse = await axios.post("http://localhost:8080/createOrder", {
+        O_receiptNumber: receiptNumber, // use actual receipt number
+      });
+  
+      const newOrderID = orderResponse.data.O_orderID;
+  
+      // 2. Create the Transaction
+      const transactionResponse = await axios.post("http://localhost:8080/createTransaction", {
+        O_orderID: newOrderID,
+        T_totalAmount: discountedTotal, // total after discounts
+        D_wholeOrderDiscount: wholeOrderDiscount,
+        D_totalProductDiscount: data.reduce((sum, item) => sum + item.Discount, 0),
+        T_transactionDate: new Date(),
+      });
+  
+      // 3. Create Order Details
+      const orderDetails = data.map((item) => ({
+        O_orderID: newOrderID,
+        P_productCode: item["Product Code"],
+        D_productDiscountID: item["Discount"] || 0,
+        OD_quantity: item["Quantity"],
+        OD_unitPrice: item["Price"],
+      }));
+  
+      await axios.post("http://localhost:8080/createOrderDetails", orderDetails);
+  
+      console.log("Payment confirmed. Amount:", payment);
+      setIsModalOpen(false);
+      window.location.reload();
+    } catch (error) {
+      console.error("Error processing payment:", error);
+      alert("Something went wrong during payment. Please try again.");
+    }
+  };
+  
+  
     
   // Fetch data
   useEffect(() => {
@@ -165,7 +217,18 @@ const OrderDashboard = () => {
       : `₱${formattedInteger}`;
   };
   
-  const parseNumberInput = (value) => value.replace(/[^0-9.]/g, "");
+  useEffect(() => {
+    const fetchProductDiscounts = async () => {
+      try {
+        const response = await axios.get("http://localhost:8080/discounts");
+        setProductDiscounts(response.data);
+      } catch (error) {
+        console.error("Failed to fetch product discounts", error);
+      }
+    };
+    fetchProductDiscounts();
+  }, []);
+  
 
   return (
     <SidebarProvider>
@@ -258,11 +321,7 @@ const OrderDashboard = () => {
 
                         <button
                           className="mt-4 p-1 text-[15px] w-[80%] bg-blue-600 text-white rounded-md"
-                          onClick={() => {
-                            setIsModalOpen(false);
-                            console.log("Payment confirmed. Amount:", payment);  // Log when payment is confirmed
-                            window.location.reload();
-                          }}
+                          onClick={handlePaymentConfirmation}
                         >
                           Enter Payment
                         </button>
@@ -372,23 +431,89 @@ const OrderDashboard = () => {
                 )}
               </div>
 
-              <div>
+              <DropdownMenu>
+                <label className="block text-sm mb-1">With Product Discount?</label>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start text-sm">
+                    {selectedProductDiscount?.D_discountType || " "}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-full">
+                  <DropdownMenuSeparator />
+                  {productDiscounts.map((discount) => (
+                    <DropdownMenuItem
+                      key={discount.D_productDiscountID}
+                      onClick={() => {
+                        setSelectedProductDiscount(discount);
+
+                        // Automatically compute discount if it's a percentage
+                        const type = discount.D_discountType;
+                        const price = parseFloat(selectedProduct?.price) || 0;
+                        const quantity = parseInt(orderQuantity) || 0;
+
+                        if (type.includes("%")) {
+                          const percent = parseFloat(type); // E.g. "10%" becomes 10
+                          const computed = (price * quantity) * (percent / 100);
+                          setOrderDiscount(computed.toFixed(2));
+                        } else if (type.toLowerCase().includes("specific")) {
+                          setOrderDiscount(""); // Let user type manually
+                        } else {
+                          setOrderDiscount("0");
+                        }
+                      }}
+                    >
+                      {discount.D_discountType}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <div className="relative mt-2">
                 <label className="block text-sm">Discount Amount</label>
-                <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">₱</span>
                 <input
                   type="text"
+                  disabled={
+                    !selectedProductDiscount?.D_discountType
+                      ?.toLowerCase()
+                      .includes("specific")
+                  }
                   value={orderDiscount === 0 ? "" : orderDiscount}
                   onFocus={(e) => {
                     if (orderDiscount === 0) e.target.select();
                   }}
                   onChange={(e) => {
-                    // Only allow numbers and one decimal point
                     const value = e.target.value;
                     if (/^(\d+(\.\d{0,2})?)?$/.test(value)) {
                       setOrderDiscount(value);
                     }
                   }}
-                  className="w-full pl-6 border border-gray-300 rounded-md px-3 py-2 text-sm"
+                  className={`w-full pl-6 border rounded-md px-3 py-2 text-sm ${
+                    selectedProductDiscount?.D_discountType?.toLowerCase().includes(
+                      "specific"
+                    )
+                      ? "border-gray-300"
+                      : "bg-gray-100 text-gray-500 border-gray-200 cursor-not-allowed"
+                  }`}
+                />
+              </div>
+
+              <div className="relative mt-2">
+                <label className="block text-sm">Total</label>
+                <input
+                  type="text"
+                  value={(() => {
+                    const price = parseFloat(selectedProduct?.price) || 0;
+                    const quantity = parseInt(orderQuantity) || 0;
+                    const discount = parseFloat(orderDiscount) || 0;
+                    const total = (price * quantity) - discount;
+                    return new Intl.NumberFormat("en-PH", {
+                      style: "decimal",
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }).format(total >= 0 ? total : 0);
+                  })()}
+                  disabled
+                  className="w-full pl-6 border border-gray-300 rounded-md px-3 py-2 text-sm bg-gray-100 text-gray-500"
                 />
               </div>
 
@@ -410,7 +535,7 @@ const OrderDashboard = () => {
                   <Popover open={openFreebie} onOpenChange={setOpenFreebie}>
                     <PopoverTrigger asChild>
                       <Button variant="outline" role="combobox" aria-expanded={openFreebie} className="w-full justify-between">
-                        {selectedFreebie ? selectedFreebie.label : "Select product..."}
+                        {selectedFreebie ? selectedFreebie.label : "Select Freebie"}
                         <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
