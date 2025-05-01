@@ -327,74 +327,29 @@ export default function DeliveriesPage() {
     setPaymentDetails(updatedDetails);
   };
 
-  // Multiple Delete
-  const [selectedProducts, setSelectedProducts] = useState([]);
-
-  const handleSelectProduct = (productCode) => {
-    setSelectedProducts((prev) =>
-      prev.includes(productCode)
-        ? prev.filter((code) => code !== productCode)
-        : [...prev, productCode]
-    );
-  };
-  
-  const handleSelectAll = (e) => {
-    if (e.target.checked) {
-      const allCodes = getFilteredTransactions().map((item) => item.productCode);
-      setSelectedProducts(allCodes);
-    } else {
-      setSelectedProducts([]);
-    }
-  };
-
   // Delete
-    const [adminPW, setAdminPW] = useState("");
-    const [isDDOpen, setDDOpen] = useState("");
-    const [isMDDOpen, setMDDOpen] = useState("");
-    const handleDelete = (productCode, adminPWInput) => {
-      axios({
-        method: 'delete',
-        url: `http://localhost:8080/products/${productCode}`,
-        data: { adminPW: adminPWInput }, 
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      })
-        .then(() => {
-          toast.success("Product deleted successfully");
-          refreshTable();
-          setAdminPW("");
-          setDDOpen(false);
-        })
-        .catch(err => {
-          console.error("Delete error:", err.response?.data || err);
-          toast.error(err.response?.data?.message || "Error deleting product");
-        });
-    };
- 
-  // Multiple delete
-  const handleMultiDelete = (password) => {
-    if (!password) return toast.error("Password is required.");
-    Promise.all(
-      selectedProducts.map((code) =>
-        axios({
-          method: 'delete',
-          url: `${config.product.api.delete}/${code}`,
-          data: { adminPW: password /*adminPWInput */ }, 
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        })
-      )
-    )
+  const [adminPW, setAdminPW] = useState("");
+  const [isDDOpen, setDDOpen] = useState("");
+  const handleDelete = (productCode, adminPWInput) => {
+    axios({
+      method: 'delete',
+      url: `http://localhost:8080/products/${productCode}`,
+      data: { adminPW: adminPWInput }, 
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    })
       .then(() => {
-        toast.success("Selected products deleted.");
+        toast.success("Product deleted successfully");
         refreshTable();
         setAdminPW("");
-        setMDDOpen(false);
+        setDDOpen(false);
       })
-      .catch(() => toast.error("Error deleting selected products."));
-  };  
+      .catch(err => {
+        console.error("Delete error:", err.response?.data || err);
+        toast.error(err.response?.data?.message || "Error deleting product");
+      });
+  };
 
   return (
     <SidebarProvider>
@@ -507,49 +462,6 @@ export default function DeliveriesPage() {
                 <PackagePlus size={16} className="mr-2" />
                 Add Delivery
               </Button>
-
-              <Dialog open={isMDDOpen} onOpenChange={setMDDOpen}>
-                <DialogTrigger asChild>
-                  <Button className="bg-red-500 text-white" disabled={selectedProducts.length === 0}>
-                    Delete Selected
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-3xl p-7 text-gray-700">
-                  <DialogHeader>
-                    <DialogTitle>
-                      <span className="text-lg text-red-900">Delete Multiple Transactions</span>
-                      <span className="text-lg text-gray-400 font-normal italic ml-2">({selectedProducts.length} items)</span>
-                    </DialogTitle>
-                    <DialogClose />
-                  </DialogHeader>
-                  <p className="text-sm text-gray-800 mt-2 pl-4">
-                    Deleting these transactions will reflect on Void Transactions. Enter the admin password to delete the selected products.
-                  </p>
-                  <div className="flex items-center gap-4 mt-4 pl-10">
-                    <div className="flex-1">
-                      <label htmlFor="password" className="text-base font-medium text-gray-700 block mb-2">
-                        Admin Password
-                      </label>
-                      <Input
-                        type="password"
-                        required
-                        placeholder="Enter admin password"
-                        className="w-full"
-                        value={adminPW}
-                        onChange={(e) => setAdminPW(e.target.value)}
-                      />
-                    </div>
-                    <Button
-                      className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
-                      onClick={() =>
-                        handleMultiDelete(adminPW)
-                      }
-                    >
-                      DELETE TRANSACTIONS
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
             </div>
           </div>
 
@@ -559,9 +471,6 @@ export default function DeliveriesPage() {
             <Table>
               <TableHeader className="sticky top-0 bg-white z-10">
                 <TableRow>
-                  <TableHead>
-                    <input type="checkbox" onChange={handleSelectAll} checked={selectedProducts.length === getFilteredTransactions().length && selectedProducts.length > 0} />
-                  </TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Delivery Number</TableHead>
                   <TableHead>Supplier</TableHead>
@@ -572,13 +481,6 @@ export default function DeliveriesPage() {
               <TableBody>
                 {getFilteredTransactions().map((d) => (
                   <TableRow key={d.deliveryNum}>
-                    <TableCell>
-                      <input
-                        type="checkbox"
-                        checked={selectedProducts.includes(d.deliveryNum)}
-                        onChange={() => handleSelectProduct(d.deliveryNum)}
-                      />
-                    </TableCell>
                     <TableCell>{d.dateAdded}</TableCell>
                     <TableCell>{d.deliveryNum}</TableCell>
                     <TableCell>{d.supplier}</TableCell>

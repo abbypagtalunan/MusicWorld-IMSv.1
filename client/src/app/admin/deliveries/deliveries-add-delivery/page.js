@@ -1,7 +1,9 @@
+
 "use client";
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 import { AppSidebar } from "@/components/admin-sidebar"
 import {
   SidebarProvider,
@@ -24,15 +26,33 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { Trash2, Undo2, Filter } from "lucide-react";
+import { toast, Toaster } from "react-hot-toast";
 
 export default function BatchDeliveriesPage() {
   const router = useRouter();
   
   // State for product items in the table
-  const [productItems, setProductItems] = useState([
-    { productCode: "188090", supplier: "Lazer", brand: "Cort", product: "AD 890 NS W/ BAG", quantity: "2 pcs", unitPrice: "15,995", total: "31,990" },
-    { productCode: "188091", supplier: "Lazer", brand: "Lazer", product: "Mapex Drumset (2 sets)", quantity: "2 sets", unitPrice: "4,995", total: "9,990" },
-  ]);
+  const [productItems, setProductItems] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
+  const [brands, setBrands] = useState([]);
+  const [deliveryNumber, setDeliveryNumber] = useState("DR-" + Math.floor(Math.random() * 90000 + 10000));
+  const [deliveryDate, setDeliveryDate] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [selectedSupplier, setSelectedSupplier] = useState("");
+  
+  // State for payment details
+  const [paymentTypes, setPaymentTypes] = useState([]);
+  const [paymentModes, setPaymentModes] = useState([]);
+  const [paymentStatuses, setPaymentStatuses] = useState([]);
+  const [paymentDetails, setPaymentDetails] = useState({
+    paymentType: "",
+    paymentMode: "",
+    paymentStatus: "",
+    dateDue: "",
+    datePayment1: "",
+    datePayment2: ""
+  });
   
   // State for new product form
   const [newProduct, setNewProduct] = useState({
@@ -43,10 +63,69 @@ export default function BatchDeliveriesPage() {
     quantity: ""
   });
 
+  // API endpoints
+  const API_CONFIG = {
+    products: "http://localhost:8080/products",
+    suppliers: "http://localhost:8080/suppliers",
+    brands: "http://localhost:8080/brands",
+    deliveries: "http://localhost:8080/deliveries",
+    deliveryProducts: "http://localhost:8080/deliveryProducts",
+    paymentTypes: "http://localhost:8080/deliveryPaymentTypes",
+    paymentModes: "http://localhost:8080/deliveryModeOfPayment",
+    paymentStatuses: "http://localhost:8080/deliveryPaymentStatus",
+    paymentDetails: "http://localhost:8080/deliveryPaymentDetails"
+  };
+
+  // Load data on component mount
+  useEffect(() => {
+    loadAllData();
+  }, []);
+
+  // Function to load all needed data
+  const loadAllData = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch all required data in parallel
+      const [
+        productsRes, 
+        suppliersRes, 
+        brandsRes, 
+        paymentTypesRes, 
+        paymentModesRes, 
+        paymentStatusesRes
+      ] = await Promise.all([
+        axios.get(API_CONFIG.products),
+        axios.get(API_CONFIG.suppliers),
+        axios.get(API_CONFIG.brands),
+        axios.get(API_CONFIG.paymentTypes),
+        axios.get(API_CONFIG.paymentModes),
+        axios.get(API_CONFIG.paymentStatuses)
+      ]);
+      
+      setProducts(productsRes.data);
+      setSuppliers(suppliersRes.data);
+      setBrands(brandsRes.data);
+      setPaymentTypes(paymentTypesRes.data);
+      setPaymentModes(paymentModesRes.data);
+      setPaymentStatuses(paymentStatusesRes.data);
+      
+      // Set today's date as default delivery date
+      const today = new Date().toISOString().split('T')[0];
+      setDeliveryDate(today);
+      
+    } catch (error) {
+      console.error("Error loading data:", error);
+      toast.error("Failed to load necessary data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Function to calculate total value of all products
   const calculateTotal = () => {
     return productItems.reduce((sum, item) => {
-      const numericTotal = parseFloat(item.total.replace(/,/g, ''));
+      const numericTotal = parseFloat(item.total.replace(/[^\d.]/g, ""));
       return sum + numericTotal;
     }, 0);
   };
@@ -58,28 +137,61 @@ export default function BatchDeliveriesPage() {
     minimumFractionDigits: 0,
   });
 
-  // Handle form input changes
+  // Handle form input changes for new product
   const handleInputChange = (field, value) => {
     setNewProduct({
       ...newProduct,
+      [field]: value
+    });
+    
+    // If product is selected, automatically fill unit price
+    if (field === 'product') {
+      const selectedProduct = products.find(p => p.P_productName === value);
+      if (selectedProduct) {
+        setNewProduct(prev => ({
+          ...prev,
+          unitPrice: selectedProduct.P_unitPrice || ""
+        }));
+      }
+    }
+    
+    // If supplier is selected, filter brands and products
+    if (field === 'supplier') {
+      // Find the supplier ID based on the selected supplier name
+      const supplierObj = suppliers.find(s => s.S_supplierName === value);
+      setSelectedSupplier(supplierObj ? supplierObj.S_supplierID : "");
+    }
+  };
+
+  // Handle payment details input changes
+  const handlePaymentDetailChange = (field, value) => {
+    setPaymentDetails({
+      ...paymentDetails,
       [field]: value
     });
   };
 
   // Generate a unique product code
   const generateProductCode = () => {
-    // Simple logic to generate a sequential product code
-    const lastCode = productItems.length > 0 
-      ? parseInt(productItems[productItems.length - 1].productCode)
-      : 188091;
-    return (lastCode + 1).toString();
+    // Find the maximum product code from the existing items
+    let maxCode = 0;
+    
+    productItems.forEach(item => {
+      const code = parseInt(item.productCode, 10);
+      if (!isNaN(code) && code > maxCode) {
+        maxCode = code;
+      }
+    });
+    
+    // Return the next code
+    return (maxCode + 1).toString();
   };
 
   // Add new product to the list
   const handleAddProduct = () => {
     // Validate form inputs
     if (!newProduct.product || !newProduct.supplier || !newProduct.brand || !newProduct.unitPrice || !newProduct.quantity) {
-      alert("Please fill in all fields");
+      toast.error("Please fill in all product fields");
       return;
     }
 
@@ -91,7 +203,7 @@ export default function BatchDeliveriesPage() {
     // Create new product object
     const productToAdd = {
       productCode: generateProductCode(),
-      supplier: newProduct.supplier,
+      supplier: suppliers.find(s => s.S_supplierID === newProduct.supplier)?.S_supplierName || newProduct.supplier,
       brand: newProduct.brand,
       product: newProduct.product,
       quantity: quantity,
@@ -110,13 +222,254 @@ export default function BatchDeliveriesPage() {
       unitPrice: "",
       quantity: ""
     });
+    
+    toast.success("Product added to delivery");
   };
 
-  // Handle deleting a product
+  // Handle deleting a product from the list
   const handleDeleteProduct = (index) => {
     const updatedItems = [...productItems];
     updatedItems.splice(index, 1);
     setProductItems(updatedItems);
+    toast.success("Product removed from delivery");
+  };
+
+  // Apply filter to load a specific delivery
+  const handleApplyFilter = () => {
+    if (!deliveryNumber) {
+      toast.error("Please enter a delivery number");
+      return;
+    }
+    
+    setLoading(true);
+    
+    // Fetch delivery details
+    axios.get(`${API_CONFIG.deliveries}/search?deliveryNumber=${deliveryNumber}`)
+      .then(res => {
+        if (res.data && res.data.length > 0) {
+          const delivery = res.data[0];
+          setDeliveryDate(new Date(delivery.D_deliveryDate).toISOString().split('T')[0]);
+          setSelectedSupplier(delivery.S_supplierID);
+          
+          // Fetch products for this delivery
+          return axios.get(`${API_CONFIG.deliveryProducts}/${deliveryNumber}`);
+        } else {
+          toast.error("No delivery found with that number");
+          throw new Error("Delivery not found");
+        }
+      })
+      .then(res => {
+        // Transform product data to match our format
+        const formattedProducts = res.data.map(item => ({
+          productCode: item.P_productCode,
+          supplier: item.supplierName || selectedSupplier,
+          brand: item.brandName || "",
+          product: item.productName || "",
+          quantity: `${item.DPD_quantity} ${parseInt(item.DPD_quantity) > 1 ? 'pcs' : 'pc'}`,
+          unitPrice: parseInt(item.DPD_unitPrice).toLocaleString(),
+          total: (parseInt(item.DPD_unitPrice) * item.DPD_quantity).toLocaleString()
+        }));
+        
+        setProductItems(formattedProducts);
+        
+        // Fetch payment details for this delivery
+        return axios.get(`${API_CONFIG.paymentDetails}/${deliveryNumber}`);
+      })
+      .then(res => {
+        if (res.data) {
+          setPaymentDetails({
+            paymentType: res.data.D_paymentTypeID.toString(),
+            paymentMode: res.data.D_modeOfPaymentID.toString(),
+            paymentStatus: res.data.D_paymentStatusID.toString(),
+            dateDue: formatDateForInput(res.data.DPD_dateOfPaymentDue),
+            datePayment1: formatDateForInput(res.data.DPD_dateOfPayment1),
+            datePayment2: formatDateForInput(res.data.DPD_dateOfPayment2) || ""
+          });
+        }
+      })
+      .catch(error => {
+        console.error("Error fetching delivery:", error);
+        if (!error.message || error.message !== "Delivery not found") {
+          toast.error("Error loading delivery data");
+        }
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  };
+
+  // Format date for input fields
+  const formatDateForInput = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toISOString().split('T')[0];
+  };
+
+  // Save the delivery to the database
+  const handleSaveDelivery = async () => {
+    try {
+      if (productItems.length === 0) {
+        toast.error("Cannot save empty delivery. Please add products first.");
+        return;
+      }
+      
+      // Validate required fields
+      if (!deliveryNumber || !deliveryDate || !selectedSupplier) {
+        toast.error("Please fill in all required delivery information");
+        return;
+      }
+      
+      // Create delivery object
+      const deliveryPayload = {
+        D_deliveryNumber: deliveryNumber,
+        D_deliveryDate: new Date(deliveryDate).toISOString(),
+        S_supplierID: selectedSupplier
+      };
+      
+      // Step 1: Create/update the delivery
+      await axios.post(API_CONFIG.deliveries, deliveryPayload);
+      
+      // Step 2: Save product details for this delivery
+      const productPromises = productItems.map(item => {
+        // Extract numeric quantity value
+        const quantityValue = parseInt(item.quantity.split(' ')[0]);
+        // Extract numeric unit price value
+        const unitPriceValue = parseFloat(item.unitPrice.replace(/,/g, ''));
+        
+        const productDetailPayload = {
+          D_deliveryNumber: deliveryNumber,
+          P_productCode: item.productCode,
+          DPD_quantity: quantityValue,
+          DPD_unitPrice: unitPriceValue
+        };
+        
+        return axios.post(API_CONFIG.deliveryProducts, productDetailPayload);
+      });
+      
+      await Promise.all(productPromises);
+      
+      // Step 3: Save payment details
+      if (paymentDetails.paymentType && paymentDetails.paymentMode && 
+          paymentDetails.paymentStatus && paymentDetails.dateDue && paymentDetails.datePayment1) {
+        
+        const paymentPayload = {
+          D_deliveryNumber: deliveryNumber,
+          D_paymentTypeID: parseInt(paymentDetails.paymentType),
+          D_modeOfPaymentID: parseInt(paymentDetails.paymentMode),
+          D_paymentStatusID: parseInt(paymentDetails.paymentStatus),
+          DPD_dateOfPaymentDue: paymentDetails.dateDue,
+          DPD_dateOfPayment1: paymentDetails.datePayment1,
+          DPD_dateOfPayment2: paymentDetails.datePayment2 || null
+        };
+        
+        await axios.post(API_CONFIG.paymentDetails, paymentPayload);
+      }
+      
+      toast.success("Delivery successfully saved!");
+      
+      // Generate a new delivery number for next entry
+      setDeliveryNumber("DR-" + Math.floor(Math.random() * 90000 + 10000));
+      setProductItems([]);
+      setPaymentDetails({
+        paymentType: "",
+        paymentMode: "",
+        paymentStatus: "",
+        dateDue: "",
+        datePayment1: "",
+        datePayment2: ""
+      });
+      
+    } catch (error) {
+      console.error("Error saving delivery:", error);
+      toast.error(error.response?.data?.message || "Failed to save delivery");
+    }
+  };
+
+  // Handle delivery deletion
+  const handleDeleteDelivery = async (password) => {
+    try {
+      if (!password) {
+        toast.error("Admin password is required");
+        return;
+      }
+      
+      await axios({
+        method: 'delete',
+        url: `${API_CONFIG.deliveries}/${deliveryNumber}`,
+        data: { adminPW: password },
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      toast.success("Delivery deleted successfully");
+      
+      // Reset form
+      setDeliveryNumber("DR-" + Math.floor(Math.random() * 90000 + 10000));
+      setProductItems([]);
+      setPaymentDetails({
+        paymentType: "",
+        paymentMode: "",
+        paymentStatus: "",
+        dateDue: "",
+        datePayment1: "",
+        datePayment2: ""
+      });
+      
+    } catch (error) {
+      console.error("Error deleting delivery:", error);
+      toast.error(error.response?.data?.message || "Failed to delete delivery");
+    }
+  };
+
+  // Save payment details separately
+  const handleSavePaymentDetails = async () => {
+    try {
+      // Validate required fields
+      if (!paymentDetails.paymentType || !paymentDetails.paymentMode || 
+          !paymentDetails.paymentStatus || !paymentDetails.dateDue || !paymentDetails.datePayment1) {
+        toast.error("Please fill in all required payment details");
+        return;
+      }
+      
+      const paymentPayload = {
+        D_deliveryNumber: deliveryNumber,
+        D_paymentTypeID: parseInt(paymentDetails.paymentType),
+        D_modeOfPaymentID: parseInt(paymentDetails.paymentMode),
+        D_paymentStatusID: parseInt(paymentDetails.paymentStatus),
+        DPD_dateOfPaymentDue: paymentDetails.dateDue,
+        DPD_dateOfPayment1: paymentDetails.datePayment1,
+        DPD_dateOfPayment2: paymentDetails.datePayment2 || null
+      };
+      
+      await axios.post(API_CONFIG.paymentDetails, paymentPayload);
+      toast.success("Payment details saved successfully");
+      
+    } catch (error) {
+      console.error("Error saving payment details:", error);
+      toast.error(error.response?.data?.message || "Failed to save payment details");
+    }
+  };
+
+  // Get products filtered by the selected supplier
+  const getFilteredProducts = () => {
+    if (!selectedSupplier) return products;
+    return products.filter(product => product.S_supplierID === selectedSupplier);
+  };
+
+  // Get brands filtered by the selected supplier
+  const getFilteredBrands = () => {
+    if (!selectedSupplier) return brands;
+    
+    // Get unique brand IDs from products of this supplier
+    const supplierProductBrandIds = [...new Set(
+      products
+        .filter(product => product.S_supplierID === selectedSupplier)
+        .map(product => product.B_brandID)
+    )];
+    
+    // Return only brands that match these IDs
+    return brands.filter(brand => supplierProductBrandIds.includes(brand.B_brandID));
   };
 
   return (
@@ -143,16 +496,31 @@ export default function BatchDeliveriesPage() {
                 <div className="flex items-center gap-4 w-full">
                   <div className="w-1/3">
                     <Label htmlFor="deliveryDate" className="mb-1 block">Date of Delivery</Label>
-                    <Input id="deliveryDate" type="date" />
+                    <Input 
+                      id="deliveryDate" 
+                      type="date" 
+                      value={deliveryDate}
+                      onChange={(e) => setDeliveryDate(e.target.value)}
+                    />
                   </div>
                   <div className="w-1/3">
                     <Label htmlFor="deliveryNumber" className="mb-1 block">Delivery Number</Label>
-                    <Input id="deliveryNumber" placeholder="DR-12354" className="text-center"/>
+                    <Input 
+                      id="deliveryNumber" 
+                      placeholder="DR-12354" 
+                      className="text-center"
+                      value={deliveryNumber}
+                      onChange={(e) => setDeliveryNumber(e.target.value)}
+                    />
                   </div>
                   <div className="flex items-end">
-                    <Button className="bg-blue-500 text-white">
+                    <Button 
+                      className="bg-blue-500 text-white"
+                      onClick={handleApplyFilter}
+                      disabled={loading}
+                    >
                       <Filter size={16} className="mr-2" />
-                      Apply Filter
+                      {loading ? "Loading..." : "Apply Filter"}
                     </Button>
                   </div>
                 </div>
@@ -207,7 +575,7 @@ export default function BatchDeliveriesPage() {
                           <TableCell colSpan={6} className="text-right text-gray-600 font-medium">
                             Total:
                           </TableCell>
-                          <TableCell className="font-semibold text-gray-600"> {formattedTotal}</TableCell>
+                          <TableCell className="font-semibold text-gray-600">{formattedTotal}</TableCell>
                           <TableCell></TableCell>
                         </TableRow>
                     </TableBody>
@@ -215,7 +583,11 @@ export default function BatchDeliveriesPage() {
                 </div>
                 {/* Dialogue box for deleting transactions */}                
                 <div className="flex justify-end gap-2 mt-6">
-                  <Button className="bg-green-600 text-white">
+                  <Button 
+                    className="bg-green-600 text-white"
+                    onClick={handleSaveDelivery}
+                    disabled={loading}
+                  >
                     SAVE DELIVERY
                   </Button>
                   <Dialog>
@@ -228,23 +600,28 @@ export default function BatchDeliveriesPage() {
                         <DialogHeader>
                             <DialogTitle>
                               <span className="text-lg text-red-900">Delete Transaction</span>{" "}
-                              <span className="text-lg text-gray-400 font-normal italic">{"DR-12354"}</span></DialogTitle>
+                              <span className="text-lg text-gray-400 font-normal italic">{deliveryNumber}</span></DialogTitle>
                             <DialogClose />
                           </DialogHeader>
                           <p className='text-sm text-gray-800 mt-2 pl-4'> Deleting this transaction will reflect on Void Transactions. Enter the admin password to delete this transaction. </p>
                           <div className="flex items-center gap-4 mt-4 pl-10">          
                             <div className="flex-1">
-                              <label htmlFor={`password-${"DR-12354"}`} className="text-base font-medium text-gray-700 block mb-2">
+                              <label htmlFor={`password-${deliveryNumber}`} className="text-base font-medium text-gray-700 block mb-2">
                                 Admin Password
                               </label>
-                              <Input type="password" id={`password-${"DR-12354"}`} required
-                                placeholder="Enter valid password"  className="w-full" 
+                              <Input 
+                                type="password" 
+                                id={`password-${deliveryNumber}`} 
+                                required
+                                placeholder="Enter valid password"  
+                                className="w-full" 
                               />
                             </div>       
                             <Button 
                               className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
-                              onClick={() => handleDelete("DR-12354", 
-                                document.getElementById(`password-${"DR-12354"}`).value)}
+                              onClick={() => handleDeleteDelivery(
+                                document.getElementById(`password-${deliveryNumber}`).value)
+                              }
                             >
                               DELETE TRANSACTION
                             </Button>
@@ -263,136 +640,60 @@ export default function BatchDeliveriesPage() {
               <CardContent className="p-4 flex flex-col flex-1 justify-between">
                 <div className="space-y-3">
                   <div>
-                    <Label htmlFor="productName">Product Name</Label>
-                    <Select onValueChange={(value) => handleInputChange('product', value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select product" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="4/4 Lazer Bow">4/4 Lazer Bow</SelectItem>
-                        <SelectItem value="Bee Harmonica (small)">Bee Harmonica (small)</SelectItem>
-                        <SelectItem value="Blueridge G12 Capo (Black)">Blueridge G12 Capo (Black)</SelectItem>
-                        <SelectItem value="Blueridge G12 Capo (Green)">Blueridge G12 Capo (Green)</SelectItem>
-                        <SelectItem value="Blueridge G12 Capo (Red)">Blueridge G12 Capo (Red)</SelectItem>
-                        <SelectItem value="Blueridge Guitar Amp">Blueridge Guitar Amp</SelectItem>
-                        <SelectItem value="Blueridge Guitar Capo">Blueridge Guitar Capo</SelectItem>
-                        <SelectItem value="C40 Yamaha Classical Guitar">C40 Yamaha Classical Guitar</SelectItem>
-                        <SelectItem value="Cort Acoustic Guitar AD180E - TOKS">Cort Acoustic Guitar AD180E - TOKS</SelectItem>
-                        <SelectItem value="Cort Acoustic Guitar AD810 - OP">Cort Acoustic Guitar AD810 - OP</SelectItem>
-                        <SelectItem value="Cort Acoustic Guitar AD880 - CE - BK">Cort Acoustic Guitar AD880 - CE - BK</SelectItem>
-                        <SelectItem value="Aegean Violin String">Aegean Violin String</SelectItem>
-                        <SelectItem value="Cort Acoustic Guitar AD880 - MS">Cort Acoustic Guitar AD880 - MS</SelectItem>
-                        <SelectItem value="Cort AD 810 E BKS w/ bag">Cort AD 810 E BKS w/ bag</SelectItem>
-                        <SelectItem value="Cort AD 880 CE BK w/ bag">Cort AD 880 CE BK w/ bag</SelectItem>
-                        <SelectItem value="Cort AD 880 NS w/ bag">Cort AD 880 NS w/ bag</SelectItem>
-                        <SelectItem value="Cort CM15R">Cort CM15R</SelectItem>
-                        <SelectItem value="Cort CM15R Amp">Cort CM15R Amp</SelectItem>
-                        <SelectItem value="Cort CM30R">Cort CM30R</SelectItem>
-                        <SelectItem value="Cort G110 Electric Guitar (OPBC)">Cort G110 Electric Guitar (OPBC)</SelectItem>
-                        <SelectItem value="Cort G110 Electric Guitar (OPBK)">Cort G110 Electric Guitar (OPBK)</SelectItem>
-                        <SelectItem value="Cort Mix5">Cort Mix5</SelectItem>
-                        <SelectItem value="Aegean Violin Strings">Aegean Violin Strings</SelectItem>
-                        <SelectItem value="Cort Mix5 Multi-Purpose AMP">Cort Mix5 Multi-Purpose AMP</SelectItem>
-                        <SelectItem value="Crash Cymbal Stand">Crash Cymbal Stand</SelectItem>
-                        <SelectItem value="Crash Cymbal Stand M1000A">Crash Cymbal Stand M1000A</SelectItem>
-                        <SelectItem value="Cymbal Stand Boom">Cymbal Stand Boom</SelectItem>
-                        <SelectItem value="D'Addario XL Bass strings">D'Addario XL Bass strings</SelectItem>
-                        <SelectItem value="DD75 Yamaha Digital Piano">DD75 Yamaha Digital Piano</SelectItem>
-                        <SelectItem value="Drumkey">Drumkey</SelectItem>
-                        <SelectItem value="Floor tom stand & screws">Floor tom stand & screws</SelectItem>
-                        <SelectItem value="Flute Recorder">Flute Recorder</SelectItem>
-                        <SelectItem value="Flute recorder 2">Flute recorder 2</SelectItem>
-                        <SelectItem value="Alice Fret Wire & AO44 Machine Head Polish">Alice Fret Wire & AO44 Machine Head Polish</SelectItem>
-                        <SelectItem value="Folk guitar Hard Case AF-1">Folk guitar Hard Case AF-1</SelectItem>
-                        <SelectItem value="FX30 Yamaha Acoustic Guitar">FX30 Yamaha Acoustic Guitar</SelectItem>
-                        <SelectItem value="Lazer 4/4 Violin">Lazer 4/4 Violin</SelectItem>
-                        <SelectItem value="Lazer Acoustic gig bag">Lazer Acoustic gig bag</SelectItem>
-                        <SelectItem value="Lazer Bass gig bag">Lazer Bass gig bag</SelectItem>
-                        <SelectItem value="Lazer Drumset">Lazer Drumset</SelectItem>
-                        <SelectItem value="Lazer Electric gig bag">Lazer Electric gig bag</SelectItem>
-                        <SelectItem value="Lazer Soprano Straight Sax">Lazer Soprano Straight Sax</SelectItem>
-                        <SelectItem value="Mapex Drum set">Mapex Drum set</SelectItem>
-                        <SelectItem value="Mic Foam (black)">Mic Foam (black)</SelectItem>
-                        <SelectItem value="Alice Violin strings">Alice Violin strings</SelectItem>
-                        <SelectItem value="Mic Foam (red)">Mic Foam (red)</SelectItem>
-                        <SelectItem value="Mooer 9V Adapter">Mooer 9V Adapter</SelectItem>
-                        <SelectItem value="Musedo Sustain Pedal">Musedo Sustain Pedal</SelectItem>
-                        <SelectItem value="P51 Keyboard">P51 Keyboard</SelectItem>
-                        <SelectItem value="Parlights">Parlights</SelectItem>
-                        <SelectItem value="Patch Cable">Patch Cable</SelectItem>
-                        <SelectItem value="Pins">Pins</SelectItem>
-                        <SelectItem value="Ring Mute 12 PE 0680">Ring Mute 12 PE 0680"</SelectItem>
-                        <SelectItem value="Ring mute 16 PE 0680">Ring mute 16 PE 0680"</SelectItem>
-                        <SelectItem value="Aquila Ukulele String">Aquila Ukulele String</SelectItem>
-                        <SelectItem value="Roto Pink string">Roto Pink string</SelectItem>
-                        <SelectItem value="Single Pedal Lazer">Single Pedal Lazer</SelectItem>
-                        <SelectItem value="Soundking patch cable BSS213">Soundking patch cable BSS213</SelectItem>
-                        <SelectItem value="Soundking str cable 5m">Soundking str cable 5m</SelectItem>
-                        <SelectItem value="Strap pin">Strap pin</SelectItem>
-                        <SelectItem value="Valve Oil SG Galante">Valve Oil SG Galante</SelectItem>
-                        <SelectItem value="Violin 4/4 (Student)">Violin 4/4 (Student)</SelectItem>
-                        <SelectItem value="Violin 4/4 30112F (Pro)">Violin 4/4 30112F (Pro)</SelectItem>
-                        <SelectItem value="Violin strings #1">Violin strings #1</SelectItem>
-                        <SelectItem value="B020 - HLC - Bass drum w/ harness">B020 - HLC - Bass drum w/ harness</SelectItem>
-                        <SelectItem value="Yamaha Acoustic Guitar C40VC 1102">Yamaha Acoustic Guitar C40VC 1102</SelectItem>
-                        <SelectItem value="Yamaha Acoustic Guitar FX310">Yamaha Acoustic Guitar FX310</SelectItem>
-                        <SelectItem value="Yamaha Acoustic Guitar FY310VC">Yamaha Acoustic Guitar FY310VC</SelectItem>
-                        <SelectItem value="Yamaha Adapter">Yamaha Adapter</SelectItem>
-                        <SelectItem value="Yamaha APX600M">Yamaha APX600M</SelectItem>
-                        <SelectItem value="Yamaha E243 Keyboard">Yamaha E243 Keyboard</SelectItem>
-                        <SelectItem value="Yamaha E273 Keyboard">Yamaha E273 Keyboard</SelectItem>
-                        <SelectItem value="Yamaha E373 (1)">Yamaha E373 (1)</SelectItem>
-                        <SelectItem value="Yamaha E373 Keyboard (2)">Yamaha E373 Keyboard (2)</SelectItem>
-                        <SelectItem value="Yamaha E373 Keyboard (3)">Yamaha E373 Keyboard (3)</SelectItem>
-                        <SelectItem value="Bass Guitar Cort IE22070R96">Bass Guitar Cort IE22070R96</SelectItem>
-                        <SelectItem value="Yamaha E473 Keyboard">Yamaha E473 Keyboard</SelectItem>
-                        <SelectItem value="Yamaha F51 Keyboard">Yamaha F51 Keyboard</SelectItem>
-                        <SelectItem value="Yamaha P125B Digital Piano">Yamaha P125B Digital Piano</SelectItem>
-                        <SelectItem value="Yamaha P45 Digital Piano">Yamaha P45 Digital Piano</SelectItem>
-                        <SelectItem value="16 channel Snake Cable">16 channel Snake Cable</SelectItem>
-                        <SelectItem value="Bee Harmonica (big)">Bee Harmonica (big)</SelectItem>
-                      </SelectContent>
-                    </Select>   
-                  </div>
-                  
-                  <div>
                     <Label htmlFor="supplier">Supplier</Label>
-                    <Select onValueChange={(value) => handleInputChange('supplier', value)}>
+                    <Select 
+                      value={newProduct.supplier} 
+                      onValueChange={(value) => handleInputChange('supplier', value)}
+                    >
                       <SelectTrigger id="supplier" className="mt-1">
                         <SelectValue placeholder="Select supplier" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Lazer">Lazer</SelectItem>
-                        <SelectItem value="Mirbros">Mirbros</SelectItem>
+                        {suppliers.map(supplier => (
+                          <SelectItem key={supplier.S_supplierID} value={supplier.S_supplierID}>
+                            {supplier.S_supplierName}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
                                  
                   <div>
                     <Label htmlFor="brand">Brand</Label>
-                    <Select onValueChange={(value) => handleInputChange('brand', value)}>
+                    <Select 
+                      value={newProduct.brand} 
+                      onValueChange={(value) => handleInputChange('brand', value)}
+                    >
                       <SelectTrigger id="brand" className="mt-1">
                         <SelectValue placeholder="Select brand" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Alice String">Alice String</SelectItem>
-                        <SelectItem value="Mooer Audio">Mooer Audio</SelectItem>
-                        <SelectItem value="Musedo">Musedo</SelectItem>
-                        <SelectItem value="Roto Sound">Roto Sound</SelectItem>
-                        <SelectItem value="Soundking">Soundking</SelectItem>
-                        <SelectItem value="Yamaha">Yamaha</SelectItem>
-                        <SelectItem value="Aegean">Aegean</SelectItem>
-                        <SelectItem value="Brand1">Brand1</SelectItem>
-                        <SelectItem value="Aquila">Aquila</SelectItem>
-                        <SelectItem value="Bee">Bee</SelectItem>
-                        <SelectItem value="Blueridge">Blueridge</SelectItem>
-                        <SelectItem value="Brand">Brand</SelectItem>
-                        <SelectItem value="Cort Guitars">Cort Guitars</SelectItem>
-                        <SelectItem value="D'Addario">D'Addario</SelectItem>
-                        <SelectItem value="Lazer Music">Lazer Music</SelectItem>
-                        <SelectItem value="Mapex">Mapex</SelectItem>
+                        {getFilteredBrands().map(brand => (
+                          <SelectItem key={brand.B_brandID} value={brand.B_brandName}>
+                            {brand.B_brandName}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="productName">Product Name</Label>
+                    <Select 
+                      value={newProduct.product} 
+                      onValueChange={(value) => handleInputChange('product', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select product" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {getFilteredProducts().map(product => (
+                          <SelectItem key={product.P_productCode} value={product.P_productName}>
+                            {product.P_productName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>   
                   </div>
                   
                   <div>
@@ -423,6 +724,7 @@ export default function BatchDeliveriesPage() {
                     <Button 
                       className="w-2/3 bg-blue-500 text-white"
                       onClick={handleAddProduct}
+                      disabled={loading}
                     >
                       ADD PRODUCT
                     </Button>
@@ -443,35 +745,55 @@ export default function BatchDeliveriesPage() {
                 {/* First row */}
                 <div className="col-span-3">
                   <Label htmlFor="paymentDeliveryNumber" className="mb-1 block">Delivery Number</Label>
-                  <Input id="paymentDeliveryNumber" placeholder="DR-12354" className=" bg-gray-200 text-center" readOnly />
+                  <Input 
+                    id="paymentDeliveryNumber" 
+                    value={deliveryNumber} 
+                    className="bg-gray-200 text-center" 
+                    readOnly 
+                  />
                 </div>
                 <div className="col-span-3">
                   <Label htmlFor="paymentAmount" className="mb-1 block">Amount</Label>
-                  <Input id="paymentAmount" value={formattedTotal.replace('₱', '')} className="bg-red-800 text-white text-center" readOnly />
+                  <Input 
+                    id="paymentAmount" 
+                    value={formattedTotal.replace('₱', '')} 
+                    className="bg-red-800 text-white text-center" 
+                    readOnly 
+                  />
                 </div>
                 <div className="col-span-3">
                   <Label htmlFor="paymentType" className="mb-1 block">Payment Type</Label>
-                  <Select>
+                  <Select 
+                    value={paymentDetails.paymentType} 
+                    onValueChange={(value) => handlePaymentDetailChange('paymentType', value)}
+                  >
                     <SelectTrigger id="paymentType">
                       <SelectValue placeholder="Select payment type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="one-time">One-time, Full</SelectItem>
-                      <SelectItem value="1 month">1 month installment</SelectItem>
-                      <SelectItem value="2 months">2 months installment</SelectItem>
+                      {paymentTypes.map(type => (
+                        <SelectItem key={type.D_paymentTypeID} value={type.D_paymentTypeID.toString()}>
+                          {type.D_paymentName}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="col-span-3">
                   <Label htmlFor="paymentMode" className="mb-1 block">Mode of Payment</Label>
-                  <Select>
+                  <Select 
+                    value={paymentDetails.paymentMode} 
+                    onValueChange={(value) => handlePaymentDetailChange('paymentMode', value)}
+                  >
                     <SelectTrigger id="paymentMode">
                       <SelectValue placeholder="Select payment mode" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="cash">Cash</SelectItem>
-                      <SelectItem value="check">Check</SelectItem>
-                      <SelectItem value="bank transfer">Bank Transfer</SelectItem>
+                      {paymentModes.map(mode => (
+                        <SelectItem key={mode.D_modeOfPaymentID} value={mode.D_modeOfPaymentID.toString()}>
+                          {mode.D_modeName}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -479,39 +801,63 @@ export default function BatchDeliveriesPage() {
                 {/* Second row */}
                 <div className="col-span-3">
                   <Label htmlFor="paymentStatus" className="mb-1 block">Payment Status</Label>
-                  <Select>
+                  <Select 
+                    value={paymentDetails.paymentStatus} 
+                    onValueChange={(value) => handlePaymentDetailChange('paymentStatus', value)}
+                  >
                     <SelectTrigger id="paymentStatus">
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="paid">PAID</SelectItem>
-                      <SelectItem value="unpaid">UNPAID</SelectItem>
-                      <SelectItem value="partial1">1ST MONTH INSTALLMENT</SelectItem>
-                      <SelectItem value="partial2">PAID: 2ND MONTH</SelectItem>
+                      {paymentStatuses.map(status => (
+                        <SelectItem key={status.D_paymentStatusID} value={status.D_paymentStatusID.toString()}>
+                          {status.D_statusName}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="col-span-3">
                   <Label htmlFor="paymentDateDue" className="mb-1 block">Date of Payment Due</Label>
-                  <Input id="paymentDateDue" type="date" />
+                  <Input 
+                    id="paymentDateDue" 
+                    type="date" 
+                    value={paymentDetails.dateDue}
+                    onChange={(e) => handlePaymentDetailChange('dateDue', e.target.value)}
+                  />
                 </div>
                 <div className="col-span-3">
                   <Label htmlFor="paymentDate1" className="mb-1 block">Date of Payment 1</Label>
-                  <Input id="paymentDate1" type="date" />
+                  <Input 
+                    id="paymentDate1" 
+                    type="date" 
+                    value={paymentDetails.datePayment1}
+                    onChange={(e) => handlePaymentDetailChange('datePayment1', e.target.value)}
+                  />
                 </div>
                 <div className="col-span-3">
                   <Label htmlFor="paymentDate2" className="mb-1 block">Date of Payment 2</Label>
-                  <Input id="paymentDate2" type="date" />
+                  <Input 
+                    id="paymentDate2" 
+                    type="date" 
+                    value={paymentDetails.datePayment2}
+                    onChange={(e) => handlePaymentDetailChange('datePayment2', e.target.value)}
+                  />
                 </div>
               </div>
 
               <div className="flex justify-end mt-6">
-                <Button className="bg-blue-600 text-white">
+                <Button 
+                  className="bg-blue-600 text-white"
+                  onClick={handleSavePaymentDetails}
+                  disabled={loading}
+                >
                   SAVE DETAILS
                 </Button>
               </div>
             </CardContent>
           </Card>
+          <Toaster position="top-right" />
         </div>
       </div>
     </SidebarProvider>
