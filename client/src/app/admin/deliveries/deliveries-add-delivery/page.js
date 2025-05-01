@@ -157,7 +157,9 @@ export default function BatchDeliveriesPage() {
     
     // If supplier is selected, filter brands and products
     if (field === 'supplier') {
-      setSelectedSupplier(value);
+      // Find the supplier ID based on the selected supplier name
+      const supplierObj = suppliers.find(s => s.S_supplierName === value);
+      setSelectedSupplier(supplierObj ? supplierObj.S_supplierID : "");
     }
   };
 
@@ -201,7 +203,7 @@ export default function BatchDeliveriesPage() {
     // Create new product object
     const productToAdd = {
       productCode: generateProductCode(),
-      supplier: newProduct.supplier,
+      supplier: suppliers.find(s => s.S_supplierID === newProduct.supplier)?.S_supplierName || newProduct.supplier,
       brand: newProduct.brand,
       product: newProduct.product,
       quantity: quantity,
@@ -648,7 +650,7 @@ export default function BatchDeliveriesPage() {
                       </SelectTrigger>
                       <SelectContent>
                         {suppliers.map(supplier => (
-                          <SelectItem key={supplier.S_supplierID} value={supplier.S_supplierName}>
+                          <SelectItem key={supplier.S_supplierID} value={supplier.S_supplierID}>
                             {supplier.S_supplierName}
                           </SelectItem>
                         ))}
