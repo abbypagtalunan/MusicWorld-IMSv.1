@@ -312,13 +312,6 @@ export default function ReportsPage() {
                             </TableHeader>
                             <TableBody>
                               <TableRow>
-                                <TableCell>
-                                  <input
-                                    type="checkbox"
-                                    checked={selectedProducts.includes(transaction.productCode)}
-                                    onChange={() => handleSelectProduct(transaction.productCode)}
-                                  />
-                                </TableCell>
                                 <TableCell>{transaction.dateAdded}</TableCell>
                                 <TableCell>{transaction.productCode}</TableCell>
                                 <TableCell>{deliveries.supplier}</TableCell>
