@@ -22,7 +22,8 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -96,50 +97,63 @@ const data = {
 };
 
 
-export function AppSidebar({
-  ...props
-}) {
+export function AppSidebar({ ...props }) {
   const pathname = usePathname();
+  const [collapsed, setCollapsed] = React.useState(false);
 
-  const navMainWithActive = data.navMain.map(item => ({
+  const navMainWithActive = data.navMain.map((item) => ({
     ...item,
-    isActive: pathname.includes(item.path)
+    isActive: pathname.includes(item.path),
   }));
+
   return (
-    <Sidebar variant="inset" {...props} className="bg-white hover:bg-muted/50">
-      <SidebarHeader className="bg-white">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <Link href="/">
-              <SidebarMenuButton size="xl">
-                <div className="flex justify-center items-center">
-                  <img
-                    src="/logo1.svg"
-                    alt="Music World IMS Logo"
-                    className="h-30 object-contain"
-                  />
-                </div>
+    <>
+      {/* Mobile toggle button */}
+      <SidebarTrigger
+        className="fixed top-4 left-4 z-50 bg-white rounded-full p-2 shadow-md hover:bg-gray-200 md:hidden"
+        onClick={() => setCollapsed((prev) => !prev)}
+      />
+
+      <Sidebar
+        variant="inset"
+        collapsible="icon"
+        className="bg-white hover:bg-muted/50"
+        {...props}
+      >
+        <SidebarHeader className="bg-white">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <Link href="/">
+                <SidebarMenuButton size="xl" tooltip="Home">
+                  <div className="flex justify-center items-center">
+                    <img
+                      src="/logo1.svg"
+                      alt="Music World IMS Logo"
+                      className="h-30 w-auto object-contain"
+                    />
+                  </div>
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarHeader>
+
+        <SidebarContent className="bg-white">
+          <NavMain items={navMainWithActive} collapsed={collapsed} />
+        </SidebarContent>
+
+        <SidebarFooter className="bg-white">
+          <SidebarMenu className="bg-white items-left justify-center">
+            <SidebarMenuItem>
+              <SidebarMenuButton size="lg" tooltip="Log Out">
+                <LogOutIcon className="w-5 h-5" />
+                <span className="ml-2">Log Out</span>
               </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarHeader>
-
-      <SidebarContent className="bg-white">
-        <NavMain items={navMainWithActive} />
-      </SidebarContent>
-
-      <SidebarFooter className="bg-white">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg">
-              <LogOutIcon className="size-5" />
-              <span className="ml-2">Log Out</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-        <NavUser user={data.user} />
-      </SidebarFooter>
-    </Sidebar>
+            </SidebarMenuItem>
+          </SidebarMenu>
+          <NavUser user={data.user} />
+        </SidebarFooter>
+      </Sidebar>
+    </>
   );
 }
