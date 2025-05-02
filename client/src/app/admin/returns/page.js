@@ -265,9 +265,8 @@ export default function ReturnsPage() {
             <h1 className="text-lg text-gray-600 font-medium">Processing of Returns</h1>
           </div>
 
-          <Tabs defaultValue="customer" onValueChange={setActiveTab}  className="flex-1 flex flex-col overflow-hidden">
-            <div className="w-full z-10 sticky">
-            <TabsList className="w-full flex justify-start bg-white rounded-md shadow-md px-6 py-6 space-x-4">
+          <Tabs defaultValue="customer" onValueChange={setActiveTab}>
+            <TabsList className="w-full flex justify-start bg-white shadow-md rounded-md px-6 py-6 mb-4">
               <TabsTrigger value="customer" className="data-[state=active]:text-indigo-600 hover:text-black">
                 RETURN FROM CUSTOMER
               </TabsTrigger>
@@ -275,16 +274,14 @@ export default function ReturnsPage() {
                 RETURN TO SUPPLIER
               </TabsTrigger>
             </TabsList>
-            </div>
 
-            {/* Customer Returns Tab Content */}
-          <div className ="flex-1 overflow-y-auto p-4 space-y-4">
-            <TabsContent value="customer" className="mt-0">
+            {/* Customer Returns Tab */}
+            <TabsContent value="customer">
               <div className="flex flex-col lg:flex-row gap-4 items-stretch">
                 {/* Left side - Product items table */}
                 <Card className="w-full lg:w-2/3 flex flex-col">
                   <CardContent className="p-4 flex flex-col justify-between flex-grow">
-                  <div className="flex flex-col overflow-auto max-h-[60vh] w-full">
+                    <div className="overflow-x-auto max-h-[60vh] flex-grow">
                       <Table>
                         <TableHeader className="sticky top-0 bg-white z-10">
                           <TableRow>
@@ -541,9 +538,9 @@ export default function ReturnsPage() {
                 {/* Left side - Product items table */}
                 <Card className="w-full lg:w-2/3 flex flex-col">
                   <CardContent className="p-4 flex flex-col justify-between flex-grow">
-                  <div className="flex flex-col overflow-auto max-h-[60vh] w-full">
+                    <div className="overflow-x-auto max-h-[60vh] flex-grow">
                       <Table>
-                        <TableHeader className="sticky top-0 z-10 bg-white">
+                        <TableHeader>
                           <TableRow>
                             <TableHead className="text-center">Date</TableHead>
                             <TableHead className="text-center">Product Code</TableHead>
@@ -760,10 +757,9 @@ export default function ReturnsPage() {
                 </Card>
               </div>
             </TabsContent>
-            </div>
           </Tabs>
-          </div>
         </div>
+      </div>
     </SidebarProvider>
   );
 }
