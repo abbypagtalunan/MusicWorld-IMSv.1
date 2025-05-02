@@ -22,5 +22,4 @@ router.post('/get-or-create', (req, res) => {
     res.json({ RT_returnTypeID });
   });
 });
-
 module.exports = router;

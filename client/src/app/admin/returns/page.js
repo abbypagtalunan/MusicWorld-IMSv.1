@@ -182,7 +182,7 @@ export default function ReturnsPage() {
       R_dateOfReturn: format(new Date(), "yyyy-MM-dd HH:mm:ss"),
       R_returnQuantity: selectedQuantity,
       R_discountAmount: selectedDiscount,
-      D_deliveryNumber: "1", // dummy value
+      D_deliveryNumber: deliveryNumber, // dummy value
       S_supplierID: selectedSupplier,
     };
   
