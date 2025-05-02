@@ -1,8 +1,24 @@
 const db = require('../../db');
 
-// Get all SupBrdCatStatus types
+// Get all OrderDetails with product name, discount type, and computed total
 const getAllOrderDetails = (callback) => {
-  const query = `SELECT OD_detailID, O_orderID, P_productCode, D_productDiscountID FROM SupBrdCatStatus ORDER BY SupBrdCatStatusID`;
+  const query = `
+    SELECT 
+      od.OD_detailID,
+      od.O_orderID,
+      od.P_productCode,
+      p.P_productName,
+      od.D_productDiscountID,
+      d.D_discountType,
+      od.OD_quantity,
+      od.OD_unitPrice,
+      od.OD_discountAmount,
+      (od.OD_unitPrice * od.OD_quantity) - od.OD_discountAmount AS OD_totalItemAmount
+    FROM OrderDetails od
+    LEFT JOIN Products p ON od.P_productCode = p.P_productCode
+    LEFT JOIN Discounts d ON od.D_productDiscountID = d.D_productDiscountID
+    ORDER BY od.OD_detailID`;
+
   db.query(query, (err, results) => {
     if (err) {
       callback(err, null);
@@ -12,35 +28,95 @@ const getAllOrderDetails = (callback) => {
   });
 };
 
-// Add a new SupBrdCatStatus type
-const addSBCS = (data, callback) => {
-  const { SupBrdCatStatusName } = data;
-  const query = `INSERT INTO SupBrdCatStatus (SupBrdCatStatusName) VALUES (?)`;
-  db.query(query, [SupBrdCatStatusName], (err, results) => {
-    if (err) {
-      callback(err, null);
-    } else {
-      callback(null, results.insertId);
+
+// Add a new OrderDetail
+const addOrderDetail = (data, callback) => {
+  const {
+    O_orderID,
+    P_productCode,
+    D_productDiscountID,
+    OD_quantity,
+    OD_unitPrice,
+    OD_discountAmount,
+  } = data;
+
+  const query = `
+    INSERT INTO OrderDetails 
+    (O_orderID, P_productCode, D_productDiscountID, OD_quantity, OD_unitPrice, OD_discountAmount) 
+    VALUES (?, ?, ?, ?, ?, ?)`;
+
+  db.query(
+    query,
+    [
+      O_orderID,
+      P_productCode,
+      D_productDiscountID,
+      OD_quantity,
+      OD_unitPrice,
+      OD_discountAmount,
+    ],
+    (err, results) => {
+      if (err) {
+        callback(err, null);
+      } else {
+        callback(null, results.insertId);
+      }
     }
-  });
+  );
 };
 
-// Update an existing SupBrdCatStatus type
-const updateSBCS = (id, data, callback) => {
-  const { SupBrdCatStatusName } = data;
-  const query = `UPDATE SupBrdCatStatus SET SupBrdCatStatusName = ? WHERE SupBrdCatStatusID = ?`;
-  db.query(query, [SupBrdCatStatusName, id], (err, results) => {
-    if (err) {
-      callback(err, null);
-    } else {
-      callback(null, results);
-    }
-  });
-};
+// Update an existing OrderDetail and recalculate total
+const updateOrderDetail = (id, data, callback) => {
+    const {
+      O_orderID,
+      P_productCode,
+      D_productDiscountID,
+      OD_quantity,
+      OD_unitPrice,
+      OD_discountAmount,
+    } = data;
+  
+    // Calculate total amount
+    const OD_totalItemAmount = (OD_unitPrice * OD_quantity) - OD_discountAmount;
+  
+    const query = `
+      UPDATE OrderDetails 
+      SET 
+        O_orderID = ?, 
+        P_productCode = ?, 
+        D_productDiscountID = ?, 
+        OD_quantity = ?, 
+        OD_unitPrice = ?, 
+        OD_discountAmount = ?, 
+        OD_totalItemAmount = ?
+      WHERE OD_detailID = ?`;
+  
+    db.query(
+      query,
+      [
+        O_orderID,
+        P_productCode,
+        D_productDiscountID,
+        OD_quantity,
+        OD_unitPrice,
+        OD_discountAmount,
+        OD_totalItemAmount,
+        id
+      ],
+      (err, results) => {
+        if (err) {
+          callback(err, null);
+        } else {
+          callback(null, results);
+        }
+      }
+    );
+  };
+  
 
-// Delete a SupBrdCatStatus type
-const deleteSBCS = (id, callback) => {
-  const query = `DELETE FROM SupBrdCatStatus WHERE SupBrdCatStatusID = ?`;
+// Delete an OrderDetail
+const deleteOrderDetail = (id, callback) => {
+  const query = `DELETE FROM OrderDetails WHERE OD_detailID = ?`;
   db.query(query, [id], (err, results) => {
     if (err) {
       callback(err, null);
@@ -51,8 +127,8 @@ const deleteSBCS = (id, callback) => {
 };
 
 module.exports = {
-  getAllSBCS,
-  addSBCS,
-  updateSBCS,
-  deleteSBCS,
+  getAllOrderDetails,
+  addOrderDetail,
+  updateOrderDetail,
+  deleteOrderDetail,
 };

@@ -30,7 +30,7 @@ const addBrand = (req, res) => {
       }
       return res.status(500).json({ message: 'Error inserting brand' });
     }
-    res.status(201).json({ message: 'Brand added successfully', id: supplierId });
+    res.status(201).json({ message: 'Brand added successfully', id: brandId });
   });
 };
 

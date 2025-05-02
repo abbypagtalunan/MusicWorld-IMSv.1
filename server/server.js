@@ -30,12 +30,12 @@ const returnsRoutes = require('./src/routes/returnsRoutes');
 const supBrdCatStatusRoutes = require('./src/routes/SupBrdCatStatusRoutes');
 const returnTypeRoutes = require('./src/routes/returnTypeRoutes'); // ←
 const discountRoutes = require('./src/routes/discountRoutes');
+const orderRoutes = require('./src/routes/orderRoutes');
+const orderDetailsRoutes = require('./src/routes/orderDetailsRoutes');
+const transactionRoutes = require('./src/routes/transactionRoutes');
 
-// Routes for Deliveries
 app.use('/deliveryProducts', require('./src/routes/deliveryRoutes'));
 app.use('/deliveryPaymentDetails', require('./src/routes/deliveryRoutes'));
-
-// Use all routes for each entity here
 app.use("/suppliers", supplierRoutes);
 app.use("/brands", brandRoutes);
 app.use("/categories", categoryRoutes);
@@ -49,10 +49,12 @@ app.use("/deliveryPaymentTypes", deliveryPaymentTypesRoutes);
 app.use("/deliveryPaymentStatus", deliveryPaymentStatusRoutes);
 app.use('/returns', returnsRoutes);
 app.use("/supBrdCatStatus", supBrdCatStatusRoutes);
-
-//Routes for Transaction - Ordering - Discounts
 app.use('/discounts', discountRoutes);
 app.use("/returnTypes", returnTypeRoutes);
+app.use("/orders", orderRoutes);
+app.use("/orderDetails", orderDetailsRoutes);
+app.use("/transactions", transactionRoutes);
+
 
 // Log that server is running
 const PORT = process.env.PORT || 8080;
