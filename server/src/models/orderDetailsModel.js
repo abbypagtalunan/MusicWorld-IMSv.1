@@ -13,7 +13,7 @@ const getAllOrderDetails = (callback) => {
       od.OD_quantity,
       od.OD_unitPrice,
       od.OD_discountAmount,
-      (od.OD_unitPrice * od.OD_quantity) - od.OD_discountAmount AS OD_totalItemAmount
+      OD_itemTotal
     FROM OrderDetails od
     LEFT JOIN Products p ON od.P_productCode = p.P_productCode
     LEFT JOIN Discounts d ON od.D_productDiscountID = d.D_productDiscountID
@@ -27,7 +27,6 @@ const getAllOrderDetails = (callback) => {
     }
   });
 };
-
 
 // Add a new OrderDetail
 const addOrderDetail = (data, callback) => {
@@ -113,7 +112,6 @@ const updateOrderDetail = (id, data, callback) => {
     );
   };
   
-
 // Delete an OrderDetail
 const deleteOrderDetail = (id, callback) => {
   const query = `DELETE FROM OrderDetails WHERE OD_detailID = ?`;

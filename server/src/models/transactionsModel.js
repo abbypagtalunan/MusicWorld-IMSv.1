@@ -2,17 +2,14 @@ const db = require('../../db');
 
 // Get all transactions
 const getAllTransactions = (callback) => {
-  const query = 
-    `SELECT 
-        T_transactionID, 
-        O_orderID, 
-        T_totalAmount, 
-        D_wholeOrderDiscount, 
-        D_totalProductDiscount, 
-        T_transactionDate, 
-        TT_transactionTypeID
-        FROM Transactions`;
-  
+  const query = `
+    SELECT 
+      T_transactionID, 
+      T_transactionDate, 
+      T_transactionType
+    FROM Transactions
+    ORDER BY T_transactionID`;
+
   db.query(query, (err, results) => {
     if (err) {
       callback(err, null);
@@ -24,30 +21,16 @@ const getAllTransactions = (callback) => {
 
 // Add a new transaction
 const addTransaction = (data, callback) => {
-  const {
-    O_orderID,
-    T_totalAmount,
-    D_wholeOrderDiscount,
-    D_totalProductDiscount,
-    T_transactionDate,
-    TT_transactionTypeID,
-  } = data;
+  const { T_transactionDate, T_transactionType } = data;
 
   const query = `
     INSERT INTO Transactions 
-    (O_orderID, T_totalAmount, D_wholeOrderDiscount, D_totalProductDiscount, T_transactionDate, TT_transactionTypeID) 
-    VALUES (?, ?, ?, ?, ?, ?)`;
+    (T_transactionDate, T_transactionType) 
+    VALUES (?, ?)`;
 
   db.query(
     query,
-    [
-      O_orderID,
-      T_totalAmount,
-      D_wholeOrderDiscount,
-      D_totalProductDiscount,
-      T_transactionDate,
-      TT_transactionTypeID,
-    ],
+    [T_transactionDate, T_transactionType],
     (err, results) => {
       if (err) {
         callback(err, null);
@@ -60,37 +43,18 @@ const addTransaction = (data, callback) => {
 
 // Update an existing transaction
 const updateTransaction = (id, data, callback) => {
-  const {
-    O_orderID,
-    T_totalAmount,
-    D_wholeOrderDiscount,
-    D_totalProductDiscount,
-    T_transactionDate,
-    TT_transactionTypeID,
-  } = data;
+  const { T_transactionDate, T_transactionType } = data;
 
   const query = `
     UPDATE Transactions 
     SET 
-      O_orderID = ?, 
-      T_totalAmount = ?, 
-      D_wholeOrderDiscount = ?, 
-      D_totalProductDiscount = ?, 
       T_transactionDate = ?, 
-      TT_transactionTypeID = ?
+      T_transactionType = ?
     WHERE T_transactionID = ?`;
 
   db.query(
     query,
-    [
-      O_orderID,
-      T_totalAmount,
-      D_wholeOrderDiscount,
-      D_totalProductDiscount,
-      T_transactionDate,
-      TT_transactionTypeID,
-      id,
-    ],
+    [T_transactionDate, T_transactionType, id],
     (err, results) => {
       if (err) {
         callback(err, null);

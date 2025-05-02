@@ -12,28 +12,40 @@ const getAllOrders = (req, res) => {
   });
 };
 
+// Add a new order
 const addOrder = (req, res) => {
-  const { O_receiptNumber } = req.body;
+  const { O_receiptNumber, T_totalAmount, D_wholeOrderDiscount, D_totalProductDiscount, T_transactionID } = req.body;
 
   // Validate receipt number
   if (!O_receiptNumber || isNaN(O_receiptNumber)) {
     return res.status(400).json({ message: 'Invalid or missing receipt number' });
   }
 
+  // Validate total amount
+  if (typeof T_totalAmount !== 'number' || T_totalAmount < 0) {
+    return res.status(400).json({ message: 'Invalid total amount' });
+  }
+
+  // Validate transaction ID
+  if (!T_transactionID || isNaN(T_transactionID)) {
+    return res.status(400).json({ message: 'Invalid transaction ID' });
+  }
+
   // Check for duplicate receipt number
   db.query('SELECT COUNT(*) AS count FROM Orders WHERE O_receiptNumber = ?', [O_receiptNumber], (checkErr, results) => {
     if (checkErr) {
-      return res.status(409).json({ message: 'Receipt number already exists' });
+      console.error('Error checking receipt number:', checkErr);
+      return res.status(500).json({ message: 'Error checking receipt number' });
     }
 
-    // If duplicate exists
     if (results[0].count > 0) {
       return res.status(409).json({ message: 'Receipt number already exists' });
     }
 
     // No duplicates, insert the order
-    ordersModel.addOrder({ O_receiptNumber }, (err, orderId) => {
+    ordersModel.addOrder({ O_receiptNumber, T_totalAmount, D_wholeOrderDiscount, D_totalProductDiscount, T_transactionID }, (err, orderId) => {
       if (err) {
+        console.error('Error inserting order:', err);
         return res.status(500).json({ message: 'Error inserting order' });
       }
       return res.status(201).json({ message: 'Order added successfully', id: orderId });
@@ -41,17 +53,28 @@ const addOrder = (req, res) => {
   });
 };
 
-
-// PUT update order
+// Update an existing order
 const updateOrder = (req, res) => {
   const orderId = req.params.id;
-  const { O_receiptNumber } = req.body;
+  const { O_receiptNumber, T_totalAmount, D_wholeOrderDiscount, D_totalProductDiscount, T_transactionID } = req.body;
 
+  // Validate receipt number
   if (!O_receiptNumber || isNaN(O_receiptNumber)) {
     return res.status(400).json({ message: 'Invalid or missing receipt number' });
   }
 
-  ordersModel.updateOrder(orderId, { O_receiptNumber }, (err, results) => {
+  // Validate total amount
+  if (typeof T_totalAmount !== 'number' || T_totalAmount < 0) {
+    return res.status(400).json({ message: 'Invalid total amount' });
+  }
+
+  // Validate transaction ID
+  if (!T_transactionID || isNaN(T_transactionID)) {
+    return res.status(400).json({ message: 'Invalid transaction ID' });
+  }
+
+  // Update the order in the model
+  ordersModel.updateOrder(orderId, { O_receiptNumber, T_totalAmount, D_wholeOrderDiscount, D_totalProductDiscount, T_transactionID }, (err, results) => {
     if (err) {
       console.error('Error updating order:', err);
       return res.status(500).json({ message: 'Error updating order' });
@@ -69,10 +92,15 @@ const updateOrder = (req, res) => {
 const deleteOrder = (req, res) => {
   const orderId = req.params.id;
 
+  // Delete the order in the model
   ordersModel.deleteOrder(orderId, (err, results) => {
     if (err) {
       console.error('Error deleting order:', err);
       return res.status(500).json({ message: 'Error deleting order' });
+    }
+
+    if (results.affectedRows === 0) {
+      return res.status(404).json({ message: 'Order not found' });
     }
 
     res.status(200).json({ message: 'Order deleted successfully' });

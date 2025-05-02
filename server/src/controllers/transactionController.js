@@ -14,35 +14,16 @@ const getAllTransactions = (req, res) => {
 
 // Route to add a new transaction
 const addTransaction = (req, res) => {
-  const {
-    O_orderID,
-    T_totalAmount,
-    D_wholeOrderDiscount,
-    D_totalProductDiscount,
-    T_transactionDate,
-    TT_transactionTypeID,
-  } = req.body;
+  const { T_transactionDate, T_transactionType } = req.body;
 
-  if (
-    !O_orderID ||
-    T_totalAmount == null ||
-    D_wholeOrderDiscount == null ||
-    D_totalProductDiscount == null ||
-    !T_transactionDate ||
-    !TT_transactionTypeID
-  ) {
+  // Validate required fields
+  if (!T_transactionDate || !T_transactionType) {
     return res.status(400).json({ message: 'Missing required fields' });
   }
 
+  // Add the transaction
   transactionModel.addTransaction(
-    {
-      O_orderID,
-      T_totalAmount,
-      D_wholeOrderDiscount,
-      D_totalProductDiscount,
-      T_transactionDate,
-      TT_transactionTypeID,
-    },
+    { T_transactionDate, T_transactionType },
     (err, insertId) => {
       if (err) {
         console.error('Error inserting transaction:', err);
@@ -56,36 +37,17 @@ const addTransaction = (req, res) => {
 // Route to update a transaction
 const updateTransaction = (req, res) => {
   const transactionId = req.params.id;
-  const {
-    O_orderID,
-    T_totalAmount,
-    D_wholeOrderDiscount,
-    D_totalProductDiscount,
-    T_transactionDate,
-    TT_transactionTypeID,
-  } = req.body;
+  const { T_transactionDate, T_transactionType } = req.body;
 
-  if (
-    !O_orderID ||
-    T_totalAmount == null ||
-    D_wholeOrderDiscount == null ||
-    D_totalProductDiscount == null ||
-    !T_transactionDate ||
-    !TT_transactionTypeID
-  ) {
+  // Validate required fields
+  if (!T_transactionDate || !T_transactionType) {
     return res.status(400).json({ message: 'Missing required fields' });
   }
 
+  // Update the transaction
   transactionModel.updateTransaction(
     transactionId,
-    {
-      O_orderID,
-      T_totalAmount,
-      D_wholeOrderDiscount,
-      D_totalProductDiscount,
-      T_transactionDate,
-      TT_transactionTypeID,
-    },
+    { T_transactionDate, T_transactionType },
     (err, results) => {
       if (err) {
         console.error('Error updating transaction:', err);
@@ -107,10 +69,9 @@ const deleteTransaction = (req, res) => {
   transactionModel.deleteTransaction(transactionId, (err, results) => {
     if (err) {
       console.error('Error deleting transaction:', err);
-      res.status(500).json({ message: 'Error deleting transaction', results });
-    } else {
-      res.status(200).json({ message: 'Transaction deleted successfully', results });
+      return res.status(500).json({ message: 'Error deleting transaction', results });
     }
+    res.status(200).json({ message: 'Transaction deleted successfully', results });
   });
 };
 
