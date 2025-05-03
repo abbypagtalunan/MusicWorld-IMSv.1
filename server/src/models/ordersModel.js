@@ -4,14 +4,24 @@ const db = require('../../db');
 const getAllOrders = (callback) => {
   const query = `
     SELECT 
-      O_orderID,
-      O_receiptNumber,
-      T_totalAmount,
-      D_wholeOrderDiscount,
-      D_totalProductDiscount,
-      T_transactionID
-    FROM Orders
-    ORDER BY O_orderID`;
+      o.O_orderID,
+      o.O_receiptNumber,
+      o.T_totalAmount,
+      o.D_wholeOrderDiscount,
+      SUM(od.OD_discountAmount) AS D_totalProductDiscount,
+      o.T_transactionDate,
+      o.isTemporarilyDeleted
+    FROM Orders o
+    LEFT JOIN OrderDetails od ON o.O_orderID = od.O_orderID
+    GROUP BY 
+      o.O_orderID,
+      o.O_receiptNumber,
+      o.T_totalAmount,
+      o.D_wholeOrderDiscount,
+      o.T_transactionDate,
+      o.isTemporarilyDeleted
+    ORDER BY o.O_orderID;
+`;
 
   db.query(query, (err, results) => {
     if (err) {
@@ -24,9 +34,9 @@ const getAllOrders = (callback) => {
 
 // Add a new order
 const addOrder = (data, callback) => {
-  const { O_receiptNumber } = data;
+  const { O_receiptNumber, T_totalAmount, D_wholeOrderDiscount, T_transactionDate } = data;
 
-  // Check if the receipt number already exists
+  // Step 1: Check if the receipt number already exists
   checkReceiptNumber(O_receiptNumber, (err, existingOrder) => {
     if (err) {
       return callback(err, null);
@@ -36,22 +46,55 @@ const addOrder = (data, callback) => {
       return callback(new Error("Receipt number already exists."), null);
     }
 
-    // Insert new order if receipt number doesn't exist
-    const { T_totalAmount, D_wholeOrderDiscount, D_totalProductDiscount, T_transactionID } = data;
-    const query = `
+    // Step 2: Insert new order with a placeholder discount (0 for now)
+    const insertOrderQuery = `
       INSERT INTO Orders 
-      (O_receiptNumber, T_totalAmount, D_wholeOrderDiscount, D_totalProductDiscount, T_transactionID)
+      (O_receiptNumber, T_totalAmount, D_wholeOrderDiscount, D_totalProductDiscount, T_transactionDate)
       VALUES (?, ?, ?, ?, ?)`;
 
-    db.query(query, [O_receiptNumber, T_totalAmount, D_wholeOrderDiscount, D_totalProductDiscount, T_transactionID], (err, results) => {
-      if (err) {
-        callback(err, null);
-      } else {
-        callback(null, results.insertId);  // Return the inserted order's ID
+    db.query(
+      insertOrderQuery,
+      [O_receiptNumber, T_totalAmount, D_wholeOrderDiscount, 0.00, T_transactionDate],
+      (err, results) => {
+        if (err) {
+          return callback(err, null);
+        }
+
+        const orderId = results.insertId;
+
+        // Step 3: Compute total discount from OrderDetails for this order
+        const discountSumQuery = `
+          SELECT SUM(OD_discountAmount) AS totalDiscount
+          FROM OrderDetails
+          WHERE O_orderID = ?`;
+
+        db.query(discountSumQuery, [orderId], (err, discountResults) => {
+          if (err) {
+            return callback(err, null);
+          }
+
+          const totalDiscount = discountResults[0].totalDiscount || 0;
+
+          // Step 4: Update the inserted order with the computed discount
+          const updateDiscountQuery = `
+            UPDATE Orders 
+            SET D_totalProductDiscount = ?
+            WHERE O_orderID = ?`;
+
+          db.query(updateDiscountQuery, [totalDiscount, orderId], (err) => {
+            if (err) {
+              return callback(err, null);
+            }
+
+            // Final callback: success, return the new order ID
+            callback(null, orderId);
+          });
+        });
       }
-    });
+    );
   });
 };
+
 
 // Update an existing order
 const updateOrder = (id, data, callback) => {

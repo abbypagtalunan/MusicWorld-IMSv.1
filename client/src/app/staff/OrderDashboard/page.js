@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from 'react';
+import { useEffect, useState } from "react";
 import { AppSidebar } from "@/components/staff-sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import getColumns from "../../../components/ui/columns";
@@ -13,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import axios from "axios";
-import toast from "react-hot-toast";
+import { toast, Toaster } from "react-hot-toast";
 
 const OrderDashboard = () => {
   const [data, setData] = useState([]);
@@ -49,65 +50,98 @@ const OrderDashboard = () => {
 
   const handlePaymentConfirmation = (e) => {
     e.preventDefault();
-    const payload = {
+  
+    // // Validation
+    // if (selectedProduct === null || selectedProduct === "") {
+    //   toast.error("Please add a product order.");
+    //   return;
+    // }
+  
+    if (payment === 0) {
+      toast.error("Enter payment.");
+      return;
+    }
+    if (!receiptNumber) {
+      toast.error("Enter receipt number.");
+      return;
+    }
+  
+    // Calculate total product discount
+    const totalProductDiscount = data.reduce((sum, item) => {
+      const discountValue = parseFloat(item["Discount Value"]) || 0;
+      return sum + discountValue;
+    }, 0);
+  
+    const transactionDate = new Date(Date.now() + 8 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 19)
+      .replace('T', ' ');
+  
+    // Create the Order
+    const orderPayload = {
       O_receiptNumber: receiptNumber,
+      T_totalAmount: discountedTotal,
+      D_wholeOrderDiscount: wholeOrderDiscount || 0,
+      D_totalProductDiscount: totalProductDiscount,
+      T_transactionDate: transactionDate,
+      isTemporarilyDeleted: false,
     };
+    console.log("Order Payload:", orderPayload);
   
-    // 1. Create the Order
-    axios.post("http://localhost:8080/orders", payload)
+    axios.post("http://localhost:8080/orders", orderPayload)
       .then((response) => {
-        toast.success("Order successfully placed!");
+        const orderId = response.data.id;
   
-        // 2. Calculate total product discount
-        const totalProductDiscount = data.reduce((sum, item) => {
+        // Create each Order Detail individually (no Promise.all)
+        data.forEach((item) => {
+          const isFreebie = item.Product?.includes('(Freebie)');
           const price = parseFloat(item["Price"]) || 0;
+          const discount = parseFloat(item["Discount"]) || 0;
           const quantity = parseInt(item["Quantity"]) || 0;
-          const discountValue = item["Discount Value"] || 0;
-          return sum + (discountValue > 0 ? discountValue : 0);
-        }, 0);
+          const itemTotal = isFreebie ? 0 : (price - discount) * quantity;
   
-        // 3. Create the Transaction
-        const transactionPayload = {
-          O_orderID: response.data.id,  // assuming new order ID is returned from the response
-          T_totalAmount: discountedTotal,
-          D_wholeOrderDiscount: wholeOrderDiscount || 0,
-          D_totalProductDiscount: totalProductDiscount,
-          T_transactionDate: new Date(),
-        };
+          const detailPayload = {
+            O_orderID: orderId,
+            P_productCode: item["Product Code"],
+            D_productDiscountID: isFreebie ? null : item["Discount ID"] || null,
+            OD_quantity: quantity,
+            OD_unitPrice: isFreebie ? 0.00 : price,
+            OD_discountAmount: isFreebie ? 0.00 : discount,
+            OD_itemTotal: itemTotal,
+          };
+          console.log("Order Detail Payload:", detailPayload);
   
-        return axios.post("http://localhost:8080/transactions", transactionPayload);
-      })
-      .then((transactionResponse) => {
-        // 4. Create Order Details
-        const orderDetails = data.map((item) => ({
-          O_orderID: item["Order ID"],
-          P_productCode: item["Product Code"],
-          D_productDiscountID: item["Discount ID"] || null,
-          OD_quantity: item["Quantity"],
-          OD_unitPrice: item["Price"],
-        }));
-  
-        return axios.post("http://localhost:8080/orderDetails", orderDetails);
+          axios.post("http://localhost:8080/orderDetails", detailPayload)
+          .catch(err => {
+            console.error("Failed to save order detail:", detailPayload, err.response?.data || err.message);
+          });
+        });
       })
       .then(() => {
-        // Success message after all operations
-        toast.success("Payment confirmed and order id successfully added!");
+        toast.success("Payment confirmed and order successfully added!");
         setIsModalOpen(false);
-        window.location.reload();
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
       })
       .catch((err) => {
         console.error("Error processing payment:", err);
-        
-        if (err.response?.status === 409 || err.response?.data?.message?.includes('Orders.O_receiptNumber')) {
+  
+        if (
+          err.response?.status === 409 ||
+          err.response?.data?.message?.includes('Orders.O_receiptNumber')
+        ) {
           toast.error(`Receipt Number already exists. Enter a different receipt`);
-        } 
-        else {
-          toast.error(`Error`);
+        } else {
+          toast.error(`An error occurred while saving the order.`);
         }
+
       });
   };
   
-  // Fetch data
+  
+  
+  // Fetch data for product list
   useEffect(() => {
     axios
       .get("http://localhost:8080/products")
@@ -137,7 +171,7 @@ const OrderDashboard = () => {
   };
 
   const handleAddOrderItem = () => {
-    if (!selectedProduct || orderQuantity <= 0) return;
+    if (!selectedProduct || orderQuantity <= 0) {}
   
     const price = selectedProduct.price;
     const discountAmount = orderDiscount || 0;
@@ -204,7 +238,7 @@ const OrderDashboard = () => {
     "Product Code": selectedFreebie.code,
     "Supplier": selectedFreebie.supplier,
     "Brand": selectedFreebie.brand,
-    "Product": `${selectedFreebie.name} (Freebie)`,
+    "Product": `(Freebie)${selectedFreebie.name}`,
     "Price": 0,
     "Discount": 0,
     "Quantity": freebieQuantity,
@@ -325,10 +359,9 @@ const OrderDashboard = () => {
                           value={payment === 0 ? "" : payment.toLocaleString("en-PH")}
                           onChange={(e) => {
                             setHasInteractedWithPayModal(true);
-                            const rawValue = e.target.value.replace(/[^0-9.]/g, ""); // Remove any non-numeric characters except dot
+                            const rawValue = e.target.value.replace(/[^0-9.]/g, ""); 
                             const updatedPayment = rawValue === "" ? 0 : parseFloat(rawValue);
                             setPayment(updatedPayment);
-                            console.log("Updated payment amount:", updatedPayment);  // Log payment update
                           }}
                           onBlur={() => {
                             if (!payment || parseFloat(payment.toString().replace(/,/g, "")) < discountedTotal) {
@@ -354,11 +387,13 @@ const OrderDashboard = () => {
                         {receiptNumberError ? "Enter a valid receipt number" : "Enter Receipt Number"}
                       </label>
                       <input
-                        type="text" // Use type text to avoid browser auto-formatting of number inputs
+                        type="text"
                         value={receiptNumber}
                         onChange={(e) => {
                           const value = e.target.value.replace(/[^0-9]/g, '');
                           setReceiptNumber(value);
+                          console.log("Payment: ", payment);
+                          console.log("Total Amount: ", totalAmount);
                           if (value.trim() !== "") setReceiptNumberError(false); 
                         }}
                         onBlur={() => {
@@ -369,6 +404,7 @@ const OrderDashboard = () => {
                         onMouseLeave={() => {
                           if (!receiptNumber || !Number.isInteger(Number(receiptNumber))) {
                             setReceiptNumberError(true);
+                            console.log("Receipt: ", receiptNumber);
                           }
                         }}
                         className={`w-[80%] px-2 py-1 border rounded-md text-center focus:outline-none ${
@@ -377,11 +413,18 @@ const OrderDashboard = () => {
                       />
 
                         <button
-                          className="mt-4 p-1 text-[15px] w-[80%] bg-blue-600 text-white rounded-md"
+                          className={`mt-4 p-1 text-[15px] w-[80%] rounded-md 
+                            ${
+                              payment < totalAmount || receiptNumber === "" || payment === 0 
+                                ? "bg-gray-400 cursor-not-allowed text-white"
+                                : "bg-blue-600 hover:bg-blue-700 text-white"
+                            }`}
                           onClick={handlePaymentConfirmation}
+                          disabled={ payment === 0 || payment < totalAmount || receiptNumber === ""}
                         >
                           Enter Payment
                         </button>
+                      
 
                         <p className="pl-9 mb-5 mt-2 text-start text-[13px] font-bold text-blue-600">
                           CHANGE: {new Intl.NumberFormat("en-PH", { 
@@ -501,23 +544,23 @@ const OrderDashboard = () => {
                     <DropdownMenuItem
                       key={itemDiscount.D_productDiscountID}
                       onClick={() => {
+                        const discountType = itemDiscount.D_discountType;
+                        const currentPrice = parseFloat(selectedProduct?.price);
+                        const currentQuantity = parseInt(orderQuantity);
+                      
                         setSelectedProductDiscount(itemDiscount);
-
-                        // Automatically compute discount if it's a percentage
-                        const type = itemDiscount.D_discountType;
-                        const price = parseFloat(selectedProduct?.price) || 0;
-                        const quantity = parseInt(orderQuantity) || 0;
-
-                        if (type.includes("%")) {
-                          const percent = parseFloat(type); // E.g. "10%" becomes 10
-                          const computed = (price * quantity) * (percent / 100);
+                      
+                        if (discountType.includes("%")) {
+                          const percent = parseFloat(discountType); // e.g. "10%" becomes 10
+                          const computed = currentPrice * currentQuantity * (percent / 100);
                           setOrderDiscount(computed.toFixed(2));
-                        } else if (type.toLowerCase().includes("specific")) {
-                          setOrderDiscount(""); // Let user type manually
+                        } else if (discountType.toLowerCase().includes("specific")) {
+                          setOrderDiscount(""); // User will type manually
                         } else {
                           setOrderDiscount("0");
                         }
                       }}
+                      
                     >
                       {itemDiscount.D_discountType}
                     </DropdownMenuItem>
@@ -541,9 +584,9 @@ const OrderDashboard = () => {
                   onChange={(e) => {
                     const value = e.target.value;
                     if (/^(\d+(\.\d{0,2})?)?$/.test(value)) {
-                      setOrderDiscount(value);
+                      setOrderDiscount(value === "" ? 0 : parseFloat(value));
                     }
-                  }}
+                  }}                  
                   className={`w-full pl-6 border rounded-md px-3 py-2 text-sm ${
                     selectedProductDiscount?.D_discountType?.toLowerCase().includes(
                       "specific"
@@ -552,8 +595,6 @@ const OrderDashboard = () => {
                       : "bg-gray-100 text-gray-500 border-gray-200 cursor-not-allowed"
                   }`}
                 />
-
-
 
                 <label className="block text-sm">Total</label>
                 <input
@@ -572,7 +613,6 @@ const OrderDashboard = () => {
                   disabled
                   className="w-full pl-6 border border-gray-300 rounded-md px-3 py-2 text-sm bg-gray-100 text-gray-500"
                 />
-
 
               <button
                 type="button"
@@ -643,6 +683,7 @@ const OrderDashboard = () => {
           </div>
         </div>
       </div>
+      <Toaster position="top-right" />
     </SidebarProvider>
   );
 };

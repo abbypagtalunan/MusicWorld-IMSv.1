@@ -13,7 +13,7 @@ const getAllOrderDetails = (callback) => {
       od.OD_quantity,
       od.OD_unitPrice,
       od.OD_discountAmount,
-      OD_itemTotal
+      OD_itemTotal,
     FROM OrderDetails od
     LEFT JOIN Products p ON od.P_productCode = p.P_productCode
     LEFT JOIN Discounts d ON od.D_productDiscountID = d.D_productDiscountID
