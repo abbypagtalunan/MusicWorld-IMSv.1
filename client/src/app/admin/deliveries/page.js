@@ -646,6 +646,7 @@ export default function DeliveriesPage() {
                                     value={paymentDetails[d.deliveryNum]?.paymentType || ""}
                                     onValueChange={(value) => updatePaymentDetail(d.deliveryNum, 'paymentType', value)}
                                     name="paymentType"
+                                    disabled={true}
                                   >
                                     <SelectTrigger id="paymentType">
                                       <SelectValue placeholder="Select payment type" />
@@ -704,8 +705,8 @@ export default function DeliveriesPage() {
                                   <Input 
                                     id="paymentDateDue" 
                                     type="date" 
-                                    value={paymentDetails[d.deliveryNum]?.dateDue || ""}
-                                    onChange={(e) => updatePaymentDetail(d.deliveryNum, 'dateDue', e.target.value)}
+                                    value={paymentDetails[d.deliveryNum]?.dateDue || "-"}
+                                    readOnly
                                   />
                                 </div>
                                 <div className="col-span-3">
@@ -713,8 +714,8 @@ export default function DeliveriesPage() {
                                   <Input 
                                     id="paymentDate1" 
                                     type="date" 
-                                    value={paymentDetails[d.deliveryNum]?.datePayment1 || ""}
-                                    onChange={(e) => updatePaymentDetail(d.deliveryNum, 'datePayment1', e.target.value)}
+                                    value={paymentDetails[d.deliveryNum]?.datePayment1 || "-"}
+                                    readOnly
                                   />
                                 </div>
                                 <div className="col-span-3">
@@ -722,20 +723,9 @@ export default function DeliveriesPage() {
                                   <Input 
                                     id="paymentDate2" 
                                     type="date" 
-                                    value={paymentDetails[d.deliveryNum]?.datePayment2 || ""}
-                                    onChange={(e) => updatePaymentDetail(d.deliveryNum, 'datePayment2', e.target.value)}
+                                    value={paymentDetails[d.deliveryNum]?.datePayment2 || "-"}
+                                    readOnly
                                   />
-                                </div>
-                                
-                                {/* Save button for payment details */}
-                                <div className="col-span-12 mt-6 flex justify-end">
-                                  <Button 
-                                    onClick={() => handleSavePaymentDetails(d.deliveryNum)}
-                                    className="bg-green-600 hover:bg-green-700 text-white"
-                                  >
-                                    <Save className="w-4 h-4 mr-2" />
-                                    Save Payment Details
-                                  </Button>
                                 </div>
                               </div>
                             </div>

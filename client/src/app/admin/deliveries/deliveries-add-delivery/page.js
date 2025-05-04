@@ -234,70 +234,6 @@ export default function BatchDeliveriesPage() {
     toast.success("Product removed from delivery");
   };
 
-  // Apply filter to load a specific delivery
-  const handleApplyFilter = () => {
-    if (!deliveryNumber) {
-      toast.error("Please enter a delivery number");
-      return;
-    }
-    
-    setLoading(true);
-    
-    // Fetch delivery details
-    axios.get(`${API_CONFIG.deliveries}/search?deliveryNumber=${deliveryNumber}`)
-      .then(res => {
-        if (res.data && res.data.length > 0) {
-          const delivery = res.data[0];
-          setDeliveryDate(new Date(delivery.D_deliveryDate).toISOString().split('T')[0]);
-          setSelectedSupplier(delivery.S_supplierID);
-          
-          // Fetch products for this delivery
-          return axios.get(`${API_CONFIG.deliveryProducts}/${deliveryNumber}`);
-        } else {
-          toast.error("No delivery found with that number");
-          throw new Error("Delivery not found");
-        }
-      })
-      .then(res => {
-        // Transform product data to match our format
-        const formattedProducts = res.data.map(item => ({
-          productCode: item.P_productCode,
-          supplier: item.supplierName || selectedSupplier,
-          brand: item.brandName || "",
-          product: item.productName || "",
-          quantity: `${item.DPD_quantity} ${parseInt(item.DPD_quantity) > 1 ? 'pcs' : 'pc'}`,
-          unitPrice: parseInt(item.DPD_unitPrice).toLocaleString(),
-          total: (parseInt(item.DPD_unitPrice) * item.DPD_quantity).toLocaleString()
-        }));
-        
-        setProductItems(formattedProducts);
-        
-        // Fetch payment details for this delivery
-        return axios.get(`${API_CONFIG.paymentDetails}/${deliveryNumber}`);
-      })
-      .then(res => {
-        if (res.data) {
-          setPaymentDetails({
-            paymentType: res.data.D_paymentTypeID.toString(),
-            paymentMode: res.data.D_modeOfPaymentID.toString(),
-            paymentStatus: res.data.D_paymentStatusID.toString(),
-            dateDue: formatDateForInput(res.data.DPD_dateOfPaymentDue),
-            datePayment1: formatDateForInput(res.data.DPD_dateOfPayment1),
-            datePayment2: formatDateForInput(res.data.DPD_dateOfPayment2) || ""
-          });
-        }
-      })
-      .catch(error => {
-        console.error("Error fetching delivery:", error);
-        if (!error.message || error.message !== "Delivery not found") {
-          toast.error("Error loading delivery data");
-        }
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  };
-
   // Format date for input fields
   const formatDateForInput = (dateString) => {
     if (!dateString) return "";
@@ -508,21 +444,12 @@ export default function BatchDeliveriesPage() {
                     <Label htmlFor="deliveryNumber" className="mb-1 block">Delivery Number</Label>
                     <Input 
                       id="deliveryNumber" 
-                      placeholder="DR-12354" 
+                      placeholder="Enter number only"
                       className="text-center"
                       value={deliveryNumber}
                       onChange={(e) => setDeliveryNumber(e.target.value)}
+                      autoComplete="off"
                     />
-                  </div>
-                  <div className="flex items-end">
-                    <Button 
-                      className="bg-blue-400 text-white"
-                      onClick={handleApplyFilter}
-                      disabled={loading}
-                    >
-                      <Filter size={16} className="mr-2" />
-                      {loading ? "Loading..." : "Apply Filter"}
-                    </Button>
                   </div>
                 </div>
               </div>
@@ -744,15 +671,6 @@ export default function BatchDeliveriesPage() {
             <CardContent className="p-4">
               <div className="grid grid-cols-12 gap-4">
                 {/* First row */}
-                <div className="col-span-3">
-                  <Label htmlFor="paymentDeliveryNumber" className="mb-1 block">Delivery Number</Label>
-                  <Input 
-                    id="paymentDeliveryNumber" 
-                    value={deliveryNumber} 
-                    className="bg-gray-200 text-center" 
-                    readOnly 
-                  />
-                </div>
                 <div className="col-span-3">
                   <Label htmlFor="paymentAmount" className="mb-1 block">Amount</Label>
                   <Input 
