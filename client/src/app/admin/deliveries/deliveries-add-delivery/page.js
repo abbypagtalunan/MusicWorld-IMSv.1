@@ -197,6 +197,37 @@ export default function BatchDeliveriesPage() {
       return;
     }
 
+    // Find the selected product in the products array
+    const selectedProduct = products.find(p => p.P_productName === newProduct.product);
+    
+    if (!selectedProduct) {
+      toast.error("Product not found");
+      return;
+    }
+    
+    // Find the selected brand
+    const selectedBrand = brands.find(b => b.B_brandName === newProduct.brand);
+    
+    if (!selectedBrand) {
+      toast.error("Brand not found");
+      return;
+    }
+    
+    // Find the expected brand for this product
+    const productBrand = brands.find(b => b.B_brandID === selectedProduct.B_brandID);
+    
+    // Only check supplier match since we have an issue with product's brand ID
+    if (String(selectedProduct.S_supplierID) !== String(newProduct.supplier)) {
+      toast.error("Product with the given supplier not found");
+      return;
+    }
+    
+    // Check if selected brand name matches the product's expected brand name
+    if (productBrand && productBrand.B_brandName !== newProduct.brand) {
+      toast.error(`Product is associated with brand "${productBrand.B_brandName}", not "${newProduct.brand}"`);
+      return;
+    }
+
     // Format the values
     const quantity = `${newProduct.quantity} ${parseInt(newProduct.quantity) > 1 ? 'pcs' : 'pc'}`;
     const unitPrice = parseInt(newProduct.unitPrice).toLocaleString();
@@ -204,7 +235,7 @@ export default function BatchDeliveriesPage() {
 
     // Create new product object
     const productToAdd = {
-      productCode: generateProductCode(),
+      productCode: selectedProduct.P_productCode || generateProductCode(),
       supplier: suppliers.find(s => s.S_supplierID === newProduct.supplier)?.S_supplierName || newProduct.supplier,
       brand: newProduct.brand,
       product: newProduct.product,
