@@ -436,14 +436,28 @@ export default function ProductsPage() {
         setDDOpen(false);
       })
       .catch(err => {
-        console.error("Delete error:", err.response?.data || err);
-        toast.error(err.response?.data?.message || "Error deleting product");
+        console.error("Delete error:", {
+          message: err.message,
+          response: err.response,
+          data: err.response?.data,
+          status: err.response?.status
+        });
+      
+        const msg =
+          err.response?.data?.message ||
+          err.response?.statusText ||
+          err.message ||
+          "Unknown error deleting product";
+      
+        toast.error(msg);
       });
   };
   
 
   // Multiple Delete
   const [selectedProducts, setSelectedProducts] = useState([]);
+  const filteredProducts = getFilteredTransactions();
+  const allFilteredSelected = filteredProducts.length > 0 && filteredProducts.every(p => selectedProducts.includes(p.productCode));
 
   const handleSelectProduct = (productCode) => {
     setSelectedProducts((prev) =>
@@ -454,11 +468,12 @@ export default function ProductsPage() {
   };
   
   const handleSelectAll = (e) => {
+    const filtered = getFilteredTransactions().map(p => p.productCode);
     if (e.target.checked) {
-      const allCodes = getFilteredTransactions().map((item) => item.productCode);
-      setSelectedProducts(allCodes);
+      const unique = Array.from(new Set([...selectedProducts, ...filtered]));
+      setSelectedProducts(unique);
     } else {
-      setSelectedProducts([]);
+      setSelectedProducts(prev => prev.filter(p => !filtered.includes(p)));
     }
   };
 
@@ -483,6 +498,10 @@ export default function ProductsPage() {
         setMDDOpen(false);
       })
       .catch(() => toast.error("Error deleting selected products."));
+
+      useEffect(() => {
+        setSelectedProducts([]);
+      }, [selectedFilter, selectedSubFilter]);
   };  
 
   return (
@@ -788,7 +807,13 @@ export default function ProductsPage() {
                 <Download className="w-4 h-4" />
               </Button>
 
-              <Dialog open={isMDDOpen} onOpenChange={setMDDOpen}>
+              <Dialog open={isMDDOpen} onOpenChange={(open) => {
+                setMDDOpen(open);
+                if (!open) {
+                  setSelectedProducts([]);
+                  setAdminPW("");
+                }
+              }}>
                 <DialogTrigger asChild>
                   <Button className="bg-red-500 text-white" disabled={selectedProducts.length === 0}>
                     Delete Selected
@@ -838,7 +863,7 @@ export default function ProductsPage() {
               <TableHeader className="sticky top-0 bg-white z-10">
                 <TableRow>
                   <TableHead>
-                    <input type="checkbox" onChange={handleSelectAll} checked={selectedProducts.length === getFilteredTransactions().length && selectedProducts.length > 0} />
+                  <input type="checkbox" onChange={handleSelectAll} checked={allFilteredSelected}/>
                   </TableHead>
                   <TableHead>Product Code</TableHead>
                   <TableHead>Category</TableHead>
@@ -884,7 +909,10 @@ export default function ProductsPage() {
                         <FilePen size={16} />
                       </Button>
                       {/* For deleting transactions */}
-                      <Dialog open={isDDOpen} onOpenChange={setDDOpen}>
+                      <Dialog open={isDDOpen} onOpenChange={(open) => {
+                        setDDOpen(open);
+                        if (!open) setAdminPW("");
+                      }}>
                           <DialogTrigger asChild>
                         <Button variant="ghost" size="sm" className="text-gray-500 hover:text-red-600">
                           <Trash2 size={16} />
