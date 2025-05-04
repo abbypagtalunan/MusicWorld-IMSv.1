@@ -12,7 +12,7 @@ import { toast, Toaster } from "react-hot-toast";
 import { Search, ListFilter, Trash2, Ellipsis, PackagePlus, Save } from "lucide-react";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table";
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogDescription } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
 
 export default function DeliveriesPage() {
@@ -32,18 +32,19 @@ export default function DeliveriesPage() {
   const [paymentModes, setPaymentModes] = useState([]);
   const [paymentStatuses, setPaymentStatuses] = useState([]);
 
-  // API endpoints configuration
+  // API config
   const config = {
     deliveries: {
       fetch: "http://localhost:8080/deliveries",
       delete: "http://localhost:8080/deliveries",
     },
     deliveryProducts: {
-      fetch: "http://localhost:8080/deliveryProducts",
+      fetch: "http://localhost:8080/deliveries/products",
+      byDelivery: "http://localhost:8080/deliveries/products"
     },
     paymentDetails: {
-      fetch: "http://localhost:8080/deliveryPaymentDetails",
-      update: "http://localhost:8080/deliveryPaymentDetails",
+      fetch: "http://localhost:8080/deliveries/payment-details",
+      update: "http://localhost:8080/deliveries",
     },
     suppliers: {
       fetch: "http://localhost:8080/suppliers",
@@ -58,7 +59,7 @@ export default function DeliveriesPage() {
       fetch: "http://localhost:8080/deliveryPaymentStatus",
     }
   };
-
+  
   // Load data from DB on component mount
   useEffect(() => {
     loadAllData();
@@ -70,7 +71,6 @@ export default function DeliveriesPage() {
     axios.get(config.deliveries.fetch)
       .then(res => {
         setDeliveries(normalizeDeliveryData(res.data));
-        console.log("Delivery numbers from deliveries:", res.data.map(d => d.D_deliveryNumber));
       })
       .catch(error => {
         console.error("Error fetching deliveries:", error);
@@ -80,13 +80,12 @@ export default function DeliveriesPage() {
     // Fetch delivery products
     axios.get(config.deliveryProducts.fetch)
       .then(res => {
-        console.log("Raw delivery products data:", res.data); // Debug the raw response
         if (Array.isArray(res.data) && res.data.length > 0) {
+          console.log("Raw delivery products sample:", res.data[0]);
           const grouped = groupDeliveryProducts(res.data);
-          console.log("Grouped delivery products:", grouped); // Debug the grouped object
+          console.log("Grouped delivery products sample:", grouped[Object.keys(grouped)[0]][0]);
           setDeliveryProducts(grouped);
         } else {
-          console.warn("Delivery products data is empty or not an array");
           setDeliveryProducts({});
         }
       })
@@ -152,21 +151,18 @@ export default function DeliveriesPage() {
         console.error("Error fetching payment statuses:", error);
       });
   };
-
-  // Helper function to normalize delivery data from API
+  
   const normalizeDeliveryData = (data) => {
     return data.map(item => ({
-      deliveryNum: item.D_deliveryNumber,
+      deliveryNum: item.D_deliveryNumber.toString(),
       dateAdded: formatDateForDisplay(item.D_deliveryDate),
       supplier: item.supplierName || item.S_supplierID,
       supplierID: item.S_supplierID,
       totalCost: item.totalCost ? `₱${parseFloat(item.totalCost).toFixed(2)}` : "₱0.00"
     }));
   };
-  
+
   const groupDeliveryProducts = (data) => {
-    console.log("Raw delivery products data before grouping:", data);
-    
     const grouped = {};
     data.forEach(item => {
       if (!item || !item.D_deliveryNumber) {
@@ -174,29 +170,69 @@ export default function DeliveriesPage() {
         return; // Skip this item
       }
       
-      // Store using the exact delivery number format from the backend
+      // Store using the delivery number without prefix
       const deliveryNumKey = item.D_deliveryNumber.toString();
       
       if (!grouped[deliveryNumKey]) {
         grouped[deliveryNumKey] = [];
       }
       
+      // Log the product data to see what fields we have
+      console.log("Processing product item:", item);
+      
       const unitPrice = parseFloat(item.DPD_unitPrice) || 0;
       const quantity = parseInt(item.DPD_quantity) || 0;
       
       grouped[deliveryNumKey].push({
         productCode: item.P_productCode || "N/A",
-        supplier: item.supplierName || "Unknown",
-        brand: item.brandName || "Unknown",
-        product: item.productName || "Unknown Product",
+        supplier: item.S_supplierName || item.supplierName || "Unknown",
+        brand: item.B_brandName || item.brandName || "Unknown",
+        product: item.P_productName || item.productName || "Unknown Product",
         quantity: quantity,
         unitPrice: `₱${unitPrice.toFixed(2)}`,
         total: `₱${(unitPrice * quantity).toFixed(2)}`
       });
     });
     
-    console.log("Delivery numbers in grouped data after processing:", Object.keys(grouped));
     return grouped;
+  };
+  
+  const loadDeliveryProducts = (deliveryNumber) => {
+    console.log(`Fetching products for delivery: ${deliveryNumber}`);
+    
+    axios.get(`${config.deliveryProducts.byDelivery}/${deliveryNumber}`)
+      .then(res => {
+        console.log("Response data:", res.data);
+        if (Array.isArray(res.data) && res.data.length > 0) {
+          // Create a simplified object for direct use
+          const formattedProducts = res.data.map(item => ({
+            productCode: item.P_productCode || "N/A",
+            supplier: item.supplierName || "Unknown",
+            brand: item.brandName || "Unknown",
+            product: item.productName || "Unknown Product",
+            quantity: parseInt(item.DPD_quantity) || 0,
+            unitPrice: `₱${parseFloat(item.DPD_unitPrice).toFixed(2)}`,
+            total: `₱${(parseFloat(item.DPD_unitPrice) * parseInt(item.DPD_quantity)).toFixed(2)}`
+          }));
+          
+          // Update only the products for this specific delivery
+          setDeliveryProducts(prevProducts => ({
+            ...prevProducts,
+            [deliveryNumber]: formattedProducts
+          }));
+        } else {
+          // Set empty array for this delivery
+          setDeliveryProducts(prevProducts => ({
+            ...prevProducts,
+            [deliveryNumber]: []
+          }));
+        }
+      })
+      .catch(error => {
+        console.error(`Error fetching products for delivery ${deliveryNumber}:`, error);
+        console.error("Error details:", error.response?.data || error.message);
+        toast.error("Failed to load delivery products");
+      });
   };
 
   // Helper functions for date formatting
@@ -288,7 +324,9 @@ export default function DeliveriesPage() {
       return;
     }
     
-    axios.get(`${config.deliveries.fetch}/search?deliveryNumber=${searchValue.trim()}`)
+    const searchNumber = searchValue.trim().replace(/\D/g, '');
+    
+    axios.get(`${config.deliveries.fetch}/search?deliveryNumber=${searchNumber}`)
       .then(res => {
         if (res.data && res.data.length > 0) {
           setSearchResult(normalizeDeliveryData(res.data));
@@ -319,10 +357,10 @@ export default function DeliveriesPage() {
   // Delete
   const [adminPW, setAdminPW] = useState("");
   const [isDDOpen, setDDOpen] = useState("");
-  const handleDelete = (productCode, adminPWInput) => {
+  const handleDelete = (deliveryNumber, adminPWInput) => {
     axios({
       method: 'delete',
-      url: `http://localhost:8080/products/${productCode}`,
+      url: `${config.deliveries.delete}/${deliveryNumber}`,
       data: { adminPW: adminPWInput }, 
       headers: {
         'Content-Type': 'application/json',
@@ -351,6 +389,8 @@ export default function DeliveriesPage() {
                 <div className="relative flex-1">
                   <input
                     type="text"
+                    id="deliverySearch"
+                    name="deliverySearch"
                     value={searchValue}
                     onChange={(e) => setSearchValue(e.target.value)}
                     onKeyDown={(e) => {
@@ -471,20 +511,26 @@ export default function DeliveriesPage() {
                 {getFilteredTransactions().map((d) => (
                   <TableRow key={d.deliveryNum}>
                     <TableCell>{d.dateAdded}</TableCell>
-                    <TableCell>{d.deliveryNum}</TableCell>
+                    <TableCell>{`DR-${d.deliveryNum}`}</TableCell>
                     <TableCell>{d.supplier}</TableCell>
                     <TableCell>{d.totalCost}</TableCell>
                     {/* Delivery Details dialog */}
                     <TableCell className="flex space-x-2">
                       <Dialog>
                         <DialogTrigger asChild>
-                          <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-gray-500 hover:text-blue-600"
+                            onClick={() => loadDeliveryProducts(d.deliveryNum)}
+                          >
                             <Ellipsis size={16} />
                           </Button>
                         </DialogTrigger>
                         <DialogContent className="w-[90vw] sm:w-[600px] md:w-[750px] lg:w-[900px] xl:w-[1100px] max-w-[95vw] p-4 sm:p-6 overflow-y-auto max-h-[90vh]">
                           <DialogHeader>
                             <DialogTitle>Delivery Details</DialogTitle>
+                            <DialogDescription>View and manage delivery information and payment details</DialogDescription>
                             <DialogClose />
                           </DialogHeader>
                           
@@ -518,26 +564,25 @@ export default function DeliveriesPage() {
                                   </TableHeader>
                                   <TableBody>
                                     {/* Check if the deliveryProducts data exists for this delivery number */}
-                                    {(deliveryProducts[d.deliveryNum.toString()] && 
-                                    Array.isArray(deliveryProducts[d.deliveryNum.toString()]) && 
-                                    deliveryProducts[d.deliveryNum.toString()].length > 0) ? 
-                                    deliveryProducts[d.deliveryNum.toString()].map((item, index) => (
-                                      <TableRow key={index}>
-                                        <TableCell>{item.productCode}</TableCell>
-                                        <TableCell>{item.supplier}</TableCell>
-                                        <TableCell>{item.brand}</TableCell>
-                                        <TableCell>{item.product}</TableCell>
-                                        <TableCell>{item.quantity}</TableCell>
-                                        <TableCell>{item.unitPrice}</TableCell>
-                                        <TableCell>{item.total}</TableCell>
+                                    {deliveryProducts[d.deliveryNum] && deliveryProducts[d.deliveryNum].length > 0 ? (
+                                      deliveryProducts[d.deliveryNum].map((item, index) => (
+                                        <TableRow key={index}>
+                                          <TableCell>{item.productCode}</TableCell>
+                                          <TableCell>{item.supplier}</TableCell>
+                                          <TableCell>{item.brand}</TableCell>
+                                          <TableCell>{item.product}</TableCell>
+                                          <TableCell>{item.quantity}</TableCell>
+                                          <TableCell>{item.unitPrice}</TableCell>
+                                          <TableCell>{item.total}</TableCell>
+                                        </TableRow>
+                                      ))
+                                    ) : (
+                                      <TableRow>
+                                        <TableCell colSpan={7} className="text-center text-gray-500">
+                                          No products found for this delivery
+                                        </TableCell>
                                       </TableRow>
-                                    )) : 
-                                    <TableRow>
-                                      <TableCell colSpan={7} className="text-center text-gray-500">
-                                        No products found for this delivery (ID: {d.deliveryNum})
-                                      </TableCell>
-                                    </TableRow>
-                                  }
+                                    )}
                                   </TableBody>
                                 </Table>
                               </div>
@@ -563,6 +608,7 @@ export default function DeliveriesPage() {
                                   <Select
                                     value={paymentDetails[d.deliveryNum]?.paymentType || ""}
                                     onValueChange={(value) => updatePaymentDetail(d.deliveryNum, 'paymentType', value)}
+                                    name="paymentType"
                                   >
                                     <SelectTrigger id="paymentType">
                                       <SelectValue placeholder="Select payment type" />
@@ -581,7 +627,8 @@ export default function DeliveriesPage() {
                                   <Select
                                     value={paymentDetails[d.deliveryNum]?.paymentMode || ""}
                                     onValueChange={(value) => updatePaymentDetail(d.deliveryNum, 'paymentMode', value)}
-                                  > 
+                                    name="paymentMode"
+                                  >
                                     <SelectTrigger id="paymentMode">
                                       <SelectValue placeholder="Select payment mode" />
                                     </SelectTrigger>
@@ -600,6 +647,7 @@ export default function DeliveriesPage() {
                                   <Select
                                     value={paymentDetails[d.deliveryNum]?.paymentStatus || ""}
                                     onValueChange={(value) => updatePaymentDetail(d.deliveryNum, 'paymentStatus', value)}
+                                    name="paymentStatus"
                                   >
                                     <SelectTrigger id="paymentStatus">
                                       <SelectValue placeholder="Select status" />
@@ -671,6 +719,7 @@ export default function DeliveriesPage() {
                               <span className="text-lg text-red-900">Delete Transaction</span>{" "}
                               <span className="text-lg text-gray-400 font-normal italic">{d.deliveryNum}</span>
                             </DialogTitle>
+                            <DialogDescription>Confirm deletion of this delivery transaction</DialogDescription>
                             <DialogClose />
                           </DialogHeader>
                           <p className='text-sm text-gray-800 mt-2 pl-4'> Deleting this transaction will reflect on Void Transactions. Enter the admin password to delete this transaction. </p>

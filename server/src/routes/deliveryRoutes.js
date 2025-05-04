@@ -9,6 +9,7 @@ const {
   addDelivery,
   addDeliveryProducts,
   getDeliveryProducts,
+  getDeliveryProductsByDeliveryNumber,
   getPaymentDetails,
   updatePaymentDetails,
   deleteDelivery
@@ -18,16 +19,19 @@ const {
 router.get('/', getAllDeliveries);
 router.get('/search', searchDeliveries);
 router.post('/', addDelivery);
-router.delete('/:id', deleteDelivery);
+router.delete('/:deliveryNumber', deleteDelivery);
 router.put('/:deliveryNumber', updatePaymentDetails);
 
 // Product-specific routes
 productsRouter.get('/', getDeliveryProducts);
+productsRouter.get('/:deliveryNumber', getDeliveryProductsByDeliveryNumber);
 productsRouter.post('/', addDeliveryProducts);
 
 // Payment details routes
 paymentDetailsRouter.get('/', getPaymentDetails);
 
+// Export the routers
+router.products = productsRouter;
+router.paymentDetails = paymentDetailsRouter;
+
 module.exports = router;
-module.exports.products = productsRouter;
-module.exports.paymentDetails = paymentDetailsRouter;

@@ -25,6 +25,34 @@ const getAllDeliveries = (callback) => {
   });
 };
 
+// Get products for a specific delivery number
+const getDeliveryProductsByDeliveryNumber = (deliveryNumber, callback) => {
+  const query = `
+    SELECT 
+      dpd.D_deliveryNumber,
+      dpd.P_productCode,
+      p.P_productName as productName,
+      b.B_brandName as brandName,
+      s.S_supplierName as supplierName,
+      dpd.DPD_quantity,
+      dpd.DPD_unitPrice
+    FROM DeliveryProductDetails dpd
+    LEFT JOIN Products p ON dpd.P_productCode = p.P_productCode
+    LEFT JOIN Brands b ON p.B_brandID = b.B_brandID
+    LEFT JOIN Suppliers s ON p.S_supplierID = s.S_supplierID
+    WHERE dpd.D_deliveryNumber = ?
+    ORDER BY dpd.P_productCode;
+  `;
+  
+  db.query(query, [deliveryNumber], (err, results) => {
+    if (err) {
+      callback(err, null);
+    } else {
+      callback(null, results);
+    }
+  });
+};
+
 // Search Deliveries by delivery number
 const searchDeliveries = (deliveryNumber, callback) => {
   const query = `
@@ -229,6 +257,7 @@ module.exports = {
   addDelivery,
   addDeliveryProducts,
   getDeliveryProducts,
+  getDeliveryProductsByDeliveryNumber,  // Add this new function
   getPaymentDetails,
   updatePaymentDetails,
   deleteDelivery

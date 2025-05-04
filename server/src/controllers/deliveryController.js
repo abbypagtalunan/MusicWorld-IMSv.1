@@ -76,6 +76,20 @@ const getDeliveryProducts = (req, res) => {
   });
 };
 
+// Route to get delivery products by delivery number
+const getDeliveryProductsByDeliveryNumber = (req, res) => {
+  const deliveryNumber = req.params.deliveryNumber;
+  
+  deliveryModel.getDeliveryProductsByDeliveryNumber(deliveryNumber, (err, results) => {
+    if (err) {
+      console.error('Error fetching delivery products:', err);
+      res.status(500).json({ error: 'Error fetching delivery products' });
+    } else {
+      res.json(results);
+    }
+  });
+};
+
 // Route to get all payment details
 const getPaymentDetails = (req, res) => {
   deliveryModel.getPaymentDetails((err, results) => {
@@ -113,7 +127,7 @@ const updatePaymentDetails = (req, res) => {
 
 // Route to delete a delivery
 const deleteDelivery = (req, res) => {
-  const deliveryNum = req.params.id;
+  const deliveryNum = req.params.deliveryNumber;  // Make sure this matches the URL parameter
   const { adminPW } = req.body;
 
   if (adminPW !== "2095") {
@@ -136,6 +150,7 @@ module.exports = {
   addDelivery,
   addDeliveryProducts,
   getDeliveryProducts,
+  getDeliveryProductsByDeliveryNumber,  // Add this new function to exports
   getPaymentDetails,
   updatePaymentDetails,
   deleteDelivery

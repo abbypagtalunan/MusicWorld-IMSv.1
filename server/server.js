@@ -14,7 +14,7 @@ app.use(
 // Parse JSON bodies
 app.use(express.json());
 
-// Routes for Configurations
+// Import routes
 const supplierRoutes = require('./src/routes/supplierRoutes');
 const brandRoutes = require('./src/routes/brandRoutes');
 const categoryRoutes = require('./src/routes/categoryRoutes');
@@ -28,14 +28,13 @@ const deliveryPaymentTypesRoutes = require('./src/routes/deliveryPaymentTypesRou
 const deliveryPaymentStatusRoutes = require('./src/routes/deliveryPaymentStatusRoutes');
 const returnsRoutes = require('./src/routes/returnsRoutes');
 const supBrdCatStatusRoutes = require('./src/routes/SupBrdCatStatusRoutes');
-const returnTypeRoutes = require('./src/routes/returnTypeRoutes'); // ←
+const returnTypeRoutes = require('./src/routes/returnTypeRoutes');
 const discountRoutes = require('./src/routes/discountRoutes');
 const orderRoutes = require('./src/routes/orderRoutes');
 const orderDetailsRoutes = require('./src/routes/orderDetailsRoutes');
 const transactionRoutes = require('./src/routes/transactionRoutes');
 
-app.use('/deliveryProducts', require('./src/routes/deliveryRoutes'));
-app.use('/deliveryPaymentDetails', require('./src/routes/deliveryRoutes'));
+// Mount routes
 app.use("/suppliers", supplierRoutes);
 app.use("/brands", brandRoutes);
 app.use("/categories", categoryRoutes);
@@ -44,6 +43,8 @@ app.use("/productStocks", productStockRoutes);
 app.use("/productStatus", productStatusRoutes);
 app.use('/deleted', deletedRoutes);
 app.use('/deliveries', deliveryRoutes);
+app.use('/deliveries/products', deliveryRoutes.products);
+app.use('/deliveries/payment-details', deliveryRoutes.paymentDetails);
 app.use("/deliveryModeOfPayment", deliveryModeOfPaymentRoutes);
 app.use("/deliveryPaymentTypes", deliveryPaymentTypesRoutes);
 app.use("/deliveryPaymentStatus", deliveryPaymentStatusRoutes);
@@ -54,7 +55,6 @@ app.use("/returnTypes", returnTypeRoutes);
 app.use("/orders", orderRoutes);
 app.use("/orderDetails", orderDetailsRoutes);
 app.use("/transactions", transactionRoutes);
-
 
 // Log that server is running
 const PORT = process.env.PORT || 8080;
