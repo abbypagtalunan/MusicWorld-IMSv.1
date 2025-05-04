@@ -137,24 +137,37 @@ export default function ReturnsPage() {
   const [suppliers, setSuppliers] = useState([]);
   const [brands, setBrands] = useState([]);
   const [products, setProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
   const [deliveryNumbers, setDeliveryNumbers] = useState([]);
 
   // Fetch Data on Load
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch filtered returns
         const customerRes = await axios.get(`${config.returns.api.fetch}?source=customer`);
         setCustomerReturns(customerRes.data);
         const supplierRes = await axios.get(`${config.returns.api.fetch}?source=supplier`);
         setSupplierReturns(supplierRes.data);
-        // Fetch dropdown options
+
         const suppliersRes = await axios.get(config.suppliers.api.fetch);
         setSuppliers(suppliersRes.data);
+
         const brandsRes = await axios.get(config.brands.api.fetch);
         setBrands(brandsRes.data);
+
         const productsRes = await axios.get(config.products.api.fetch);
-        setProducts(productsRes.data);
+        const mappedProducts = productsRes.data.map((product) => ({
+          code: product.P_productCode,
+          name: product.P_productName,
+          category: product.category,
+          brand: product.brand,
+          supplier: product.supplier,
+          price: product.P_sellingPrice,
+          label: `${product.P_productName} - ${product.brand} - ${product.supplier}`,
+        }));
+        setProducts(mappedProducts);
+        setFilteredProducts(mappedProducts); // Initialize all products
+
         const deliveriesRes = await axios.get(config.deliveries.api.fetch);
         setDeliveryNumbers(deliveriesRes.data);
       } catch (err) {
@@ -184,7 +197,7 @@ export default function ReturnsPage() {
       R_dateOfReturn: format(new Date(), "yyyy-MM-dd HH:mm:ss"),
       R_returnQuantity: parseInt(selectedQuantity),
       R_discountAmount: parseFloat(selectedDiscount),
-      D_deliveryNumber: 1, // dummy value
+      D_deliveryNumber: 1,
       S_supplierID: selectedSupplier
     };
 
@@ -268,11 +281,17 @@ export default function ReturnsPage() {
 
   // Update product price when product is selected
   const handleProductSelect = (selectedName) => {
-    const product = products.find(p => p[config.products.nameField] === selectedName);
+    const product = products.find(p => p.name === selectedName);
     if (product) {
-      setProductName(product[config.products.codeField]);
-      setProductPrice(product[config.products.priceField] || 0);
+      setProductName(product.code);
+      setProductPrice(product.price || 0);
     }
+  };
+
+  // Filter products by selected supplier
+  const filterProductsBySupplier = (supplierId) => {
+    const filtered = products.filter(p => p.supplier === supplierId);
+    setFilteredProducts(filtered);
   };
 
   return (
@@ -296,7 +315,6 @@ export default function ReturnsPage() {
             {/* Customer Returns Tab */}
             <TabsContent value="customer">
               <div className="flex flex-col lg:flex-row gap-4 items-stretch">
-                {/* Left side - Product items table */}
                 <Card className="w-full lg:w-2/3 flex flex-col">
                   <CardContent className="p-4 flex flex-col justify-between flex-grow">
                     <div className="flex flex-col overflow-auto max-h-screen w-full">
@@ -319,7 +337,7 @@ export default function ReturnsPage() {
                                 <TableCell className="text-center">{new Date(item.R_dateOfReturn).toLocaleDateString()}</TableCell>
                                 <TableCell className="text-center">{item.R_returnID}</TableCell>
                                 <TableCell className="text-center">
-                                  {products.find(p => p.P_productCode === item.P_productCode)?.P_productName || "Unknown"}
+                                  {products.find(p => p.code === item.P_productCode)?.name || "Unknown"}
                                 </TableCell>
                                 <TableCell className="text-center">{item.R_returnQuantity}</TableCell>
                                 <TableCell className="text-center">{formatToPHP(item.R_TotalPrice)}</TableCell>
@@ -352,12 +370,12 @@ export default function ReturnsPage() {
                                         </TableHeader>
                                         <TableBody>
                                           <TableRow>
-                                            <TableCell>{item.R_dateOfReturn}</TableCell>
+                                            <TableCell>{new Date(item.R_dateOfReturn).toLocaleDateString()}</TableCell>
                                             <TableCell>{item.P_productCode}</TableCell>
                                             <TableCell>{item.S_supplierID}</TableCell>
-                                            <TableCell>{item.B_brandName}</TableCell>
-                                            <TableCell>{item.C_category}</TableCell>
-                                            <TableCell>{item.P_productName}</TableCell>
+                                            <TableCell>{products.find(p => p.code === item.P_productCode)?.brand || "N/A"}</TableCell>
+                                            <TableCell>{products.find(p => p.code === item.P_productCode)?.category || "N/A"}</TableCell>
+                                            <TableCell>{products.find(p => p.code === item.P_productCode)?.name || "Unknown"}</TableCell>
                                             <TableCell>{item.R_returnQuantity}</TableCell>
                                             <TableCell>{item.R_discountAmount}%</TableCell>
                                             <TableCell>{formatToPHP(item.R_TotalPrice)}</TableCell>
@@ -426,8 +444,6 @@ export default function ReturnsPage() {
                     </div>
                   </CardContent>
                 </Card>
-
-                {/* Right side - Add form */}
                 <Card className="w-full lg:w-1/3 flex flex-col justify-between text-gray-700">
                   <CardHeader className="pb-0">
                     <CardTitle className="text-center text-xl">Add Customer Product Return</CardTitle>
@@ -441,12 +457,12 @@ export default function ReturnsPage() {
                             <SelectValue placeholder="Select product" />
                           </SelectTrigger>
                           <SelectContent>
-                            {products.map((product) => (
+                            {filteredProducts.map((product) => (
                               <SelectItem 
-                                key={product[config.products.codeField]} 
-                                value={product[config.products.nameField]}
+                                key={product.code} 
+                                value={product.name}
                               >
-                                {product[config.products.nameField]}
+                                {product.label}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -458,8 +474,10 @@ export default function ReturnsPage() {
                           const selected = suppliers.find(s => s[config.suppliers.nameField] === selectedName);
                           if (selected) {
                             setSelectedSupplier(selected[config.suppliers.idField]);
+                            filterProductsBySupplier(selected[config.suppliers.idField]);
                           } else {
                             setSelectedSupplier("");
+                            setFilteredProducts(products);
                           }
                         }}>
                           <SelectTrigger id="supplier" className="mt-1">
@@ -551,7 +569,6 @@ export default function ReturnsPage() {
             {/* Supplier Returns Tab */}
             <TabsContent value="supplier">
               <div className="flex flex-col lg:flex-row gap-4 items-stretch">
-                {/* Left side - Product items table */}
                 <Card className="w-full lg:w-2/3 flex flex-col">
                   <CardContent className="p-4 flex flex-col justify-between flex-grow">
                     <div className="flex flex-col overflow-auto max-h-screen w-full">
@@ -575,7 +592,7 @@ export default function ReturnsPage() {
                                 <TableCell className="text-center">{item.P_productCode}</TableCell>
                                 <TableCell className="text-center">{item.S_supplierID}</TableCell>
                                 <TableCell className="text-center">
-                                  {products.find(p => p.P_productCode === item.P_productCode)?.P_productName || "Unknown"}
+                                  {products.find(p => p.code === item.P_productCode)?.name || "Unknown"}
                                 </TableCell>
                                 <TableCell className="text-center">{item.R_returnQuantity}</TableCell>
                                 <TableCell className="text-center">{formatToPHP(item.R_TotalPrice)}</TableCell>
@@ -641,8 +658,6 @@ export default function ReturnsPage() {
                     </div>
                   </CardContent>
                 </Card>
-
-                {/* Right side - Add form */}
                 <Card className="w-full lg:w-1/3 flex flex-col justify-between text-gray-700">
                   <CardHeader className="pb-0">
                     <CardTitle className="text-center text-xl">Add Product Return to Supplier</CardTitle>
@@ -701,9 +716,9 @@ export default function ReturnsPage() {
                       <div>
                         <Label htmlFor="productName">Product Name</Label>
                         <Select onValueChange={(selectedName) => {
-                          const product = products.find(p => p.P_productName === selectedName);
+                          const product = products.find(p => p.name === selectedName);
                           if (product) {
-                            setProductItem(product.P_productCode);
+                            setProductItem(product.code);
                           }
                         }}>
                           <SelectTrigger id="productName">
@@ -712,10 +727,10 @@ export default function ReturnsPage() {
                           <SelectContent>
                             {products.map((product) => (
                               <SelectItem 
-                                key={product.P_productID} 
-                                value={product.P_productName}
+                                key={product.code} 
+                                value={product.name}
                               >
-                                {product.P_productName}
+                                {product.label}
                               </SelectItem>
                             ))}
                           </SelectContent>
