@@ -45,6 +45,11 @@ import {
 } from "@/components/ui/tabs";
 import { Trash2, Ellipsis } from "lucide-react";
 
+// Helper function to format PHP currency
+const formatToPHP = (amount) => {
+  return `₱${Number(amount).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`;
+};
+
 export default function ReturnsPage() {
   const config = {
     returns: {
@@ -110,7 +115,7 @@ export default function ReturnsPage() {
   const [customerReturns, setCustomerReturns] = useState([]);
   const [supplierReturns, setSupplierReturns] = useState([]);
   const [activeTab, setActiveTab] = useState("customer");
-  
+
   // Customer Return Form
   const [productName, setProductName] = useState("");
   const [selectedSupplier, setSelectedSupplier] = useState("");
@@ -119,7 +124,7 @@ export default function ReturnsPage() {
   const [returnType, setReturnType] = useState("");
   const [selectedDiscount, setSelectedDiscount] = useState("0");
   const [productPrice, setProductPrice] = useState(0);
-  
+
   // Supplier Return Form
   const [deliveryNumber, setDeliveryNumber] = useState("");
   const [supplierName, setSupplierName] = useState("");
@@ -127,7 +132,7 @@ export default function ReturnsPage() {
   const [brand, setBrand] = useState("");
   const [quantity, setQuantity] = useState("");
   const [amount, setAmount] = useState("");
-  
+
   // Dropdown Options
   const [suppliers, setSuppliers] = useState([]);
   const [brands, setBrands] = useState([]);
@@ -143,17 +148,13 @@ export default function ReturnsPage() {
         setCustomerReturns(customerRes.data);
         const supplierRes = await axios.get(`${config.returns.api.fetch}?source=supplier`);
         setSupplierReturns(supplierRes.data);
-        
         // Fetch dropdown options
         const suppliersRes = await axios.get(config.suppliers.api.fetch);
         setSuppliers(suppliersRes.data);
-        
         const brandsRes = await axios.get(config.brands.api.fetch);
         setBrands(brandsRes.data);
-        
         const productsRes = await axios.get(config.products.api.fetch);
         setProducts(productsRes.data);
-        
         const deliveriesRes = await axios.get(config.deliveries.api.fetch);
         setDeliveryNumbers(deliveriesRes.data);
       } catch (err) {
@@ -175,7 +176,7 @@ export default function ReturnsPage() {
       alert("Please fill in all required fields.");
       return;
     }
-    
+
     const newReturn = {
       P_productCode: productName,
       returnTypeDescription: "Customer Return",
@@ -186,7 +187,7 @@ export default function ReturnsPage() {
       D_deliveryNumber: 1, // dummy value
       S_supplierID: selectedSupplier
     };
-    
+
     try {
       await axios.post(config.returns.api.add, newReturn);
       alert("Customer return added successfully!");
@@ -213,7 +214,7 @@ export default function ReturnsPage() {
       alert("Please fill in all required fields.");
       return;
     }
-    
+
     const newReturn = {
       P_productCode: productItem,
       returnTypeDescription: "Supplier Return",
@@ -224,7 +225,7 @@ export default function ReturnsPage() {
       D_deliveryNumber: parseInt(deliveryNumber),
       S_supplierID: supplierName
     };
-    
+
     try {
       await axios.post(config.returns.api.add, newReturn);
       alert("Supplier return added successfully!");
@@ -250,6 +251,7 @@ export default function ReturnsPage() {
       alert("Incorrect password.");
       return;
     }
+
     if (type === "customer") {
       setCustomerReturns((prev) => prev.filter((item) => item.R_returnID !== id));
     } else {
@@ -290,16 +292,16 @@ export default function ReturnsPage() {
                 RETURN TO SUPPLIER
               </TabsTrigger>
             </TabsList>
-            
+
             {/* Customer Returns Tab */}
             <TabsContent value="customer">
               <div className="flex flex-col lg:flex-row gap-4 items-stretch">
                 {/* Left side - Product items table */}
                 <Card className="w-full lg:w-2/3 flex flex-col">
                   <CardContent className="p-4 flex flex-col justify-between flex-grow">
-                    <div className="overflow-x-auto max-h-[60vh] flex-grow">
+                    <div className="flex flex-col overflow-auto max-h-screen w-full">
                       <Table>
-                        <TableHeader className="sticky top-0 bg-white z-10">
+                        <TableHeader className="sticky top-0 z-10 bg-white">
                           <TableRow>
                             <TableHead className="text-center">Date</TableHead>
                             <TableHead className="text-center">Return ID</TableHead>
@@ -320,7 +322,7 @@ export default function ReturnsPage() {
                                   {products.find(p => p.P_productCode === item.P_productCode)?.P_productName || "Unknown"}
                                 </TableCell>
                                 <TableCell className="text-center">{item.R_returnQuantity}</TableCell>
-                                <TableCell className="text-center">{item.R_TotalPrice}</TableCell>
+                                <TableCell className="text-center">{formatToPHP(item.R_TotalPrice)}</TableCell>
                                 <TableCell className="text-center">{item.R_reasonOfReturn}</TableCell>
                                 <TableCell className="flex space-x-2">
                                   <Dialog>
@@ -358,7 +360,7 @@ export default function ReturnsPage() {
                                             <TableCell>{item.P_productName}</TableCell>
                                             <TableCell>{item.R_returnQuantity}</TableCell>
                                             <TableCell>{item.R_discountAmount}%</TableCell>
-                                            <TableCell>{item.R_TotalPrice}</TableCell>
+                                            <TableCell>{formatToPHP(item.R_TotalPrice)}</TableCell>
                                           </TableRow>
                                         </TableBody>
                                       </Table>
@@ -424,7 +426,7 @@ export default function ReturnsPage() {
                     </div>
                   </CardContent>
                 </Card>
-                
+
                 {/* Right side - Add form */}
                 <Card className="w-full lg:w-1/3 flex flex-col justify-between text-gray-700">
                   <CardHeader className="pb-0">
@@ -450,7 +452,6 @@ export default function ReturnsPage() {
                           </SelectContent>
                         </Select>
                       </div>
-                      
                       <div>
                         <Label htmlFor="supplier">Supplier</Label>
                         <Select onValueChange={(selectedName) => {
@@ -476,7 +477,6 @@ export default function ReturnsPage() {
                           </SelectContent>
                         </Select>
                       </div>
-                      
                       <div>
                         <Label htmlFor="brand">Brand</Label>
                         <Select onValueChange={(value) => setSelectedBrand(value)}>
@@ -495,7 +495,6 @@ export default function ReturnsPage() {
                           </SelectContent>
                         </Select>
                       </div>
-                      
                       <div>
                         <Label htmlFor="quantity">Quantity</Label>
                         <Input
@@ -506,7 +505,6 @@ export default function ReturnsPage() {
                           className="mt-1"
                         />
                       </div>
-                      
                       <div>
                         <Label htmlFor="returnType">Return Type</Label>
                         <Input
@@ -518,7 +516,6 @@ export default function ReturnsPage() {
                           className="mt-1"
                         />
                       </div>
-                      
                       <div>
                         <Label htmlFor="discount">Discount (%)</Label>
                         <Input
@@ -530,18 +527,16 @@ export default function ReturnsPage() {
                           className="mt-1"
                         />
                       </div>
-                      
                       <div>
                         <Label htmlFor="price"> Price </Label>
                         <Input
                           id="price"
                           type="text"
-                          value={`${productPrice * selectedQuantity * (1 - selectedDiscount / 100)}`}
+                          value={formatToPHP(productPrice * selectedQuantity * (1 - selectedDiscount / 100))}
                           readOnly
                           className="mt-1 bg-gray-100"
                         />
                       </div>
-                      
                       <div className="flex justify-center mt-6">
                         <Button className="w-2/3 bg-blue-500 text-white" onClick={handleAddCustomerReturn}>
                           ADD RETURN
@@ -552,16 +547,16 @@ export default function ReturnsPage() {
                 </Card>
               </div>
             </TabsContent>
-            
+
             {/* Supplier Returns Tab */}
             <TabsContent value="supplier">
               <div className="flex flex-col lg:flex-row gap-4 items-stretch">
                 {/* Left side - Product items table */}
                 <Card className="w-full lg:w-2/3 flex flex-col">
                   <CardContent className="p-4 flex flex-col justify-between flex-grow">
-                    <div className="overflow-x-auto max-h-[60vh] flex-grow">
+                    <div className="flex flex-col overflow-auto max-h-screen w-full">
                       <Table>
-                        <TableHeader>
+                        <TableHeader className="sticky top-0 z-10 bg-white">
                           <TableRow>
                             <TableHead className="text-center">Date</TableHead>
                             <TableHead className="text-center">Product Code</TableHead>
@@ -583,7 +578,7 @@ export default function ReturnsPage() {
                                   {products.find(p => p.P_productCode === item.P_productCode)?.P_productName || "Unknown"}
                                 </TableCell>
                                 <TableCell className="text-center">{item.R_returnQuantity}</TableCell>
-                                <TableCell className="text-center">{item.R_TotalPrice}</TableCell>
+                                <TableCell className="text-center">{formatToPHP(item.R_TotalPrice)}</TableCell>
                                 <TableCell className="text-center">
                                   <Dialog>
                                     <DialogTrigger asChild>
@@ -592,7 +587,6 @@ export default function ReturnsPage() {
                                       </Button>
                                     </DialogTrigger>
                                     <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
-
                                       <DialogHeader>
                                         <DialogTitle>
                                           <span className="text-lg text-red-900">Delete Transaction</span>{" "}
@@ -647,7 +641,7 @@ export default function ReturnsPage() {
                     </div>
                   </CardContent>
                 </Card>
-                
+
                 {/* Right side - Add form */}
                 <Card className="w-full lg:w-1/3 flex flex-col justify-between text-gray-700">
                   <CardHeader className="pb-0">
@@ -679,7 +673,6 @@ export default function ReturnsPage() {
                           </SelectContent>
                         </Select>
                       </div>
-                      
                       <div>
                         <Label htmlFor="supplier">Supplier</Label>
                         <Select onValueChange={(selectedName) => {
@@ -705,7 +698,6 @@ export default function ReturnsPage() {
                           </SelectContent>
                         </Select>
                       </div>
-                      
                       <div>
                         <Label htmlFor="productName">Product Name</Label>
                         <Select onValueChange={(selectedName) => {
@@ -729,7 +721,6 @@ export default function ReturnsPage() {
                           </SelectContent>
                         </Select>
                       </div>
-                      
                       <div>
                         <Label htmlFor="brand">Brand</Label>
                         <Select onValueChange={(value) => setBrand(value)}>
@@ -748,7 +739,6 @@ export default function ReturnsPage() {
                           </SelectContent>
                         </Select>
                       </div>
-                      
                       <div>
                         <Label htmlFor="quantity">Quantity</Label>
                         <Input
@@ -760,7 +750,6 @@ export default function ReturnsPage() {
                           className="mt-1"
                         />
                       </div>
-                      
                       <div>
                         <Label htmlFor="total">Price</Label>
                         <Input
@@ -772,7 +761,6 @@ export default function ReturnsPage() {
                           className="mt-1 bg-gray-100"
                         />
                       </div>
-                      
                       <div className="flex justify-center mt-6">
                         <Button className="w-2/3 bg-blue-500 text-white" onClick={handleAddSupplierReturn}>
                           ADD RETURN
