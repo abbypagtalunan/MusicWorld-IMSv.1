@@ -46,17 +46,10 @@ const OrderDashboard = () => {
   const parsedPayment = parseFloat(payment.toString().replace(/,/g, "")) || 0;
   const change = Math.max(parsedPayment - discountedTotal, 0);
   const isInvalidDiscount = wholeOrderDiscount > totalAmount;
+  const totalWithWholeDiscount = totalAmount - wholeOrderDiscount;
 
-
+  // Add order and order details
   const handlePaymentConfirmation = (e) => {
-    e.preventDefault();
-  
-    // // Validation
-    // if (selectedProduct === null || selectedProduct === "") {
-    //   toast.error("Please add a product order.");
-    //   return;
-    // }
-  
     if (payment === 0) {
       toast.error("Enter payment.");
       return;
@@ -67,16 +60,17 @@ const OrderDashboard = () => {
     }
 
     const totalProductDiscount = data.reduce((sum, item) => {
-      const discountValue = parseFloat(item["Discount Value"]) || 0;
-      return sum + discountValue;
+      const totalItemDiscount = parseFloat(item["Discount Value"]);
+      return sum + totalItemDiscount;
     }, 0);
-  
+
+    console.log(totalProductDiscount)
     const transactionDate = new Date(Date.now() + 8 * 60 * 60 * 1000)
       .toISOString()
       .slice(0, 19)
       .replace('T', ' ');
   
-    // Create the Order
+    // Create Order
     const orderPayload = {
       O_receiptNumber: receiptNumber,
       T_totalAmount: discountedTotal,
@@ -89,27 +83,23 @@ const OrderDashboard = () => {
   
     axios.post("http://localhost:8080/orders", orderPayload)
       .then((response) => {
-        const orderId = response.data.id;
-  
-        // Create each Order Detail individually (no Promise.all)
         data.forEach((item) => {
           const isFreebie = item.Product?.includes('(Freebie)');
           const price = parseFloat(item["Price"]) || 0;
           const discount = parseFloat(item["Discount"]) || 0;
           const quantity = parseInt(item["Quantity"]) || 0;
-          const itemTotal = isFreebie ? 0 : (price - discount) * quantity;
   
           const detailPayload = {
-            O_orderID: orderId,
+            O_orderID: response.data.id.orderId,
             P_productCode: item["Product Code"],
             D_productDiscountID: isFreebie ? null : item["Discount ID"] || null,
             OD_quantity: quantity,
             OD_unitPrice: isFreebie ? 0.00 : price,
             OD_discountAmount: isFreebie ? 0.00 : discount,
-            OD_itemTotal: itemTotal,
           };
           console.log("Order Detail Payload:", detailPayload);
   
+          // Create order detail
           axios.post("http://localhost:8080/orderDetails", detailPayload)
           .catch(err => {
             console.error("Failed to save order detail:", detailPayload, err.response?.data || err.message);
@@ -122,7 +112,7 @@ const OrderDashboard = () => {
         setTimeout(() => {
           window.location.reload();
         }, 1000);
-      })
+       })
       .catch((err) => {
         console.error("Error processing payment:", err);
         if (
@@ -133,7 +123,6 @@ const OrderDashboard = () => {
         } else {
           toast.error(`An error occurred while saving the order.`);
         }
-
       });
   };
   
@@ -163,21 +152,26 @@ const OrderDashboard = () => {
   };
 
   const handleAddOrderItem = () => {
-    if (!selectedProduct || orderQuantity <= 0) {}
+    if (!selectedProduct || orderQuantity <= 0) {
+      return; 
+    }
   
-    const price = selectedProduct.price;
-    const discountAmount = orderDiscount || 0;
-    const total = (price * orderQuantity) - discountAmount;
+    const price = parseFloat(selectedProduct.price) || 0;
+    const quantity = parseInt(orderQuantity) || 1;
+    const discountAmount = parseFloat(orderDiscount) || 0;
+    const total = (price * quantity) - discountAmount;
+    console.log('Discount Amount: ', discountAmount)
   
     if (isEditMode) {
-      // Update the item
+      // Update the existing item
       setData((prevData) => {
         return prevData.map((item) =>
           item["Product Code"] === selectedProduct.code
             ? {
                 ...item,
-                "Quantity": orderQuantity,
-                "Discount": orderDiscount,
+                "Quantity": quantity,
+                "Discount": discountAmount,
+                "Discount Value": discountAmount,
                 "Total": total,
               }
             : item
@@ -191,21 +185,22 @@ const OrderDashboard = () => {
         "Brand": selectedProduct.brand,
         "Product": selectedProduct.name,
         "Price": price,
-        "Discount": orderDiscount,
-        "Quantity": orderQuantity,
+        "Quantity": quantity,
+        "Discount": discountAmount,
+        "Discount Value": discountAmount,
         "Total": total,
       };
       setData((prevData) => [...prevData, newItem]);
     }
   
-    // Reset
+    // Reset form
     setSelectedProduct(null);
     setOrderQuantity(1);
     setOrderDiscount(0);
-    setSelectedProductDiscount(0)
-    setIsEditMode(false); // Reset to add mode
+    setSelectedProductDiscount(null);
+    setIsEditMode(false);
   };
-
+  
   const handleEdit = (row) => {
     const {
       "Product Code": code,
@@ -232,12 +227,10 @@ const OrderDashboard = () => {
       } else {
         setSelectedProductDiscount(null); 
       }
-  
       setOrderDiscount(parseFloat(discount));
       setIsEditMode(true);
     }
   };
-  
   
   const handleAddFreebie = () => {
   if (!selectedFreebie || freebieQuantity <= 0) return;
@@ -389,48 +382,49 @@ const OrderDashboard = () => {
                           }`}
                         />
 
-                      <label className={`pl-9 mt-2 text-start text-[15px] block ${receiptNumberError ? "text-red-600" : "text-black"}`}>
-                        {receiptNumberError ? "Enter a valid receipt number" : "Enter Receipt Number"}
-                      </label>
-                      <input
-                        type="text"
-                        value={receiptNumber}
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/[^0-9]/g, '');
-                          setReceiptNumber(value);
-                          console.log("Payment: ", payment);
-                          console.log("Total Amount: ", totalAmount);
-                          if (value.trim() !== "") setReceiptNumberError(false); 
-                        }}
-                        onBlur={() => {
-                          if (!receiptNumber || !Number.isInteger(Number(receiptNumber))) {
-                            setReceiptNumberError(true);
-                          }
-                        }}
-                        onMouseLeave={() => {
-                          if (!receiptNumber || !Number.isInteger(Number(receiptNumber))) {
-                            setReceiptNumberError(true);
-                            console.log("Receipt: ", receiptNumber);
-                          }
-                        }}
-                        className={`w-[80%] px-2 py-1 border rounded-md text-center focus:outline-none ${
-                          receiptNumberError ? "border-red-600 text-red-600" : "border-gray-300 text-black"
-                        }`}
-                      />
+                        <label className={`pl-9 mt-2 text-start text-[15px] block ${receiptNumberError ? "text-red-600" : "text-black"}`}>
+                          {receiptNumberError ? "Enter a valid receipt number" : "Enter Receipt Number"}
+                        </label>
+                        <input
+                          type="text"
+                          value={receiptNumber}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/[^0-9]/g, '');
+                            setReceiptNumber(value);
+                            console.log("Payment: ", payment);
+                            console.log("Total Amount: ", totalAmount);
+                            console.log("Total Amount with Whole Order Discount: ", totalWithWholeDiscount);
+                            if (value.trim() !== "") setReceiptNumberError(false); 
+                          }}
+                          onBlur={() => {
+                            if (!receiptNumber || !Number.isInteger(Number(receiptNumber))) {
+                              setReceiptNumberError(true);
+                            }
+                          }}
+                          onMouseLeave={() => {
+                            if (!receiptNumber || !Number.isInteger(Number(receiptNumber))) {
+                              setReceiptNumberError(true);
+                              console.log("Receipt: ", receiptNumber);
+                            }
+                          }}
+                          className={`w-[80%] px-2 py-1 border rounded-md text-center focus:outline-none ${
+                            receiptNumberError ? "border-red-600 text-red-600" : "border-gray-300 text-black"
+                          }`}
+                        />
 
                         <button
                           className={`mt-4 p-1 text-[15px] w-[80%] rounded-md 
                             ${
-                              payment < totalAmount || receiptNumber === "" || payment === 0 
+                              payment < totalWithWholeDiscount|| receiptNumber === "" || payment === 0 
                                 ? "bg-gray-400 cursor-not-allowed text-white"
                                 : "bg-blue-600 hover:bg-blue-700 text-white"
                             }`}
                           onClick={handlePaymentConfirmation}
-                          disabled={ payment === 0 || payment < totalAmount || receiptNumber === ""}
+                          disabled={ payment === 0 || payment < totalWithWholeDiscount || receiptNumber === ""}
                         >
                           Enter Payment
                         </button>
-                      
+                        
                         <p className="pl-9 mb-5 mt-2 text-start text-[13px] font-bold text-blue-600">
                           CHANGE: {new Intl.NumberFormat("en-PH", { 
                             style: "currency", 
@@ -446,63 +440,59 @@ const OrderDashboard = () => {
 
             {/* Right Section */}
             <div className="space-y-4 min-w-0">
-            <div
-              className="bg-white shadow-lg p-6 rounded-xl"
-              onMouseLeave={() => {
-                if (isEditMode) {
-                  setIsEditMode(false);
-                  setSelectedProduct(null);
-                  setOrderQuantity(1);
-                  setOrderDiscount(0);
-                }
-              }}
-            >
-
-            {/* ADD PRODUCT/ITEM */}
-            <h2 className="text-xl text-center font-semibold text-blue-600 pb-4">Add Product to Order/s</h2>
-            <form className="text-[15px] space-y-2">
-              <div className="text-left">
-                {/* COMBOBOX SEARCH PRODUCT */}
-                <label className="block mb-1 text-sm">Product</label>
-                <Popover open={openProduct} onOpenChange={setOpenProduct}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={openProduct}
-                      className="w-full justify-between"
-                    >
-                      {selectedProduct ? selectedProduct.label : "Select product..."}
-                      <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-full p-0">
-                    <Command>
-                      <CommandInput placeholder="Search product..." />
-                      <CommandEmpty>No product found.</CommandEmpty>
-                      <CommandGroup>
-                        {products.map((product) => (
-                          <CommandItem
-                            key={product.code}
-                            value={product.label} 
-                            onSelect={() => {
-                              handleProductSelect(product); 
-                              setOpenProduct(false);
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                selectedProduct?.code === product.code ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            {product.label}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+              <div
+                className="bg-white shadow-lg p-6 rounded-xl"
+                onMouseLeave={() => {
+                  if (isEditMode) {
+                    setIsEditMode(false);
+                    setSelectedProduct(null);
+                    setOrderQuantity(1);
+                    setOrderDiscount(0);
+                  }
+                }}
+              >
+              {/* ADD PRODUCT/ITEM */}
+              <h2 className="text-xl text-center font-semibold text-blue-600 pb-4">Add Product to Order/s</h2>
+              <form className="text-[15px] space-y-2">
+                <div className="text-left">
+                  {/* COMBOBOX SEARCH PRODUCT */}
+                  <label className="block mb-1 text-sm">Product</label>
+                  <Popover open={openProduct} onOpenChange={setOpenProduct}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={openProduct}
+                        className="w-full justify-between">
+                        {selectedProduct ? selectedProduct.label : "Select product..."}
+                        <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0">
+                      <Command>
+                        <CommandInput placeholder="Search product..." />
+                        <CommandEmpty>No product found.</CommandEmpty>
+                        <CommandGroup>
+                          {products.map((product) => (
+                            <CommandItem
+                              key={product.code}
+                              value={product.label} 
+                              onSelect={() => {
+                                handleProductSelect(product); 
+                                setOpenProduct(false);
+                              }}>
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  selectedProduct?.code === product.code ? "opacity-100" : "opacity-0"
+                                )}/>
+                              {product.label}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
               </div>
 
               <div>
@@ -534,7 +524,6 @@ const OrderDashboard = () => {
                   onChange={(e) => {
                     let quantity = e.target.value;
                     quantity = quantity.replace(/\+/g, '');
-                    // Ensure the value is a positive number and does not exceed the stock
                     if (quantity >= 1 && quantity <= selectedProduct?.stock) {
                       setOrderQuantity(quantity);
                     }
@@ -583,50 +572,50 @@ const OrderDashboard = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-                <label className="block text-sm">Discount Amount</label>
-                <input
-                  type="text"
-                  disabled={
-                    !selectedProductDiscount?.D_discountType
-                      ?.toLowerCase()
-                      .includes("specific")
+              <label className="block text-sm">Discount Amount</label>
+              <input
+                type="text"
+                disabled={
+                  !selectedProductDiscount?.D_discountType
+                    ?.toLowerCase()
+                    .includes("specific")
+                }
+                value={orderDiscount === 0 ? "" : orderDiscount}
+                onFocus={(e) => {
+                  if (orderDiscount === 0) e.target.select();
+                }}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (/^(\d+(\.\d{0,2})?)?$/.test(value)) {
+                    setOrderDiscount(value === "" ? 0 : parseFloat(value));
                   }
-                  value={orderDiscount === 0 ? "" : orderDiscount}
-                  onFocus={(e) => {
-                    if (orderDiscount === 0) e.target.select();
-                  }}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (/^(\d+(\.\d{0,2})?)?$/.test(value)) {
-                      setOrderDiscount(value === "" ? 0 : parseFloat(value));
-                    }
-                  }}                  
-                  className={`w-full pl-6 border rounded-md px-3 py-2 text-sm ${
-                    selectedProductDiscount?.D_discountType?.toLowerCase().includes(
-                      "specific"
-                    )
-                      ? "border-gray-300"
-                      : "bg-gray-100 text-gray-500 border-gray-200 cursor-not-allowed"
-                  }`}
-                />
+                }}                  
+                className={`w-full pl-6 border rounded-md px-3 py-2 text-sm ${
+                  selectedProductDiscount?.D_discountType?.toLowerCase().includes(
+                    "specific"
+                  )
+                    ? "border-gray-300"
+                    : "bg-gray-100 text-gray-500 border-gray-200 cursor-not-allowed"
+                }`}
+              />
 
-                <label className="block text-sm">Total</label>
-                <input
-                  type="text"
-                  value={(() => {
-                    const price = parseFloat(selectedProduct?.price) || 0;
-                    const quantity = parseInt(orderQuantity) || 0;
-                    const discount = parseFloat(orderDiscount) || 0;
-                    const total = (price * quantity) - discount;
-                    return new Intl.NumberFormat("en-PH", {
-                      style: "decimal",
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    }).format(total >= 0 ? total : 0);
-                  })()}
-                  disabled
-                  className="w-full pl-6 border border-gray-300 rounded-md px-3 py-2 text-sm bg-gray-100 text-gray-500"
-                />
+              <label className="block text-sm">Total</label>
+              <input
+                type="text"
+                value={(() => {
+                  const price = parseFloat(selectedProduct?.price) || 0;
+                  const quantity = parseInt(orderQuantity) || 0;
+                  const discount = parseFloat(orderDiscount) || 0;
+                  const total = (price * quantity) - discount;
+                  return new Intl.NumberFormat("en-PH", {
+                    style: "decimal",
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  }).format(total >= 0 ? total : 0);
+                })()}
+                disabled
+                className="w-full pl-6 border border-gray-300 rounded-md px-3 py-2 text-sm bg-gray-100 text-gray-500"
+              />
 
               <button
                 type="button"
@@ -638,61 +627,62 @@ const OrderDashboard = () => {
             </form>
           </div>
 
-            <div className="bg-white shadow-lg p-5 rounded-xl">
-              <h2 className="text-xl text-center font-semibold text-blue-600 pb-4">Add Freebie/s</h2>
-              <form className="text-[15px] space-y-2">
-                <div className="text-left">
-                  <label className="block mb-1 text-sm">Product</label>
-                  <Popover open={openFreebie} onOpenChange={setOpenFreebie}>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" role="combobox" aria-expanded={openFreebie} className="w-full justify-between">
-                        {selectedFreebie ? selectedFreebie.label : "Select Freebie"}
-                        <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0">
-                      <Command>
-                        <CommandInput placeholder="Search product..." />
-                        <CommandEmpty>No freebie found.</CommandEmpty>
-                        {/* SHOW PRODUCT ONLY QUANTITY > 0 */}
-                        <CommandGroup>
-                        {products
-                          .filter(product => product.stock > 0)
-                          .map((product) => (
-                            <CommandItem
-                              key={product.code}
-                              value={product.label}
-                              onSelect={() => handleFreebieSelect(product)}
-                            >
-                              <Check className={cn("mr-2 h-4 w-4", selectedFreebie?.code === product.code ? "opacity-100" : "opacity-0")} />
-                              {product.label}
-                            </CommandItem>
-                        ))}
-                      </CommandGroup>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
+            {/* FREEBIES */}
+          <div className="bg-white shadow-lg p-5 rounded-xl">
+            <h2 className="text-xl text-center font-semibold text-blue-600 pb-4">Add Freebie/s</h2>
+            <form className="text-[15px] space-y-2">
+              <div className="text-left">
+                <label className="block mb-1 text-sm">Product</label>
+                <Popover open={openFreebie} onOpenChange={setOpenFreebie}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" role="combobox" aria-expanded={openFreebie} className="w-full justify-between">
+                      {selectedFreebie ? selectedFreebie.label : "Select Freebie"}
+                      <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Search product..." />
+                      <CommandEmpty>No freebie found.</CommandEmpty>
+                      {/* SHOW PRODUCT ONLY QUANTITY > 0 */}
+                      <CommandGroup>
+                      {products
+                        .filter(product => product.stock > 0)
+                        .map((product) => (
+                          <CommandItem
+                            key={product.code}
+                            value={product.label}
+                            onSelect={() => handleFreebieSelect(product)}
+                          >
+                            <Check className={cn("mr-2 h-4 w-4", selectedFreebie?.code === product.code ? "opacity-100" : "opacity-0")} />
+                            {product.label}
+                          </CommandItem>
+                      ))}
+                    </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
 
-                <div>
-                  <label className="block text-sm">Quantity</label>
-                  <input
-                    type="number"
-                    value={freebieQuantity}
-                    onChange={(e) => setFreebieQuantity(parseInt(e.target.value) || 1)}
-                    className="w-full border rounded-md px-5 py-2 text-sm border-gray-300"
-                  />
-                </div>
+              <div>
+                <label className="block text-sm">Quantity</label>
+                <input
+                  type="number"
+                  value={freebieQuantity}
+                  onChange={(e) => setFreebieQuantity(parseInt(e.target.value) || 1)}
+                  className="w-full border rounded-md px-5 py-2 text-sm border-gray-300"
+                />
+              </div>
 
-                <button
-                  type="button"
-                  className="w-full mt-4 bg-blue-600 text-white py-2 rounded-md"
-                  onClick={handleAddFreebie}
-                >
-                  Add Freebie
-                </button>
-              </form>
-            </div>
+              <button
+                type="button"
+                className="w-full mt-4 bg-blue-600 text-white py-2 rounded-md"
+                onClick={handleAddFreebie}
+              >
+                Add Freebie
+              </button>
+            </form>
+          </div>
           </div>
           </div>
         </div>
