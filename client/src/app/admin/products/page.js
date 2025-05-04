@@ -830,7 +830,7 @@ export default function ProductsPage() {
                   <p className="text-sm text-gray-800 mt-2 pl-4">
                     Deleting these transactions will reflect on Void Transactions. Enter the admin password to delete the selected products.
                   </p>
-                  <div className="flex gap-4 mt-4 text-gray-700 items-center pl-10">
+                  <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">
                     <div className="flex-1">
                       <label htmlFor="password" className="text-base font-medium text-gray-700 block mb-2">
                         Admin Password
@@ -926,7 +926,7 @@ export default function ProductsPage() {
                               <DialogClose />
                             </DialogHeader>
                             <p className='text-sm text-gray-800 mt-2 pl-4'> Deleting this transaction will reflect on Void Transactions. Enter the admin password to delete this transaction. </p>
-                            <div className="flex gap-4 mt-4 text-gray-700 items-center pl-10">         
+                            <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">         
                               <div className="flex-1">
                                 <label htmlFor={`password-${item.productCode}`} className="text-base font-medium text-gray-700 block mb-2">
                                   Admin Password

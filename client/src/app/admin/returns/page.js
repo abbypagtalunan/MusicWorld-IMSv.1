@@ -329,7 +329,7 @@ export default function ReturnsPage() {
                                         <Ellipsis size={16} />
                                       </Button>
                                     </DialogTrigger>
-                                    <DialogContent className="max-w-3xl p-7 text-gray-700">
+                                    <DialogContent className="w-[90vw] max-w-4xl sm:max-w-lg md:max-w-4xl max-h-[90vh] overflow-y-auto p-6">
                                       <DialogHeader>
                                         <DialogTitle>Return Details</DialogTitle>
                                         <DialogClose />
@@ -370,7 +370,7 @@ export default function ReturnsPage() {
                                         <Trash2 size={16} />
                                       </Button>
                                     </DialogTrigger>
-                                    <DialogContent className="max-w-3xl p-7 text-gray-700">
+                                    <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
                                       <DialogHeader>
                                         <DialogTitle>
                                           <span className="text-lg text-red-900">Delete Transaction</span>{" "}
@@ -382,7 +382,7 @@ export default function ReturnsPage() {
                                         Deleting this transaction will reflect on Void Transactions.
                                         Enter the admin password to delete this transaction.
                                       </p>
-                                      <div className="flex items-center gap-4 mt-4 pl-10">
+                                      <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">
                                         <div className="flex-1">
                                           <Label htmlFor={`password-${item.R_returnID}`} className="block mb-2 text-base font-medium text-gray-700">
                                             Admin Password
@@ -591,7 +591,8 @@ export default function ReturnsPage() {
                                         <Trash2 size={16} />
                                       </Button>
                                     </DialogTrigger>
-                                    <DialogContent className="max-w-3xl p-7 text-gray-700">
+                                    <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
+
                                       <DialogHeader>
                                         <DialogTitle>
                                           <span className="text-lg text-red-900">Delete Transaction</span>{" "}
@@ -603,7 +604,7 @@ export default function ReturnsPage() {
                                         Deleting this transaction will reflect on Void Transactions.
                                         Enter the admin password to delete this transaction.
                                       </p>
-                                      <div className="flex items-center gap-4 mt-4 pl-10">
+                                      <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">
                                         <div className="flex-1">
                                           <Label htmlFor={`password-${item.D_deliveryNumber}`} className="text-base font-medium text-gray-700 block mb-2">
                                             Admin Password
