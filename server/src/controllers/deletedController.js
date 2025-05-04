@@ -14,6 +14,25 @@ const getAllDeleted = (req, res) => {
   });
 };
 
+const deleteDeleted = (req, res) => {
+    const transactionID = req.params.id;
+    const { adminPW } = req.body;
+
+    if (adminPW !== "1234") {
+      return res.status(403).json({ message: "Invalid admin password" });
+    }
+  
+    deletedModel.deletePermanently(transactionID, (err, results) => {
+      if (err) {
+        console.error('Error deleting transaction:', err);
+        res.status(500).json({ message: 'Error deleting transaction', results });
+      } else {
+        res.status(200).json({ message: 'transaction deleted successfully', results });
+      }
+    });
+  };
+
 module.exports = {
     getAllDeleted,
+    deleteDeleted,
 };

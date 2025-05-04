@@ -76,7 +76,7 @@ const deleteProduct = (req, res) => {
   const productCode = req.params.id;
   const { adminPW } = req.body;
 
-  if (adminPW !== "2095") {
+  if (adminPW !== "1234") {
     return res.status(403).json({ message: "Invalid admin password" });
   }
 

@@ -17,8 +17,6 @@ export default function DeletedPage() {
     deleted: {
       label: "Deleted",
       deletedID: "DT_deletedID",
-      DdateField: "DT_deletionTime",
-      transactionField: "T_transactionID",
       codeField: "P_productCode",
       receiptField: "O_receiptNumber",
       nameField: "P_productName",
@@ -84,8 +82,6 @@ export default function DeletedPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [data, setData] = useState([]);
   const [values, setValues] = useState({
-    [config.deleted.DdateField]: "",
-    [config.deleted.transactionField]: "",
     [config.deleted.codeField]: "",
     [config.deleted.receiptField]: "",    
     [config.deleted.nameField]: "",
@@ -98,8 +94,6 @@ export default function DeletedPage() {
   });
 
   const normalizedData = (deleted) => deleted.data.map((item) => ({
-    Ddate: item.DT_deletionTime,
-    transactionID: item.T_transactionID,
     productCode: item.P_productCode,
     receiptNum: item.O_receiptNumber,
     productName: item.P_productName,
@@ -112,7 +106,8 @@ export default function DeletedPage() {
     category: item.category || "",
     categoryID: item.C_categoryID,
     price: item.P_unitPrice,
-    quantity: item.OD_quantity
+    quantity: item.OD_quantity,
+    uniqueKey: `${item.O_orderID}-${item.P_productCode}`
   }));
 
   // Fetch
@@ -141,8 +136,8 @@ export default function DeletedPage() {
 
   const refreshTable = () => {
     axios
-      .get(config.api.fetch)
-      .then((res) => setData(res.data))
+      .get(config.deleted.api.fetch)
+      .then((res) => setData(normalizedData(res)))
       .catch((error) => console.error("Error fetching data:", error));
   };
 
@@ -158,31 +153,29 @@ export default function DeletedPage() {
   const getFilteredTransactions = () => {
     let sortedTransactions = [...data];
     if (!selectedFilter || !selectedSubFilter) return sortedTransactions;
-
-    if (!selectedFilter || !selectedSubFilter) return sortedTransactions;
   
     if (selectedFilter === "Receipt Number") {
       sortedTransactions.sort((a, b) =>
         selectedSubFilter === "Ascending"
-          ? a.receiptNum.localeCompare(b.receiptNum)
-          : b.receiptNum.localeCompare(a.receiptNum)
+          ? String(a.receiptNum || "").localeCompare(String(b.receiptNum || ""))
+          : String(b.receiptNum || "").localeCompare(String(a.receiptNum || ""))
       );
     }
 
     if (selectedFilter === "Product Name") {
       sortedTransactions.sort((a, b) =>
         selectedSubFilter === "Ascending"
-          ? a.product.localeCompare(b.product)
-          : b.product.localeCompare(a.product)
+          ? a.productName.localeCompare(b.productName)
+          : b.productName.localeCompare(a.productName)
       );
     }
   
     if (selectedFilter === "Price") {
-      const getPrice = (totalPrice) => parseFloat(totalPrice.replace(/[^\d.]/g, ""));
+      const getPrice = (price) => parseFloat(price.replace(/[^\d.]/g, ""));
       sortedTransactions.sort((a, b) =>
         selectedSubFilter === "Low to High"
-          ? getPrice(a.totalPrice) - getPrice(b.totalPrice)
-          : getPrice(b.totalPrice) - getPrice(a.totalPrice)
+          ? getPrice(a.sellingPrice) - getPrice(b.sellingPrice)
+          : getPrice(b.sellingPrice) - getPrice(a.sellingPrice)
       );
     }
 
@@ -192,18 +185,18 @@ export default function DeletedPage() {
   // Multiple Delete
   const [selectedTransactions, setSelectedTransactions] = useState([]);
 
-  const handleSelectTransaction = (transactionID) => {
+  const handleSelectTransaction = (uniqueKey) => {
     setSelectedTransactions((prev) =>
-      prev.includes(transactionID)
-        ? prev.filter((code) => code !== transactionID)
-        : [...prev, transactionID]
+      prev.includes(uniqueKey)
+        ? prev.filter((code) => code !== uniqueKey)
+        : [...prev, uniqueKey]
     );
   };
   
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      const allCodes = getFilteredTransactions().map((item) => item.transactionID);
-      setSelectedTransactions(allCodes);
+      const allKeys = getFilteredTransactions().map((item) => item.uniqueKey);
+      setSelectedTransactions(allKeys);
     } else {
       setSelectedTransactions([]);
     }
@@ -213,11 +206,19 @@ export default function DeletedPage() {
     const [adminPW, setAdminPW] = useState("");
     const [isDDOpen, setDDOpen] = useState("");
     const [isMDDOpen, setMDDOpen] = useState("");
-    const handleDelete = (productCode, adminPWInput) => {
+    const handleDelete = (uniqueKey, adminPWInput) => {
+      if (typeof uniqueKey !== 'string' || !uniqueKey.includes('-')) {
+        console.error('Invalid unique key:', uniqueKey);
+        toast.error('Invalid item selected for deleting');
+        return;
+      }
+      
+      const [transactionID] = uniqueKey.split("-");
+
       axios({
         method: 'delete',
-        url: `http://localhost:8080/products/${productCode}`,
-        data: { adminPW: adminPWInput }, 
+        url: `http://localhost:8080/deleted/${transactionID}`,
+        data: { transactionID, adminPW: adminPWInput }, 
         headers: {
           'Content-Type': 'application/json',
         }
@@ -229,8 +230,20 @@ export default function DeletedPage() {
           setDDOpen(false);
         })
         .catch(err => {
-          console.error("Delete error:", err.response?.data || err);
-          toast.error(err.response?.data?.message || "Error deleting product");
+          console.error("Delete error:", {
+            message: err.message,
+            response: err.response,
+            data: err.response?.data,
+            status: err.response?.status
+          });
+        
+          const msg =
+            err.response?.data?.message ||
+            err.response?.statusText ||
+            err.message ||
+            "Unknown error deleting product";
+        
+          toast.error(msg);
         });
     };
  
@@ -238,16 +251,18 @@ export default function DeletedPage() {
   const handleMultiDelete = (password) => {
     if (!password) return toast.error("Password is required.");
     Promise.all(
-      selectedTransactions.map((code) =>
-        axios({
+      selectedTransactions.map((uniqueKey) => {
+        const [transactionID] = uniqueKey.split("-");
+
+        return axios({
           method: 'delete',
-          url: `${config.product.api.delete}/${code}`,
-          data: { adminPW: password /*adminPWInput */ }, 
+          url: `${config.deleted.api.delete}/${transactionID}`,
+          data: { transactionID, adminPW: password /*adminPWInput */ }, 
           headers: {
             'Content-Type': 'application/json',
           }
         })
-      )
+      })
     )
       .then(() => {
         toast.success("Selected products deleted.");
@@ -256,6 +271,10 @@ export default function DeletedPage() {
         setMDDOpen(false);
       })
       .catch(() => toast.error("Error deleting selected products."));
+
+      useEffect(() => {
+        setSelectedTransactions([]);
+      }, [selectedFilter, selectedSubFilter]);
   };  
 
   return (
@@ -270,6 +289,8 @@ export default function DeletedPage() {
                   type="text"
                   placeholder="Search transaction, id, product"
                   className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                 />
                 <div className="absolute left-3 top-2.5 text-gray-500">
                   <Search className="w-5 h-5" />
@@ -333,7 +354,13 @@ export default function DeletedPage() {
                 <Download className="w-4 h-4" />
               </Button>
 
-              <Dialog open={isMDDOpen} onOpenChange={setMDDOpen}>
+              <Dialog open={isMDDOpen} onOpenChange={(open) => {
+                setMDDOpen(open);
+                if (!open) {
+                  setSelectedTransactions([]);
+                  setAdminPW("");
+                }
+              }}>
                 <DialogTrigger asChild>
                   <Button className="bg-red-500 text-white" disabled={selectedTransactions.length === 0}>
                     Delete Selected
@@ -386,8 +413,6 @@ export default function DeletedPage() {
                   <TableHead>
                     <input type="checkbox" onChange={handleSelectAll} checked={selectedTransactions.length === getFilteredTransactions().length && selectedTransactions.length > 0} />
                   </TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Transaction ID</TableHead>
                   <TableHead>Product Code</TableHead>
                   <TableHead>Receipt Number</TableHead>
                   <TableHead>Product</TableHead>
@@ -398,20 +423,18 @@ export default function DeletedPage() {
               </TableHeader>
               <TableBody>
               {getFilteredTransactions().filter(item =>
-                (item.productName?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
-                (item.transactionID?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
-                (item.receiptNum?.toLowerCase() || "").includes(searchTerm.toLowerCase())                
+                (String(item.productName || "").toLowerCase()).includes(searchTerm.toLowerCase()) ||
+                (String(item.transactionID || "").toLowerCase()).includes(searchTerm.toLowerCase()) ||
+                (String(item.receiptNum || "").toLowerCase()).includes(searchTerm.toLowerCase())                
               ).map((item) => (
-                    <TableRow key={item.transactionID}>                   
+                    <TableRow key={item.uniqueKey}>                   
                       <TableCell>
                       <input
                         type="checkbox"
-                        checked={selectedTransactions.includes(item.transactionID)}
-                        onChange={() => handleSelectTransaction(item.transactionID)}
+                        checked={selectedTransactions.includes(item.uniqueKey)}
+                        onChange={() => handleSelectTransaction(item.uniqueKey)}
                       />
-                      </TableCell>                      
-                      <TableCell>{new Date(item.Ddate).toLocaleDateString()}</TableCell>
-                      <TableCell>{item.transactionID}</TableCell>
+                      </TableCell>
                       <TableCell>{item.productCode}</TableCell>
                       <TableCell>{item.receiptNum}</TableCell>
                       <TableCell>{item.productName}</TableCell>
@@ -474,7 +497,7 @@ export default function DeletedPage() {
                             <div className="flex justify-end gap-2 mt-4">
                               <Button
                                 className="bg-blue-400 text-white hover:bg-blue-700"
-                                onClick={() => handleRetrieve(item.transactionID)}
+                                onClick={() => handleRetrieve(item.uniqueKey)}
                               >
                                 Confirm
                               </Button>
@@ -484,7 +507,10 @@ export default function DeletedPage() {
                             </div>
                           </DialogContent>
                         </Dialog>
-                        <Dialog>
+                        <Dialog open={isDDOpen} onOpenChange={(open) => {
+                          setDDOpen(open);
+                          if (!open) setAdminPW("");
+                        }}>
                           <DialogTrigger asChild>
                             <Button variant="ghost" size="sm" className="text-gray-500 hover:text-red-600">
                               <Trash2 size={16} />
@@ -507,17 +533,14 @@ export default function DeletedPage() {
                                   Admin Password
                                 </label>
                                 <Input
-                                  type="password"
-                                  id={`password-${item.transactionID}`}
-                                  required
-                                  placeholder="Enter valid password"
-                                  className="w-full"
-                                />
+                                  type="password" value={adminPW} required placeholder="Enter valid password" className="w-full"
+                                  onChange={(e) =>
+                                    setAdminPW(e.target.value)
+                                  }/>
                               </div>
                               <Button
                                 className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
-                                onClick={() => handleDelete(item.transactionID,
-                                  document.getElementById(`password-${item.transactionID}`).value)}
+                                onClick={() => handleDelete(item.uniqueKey, adminPW)}
                               >
                                 DELETE TRANSACTION
                               </Button>
@@ -532,6 +555,7 @@ export default function DeletedPage() {
           </div>
         </div>
       </div>
+    <Toaster position="top-center"/>
     </SidebarProvider>
   );
 }
