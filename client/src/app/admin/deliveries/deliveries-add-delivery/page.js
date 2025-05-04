@@ -41,6 +41,10 @@ export default function BatchDeliveriesPage() {
   const [loading, setLoading] = useState(true);
   const [selectedSupplier, setSelectedSupplier] = useState("");
   
+  const [filteredSuppliers, setFilteredSuppliers] = useState([]);
+  const [filteredBrands, setFilteredBrands] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  
   // State for payment details
   const [paymentTypes, setPaymentTypes] = useState([]);
   const [paymentModes, setPaymentModes] = useState([]);
@@ -76,10 +80,24 @@ export default function BatchDeliveriesPage() {
     paymentDetails: "http://localhost:8080/deliveryPaymentDetails"
   };
 
-  // Load data on component mount
   useEffect(() => {
     loadAllData();
   }, []);
+
+  useEffect(() => {
+    setFilteredSuppliers(suppliers);
+    setFilteredBrands(brands);
+    setFilteredProducts(products);
+  }, [suppliers, brands, products]);
+  
+  useEffect(() => {
+    if (selectedSupplier) {
+      const filteredBrands = getFilteredBrands();
+      const filteredProducts = getFilteredProducts();
+      setFilteredBrands(filteredBrands);
+      setFilteredProducts(filteredProducts);
+    }
+  }, [selectedSupplier]);
 
   // Function to load all needed data
   const loadAllData = async () => {
@@ -407,6 +425,44 @@ export default function BatchDeliveriesPage() {
     // Return only brands that match these IDs
     return brands.filter(brand => supplierProductBrandIds.includes(brand.B_brandID));
   };
+  
+  // Search handler for suppliers
+  const handleSupplierSearch = (searchTerm) => {
+    if (!searchTerm) {
+      setFilteredSuppliers(suppliers);
+      return;
+    }
+    const filtered = suppliers.filter(supplier => 
+      supplier.S_supplierName.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    setFilteredSuppliers(filtered);
+  };
+  
+  // Search handler for brands
+  const handleBrandSearch = (searchTerm) => {
+    const baseBrands = getFilteredBrands();
+    if (!searchTerm) {
+      setFilteredBrands(baseBrands);
+      return;
+    }
+    const filtered = baseBrands.filter(brand => 
+      brand.B_brandName.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    setFilteredBrands(filtered);
+  };
+
+  // Search handler for products
+  const handleProductSearch = (searchTerm) => {
+    const baseProducts = getFilteredProducts();
+    if (!searchTerm) {
+      setFilteredProducts(baseProducts);
+      return;
+    }
+    const filtered = baseProducts.filter(product => 
+      product.P_productName.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    setFilteredProducts(filtered);
+  };
 
   return (
     <SidebarProvider>
@@ -577,7 +633,14 @@ export default function BatchDeliveriesPage() {
                         <SelectValue placeholder="Select supplier" />
                       </SelectTrigger>
                       <SelectContent>
-                        {suppliers.map(supplier => (
+                        <div className="p-2">
+                          <Input
+                            placeholder="Search suppliers..."
+                            className="mb-2"
+                            onChange={(e) => handleSupplierSearch(e.target.value)}
+                          />
+                        </div>
+                        {filteredSuppliers.map(supplier => (
                           <SelectItem key={supplier.S_supplierID} value={supplier.S_supplierID}>
                             {supplier.S_supplierName}
                           </SelectItem>
@@ -596,7 +659,14 @@ export default function BatchDeliveriesPage() {
                         <SelectValue placeholder="Select brand" />
                       </SelectTrigger>
                       <SelectContent>
-                        {getFilteredBrands().map(brand => (
+                        <div className="p-2">
+                          <Input
+                            placeholder="Search brands..."
+                            className="mb-2"
+                            onChange={(e) => handleBrandSearch(e.target.value)}
+                          />
+                        </div>
+                        {filteredBrands.map(brand => (
                           <SelectItem key={brand.B_brandID} value={brand.B_brandName}>
                             {brand.B_brandName}
                           </SelectItem>
@@ -615,7 +685,14 @@ export default function BatchDeliveriesPage() {
                         <SelectValue placeholder="Select product" />
                       </SelectTrigger>
                       <SelectContent>
-                        {getFilteredProducts().map(product => (
+                        <div className="p-2">
+                          <Input
+                            placeholder="Search products..."
+                            className="mb-2"
+                            onChange={(e) => handleProductSearch(e.target.value)}
+                          />
+                        </div>
+                        {filteredProducts.map(product => (
                           <SelectItem key={product.P_productCode} value={product.P_productName}>
                             {product.P_productName}
                           </SelectItem>
