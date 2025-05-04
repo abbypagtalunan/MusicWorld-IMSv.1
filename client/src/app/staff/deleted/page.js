@@ -156,7 +156,7 @@ export default function DeletedPage() {
                             <Ellipsis size={16} />
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-3xl p-6">
+                        <DialogContent className="w-[90vw] max-w-3xl sm:max-w-lg md:max-w-3xl max-h-[90vh] overflow-y-auto p-6"> 
                         <DialogHeader>
                             <DialogTitle>Transaction Details</DialogTitle>
                             <DialogClose />
