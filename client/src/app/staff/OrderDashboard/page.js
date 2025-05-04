@@ -65,8 +65,7 @@ const OrderDashboard = () => {
       toast.error("Enter receipt number.");
       return;
     }
-  
-    // Calculate total product discount
+
     const totalProductDiscount = data.reduce((sum, item) => {
       const discountValue = parseFloat(item["Discount Value"]) || 0;
       return sum + discountValue;
@@ -126,7 +125,6 @@ const OrderDashboard = () => {
       })
       .catch((err) => {
         console.error("Error processing payment:", err);
-  
         if (
           err.response?.status === 409 ||
           err.response?.data?.message?.includes('Orders.O_receiptNumber')
@@ -139,8 +137,6 @@ const OrderDashboard = () => {
       });
   };
   
-  
-  
   // Fetch data for product list
   useEffect(() => {
     axios
@@ -149,15 +145,11 @@ const OrderDashboard = () => {
         const mappedProducts = res.data.map((p) => ({
           code: p.P_productCode,
           name: p.P_productName,
-          category: p.category,
           brand: p.brand,
           supplier: p.supplier,
-          supplierId: p.S_supplierID,
           price: p.P_sellingPrice,
           stock: p.stock,
-          status: p.status,
-          dateAdded: p.P_dateAdded,
-          label: `${p.P_productName} | B${p.brand} | S${p.supplier}`,
+          label: `${p.P_productName} - B${p.brand} - S${p.supplier}`,
         }));
         setProducts(mappedProducts);
       })
@@ -210,6 +202,7 @@ const OrderDashboard = () => {
     setSelectedProduct(null);
     setOrderQuantity(1);
     setOrderDiscount(0);
+    setSelectedProductDiscount(0)
     setIsEditMode(false); // Reset to add mode
   };
 
@@ -227,10 +220,24 @@ const OrderDashboard = () => {
     if (selectedProduct) {
       setSelectedProduct(selectedProduct);
       setOrderQuantity(quantity);
+  
+      // Find the matching discount object from productDiscounts
+      const matchedDiscount = productDiscounts.find(d =>
+        d.D_discountType === discount.toString() || parseFloat(discount).toFixed(2) === d.D_discountType.replace("%", "")
+      );
+       console.log("Discount: ", selectedProductDiscount)
+  
+      if (matchedDiscount) {
+        setSelectedProductDiscount(matchedDiscount);
+      } else {
+        setSelectedProductDiscount(null); 
+      }
+  
       setOrderDiscount(parseFloat(discount));
       setIsEditMode(true);
     }
   };
+  
   
   const handleAddFreebie = () => {
   if (!selectedFreebie || freebieQuantity <= 0) return;
@@ -382,7 +389,6 @@ const OrderDashboard = () => {
                           }`}
                         />
 
-
                       <label className={`pl-9 mt-2 text-start text-[15px] block ${receiptNumberError ? "text-red-600" : "text-black"}`}>
                         {receiptNumberError ? "Enter a valid receipt number" : "Enter Receipt Number"}
                       </label>
@@ -425,7 +431,6 @@ const OrderDashboard = () => {
                           Enter Payment
                         </button>
                       
-
                         <p className="pl-9 mb-5 mt-2 text-start text-[13px] font-bold text-blue-600">
                           CHANGE: {new Intl.NumberFormat("en-PH", { 
                             style: "currency", 
@@ -457,13 +462,17 @@ const OrderDashboard = () => {
             <h2 className="text-xl text-center font-semibold text-blue-600 pb-4">Add Product to Order/s</h2>
             <form className="text-[15px] space-y-2">
               <div className="text-left">
-                
                 {/* COMBOBOX SEARCH PRODUCT */}
                 <label className="block mb-1 text-sm">Product</label>
                 <Popover open={openProduct} onOpenChange={setOpenProduct}>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" role="combobox" aria-expanded={openProduct} className="w-full justify-between">
-                      {selectedProduct ? selectedProduct.name : "Select product..."}
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openProduct}
+                      className="w-full justify-between"
+                    >
+                      {selectedProduct ? selectedProduct.label : "Select product..."}
                       <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
@@ -475,11 +484,19 @@ const OrderDashboard = () => {
                         {products.map((product) => (
                           <CommandItem
                             key={product.code}
-                            value={product.name}
-                            onSelect={() => handleProductSelect(product)}
+                            value={product.label} 
+                            onSelect={() => {
+                              handleProductSelect(product); 
+                              setOpenProduct(false);
+                            }}
                           >
-                            <Check className={cn("mr-2 h-4 w-4", selectedProduct?.code === product.code ? "opacity-100" : "opacity-0")} />
-                            {product.name}
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                selectedProduct?.code === product.code ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {product.label}
                           </CommandItem>
                         ))}
                       </CommandGroup>
@@ -549,7 +566,6 @@ const OrderDashboard = () => {
                         const currentQuantity = parseInt(orderQuantity);
                       
                         setSelectedProductDiscount(itemDiscount);
-                      
                         if (discountType.includes("%")) {
                           const percent = parseFloat(discountType); // e.g. "10%" becomes 10
                           const computed = currentPrice * currentQuantity * (percent / 100);
@@ -559,15 +575,13 @@ const OrderDashboard = () => {
                         } else {
                           setOrderDiscount("0");
                         }
-                      }}
-                      
+                      }}  
                     >
                       {itemDiscount.D_discountType}
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
-
 
                 <label className="block text-sm">Discount Amount</label>
                 <input

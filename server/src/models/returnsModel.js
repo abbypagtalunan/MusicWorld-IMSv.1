@@ -1,7 +1,7 @@
 const db = require('../../db');
 
-// Get all Returns (basic)
-const getAllReturns = (callback) => {
+// Get all active returns (not temporarily deleted)
+const getAllActiveReturns = (callback) => {
   const query = `
     SELECT 
       R_returnID,
@@ -11,9 +11,11 @@ const getAllReturns = (callback) => {
       R_dateOfReturn,
       R_returnQuantity,
       R_discountAmount,
+      R_TotalPrice,
       D_deliveryNumber,
       S_supplierID
-    FROM Returns;
+    FROM Returns
+    WHERE isTemporarilyDeleted = 0;
   `;
 
   db.query(query, (err, results) => {
@@ -25,18 +27,7 @@ const getAllReturns = (callback) => {
   });
 };
 
-// NEW FUNCTION — Allows custom WHERE clause for filtering
-const getAllReturnsCustomQuery = (query, callback) => {
-  db.query(query, (err, results) => {
-    if (err) {
-      callback(err, null);
-    } else {
-      callback(null, results);
-    }
-  });
-};
-
-// Add a new Return
+// Add a new return
 const addReturn = (returnData, callback) => {
   const {
     P_productCode,
@@ -45,6 +36,7 @@ const addReturn = (returnData, callback) => {
     R_dateOfReturn,
     R_returnQuantity,
     R_discountAmount,
+    R_TotalPrice,
     D_deliveryNumber,
     S_supplierID
   } = returnData;
@@ -52,9 +44,9 @@ const addReturn = (returnData, callback) => {
   const insertReturnQuery = `
     INSERT INTO Returns (
       P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn,
-      R_returnQuantity, R_discountAmount, D_deliveryNumber, S_supplierID
+      R_returnQuantity, R_discountAmount, R_TotalPrice, D_deliveryNumber, S_supplierID
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   db.query(
@@ -66,6 +58,7 @@ const addReturn = (returnData, callback) => {
       R_dateOfReturn,
       R_returnQuantity,
       R_discountAmount,
+      R_TotalPrice,
       D_deliveryNumber,
       S_supplierID
     ],
@@ -76,7 +69,7 @@ const addReturn = (returnData, callback) => {
   );
 };
 
-// Update an existing Return
+// Update an existing return
 const updateReturn = (returnID, returnData, callback) => {
   const {
     P_productCode,
@@ -85,6 +78,7 @@ const updateReturn = (returnID, returnData, callback) => {
     R_dateOfReturn,
     R_returnQuantity,
     R_discountAmount,
+    R_TotalPrice,
     D_deliveryNumber,
     S_supplierID
   } = returnData;
@@ -98,6 +92,7 @@ const updateReturn = (returnID, returnData, callback) => {
       R_dateOfReturn = ?,
       R_returnQuantity = ?,
       R_discountAmount = ?,
+      R_TotalPrice = ?,
       D_deliveryNumber = ?,
       S_supplierID = ?
     WHERE R_returnID = ?;
@@ -112,6 +107,7 @@ const updateReturn = (returnID, returnData, callback) => {
       R_dateOfReturn,
       R_returnQuantity,
       R_discountAmount,
+      R_TotalPrice,
       D_deliveryNumber,
       S_supplierID,
       returnID
@@ -123,21 +119,23 @@ const updateReturn = (returnID, returnData, callback) => {
   );
 };
 
-// Delete a Return
-const deleteReturn = (returnID, callback) => {
-  const deleteReturnQuery = `DELETE FROM Returns WHERE R_returnID = ?`;
+// Soft delete a return
+const softDeleteReturn = (returnID, callback) => {
+  const query = `
+    UPDATE Returns
+    SET isTemporarilyDeleted = 1
+    WHERE R_returnID = ?;
+  `;
 
-  db.query(deleteReturnQuery, [returnID], (err, results) => {
+  db.query(query, [returnID], (err, results) => {
     if (err) return callback(err);
     callback(null, results);
   });
 };
 
-// Export all model functions
 module.exports = {
-  getAllReturns,
-  getAllReturnsCustomQuery,
+  getAllActiveReturns,
   addReturn,
   updateReturn,
-  deleteReturn,
+  softDeleteReturn
 };

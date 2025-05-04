@@ -106,6 +106,49 @@ const getFilteredStaffs = () => {
     return sorted;
 };
 
+const [isMDDOpen, setMDDOpen] = useState("");
+const [adminPW, setAdminPW] = useState("");
+
+const handleDelete = (code, adminPWInput) => {
+    axios({
+      method: 'delete',
+      url: `http://localhost:8080/products/${code}`,
+      data: { adminPW: adminPWInput }, 
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    })
+      .then(() => {
+        toast.success("Product deleted successfully");
+        refreshTable();
+        setAdminPW("");
+        setDDOpen(false);
+      })
+      .catch(err => {
+        console.error("Delete error:", err.response?.data || err);
+        toast.error(err.response?.data?.message || "Error deleting product");
+      });
+  };
+
+const [selectedStaff, setSelectedStaff] = useState([]);
+
+  const handleSelectStaff = (staffsCode) => {
+    setSelectedStaff((prev) =>
+      prev.includes(staffsCode)
+        ? prev.filter((code) => code !== staffsCode)
+        : [...prev, staffsCode]
+    );
+  };
+  
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      const allCodes = getFilteredStaffs().map((item) => item.code);
+      setSelectedStaff(allCodes);
+    } else {
+      setSelectedStaff([]);
+    }
+  };
+
 return (
     <SidebarProvider>
         <div className="flex h-screen w-screen">
@@ -150,11 +193,11 @@ return (
                         <Button className="bg-blue-400 text-white">Edit Account</Button>
                     </DialogTrigger>
 
-                    <DialogContent className="max-w-md">
+                    <DialogContent className="w-[30vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
                         <DialogHeader>
-                        <DialogTitle className="text-blue-500 text-xl font-bold mb-4">Edit Account Information</DialogTitle>
+                        <DialogTitle className="text-blue-400 text-xl font-bold">Edit Account Information</DialogTitle>
                         </DialogHeader>
-                        <div className="flex flex-col space-y-4 text-gray-700">
+                        <div className="flex flex-col gap-4 mt-4 text-gray-700">
                             <Label>Date Created</Label>
                             <Input value={admin.dateCreated} disabled />
 
@@ -176,7 +219,7 @@ return (
                             </Select>
                         </div>
                         <DialogFooter className="mt-6">
-                        <Button className="bg-blue-500 text-white w-full">Save Edit</Button>
+                        <Button className="bg-blue-400 text-white w-full">Save Edit</Button>
                         </DialogFooter>
                     </DialogContent>
                     </Dialog>
@@ -211,11 +254,11 @@ return (
                     <DialogTrigger asChild>
                         <Button className="bg-blue-400 text-white">Change Password</Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-md">
+                    <DialogContent className="w-[30vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
                         <DialogHeader>
-                        <DialogTitle className="text-blue-400 text-xl font-bold mb-4">Change Password</DialogTitle>
+                        <DialogTitle className="text-blue-400 text-xl font-bold">Change Password</DialogTitle>
                         </DialogHeader>
-                        <div className="flex flex-col space-y-3">
+                        <div className="flex flex-col gap-4 mt-4 text-gray-700">
                             <Label>Old Password</Label>
                             <Input type="password" placeholder="Enter your old password" />
 
@@ -226,7 +269,7 @@ return (
                             <Input type="password" placeholder="Confirm new password" />
                         </div>
                         <DialogFooter>
-                            <Button className="bg-blue-500 text-white w-full">Update Password</Button>
+                            <Button className="bg-blue-400 text-white w-full">Update Password</Button>
                         </DialogFooter>
                     </DialogContent>
                     </Dialog>
@@ -314,7 +357,7 @@ return (
                     </DialogTrigger>
                     <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
                         <DialogHeader>
-                            <DialogTitle className="text-blue-500 text-xl font-bold">Add Staff</DialogTitle>
+                            <DialogTitle className="text-blue-400 text-xl font-bold">Add Staff</DialogTitle>
                             <DialogClose />
                         </DialogHeader>
                         <div className="flex flex-col gap-4 mt-4 text-gray-700">
@@ -359,13 +402,54 @@ return (
                             </div>
                             </div>
 
-                        <div className="mt-6">
-                            <Button className="w-full bg-blue-500 text-white">Submit</Button>
-                        </div>
+                        <DialogFooter className="mt-6">
+                            <Button className="bg-blue-400 text-white w-full">Submit</Button>
+                        </DialogFooter>
                     </DialogContent>
                 </Dialog>
 
-                <Button variant="destructive">Delete Selected</Button>
+                <Dialog open={isMDDOpen} onOpenChange={setMDDOpen}>
+                <DialogTrigger asChild>
+                  <Button className="bg-red-500 text-white" disabled={selectedStaff.length === 0}>
+                    Delete Selected
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
+                  <DialogHeader>
+                    <DialogTitle>
+                      <span className="text-lg text-red-900">Delete Multiple Transactions</span>
+                      <span className="text-lg text-gray-400 font-normal italic ml-2">({selectedStaff.length} items)</span>
+                    </DialogTitle>
+                    <DialogClose />
+                  </DialogHeader>
+                  <p className="text-sm text-gray-800 mt-2 pl-4">
+                    Deleting these transactions will reflect on Void Transactions. Enter the admin password to delete the selected products.
+                  </p>
+                  <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">
+                    <div className="flex-1">
+                      <label htmlFor="password" className="text-base font-medium block mb-2">
+                        Admin Password
+                      </label>
+                      <Input
+                        type="password"
+                        required
+                        placeholder="Enter admin password"
+                        className="w-full"
+                        value={adminPW}
+                        onChange={(e) => setAdminPW(e.target.value)}
+                      />
+                    </div>
+                    <Button
+                    className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
+                    onClick={() =>
+                        handleMultiDelete(adminPW)
+                    }
+                    >
+                    DELETE TRANSACTIONS
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
             </div>
 
@@ -375,6 +459,9 @@ return (
                 <Table>
                 <TableHeader className="sticky top-0 z-10 bg-white">
                     <TableRow>
+                        <TableHead>
+                            <input type="checkbox" onChange={handleSelectAll} checked={selectedStaff.length === getFilteredStaffs().length && selectedStaff.length > 0} />
+                        </TableHead>
                         <TableHead>Date Created</TableHead>
                         <TableHead>Name</TableHead>
                         <TableHead>Role</TableHead>
@@ -386,6 +473,13 @@ return (
                     <TableBody>
                     {getFilteredStaffs().map((staff, index) => (
                         <TableRow key={index}>
+                        <TableCell>
+                            <input
+                                type="checkbox"
+                                checked={selectedStaff.includes(staff.code)}
+                                onChange={() => handleSelectStaff(staff.code)}
+                            /> 
+                        </TableCell>
                         <TableCell>{staff.dateCreated}</TableCell>
                         <TableCell>{`${staff.firstName} ${staff.lastName}`}</TableCell>
                         <TableCell>{staff.role}</TableCell>
@@ -403,14 +497,14 @@ return (
                         </TableCell>
 
                         <Dialog open={isResetOpen} onOpenChange={setIsResetOpen}>
-                            <DialogContent className="max-w-md p-6 text-gray-700">
+                            <DialogContent className="w-[30vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
                                 <DialogHeader>
-                                    <DialogTitle className="text-blue-500 text-xl font-bold">
+                                    <DialogTitle className="text-blue-400 text-xl font-bold">
                                     Reset Password for {resetStaff?.firstName} {resetStaff?.lastName}
                                     </DialogTitle>
                                     <DialogClose />
                                 </DialogHeader>
-                                <div className="flex flex-col gap-4 mt-4">
+                                <div className="flex flex-col gap-4 mt-4 text-gray-700">
                                     <Label>New Password</Label>
                                     <Input
                                     type="password"
@@ -427,38 +521,39 @@ return (
                                     />
                                 </div>
 
-                                <div className="mt-6">
+                                <DialogFooter className="mt-6">
                                     <Button
-                                    className="w-full bg-blue-500 text-white"
+                                    className="w-full bg-blue-400 text-white"
                                     onClick={handleResetPassword}
                                     >
                                     Reset Password
                                     </Button>
-                                </div>
+                                </DialogFooter>
                             </DialogContent>
                         </Dialog>
 
                         <TableCell className="flex space-x-2">
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-gray-500 hover:text-blue-600"
-                                onClick={() => {
-                                    setEditedStaff(staff);
-                                    setIsEditOpen(true);
-                                }
-                                }
-                            >
-                                <FilePen size={16} />
-                            </Button>
-
                             <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-                            <DialogContent className="max-w-md p-6 text-gray-700">
+                                <DialogTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-gray-500 hover:text-blue-400"
+                                        onClick={() => {
+                                            setEditedStaff(staff);
+                                            setIsEditOpen(true);
+                                        }
+                                        }
+                                    >
+                                        <FilePen size={16} />
+                                    </Button>
+                                </DialogTrigger>
+                            <DialogContent className="w-[30vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
                                 <DialogHeader>
-                                <DialogTitle className="text-blue-500 text-xl font-bold">Edit Staff</DialogTitle>
+                                <DialogTitle className="text-blue-400 text-xl font-bold">Edit Staff</DialogTitle>
                                 <DialogClose />
                                 </DialogHeader>
-                                <div className="flex flex-col gap-4 mt-4">
+                                <div className="flex flex-col gap-4 mt-4 text-gray-700">
                                 <div>
                                     <Label>Date Created</Label>
                                     <Input value={editedStaff.dateCreated} disabled />
@@ -510,14 +605,14 @@ return (
                                 </div>
                                 </div>
 
-                                <div className="mt-6">
+                                <DialogFooter className="mt-6">
                                 <Button
-                                    className="w-full bg-blue-500 text-white"
+                                    className="w-full bg-blue-400 text-white"
                                     onClick={() => handleUpdateStaff(editedStaff)}
                                 >
                                     Update Staff
                                 </Button>
-                                </div>
+                                </DialogFooter>
                             </DialogContent>
                             </Dialog>
 
@@ -532,7 +627,7 @@ return (
                                 </Button>
                                 </DialogTrigger>
 
-                                <DialogContent className="max-w-3xl p-7 text-gray-700">
+                                <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
                                 <DialogHeader>
                                     <DialogTitle>
                                     <span className="text-lg text-red-900">Delete Staff</span>{" "}
@@ -547,7 +642,7 @@ return (
                                     Deleting this staff account is permanent. Enter the admin password to confirm.
                                 </p>
 
-                                <div className="flex items-center gap-4 mt-4 pl-10">
+                                <div className="flex items-center gap-4 mt-4 pl-4">
                                     <div className="flex-1">
                                     <label
                                         htmlFor={`password-${staff.code}`}
@@ -563,18 +658,20 @@ return (
                                         className="w-full"
                                     />
                                     </div>
-
-                                    <Button
-                                    className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
-                                    onClick={() =>
-                                        handleDelete(
-                                        staff.code,
-                                        document.getElementById(`password-${staff.code}`).value
-                                        )
-                                    }
-                                    >
-                                    DELETE STAFF
-                                    </Button>
+                                    
+                                    <DialogFooter className="mt-6">
+                                        <Button
+                                        className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
+                                        onClick={() =>
+                                            handleDelete(
+                                            staff.code,
+                                            document.getElementById(`password-${staff.code}`).value
+                                            )
+                                        }
+                                        >
+                                        DELETE STAFF
+                                        </Button>
+                                    </DialogFooter>
                                 </div>
                                 </DialogContent>
                             </Dialog>
