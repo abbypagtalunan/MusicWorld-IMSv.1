@@ -70,6 +70,7 @@ export default function DeliveriesPage() {
     axios.get(config.deliveries.fetch)
       .then(res => {
         setDeliveries(normalizeDeliveryData(res.data));
+        console.log("Delivery numbers from deliveries:", res.data.map(d => d.D_deliveryNumber));
       })
       .catch(error => {
         console.error("Error fetching deliveries:", error);
@@ -79,8 +80,15 @@ export default function DeliveriesPage() {
     // Fetch delivery products
     axios.get(config.deliveryProducts.fetch)
       .then(res => {
-        const grouped = groupDeliveryProducts(res.data);
-        setDeliveryProducts(grouped);
+        console.log("Raw delivery products data:", res.data); // Debug the raw response
+        if (Array.isArray(res.data) && res.data.length > 0) {
+          const grouped = groupDeliveryProducts(res.data);
+          console.log("Grouped delivery products:", grouped); // Debug the grouped object
+          setDeliveryProducts(grouped);
+        } else {
+          console.warn("Delivery products data is empty or not an array");
+          setDeliveryProducts({});
+        }
       })
       .catch(error => {
         console.error("Error fetching delivery products:", error);
@@ -93,9 +101,9 @@ export default function DeliveriesPage() {
         const detailsMap = {};
         res.data.forEach(item => {
           detailsMap[item.D_deliveryNumber] = {
-            paymentType: item.D_paymentTypeID.toString(),
-            paymentMode: item.D_modeOfPaymentID.toString(),
-            paymentStatus: item.D_paymentStatusID.toString(),
+            paymentType: item.D_paymentTypeID,
+            paymentMode: item.D_modeOfPaymentID,
+            paymentStatus: item.D_paymentStatusID,
             dateDue: formatDateForInput(item.DPD_dateOfPaymentDue),
             datePayment1: formatDateForInput(item.DPD_dateOfPayment1),
             datePayment2: formatDateForInput(item.DPD_dateOfPayment2) || "",
@@ -155,25 +163,39 @@ export default function DeliveriesPage() {
       totalCost: item.totalCost ? `₱${parseFloat(item.totalCost).toFixed(2)}` : "₱0.00"
     }));
   };
-
-  // Helper function to group delivery products by delivery number
+  
   const groupDeliveryProducts = (data) => {
+    console.log("Raw delivery products data before grouping:", data);
+    
     const grouped = {};
     data.forEach(item => {
-      if (!grouped[item.D_deliveryNumber]) {
-        grouped[item.D_deliveryNumber] = [];
+      if (!item || !item.D_deliveryNumber) {
+        console.warn("Item missing delivery number:", item);
+        return; // Skip this item
       }
       
-      grouped[item.D_deliveryNumber].push({
-        productCode: item.P_productCode,
-        supplier: item.supplierName || "",
-        brand: item.brandName || "",
-        product: item.productName || "",
-        quantity: item.DPD_quantity,
-        unitPrice: `₱${parseFloat(item.DPD_unitPrice).toFixed(2)}`,
-        total: `₱${(parseFloat(item.DPD_unitPrice) * item.DPD_quantity).toFixed(2)}`
+      // Store using the exact delivery number format from the backend
+      const deliveryNumKey = item.D_deliveryNumber.toString();
+      
+      if (!grouped[deliveryNumKey]) {
+        grouped[deliveryNumKey] = [];
+      }
+      
+      const unitPrice = parseFloat(item.DPD_unitPrice) || 0;
+      const quantity = parseInt(item.DPD_quantity) || 0;
+      
+      grouped[deliveryNumKey].push({
+        productCode: item.P_productCode || "N/A",
+        supplier: item.supplierName || "Unknown",
+        brand: item.brandName || "Unknown",
+        product: item.productName || "Unknown Product",
+        quantity: quantity,
+        unitPrice: `₱${unitPrice.toFixed(2)}`,
+        total: `₱${(unitPrice * quantity).toFixed(2)}`
       });
     });
+    
+    console.log("Delivery numbers in grouped data after processing:", Object.keys(grouped));
     return grouped;
   };
 
@@ -258,39 +280,6 @@ export default function DeliveriesPage() {
         toast.error("Failed to update payment details");
       });
   };
-
-  // Handle deletion of transactions
-  // const handleDelete = (deliveryNum, password) => {
-  //   if (!password) {
-  //     toast.error("Please enter admin password");
-  //     return;
-  //   }
-
-  //   axios({
-  //     method: 'delete',
-  //     url: `${config.deliveries.delete}/${deliveryNum}`,
-  //     data: { adminPW: password },
-  //     headers: {
-  //       'Content-Type': 'application/json',
-  //     }
-  //   })
-  //     .then(() => {
-  //       toast.success(`Transaction ${deliveryNum} has been deleted`);
-        
-  //       // Refresh all data
-  //       loadAllData();
-        
-  //       // Clear search if it might have included the deleted item
-  //       if (searchResult && searchResult.some(d => d.deliveryNum === deliveryNum)) {
-  //         setSearchResult(null);
-  //         setSearchValue("");
-  //       }
-  //     })
-  //     .catch(err => {
-  //       console.error("Delete error:", err.response?.data || err);
-  //       toast.error(err.response?.data?.message || "Error deleting delivery");
-  //     });
-  // };
 
   // Handle search
   const handleSearch = () => {
@@ -528,7 +517,11 @@ export default function DeliveriesPage() {
                                     </TableRow>
                                   </TableHeader>
                                   <TableBody>
-                                    {deliveryProducts[d.deliveryNum] && deliveryProducts[d.deliveryNum].map((item, index) => (
+                                    {/* Check if the deliveryProducts data exists for this delivery number */}
+                                    {(deliveryProducts[d.deliveryNum.toString()] && 
+                                    Array.isArray(deliveryProducts[d.deliveryNum.toString()]) && 
+                                    deliveryProducts[d.deliveryNum.toString()].length > 0) ? 
+                                    deliveryProducts[d.deliveryNum.toString()].map((item, index) => (
                                       <TableRow key={index}>
                                         <TableCell>{item.productCode}</TableCell>
                                         <TableCell>{item.supplier}</TableCell>
@@ -538,7 +531,13 @@ export default function DeliveriesPage() {
                                         <TableCell>{item.unitPrice}</TableCell>
                                         <TableCell>{item.total}</TableCell>
                                       </TableRow>
-                                    ))}
+                                    )) : 
+                                    <TableRow>
+                                      <TableCell colSpan={7} className="text-center text-gray-500">
+                                        No products found for this delivery (ID: {d.deliveryNum})
+                                      </TableCell>
+                                    </TableRow>
+                                  }
                                   </TableBody>
                                 </Table>
                               </div>
