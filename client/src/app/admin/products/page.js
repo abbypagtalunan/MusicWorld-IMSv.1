@@ -738,12 +738,12 @@ export default function ProductsPage() {
                 <DialogTrigger asChild>
                   <Button className="bg-blue-400 text-white">Update Price</Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-md">
+                <DialogContent className="w-[30vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
                   <DialogHeader>
                     <DialogTitle className="text-blue-400 text-xl font-bold mb-4">Product Price Update</DialogTitle>
                   </DialogHeader>
 
-                  <div className="flex flex-col space-y-3">
+                  <div className="flex flex-col gap-4 mt-4 text-gray-700">
                     <Label>Product Code</Label>
                     <Input disabled placeholder="Auto-filled" className="bg-gray-300" value={values[config.product.codeField] ?? ""}/>
                     
@@ -797,7 +797,7 @@ export default function ProductsPage() {
                     <Input type="number" placeholder="Enter new price" required onChange={(e) => setValues({...values, [config.product.sellingpriceField]: e.target.value,})}/>
                   </div>
 
-                  <DialogFooter>
+                  <DialogFooter className="mt-6">
                     <Button className="bg-blue-500 text-white w-full" onClick={handlePriceUpdate}>Update Product Price </Button>
                   </DialogFooter>
                 </DialogContent>
@@ -819,7 +819,7 @@ export default function ProductsPage() {
                     Delete Selected
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-3xl p-7 text-gray-700">
+                <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
                   <DialogHeader>
                     <DialogTitle>
                       <span className="text-lg text-red-900">Delete Multiple Transactions</span>
@@ -830,7 +830,7 @@ export default function ProductsPage() {
                   <p className="text-sm text-gray-800 mt-2 pl-4">
                     Deleting these transactions will reflect on Void Transactions. Enter the admin password to delete the selected products.
                   </p>
-                  <div className="flex items-center gap-4 mt-4 pl-10">
+                  <div className="flex gap-4 mt-4 text-gray-700 items-center pl-10">
                     <div className="flex-1">
                       <label htmlFor="password" className="text-base font-medium text-gray-700 block mb-2">
                         Admin Password
@@ -918,7 +918,7 @@ export default function ProductsPage() {
                           <Trash2 size={16} />
                         </Button>
                           </DialogTrigger>
-                          <DialogContent className="max-w-3xl p-7 text-gray-700">
+                          <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
                           <DialogHeader>
                               <DialogTitle>
                                 <span className="text-lg text-red-900">Delete Transaction</span>{" "}
@@ -926,7 +926,7 @@ export default function ProductsPage() {
                               <DialogClose />
                             </DialogHeader>
                             <p className='text-sm text-gray-800 mt-2 pl-4'> Deleting this transaction will reflect on Void Transactions. Enter the admin password to delete this transaction. </p>
-                            <div className="flex items-center gap-4 mt-4 pl-10">          
+                            <div className="flex gap-4 mt-4 text-gray-700 items-center pl-10">         
                               <div className="flex-1">
                                 <label htmlFor={`password-${item.productCode}`} className="text-base font-medium text-gray-700 block mb-2">
                                   Admin Password
