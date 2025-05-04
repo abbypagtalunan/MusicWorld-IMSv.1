@@ -66,11 +66,12 @@ const searchDeliveries = (deliveryNumber, callback) => {
     FROM Deliveries d
     LEFT JOIN Suppliers s ON d.S_supplierID = s.S_supplierID
     LEFT JOIN DeliveryProductDetails dp ON d.D_deliveryNumber = dp.D_deliveryNumber
-    WHERE d.D_deliveryNumber LIKE ?
+    LEFT JOIN Products p ON dp.P_productCode = p.P_productCode
+    WHERE d.D_deliveryNumber = ?
     GROUP BY d.D_deliveryNumber, d.D_deliveryDate, d.S_supplierID, s.S_supplierName;
   `;
   
-  db.query(query, [`%${deliveryNumber}%`], (err, results) => {
+  db.query(query, [deliveryNumber], (err, results) => {
     if (err) {
       callback(err, null);
     } else {

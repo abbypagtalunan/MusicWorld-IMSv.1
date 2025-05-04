@@ -266,11 +266,11 @@ export default function DeliveriesPage() {
     if (!selectedFilter || !selectedSubFilter) return sortedTransactions;
   
     if (selectedFilter === "Delivery Number") {
-      sortedTransactions.sort((a, b) =>
-        selectedSubFilter === "Ascending"
-          ? a.deliveryNum.localeCompare(b.deliveryNum)
-          : b.deliveryNum.localeCompare(a.deliveryNum)
-      );
+      sortedTransactions.sort((a, b) => {
+        const numA = parseInt(a.deliveryNum);
+        const numB = parseInt(b.deliveryNum);
+        return selectedSubFilter === "Ascending" ? numA - numB : numB - numA;
+      });
     }
   
     if (selectedFilter === "Supplier") {
@@ -324,9 +324,19 @@ export default function DeliveriesPage() {
       return;
     }
     
-    const searchNumber = searchValue.trim().replace(/\D/g, '');
+    // Extract the numeric part whether user enters "DR-123" or just "123"
+    const searchTerm = searchValue.trim();
+    const deliveryNumber = searchTerm.startsWith("DR-") 
+      ? searchTerm.substring(3) // Remove "DR-" prefix if present
+      : searchTerm;
     
-    axios.get(`${config.deliveries.fetch}/search?deliveryNumber=${searchNumber}`)
+    // Only proceed with search if the remaining value is numeric
+    if (!/^\d+$/.test(deliveryNumber)) {
+      toast.error("Please enter a valid delivery number");
+      return;
+    }
+    
+    axios.get(`${config.deliveries.fetch}/search?deliveryNumber=${deliveryNumber}`)
       .then(res => {
         if (res.data && res.data.length > 0) {
           setSearchResult(normalizeDeliveryData(res.data));
@@ -398,7 +408,8 @@ export default function DeliveriesPage() {
                         handleSearch();
                       }
                     }}
-                    placeholder="Search delivery number"
+                    autoComplete="off"
+                    placeholder="Search by delivery number"
                     className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <div className="absolute left-3 top-2.5 text-gray-500">
@@ -418,7 +429,7 @@ export default function DeliveriesPage() {
                           setSearchValue("");
                         }}
                       >
-                        Show All
+                        Exit Search
                       </Button>
                     )}
                   </div>
