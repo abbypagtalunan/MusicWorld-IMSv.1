@@ -14,7 +14,7 @@ const getAllOrders = (req, res) => {
 
 // Add a new order
 const addOrder = (req, res) => {
-  const { O_receiptNumber, T_totalAmount, D_wholeOrderDiscount, D_totalProductDiscount, T_transactionID } = req.body;
+  const { O_receiptNumber, T_totalAmount, D_wholeOrderDiscount, D_totalProductDiscount, T_transactionDate, isTemporarilyDeleted } = req.body;
 
   // Validate receipt number
   if (!O_receiptNumber || isNaN(O_receiptNumber)) {
@@ -24,11 +24,6 @@ const addOrder = (req, res) => {
   // Validate total amount
   if (typeof T_totalAmount !== 'number' || T_totalAmount < 0) {
     return res.status(400).json({ message: 'Invalid total amount' });
-  }
-
-  // Validate transaction ID
-  if (!T_transactionID || isNaN(T_transactionID)) {
-    return res.status(400).json({ message: 'Invalid transaction ID' });
   }
 
   // Check for duplicate receipt number
@@ -43,7 +38,7 @@ const addOrder = (req, res) => {
     }
 
     // No duplicates, insert the order
-    ordersModel.addOrder({ O_receiptNumber, T_totalAmount, D_wholeOrderDiscount, D_totalProductDiscount, T_transactionID }, (err, orderId) => {
+    ordersModel.addOrder({ O_receiptNumber, T_totalAmount, D_wholeOrderDiscount, D_totalProductDiscount, T_transactionDate, isTemporarilyDeleted }, (err, orderId) => {
       if (err) {
         console.error('Error inserting order:', err);
         return res.status(500).json({ message: 'Error inserting order' });
@@ -56,7 +51,7 @@ const addOrder = (req, res) => {
 // Update an existing order
 const updateOrder = (req, res) => {
   const orderId = req.params.id;
-  const { O_receiptNumber, T_totalAmount, D_wholeOrderDiscount, D_totalProductDiscount, T_transactionID } = req.body;
+  const { O_receiptNumber, T_totalAmount, D_wholeOrderDiscount, D_totalProductDiscount, T_transactionDate, isTemporarilyDeleted } = req.body;
 
   // Validate receipt number
   if (!O_receiptNumber || isNaN(O_receiptNumber)) {
@@ -68,13 +63,8 @@ const updateOrder = (req, res) => {
     return res.status(400).json({ message: 'Invalid total amount' });
   }
 
-  // Validate transaction ID
-  if (!T_transactionID || isNaN(T_transactionID)) {
-    return res.status(400).json({ message: 'Invalid transaction ID' });
-  }
-
   // Update the order in the model
-  ordersModel.updateOrder(orderId, { O_receiptNumber, T_totalAmount, D_wholeOrderDiscount, D_totalProductDiscount, T_transactionID }, (err, results) => {
+  ordersModel.updateOrder(orderId, { O_receiptNumber, T_totalAmount, D_wholeOrderDiscount, D_totalProductDiscount, T_transactionDate, isTemporarilyDeleted }, (err, results) => {
     if (err) {
       console.error('Error updating order:', err);
       return res.status(500).json({ message: 'Error updating order' });
