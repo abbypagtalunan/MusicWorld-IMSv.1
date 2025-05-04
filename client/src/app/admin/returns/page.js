@@ -246,7 +246,7 @@ export default function ReturnsPage() {
 
   // Handle Delete
   const handleDelete = (id, password, type) => {
-    if (password !== "admin123") {
+    if (password !== "2095") {
       alert("Incorrect password.");
       return;
     }
@@ -532,7 +532,7 @@ export default function ReturnsPage() {
                       </div>
                       
                       <div>
-                        <Label htmlFor="price">Calculated Total Price</Label>
+                        <Label htmlFor="price"> Price </Label>
                         <Input
                           id="price"
                           type="text"
@@ -761,7 +761,7 @@ export default function ReturnsPage() {
                       </div>
                       
                       <div>
-                        <Label htmlFor="total">Total</Label>
+                        <Label htmlFor="total">Price</Label>
                         <Input
                           id="total"
                           type="text"

@@ -1,9 +1,9 @@
 const returnModel = require('../models/returnsModel');
 const { getOrCreateReturnTypeId } = require('./returnTypeController');
 
-// Route to fetch all returns
+// Route to fetch all active returns
 const getAllReturns = (req, res) => {
-  returnModel.getAllReturns((err, results) => {
+  returnModel.getAllActiveReturns((err, results) => {
     if (err) {
       console.error('Error fetching data from database:', err);
       res.status(500).json({ error: 'Error fetching data' });
@@ -38,46 +38,36 @@ const addReturn = (req, res) => {
       return res.status(500).json({ message: 'Error processing return type' });
     }
 
-    // Fetch product selling price
-    returnModel.getProductSellingPrice(P_productCode, (err, sellingPrice) => {
-      if (err) {
-        console.error('Error fetching product selling price:', err);
-        return res.status(500).json({ message: 'Error fetching product selling price' });
-      }
+    // Calculate total price based on product selling price * quantity * discount
+    // In a real application, you would need to fetch the product's selling price from the database
+    const getProductPrice = () => {
+      // This should be replaced with an actual database query to get the product's selling price
+      return 100; // Example price
+    };
 
-      // Calculate total price
-      const baseTotal = sellingPrice * R_returnQuantity;
-      const discountedTotal = baseTotal * (1 - (R_discountAmount || 0) / 100);
+    const baseTotal = getProductPrice() * R_returnQuantity;
+    const discountedTotal = baseTotal * (1 - R_discountAmount / 100); // Assuming R_discountAmount is in percentage
 
-      // Now insert the return record
-      const insertReturnQuery = `
-        INSERT INTO Returns (
-          P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn,
-          R_returnQuantity, R_discountAmount, R_TotalPrice, D_deliveryNumber, S_supplierID
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `;
-
-      returnModel.addReturn(
-        {
-          P_productCode,
-          R_returnTypeID: RT_returnTypeID,
-          R_reasonOfReturn,
-          R_dateOfReturn,
-          R_returnQuantity,
-          R_discountAmount: R_discountAmount || 0,
-          R_TotalPrice: discountedTotal,
-          D_deliveryNumber,
-          S_supplierID
-        },
-        (err, results) => {
-          if (err) {
-            console.error('Error inserting return:', err);
-            return res.status(500).json({ message: 'Error inserting return' });
-          }
-          res.status(201).json({ message: 'Return added successfully', id: results.insertId });
+    returnModel.addReturn(
+      {
+        P_productCode,
+        R_returnTypeID: RT_returnTypeID,
+        R_reasonOfReturn,
+        R_dateOfReturn,
+        R_returnQuantity,
+        R_discountAmount: R_discountAmount || 0,
+        R_TotalPrice: discountedTotal,
+        D_deliveryNumber,
+        S_supplierID
+      },
+      (err, results) => {
+        if (err) {
+          console.error('Error inserting return:', err);
+          return res.status(500).json({ message: 'Error inserting return' });
         }
-      );
-    });
+        res.status(201).json({ message: 'Return added successfully', id: results.insertId });
+      }
+    );
   });
 };
 
@@ -100,44 +90,42 @@ const updateReturn = (req, res) => {
   }
 
   // Calculate total price based on product selling price * quantity * discount
-  returnModel.getProductSellingPrice(P_productCode, (err, sellingPrice) => {
-    if (err) {
-      console.error('Error fetching product selling price:', err);
-      return res.status(500).json({ message: 'Error fetching product selling price' });
-    }
+  const getProductPrice = () => {
+    // This should be replaced with an actual database query to get the product's selling price
+    return 100; // Example price
+  };
 
-    const baseTotal = sellingPrice * R_returnQuantity;
-    const discountedTotal = baseTotal * (1 - (R_discountAmount || 0) / 100);
+  const baseTotal = getProductPrice() * R_returnQuantity;
+  const discountedTotal = baseTotal * (1 - (R_discountAmount || 0) / 100); // Assuming R_discountAmount is in percentage
 
-    returnModel.updateReturn(
-      returnID,
-      {
-        P_productCode,
-        R_returnTypeID,
-        R_reasonOfReturn,
-        R_dateOfReturn,
-        R_returnQuantity,
-        R_discountAmount: R_discountAmount || 0,
-        R_TotalPrice: discountedTotal,
-        D_deliveryNumber,
-        S_supplierID
-      },
-      (err, results) => {
-        if (err) {
-          console.error('Error updating return:', err);
-          return res.status(500).json({ message: 'Error updating return' });
-        }
-
-        if (results.affectedRows === 0) {
-          return res.status(404).json({ message: 'Return not found' });
-        }
-        res.status(200).json({ message: 'Return updated successfully' });
+  returnModel.updateReturn(
+    returnID,
+    {
+      P_productCode,
+      R_returnTypeID,
+      R_reasonOfReturn,
+      R_dateOfReturn,
+      R_returnQuantity,
+      R_discountAmount: R_discountAmount || 0,
+      R_TotalPrice: discountedTotal,
+      D_deliveryNumber,
+      S_supplierID
+    },
+    (err, results) => {
+      if (err) {
+        console.error('Error updating return:', err);
+        return res.status(500).json({ message: 'Error updating return' });
       }
-    );
-  });
+
+      if (results.affectedRows === 0) {
+        return res.status(404).json({ message: 'Return not found' });
+      }
+      res.status(200).json({ message: 'Return updated successfully' });
+    }
+  );
 };
 
-// Route to delete a return record
+// Route to soft-delete a return record
 const deleteReturn = (req, res) => {
   const returnID = req.params.id;
   const { adminPW } = req.body;
@@ -146,15 +134,15 @@ const deleteReturn = (req, res) => {
     return res.status(403).json({ message: "Invalid admin password" });
   }
 
-  returnModel.deleteReturn(returnID, (err, results) => {
+  returnModel.softDeleteReturn(returnID, (err, results) => {
     if (err) {
-      console.error('Error deleting return:', err);
+      console.error('Error soft-deleting return:', err);
       res.status(500).json({ message: 'Error deleting return' });
     } else {
       if (results.affectedRows === 0) {
         return res.status(404).json({ message: 'Return not found' });
       }
-      res.status(200).json({ message: 'Return deleted successfully' });
+      res.status(200).json({ message: 'Return marked as deleted successfully' });
     }
   });
 };

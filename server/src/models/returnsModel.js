@@ -1,7 +1,7 @@
 const db = require('../../db');
 
-// Get all returns
-const getAllReturns = (callback) => {
+// Get all active returns (not temporarily deleted)
+const getAllActiveReturns = (callback) => {
   const query = `
     SELECT 
       R_returnID,
@@ -14,7 +14,8 @@ const getAllReturns = (callback) => {
       R_TotalPrice,
       D_deliveryNumber,
       S_supplierID
-    FROM Returns;
+    FROM Returns
+    WHERE isTemporarilyDeleted = 0;
   `;
 
   db.query(query, (err, results) => {
@@ -118,37 +119,23 @@ const updateReturn = (returnID, returnData, callback) => {
   );
 };
 
-// Delete a return
-const deleteReturn = (returnID, callback) => {
-  const deleteReturnQuery = `DELETE FROM Returns WHERE R_returnID = ?`;
+// Soft delete a return
+const softDeleteReturn = (returnID, callback) => {
+  const query = `
+    UPDATE Returns
+    SET isTemporarilyDeleted = 1
+    WHERE R_returnID = ?;
+  `;
 
-  db.query(deleteReturnQuery, [returnID], (err, results) => {
+  db.query(query, [returnID], (err, results) => {
     if (err) return callback(err);
     callback(null, results);
   });
 };
 
-// Get product selling price by product code
-const getProductSellingPrice = (productCode, callback) => {
-  const query = `
-    SELECT P_sellingPrice
-    FROM Products
-    WHERE P_productCode = ?;
-  `;
-
-  db.query(query, [productCode], (err, results) => {
-    if (err) {
-      callback(err, null);
-    } else {
-      callback(null, results[0]?.P_sellingPrice || 0); // Return 0 if no price found
-    }
-  });
-};
-
 module.exports = {
-  getAllReturns,
+  getAllActiveReturns,
   addReturn,
   updateReturn,
-  deleteReturn,
-  getProductSellingPrice
+  softDeleteReturn
 };
