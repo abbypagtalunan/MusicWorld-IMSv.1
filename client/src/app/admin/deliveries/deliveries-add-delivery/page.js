@@ -76,7 +76,6 @@ export default function BatchDeliveriesPage() {
     paymentDetails: "http://localhost:8080/deliveryPaymentDetails"
   };
 
-  // Load data on component mount
   useEffect(() => {
     loadAllData();
   }, []);
@@ -161,6 +160,9 @@ export default function BatchDeliveriesPage() {
       const supplierObj = suppliers.find(s => s.S_supplierName === value);
       setSelectedSupplier(supplierObj ? supplierObj.S_supplierID : "");
     }
+    
+    if (field === 'brand') {
+    }
   };
 
   // Handle payment details input changes
@@ -232,70 +234,6 @@ export default function BatchDeliveriesPage() {
     updatedItems.splice(index, 1);
     setProductItems(updatedItems);
     toast.success("Product removed from delivery");
-  };
-
-  // Apply filter to load a specific delivery
-  const handleApplyFilter = () => {
-    if (!deliveryNumber) {
-      toast.error("Please enter a delivery number");
-      return;
-    }
-    
-    setLoading(true);
-    
-    // Fetch delivery details
-    axios.get(`${API_CONFIG.deliveries}/search?deliveryNumber=${deliveryNumber}`)
-      .then(res => {
-        if (res.data && res.data.length > 0) {
-          const delivery = res.data[0];
-          setDeliveryDate(new Date(delivery.D_deliveryDate).toISOString().split('T')[0]);
-          setSelectedSupplier(delivery.S_supplierID);
-          
-          // Fetch products for this delivery
-          return axios.get(`${API_CONFIG.deliveryProducts}/${deliveryNumber}`);
-        } else {
-          toast.error("No delivery found with that number");
-          throw new Error("Delivery not found");
-        }
-      })
-      .then(res => {
-        // Transform product data to match our format
-        const formattedProducts = res.data.map(item => ({
-          productCode: item.P_productCode,
-          supplier: item.supplierName || selectedSupplier,
-          brand: item.brandName || "",
-          product: item.productName || "",
-          quantity: `${item.DPD_quantity} ${parseInt(item.DPD_quantity) > 1 ? 'pcs' : 'pc'}`,
-          unitPrice: parseInt(item.DPD_unitPrice).toLocaleString(),
-          total: (parseInt(item.DPD_unitPrice) * item.DPD_quantity).toLocaleString()
-        }));
-        
-        setProductItems(formattedProducts);
-        
-        // Fetch payment details for this delivery
-        return axios.get(`${API_CONFIG.paymentDetails}/${deliveryNumber}`);
-      })
-      .then(res => {
-        if (res.data) {
-          setPaymentDetails({
-            paymentType: res.data.D_paymentTypeID.toString(),
-            paymentMode: res.data.D_modeOfPaymentID.toString(),
-            paymentStatus: res.data.D_paymentStatusID.toString(),
-            dateDue: formatDateForInput(res.data.DPD_dateOfPaymentDue),
-            datePayment1: formatDateForInput(res.data.DPD_dateOfPayment1),
-            datePayment2: formatDateForInput(res.data.DPD_dateOfPayment2) || ""
-          });
-        }
-      })
-      .catch(error => {
-        console.error("Error fetching delivery:", error);
-        if (!error.message || error.message !== "Delivery not found") {
-          toast.error("Error loading delivery data");
-        }
-      })
-      .finally(() => {
-        setLoading(false);
-      });
   };
 
   // Format date for input fields
@@ -450,26 +388,35 @@ export default function BatchDeliveriesPage() {
       toast.error(error.response?.data?.message || "Failed to save payment details");
     }
   };
-
-  // Get products filtered by the selected supplier
-  const getFilteredProducts = () => {
-    if (!selectedSupplier) return products;
-    return products.filter(product => product.S_supplierID === selectedSupplier);
+  
+  // Search handler for suppliers
+  const handleSupplierSearch = (searchTerm) => {
+    if (!searchTerm) {
+      return suppliers;
+    }
+    return suppliers.filter(supplier => 
+      supplier.S_supplierName.toLowerCase().includes(searchTerm.toLowerCase())
+    );
   };
 
-  // Get brands filtered by the selected supplier
-  const getFilteredBrands = () => {
-    if (!selectedSupplier) return brands;
-    
-    // Get unique brand IDs from products of this supplier
-    const supplierProductBrandIds = [...new Set(
-      products
-        .filter(product => product.S_supplierID === selectedSupplier)
-        .map(product => product.B_brandID)
-    )];
-    
-    // Return only brands that match these IDs
-    return brands.filter(brand => supplierProductBrandIds.includes(brand.B_brandID));
+  // Search handler for brands
+  const handleBrandSearch = (searchTerm) => {
+    if (!searchTerm) {
+      return brands;
+    }
+    return brands.filter(brand => 
+      brand.B_brandName.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  };
+
+  // Search handler for products
+  const handleProductSearch = (searchTerm) => {
+    if (!searchTerm) {
+      return products;
+    }
+    return products.filter(product => 
+      product.P_productName.toLowerCase().includes(searchTerm.toLowerCase())
+    );
   };
 
   return (
@@ -508,21 +455,12 @@ export default function BatchDeliveriesPage() {
                     <Label htmlFor="deliveryNumber" className="mb-1 block">Delivery Number</Label>
                     <Input 
                       id="deliveryNumber" 
-                      placeholder="DR-12354" 
+                      placeholder="Enter number only"
                       className="text-center"
                       value={deliveryNumber}
                       onChange={(e) => setDeliveryNumber(e.target.value)}
+                      autoComplete="off"
                     />
-                  </div>
-                  <div className="flex items-end">
-                    <Button 
-                      className="bg-blue-400 text-white"
-                      onClick={handleApplyFilter}
-                      disabled={loading}
-                    >
-                      <Filter size={16} className="mr-2" />
-                      {loading ? "Loading..." : "Apply Filter"}
-                    </Button>
                   </div>
                 </div>
               </div>
@@ -650,8 +588,30 @@ export default function BatchDeliveriesPage() {
                         <SelectValue placeholder="Select supplier" />
                       </SelectTrigger>
                       <SelectContent>
+                        <div className="p-2">
+                          <Input
+                            placeholder="Search suppliers..."
+                            className="mb-2"
+                            id="supplierSearch"
+                            onChange={(e) => {
+                              const searchTerm = e.target.value;
+                              const results = handleSupplierSearch(searchTerm);
+                              // Hide/show options based on search results
+                              suppliers.forEach(supplier => {
+                                const element = document.getElementById(`supplier-${supplier.S_supplierID}`);
+                                if (element) {
+                                  element.style.display = results.some(s => s.S_supplierID === supplier.S_supplierID) ? 'block' : 'none';
+                                }
+                              });
+                            }}
+                          />
+                        </div>
                         {suppliers.map(supplier => (
-                          <SelectItem key={supplier.S_supplierID} value={supplier.S_supplierID}>
+                          <SelectItem 
+                            key={supplier.S_supplierID} 
+                            value={supplier.S_supplierID}
+                            id={`supplier-${supplier.S_supplierID}`}
+                          >
                             {supplier.S_supplierName}
                           </SelectItem>
                         ))}
@@ -669,8 +629,32 @@ export default function BatchDeliveriesPage() {
                         <SelectValue placeholder="Select brand" />
                       </SelectTrigger>
                       <SelectContent>
-                        {getFilteredBrands().map(brand => (
-                          <SelectItem key={brand.B_brandID} value={brand.B_brandName}>
+                        <div className="p-2">
+                          <Input
+                            placeholder="Search brands..."
+                            className="mb-2"
+                            id="brandSearch"
+                            onChange={(e) => {
+                              const searchTerm = e.target.value;
+                              const results = brands.filter(brand => 
+                                brand.B_brandName.toLowerCase().includes(searchTerm.toLowerCase())
+                              );
+                              // Hide/show options based on search results
+                              brands.forEach(brand => {
+                                const element = document.getElementById(`brand-${brand.B_brandID}`);
+                                if (element) {
+                                  element.style.display = results.some(b => b.B_brandID === brand.B_brandID) ? 'block' : 'none';
+                                }
+                              });
+                            }}
+                          />
+                        </div>
+                        {brands.map(brand => (
+                          <SelectItem 
+                            key={brand.B_brandID} 
+                            value={brand.B_brandName}
+                            id={`brand-${brand.B_brandID}`}
+                          >
                             {brand.B_brandName}
                           </SelectItem>
                         ))}
@@ -688,8 +672,32 @@ export default function BatchDeliveriesPage() {
                         <SelectValue placeholder="Select product" />
                       </SelectTrigger>
                       <SelectContent>
-                        {getFilteredProducts().map(product => (
-                          <SelectItem key={product.P_productCode} value={product.P_productName}>
+                        <div className="p-2">
+                          <Input
+                            placeholder="Search products..."
+                            className="mb-2"
+                            id="productSearch"
+                            onChange={(e) => {
+                              const searchTerm = e.target.value;
+                              const results = products.filter(product => 
+                                product.P_productName.toLowerCase().includes(searchTerm.toLowerCase())
+                              );
+                              // Hide/show options based on search results
+                              products.forEach(product => {
+                                const element = document.getElementById(`product-${product.P_productCode}`);
+                                if (element) {
+                                  element.style.display = results.some(p => p.P_productCode === product.P_productCode) ? 'block' : 'none';
+                                }
+                              });
+                            }}
+                          />
+                        </div>
+                        {products.map(product => (
+                          <SelectItem 
+                            key={product.P_productCode} 
+                            value={product.P_productName}
+                            id={`product-${product.P_productCode}`}
+                          >
                             {product.P_productName}
                           </SelectItem>
                         ))}
@@ -744,15 +752,6 @@ export default function BatchDeliveriesPage() {
             <CardContent className="p-4">
               <div className="grid grid-cols-12 gap-4">
                 {/* First row */}
-                <div className="col-span-3">
-                  <Label htmlFor="paymentDeliveryNumber" className="mb-1 block">Delivery Number</Label>
-                  <Input 
-                    id="paymentDeliveryNumber" 
-                    value={deliveryNumber} 
-                    className="bg-gray-200 text-center" 
-                    readOnly 
-                  />
-                </div>
                 <div className="col-span-3">
                   <Label htmlFor="paymentAmount" className="mb-1 block">Amount</Label>
                   <Input 

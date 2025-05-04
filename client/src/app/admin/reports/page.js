@@ -204,7 +204,7 @@ export default function ReportsPage() {
                     Delete Selected
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-3xl p-7 text-gray-700">
+                <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
                   <DialogHeader>
                     <DialogTitle>
                       <span className="text-lg text-red-900">Delete Multiple Transactions</span>
@@ -215,7 +215,7 @@ export default function ReportsPage() {
                   <p className="text-sm text-gray-800 mt-2 pl-4">
                     Deleting these transactions will reflect on Void Transactions. Enter the admin password to delete the selected products.
                   </p>
-                  <div className="flex items-center gap-4 mt-4 pl-10">
+                  <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">
                     <div className="flex-1">
                       <label htmlFor="password" className="text-base font-medium text-gray-700 block mb-2">
                         Admin Password
@@ -291,7 +291,7 @@ export default function ReportsPage() {
                             <Ellipsis size={16} />
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-3xl p-6">
+                        <DialogContent className="w-[90vw] max-w-3xl sm:max-w-lg md:max-w-3xl max-h-[90vh] overflow-y-auto p-6">
                         <DialogHeader>
                             <DialogTitle>Transaction Details</DialogTitle>
                             <DialogClose />

@@ -38,36 +38,47 @@ const addReturn = (req, res) => {
       return res.status(500).json({ message: 'Error processing return type' });
     }
 
-    // Calculate total price based on product selling price * quantity * discount
-    // In a real application, you would need to fetch the product's selling price from the database
-    const getProductPrice = () => {
-      // This should be replaced with an actual database query to get the product's selling price
-      return 100; // Example price
+    // Fetch product price using existing model method
+    const getProductPrice = (callback) => {
+      const db = require('../../db'); // Importing your central DB connection
+      const query = 'SELECT P_sellingPrice FROM Products WHERE P_productCode = ?';
+      db.query(query, [P_productCode], (err, results) => {
+        if (err) return callback(err);
+        if (results.length === 0) return callback(new Error('Product not found'));
+        callback(null, results[0].P_sellingPrice);
+      });
     };
 
-    const baseTotal = getProductPrice() * R_returnQuantity;
-    const discountedTotal = baseTotal * (1 - R_discountAmount / 100); // Assuming R_discountAmount is in percentage
-
-    returnModel.addReturn(
-      {
-        P_productCode,
-        R_returnTypeID: RT_returnTypeID,
-        R_reasonOfReturn,
-        R_dateOfReturn,
-        R_returnQuantity,
-        R_discountAmount: R_discountAmount || 0,
-        R_TotalPrice: discountedTotal,
-        D_deliveryNumber,
-        S_supplierID
-      },
-      (err, results) => {
-        if (err) {
-          console.error('Error inserting return:', err);
-          return res.status(500).json({ message: 'Error inserting return' });
-        }
-        res.status(201).json({ message: 'Return added successfully', id: results.insertId });
+    getProductPrice((err, productPrice) => {
+      if (err) {
+        console.error('Error fetching product price:', err);
+        return res.status(500).json({ message: 'Error calculating total price' });
       }
-    );
+
+      const baseTotal = productPrice * R_returnQuantity;
+      const discountedTotal = baseTotal * (1 - (R_discountAmount || 0) / 100);
+
+      returnModel.addReturn(
+        {
+          P_productCode,
+          R_returnTypeID: RT_returnTypeID,
+          R_reasonOfReturn,
+          R_dateOfReturn,
+          R_returnQuantity,
+          R_discountAmount: R_discountAmount || 0,
+          R_TotalPrice: discountedTotal,
+          D_deliveryNumber,
+          S_supplierID
+        },
+        (err, results) => {
+          if (err) {
+            console.error('Error inserting return:', err);
+            return res.status(500).json({ message: 'Error inserting return' });
+          }
+          res.status(201).json({ message: 'Return added successfully', id: results.insertId });
+        }
+      );
+    });
   });
 };
 
@@ -89,40 +100,52 @@ const updateReturn = (req, res) => {
     return res.status(400).json({ message: 'Missing required fields' });
   }
 
-  // Calculate total price based on product selling price * quantity * discount
-  const getProductPrice = () => {
-    // This should be replaced with an actual database query to get the product's selling price
-    return 100; // Example price
+  // Fetch product price using existing model method
+  const getProductPrice = (callback) => {
+    const db = require('../../db'); // Importing your central DB connection
+    const query = 'SELECT P_sellingPrice FROM Products WHERE P_productCode = ?';
+    db.query(query, [P_productCode], (err, results) => {
+      if (err) return callback(err);
+      if (results.length === 0) return callback(new Error('Product not found'));
+      callback(null, results[0].P_sellingPrice);
+    });
   };
 
-  const baseTotal = getProductPrice() * R_returnQuantity;
-  const discountedTotal = baseTotal * (1 - (R_discountAmount || 0) / 100); // Assuming R_discountAmount is in percentage
-
-  returnModel.updateReturn(
-    returnID,
-    {
-      P_productCode,
-      R_returnTypeID,
-      R_reasonOfReturn,
-      R_dateOfReturn,
-      R_returnQuantity,
-      R_discountAmount: R_discountAmount || 0,
-      R_TotalPrice: discountedTotal,
-      D_deliveryNumber,
-      S_supplierID
-    },
-    (err, results) => {
-      if (err) {
-        console.error('Error updating return:', err);
-        return res.status(500).json({ message: 'Error updating return' });
-      }
-
-      if (results.affectedRows === 0) {
-        return res.status(404).json({ message: 'Return not found' });
-      }
-      res.status(200).json({ message: 'Return updated successfully' });
+  getProductPrice((err, productPrice) => {
+    if (err) {
+      console.error('Error fetching product price:', err);
+      return res.status(500).json({ message: 'Error calculating total price' });
     }
-  );
+
+    const baseTotal = productPrice * R_returnQuantity;
+    const discountedTotal = baseTotal * (1 - (R_discountAmount || 0) / 100);
+
+    returnModel.updateReturn(
+      returnID,
+      {
+        P_productCode,
+        R_returnTypeID,
+        R_reasonOfReturn,
+        R_dateOfReturn,
+        R_returnQuantity,
+        R_discountAmount: R_discountAmount || 0,
+        R_TotalPrice: discountedTotal,
+        D_deliveryNumber,
+        S_supplierID
+      },
+      (err, results) => {
+        if (err) {
+          console.error('Error updating return:', err);
+          return res.status(500).json({ message: 'Error updating return' });
+        }
+
+        if (results.affectedRows === 0) {
+          return res.status(404).json({ message: 'Return not found' });
+        }
+        res.status(200).json({ message: 'Return updated successfully' });
+      }
+    );
+  });
 };
 
 // Route to soft-delete a return record
