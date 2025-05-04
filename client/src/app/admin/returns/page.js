@@ -446,7 +446,7 @@ export default function ReturnsPage() {
                                 key={product[config.products.codeField]} 
                                 value={product[config.products.nameField]}
                               >
-                                {product[config.products.nameField]}
+                                {`${product[config.products.nameField]} - ${product.brand} - ${product.supplier}`}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -714,7 +714,7 @@ export default function ReturnsPage() {
                                 key={product.P_productCode} 
                                 value={product.P_productName}
                               >
-                                {product.P_productName}
+                                {`${product.P_productName} - ${product.brand} - ${product.supplier}`}
                               </SelectItem>
                             ))}
                           </SelectContent>
