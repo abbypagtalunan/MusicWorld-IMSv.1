@@ -414,7 +414,7 @@ return (
                     Delete Selected
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-3xl p-7 text-gray-700">
+                <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
                   <DialogHeader>
                     <DialogTitle>
                       <span className="text-lg text-red-900">Delete Multiple Transactions</span>
@@ -425,9 +425,9 @@ return (
                   <p className="text-sm text-gray-800 mt-2 pl-4">
                     Deleting these transactions will reflect on Void Transactions. Enter the admin password to delete the selected products.
                   </p>
-                  <div className="flex items-center gap-4 mt-4 pl-10">
+                  <div className="flex gap-4 mt-4 text-gray-700 items-center pl-10">
                     <div className="flex-1">
-                      <label htmlFor="password" className="text-base font-medium text-gray-700 block mb-2">
+                      <label htmlFor="password" className="text-base font-medium block mb-2">
                         Admin Password
                       </label>
                       <Input
@@ -440,12 +440,12 @@ return (
                       />
                     </div>
                     <Button
-                      className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
-                      onClick={() =>
+                    className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
+                    onClick={() =>
                         handleMultiDelete(adminPW)
-                      }
+                    }
                     >
-                      DELETE TRANSACTIONS
+                    DELETE TRANSACTIONS
                     </Button>
                   </div>
                 </DialogContent>
