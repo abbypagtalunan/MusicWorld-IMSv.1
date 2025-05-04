@@ -4,8 +4,8 @@ const {
   getAllReturns,
   addReturn,
   updateReturn,
-  deleteReturn,
-} = require('../controllers/returnsController'); 
+  deleteReturn
+} = require('../controllers/returnsController');
 
 // Map endpoints to controller logic for the Returns table
 router.get('/', getAllReturns); // Fetch all returns

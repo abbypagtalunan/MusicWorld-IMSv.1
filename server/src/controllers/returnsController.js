@@ -1,31 +1,9 @@
 const returnModel = require('../models/returnsModel');
 const { getOrCreateReturnTypeId } = require('./returnTypeController');
 
-// Fetch all returns with type filter (customer/supplier)
+// Route to fetch all returns
 const getAllReturns = (req, res) => {
-  const typeFilter = req.query.type; // e.g., ?type=customer or ?type=supplier
-
-  let query = `
-    SELECT 
-      R_returnID,
-      P_productCode,
-      R_returnTypeID,
-      R_reasonOfReturn,
-      R_dateOfReturn,
-      R_returnQuantity,
-      R_discountAmount,
-      D_deliveryNumber,
-      S_supplierID
-    FROM Returns
-  `;
-
-  if (typeFilter === 'customer') {
-    query += " WHERE R_returnTypeID IN (SELECT RT_returnTypeID FROM ReturnTypes WHERE returnTypeDescription LIKE '%Customer%')";
-  } else if (typeFilter === 'supplier') {
-    query += " WHERE R_returnTypeID IN (SELECT RT_returnTypeID FROM ReturnTypes WHERE returnTypeDescription LIKE '%Supplier%')";
-  }
-
-  returnModel.getAllReturnsCustomQuery(query, (err, results) => {
+  returnModel.getAllReturns((err, results) => {
     if (err) {
       console.error('Error fetching data from database:', err);
       res.status(500).json({ error: 'Error fetching data' });
@@ -35,7 +13,7 @@ const getAllReturns = (req, res) => {
   });
 };
 
-// Add new return
+// Route to add a new return
 const addReturn = (req, res) => {
   const {
     P_productCode,
@@ -49,46 +27,61 @@ const addReturn = (req, res) => {
   } = req.body;
 
   // Validate required fields
-  if (!P_productCode || !returnTypeDescription || !R_reasonOfReturn || !R_dateOfReturn || !R_returnQuantity || !R_discountAmount || !D_deliveryNumber || !S_supplierID) {
+  if (!P_productCode || !returnTypeDescription || !R_reasonOfReturn || !R_dateOfReturn || !R_returnQuantity || !D_deliveryNumber || !S_supplierID) {
     return res.status(400).json({ message: 'Missing required fields' });
   }
 
+  // Get or create return type ID
   getOrCreateReturnTypeId(returnTypeDescription, (err, RT_returnTypeID) => {
     if (err) {
       console.error('Error getting or creating return type:', err);
       return res.status(500).json({ message: 'Error processing return type' });
     }
 
-    const insertReturnQuery = `
-      INSERT INTO Returns (
-        P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn,
-        R_returnQuantity, R_discountAmount, D_deliveryNumber, S_supplierID
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `;
-
-    returnModel.addReturn(
-      {
-        P_productCode,
-        R_returnTypeID: RT_returnTypeID,
-        R_reasonOfReturn,
-        R_dateOfReturn,
-        R_returnQuantity,
-        R_discountAmount,
-        D_deliveryNumber,
-        S_supplierID
-      },
-      (err, results) => {
-        if (err) {
-          console.error('Error inserting return:', err);
-          return res.status(500).json({ message: 'Error inserting return' });
-        }
-        res.status(201).json({ message: 'Return added successfully', id: results.insertId });
+    // Fetch product selling price
+    returnModel.getProductSellingPrice(P_productCode, (err, sellingPrice) => {
+      if (err) {
+        console.error('Error fetching product selling price:', err);
+        return res.status(500).json({ message: 'Error fetching product selling price' });
       }
-    );
+
+      // Calculate total price
+      const baseTotal = sellingPrice * R_returnQuantity;
+      const discountedTotal = baseTotal * (1 - (R_discountAmount || 0) / 100);
+
+      // Now insert the return record
+      const insertReturnQuery = `
+        INSERT INTO Returns (
+          P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn,
+          R_returnQuantity, R_discountAmount, R_TotalPrice, D_deliveryNumber, S_supplierID
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `;
+
+      returnModel.addReturn(
+        {
+          P_productCode,
+          R_returnTypeID: RT_returnTypeID,
+          R_reasonOfReturn,
+          R_dateOfReturn,
+          R_returnQuantity,
+          R_discountAmount: R_discountAmount || 0,
+          R_TotalPrice: discountedTotal,
+          D_deliveryNumber,
+          S_supplierID
+        },
+        (err, results) => {
+          if (err) {
+            console.error('Error inserting return:', err);
+            return res.status(500).json({ message: 'Error inserting return' });
+          }
+          res.status(201).json({ message: 'Return added successfully', id: results.insertId });
+        }
+      );
+    });
   });
 };
 
-// Update an existing return
+// Route to update a return record
 const updateReturn = (req, res) => {
   const returnID = req.params.id;
   const {
@@ -106,33 +99,45 @@ const updateReturn = (req, res) => {
     return res.status(400).json({ message: 'Missing required fields' });
   }
 
-  returnModel.updateReturn(
-    returnID,
-    {
-      P_productCode,
-      R_returnTypeID,
-      R_reasonOfReturn,
-      R_dateOfReturn,
-      R_returnQuantity,
-      R_discountAmount,
-      D_deliveryNumber,
-      S_supplierID
-    },
-    (err, results) => {
-      if (err) {
-        console.error('Error updating return:', err);
-        return res.status(500).json({ message: 'Error updating return' });
-      }
-
-      if (results.affectedRows === 0) {
-        return res.status(404).json({ message: 'Return not found' });
-      }
-      res.status(200).json({ message: 'Return updated successfully' });
+  // Calculate total price based on product selling price * quantity * discount
+  returnModel.getProductSellingPrice(P_productCode, (err, sellingPrice) => {
+    if (err) {
+      console.error('Error fetching product selling price:', err);
+      return res.status(500).json({ message: 'Error fetching product selling price' });
     }
-  );
+
+    const baseTotal = sellingPrice * R_returnQuantity;
+    const discountedTotal = baseTotal * (1 - (R_discountAmount || 0) / 100);
+
+    returnModel.updateReturn(
+      returnID,
+      {
+        P_productCode,
+        R_returnTypeID,
+        R_reasonOfReturn,
+        R_dateOfReturn,
+        R_returnQuantity,
+        R_discountAmount: R_discountAmount || 0,
+        R_TotalPrice: discountedTotal,
+        D_deliveryNumber,
+        S_supplierID
+      },
+      (err, results) => {
+        if (err) {
+          console.error('Error updating return:', err);
+          return res.status(500).json({ message: 'Error updating return' });
+        }
+
+        if (results.affectedRows === 0) {
+          return res.status(404).json({ message: 'Return not found' });
+        }
+        res.status(200).json({ message: 'Return updated successfully' });
+      }
+    );
+  });
 };
 
-// Delete a return
+// Route to delete a return record
 const deleteReturn = (req, res) => {
   const returnID = req.params.id;
   const { adminPW } = req.body;
@@ -158,5 +163,5 @@ module.exports = {
   getAllReturns,
   addReturn,
   updateReturn,
-  deleteReturn,
+  deleteReturn
 };
