@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import LoadingSpinner from "@/components/loading-spinner";
 import { useRouter } from 'next/navigation';
 import axios from "axios";
 import { AppSidebar } from "@/components/admin-sidebar";
@@ -17,6 +18,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 
 export default function DeliveriesPage() {
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState(null);
   const [selectedSubFilter, setSelectedSubFilter] = useState(null);
   
@@ -67,88 +69,97 @@ export default function DeliveriesPage() {
 
   // Function to load all data from the remote database
   const loadAllData = () => {
-    // Fetch deliveries
-    axios.get(config.deliveries.fetch)
-      .then(res => {
-        setDeliveries(normalizeDeliveryData(res.data));
-      })
-      .catch(error => {
-        console.error("Error fetching deliveries:", error);
-        toast.error("Failed to load deliveries");
-      });
+    setIsLoading(true); // Show spinner before fetching data
+    
+    // Create an array of all fetch promises
+    const fetchPromises = [
+      // Fetch deliveries
+      axios.get(config.deliveries.fetch)
+        .then(res => {
+          setDeliveries(normalizeDeliveryData(res.data));
+        })
+        .catch(error => {
+          console.error("Error fetching deliveries:", error);
+          toast.error("Failed to load deliveries");
+        }),
+      
+      // Fetch delivery products 
+      axios.get(config.deliveryProducts.fetch)
+        .then(res => {
+          if (Array.isArray(res.data) && res.data.length > 0) {
+            const grouped = groupDeliveryProducts(res.data);
+            setDeliveryProducts(grouped);
+          } else {
+            setDeliveryProducts({});
+          }
+        })
+        .catch(error => {
+          console.error("Error fetching delivery products:", error);
+          toast.error("Failed to load delivery products");
+        }),
 
-    // Fetch delivery products
-    axios.get(config.deliveryProducts.fetch)
-      .then(res => {
-        if (Array.isArray(res.data) && res.data.length > 0) {
-          console.log("Raw delivery products sample:", res.data[0]);
-          const grouped = groupDeliveryProducts(res.data);
-          console.log("Grouped delivery products sample:", grouped[Object.keys(grouped)[0]][0]);
-          setDeliveryProducts(grouped);
-        } else {
-          setDeliveryProducts({});
-        }
-      })
-      .catch(error => {
-        console.error("Error fetching delivery products:", error);
-        toast.error("Failed to load delivery products");
-      });
+      // Fetch payment details
+      axios.get(config.paymentDetails.fetch)
+        .then(res => {
+          const detailsMap = {};
+          res.data.forEach(item => {
+            detailsMap[item.D_deliveryNumber] = {
+              paymentType: item.D_paymentTypeID,
+              paymentMode: item.D_modeOfPaymentID,
+              paymentStatus: item.D_paymentStatusID,
+              dateDue: formatDateForInput(item.DPD_dateOfPaymentDue),
+              datePayment1: formatDateForInput(item.DPD_dateOfPayment1),
+              datePayment2: formatDateForInput(item.DPD_dateOfPayment2) || "",
+            };
+          });
+          setPaymentDetails(detailsMap);
+        })
+        .catch(error => {
+          console.error("Error fetching payment details:", error);
+          toast.error("Failed to load payment details");
+        }),
 
-    // Fetch payment details
-    axios.get(config.paymentDetails.fetch)
-      .then(res => {
-        const detailsMap = {};
-        res.data.forEach(item => {
-          detailsMap[item.D_deliveryNumber] = {
-            paymentType: item.D_paymentTypeID,
-            paymentMode: item.D_modeOfPaymentID,
-            paymentStatus: item.D_paymentStatusID,
-            dateDue: formatDateForInput(item.DPD_dateOfPaymentDue),
-            datePayment1: formatDateForInput(item.DPD_dateOfPayment1),
-            datePayment2: formatDateForInput(item.DPD_dateOfPayment2) || "",
-          };
-        });
-        setPaymentDetails(detailsMap);
-      })
-      .catch(error => {
-        console.error("Error fetching payment details:", error);
-        toast.error("Failed to load payment details");
-      });
+      // Fetch suppliers
+      axios.get(config.suppliers.fetch)
+        .then(res => {
+          setSuppliers(res.data);
+        })
+        .catch(error => {
+          console.error("Error fetching suppliers:", error);
+        }),
 
-    // Fetch suppliers
-    axios.get(config.suppliers.fetch)
-      .then(res => {
-        setSuppliers(res.data);
-      })
-      .catch(error => {
-        console.error("Error fetching suppliers:", error);
-      });
+      // Fetch payment types
+      axios.get(config.paymentTypes.fetch)
+        .then(res => {
+          setPaymentTypes(res.data);
+        })
+        .catch(error => {
+          console.error("Error fetching payment types:", error);
+        }),
 
-    // Fetch payment types
-    axios.get(config.paymentTypes.fetch)
-      .then(res => {
-        setPaymentTypes(res.data);
-      })
-      .catch(error => {
-        console.error("Error fetching payment types:", error);
-      });
+      // Fetch payment modes
+      axios.get(config.paymentModes.fetch)
+        .then(res => {
+          setPaymentModes(res.data);
+        })
+        .catch(error => {
+          console.error("Error fetching payment modes:", error);
+        }),
 
-    // Fetch payment modes
-    axios.get(config.paymentModes.fetch)
-      .then(res => {
-        setPaymentModes(res.data);
-      })
-      .catch(error => {
-        console.error("Error fetching payment modes:", error);
-      });
-
-    // Fetch payment statuses
-    axios.get(config.paymentStatuses.fetch)
-      .then(res => {
-        setPaymentStatuses(res.data);
-      })
-      .catch(error => {
-        console.error("Error fetching payment statuses:", error);
+      // Fetch payment statuses
+      axios.get(config.paymentStatuses.fetch)
+        .then(res => {
+          setPaymentStatuses(res.data);
+        })
+        .catch(error => {
+          console.error("Error fetching payment statuses:", error);
+        }),
+    ];
+    
+    // When all promises are settled (whether resolved or rejected)
+    Promise.allSettled(fetchPromises)
+      .finally(() => {
+        setIsLoading(false); // Hide spinner after all fetches complete
       });
   };
   
@@ -177,9 +188,6 @@ export default function DeliveriesPage() {
         grouped[deliveryNumKey] = [];
       }
       
-      // Log the product data to see what fields we have
-      console.log("Processing product item:", item);
-      
       const unitPrice = parseFloat(item.P_unitPrice) || 0;
       const quantity = parseInt(item.DPD_quantity) || 0;
       
@@ -198,11 +206,10 @@ export default function DeliveriesPage() {
   };
   
   const loadDeliveryProducts = (deliveryNumber) => {
-    console.log(`Fetching products for delivery: ${deliveryNumber}`);
+    setIsLoading(true); // Show spinner
     
     axios.get(`${config.deliveryProducts.byDelivery}/${deliveryNumber}`)
       .then(res => {
-        console.log("Response data:", res.data);
         if (Array.isArray(res.data) && res.data.length > 0) {
           // Create a simplified object for direct use
           const formattedProducts = res.data.map(item => ({
@@ -232,6 +239,9 @@ export default function DeliveriesPage() {
         console.error(`Error fetching products for delivery ${deliveryNumber}:`, error);
         console.error("Error details:", error.response?.data || error.message);
         toast.error("Failed to load delivery products");
+      })
+      .finally(() => {
+        setIsLoading(false); // Hide spinner
       });
   };
 
@@ -297,6 +307,8 @@ export default function DeliveriesPage() {
       toast.error("No payment details to save");
       return;
     }
+    
+    setIsLoading(true); // Show spinner
 
     const payload = {
       D_paymentTypeID: parseInt(detail.paymentType),
@@ -314,6 +326,9 @@ export default function DeliveriesPage() {
       .catch(err => {
         console.error("Error updating payment details:", err.response?.data || err);
         toast.error("Failed to update payment details");
+      })
+      .finally(() => {
+        setIsLoading(false); // Hide spinner
       });
   };
 
@@ -323,6 +338,8 @@ export default function DeliveriesPage() {
       setSearchResult(null);
       return;
     }
+    
+    setIsLoading(true); // Show spinner
     
     // Extract the numeric part whether user enters "DR-123" or just "123"
     const searchTerm = searchValue.trim();
@@ -349,6 +366,9 @@ export default function DeliveriesPage() {
         console.error("Search error:", error);
         toast.error("Error searching for delivery");
         setSearchResult([]);
+      })
+      .finally(() => {
+        setIsLoading(false); // Hide spinner
       });
   };
 
@@ -367,7 +387,10 @@ export default function DeliveriesPage() {
   // Delete
   const [adminPW, setAdminPW] = useState("");
   const [isDDOpen, setDDOpen] = useState("");
+  
   const handleDelete = (deliveryNumber, adminPWInput) => {
+    setIsLoading(true); // Show spinner
+    
     axios({
       method: 'delete',
       url: `${config.deliveries.delete}/${deliveryNumber}`,
@@ -385,6 +408,9 @@ export default function DeliveriesPage() {
       .catch(err => {
         console.error("Delete error:", err.response?.data || err);
         toast.error(err.response?.data?.message || "Error deleting product");
+      })
+      .finally(() => {
+        setIsLoading(false); // Hide spinner
       });
   };
 
@@ -762,6 +788,7 @@ export default function DeliveriesPage() {
         </div>
       </div>
       <Toaster position="top-right" />
+      {isLoading && <LoadingSpinner />} 
     </SidebarProvider>
   );
 }
