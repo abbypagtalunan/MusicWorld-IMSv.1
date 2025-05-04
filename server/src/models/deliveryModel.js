@@ -8,10 +8,11 @@ const getAllDeliveries = (callback) => {
       d.D_deliveryDate,
       d.S_supplierID,
       s.S_supplierName as supplierName,
-      SUM(dp.DPD_quantity * dp.DPD_unitPrice) as totalCost
+      SUM(dp.DPD_quantity * p.P_unitPrice) as totalCost
     FROM Deliveries d
     LEFT JOIN Suppliers s ON d.S_supplierID = s.S_supplierID
     LEFT JOIN DeliveryProductDetails dp ON d.D_deliveryNumber = dp.D_deliveryNumber
+    LEFT JOIN Products p ON dp.P_productCode = p.P_productCode
     GROUP BY d.D_deliveryNumber, d.D_deliveryDate, d.S_supplierID, s.S_supplierName
     ORDER BY d.D_deliveryDate DESC;
   `;
@@ -35,7 +36,7 @@ const getDeliveryProductsByDeliveryNumber = (deliveryNumber, callback) => {
       b.B_brandName as brandName,
       s.S_supplierName as supplierName,
       dpd.DPD_quantity,
-      dpd.DPD_unitPrice
+      p.P_unitPrice
     FROM DeliveryProductDetails dpd
     LEFT JOIN Products p ON dpd.P_productCode = p.P_productCode
     LEFT JOIN Brands b ON p.B_brandID = b.B_brandID
@@ -61,7 +62,7 @@ const searchDeliveries = (deliveryNumber, callback) => {
       d.D_deliveryDate,
       d.S_supplierID,
       s.S_supplierName as supplierName,
-      SUM(dp.DPD_quantity * dp.DPD_unitPrice) as totalCost
+      SUM(dp.DPD_quantity * p.P_unitPrice) as totalCost
     FROM Deliveries d
     LEFT JOIN Suppliers s ON d.S_supplierID = s.S_supplierID
     LEFT JOIN DeliveryProductDetails dp ON d.D_deliveryNumber = dp.D_deliveryNumber
@@ -106,7 +107,7 @@ const addDeliveryProducts = (deliveryProducts, callback) => {
 
   // Prepare batch insert of products
   const insertProductsQuery = `
-    INSERT INTO DeliveryProductDetails (D_deliveryNumber, P_productCode, DPD_quantity, DPD_unitPrice) 
+    INSERT INTO DeliveryProductDetails (D_deliveryNumber, P_productCode, DPD_quantity) 
     VALUES ?
   `;
 
@@ -114,7 +115,6 @@ const addDeliveryProducts = (deliveryProducts, callback) => {
     product.D_deliveryNumber,
     product.P_productCode,
     product.DPD_quantity,
-    product.DPD_unitPrice
   ]);
 
   db.query(
@@ -137,7 +137,7 @@ const getDeliveryProducts = (callback) => {
       b.B_brandName as brandName,
       s.S_supplierName as supplierName,
       dpd.DPD_quantity,
-      dpd.DPD_unitPrice
+      p.P_unitPrice
     FROM DeliveryProductDetails dpd
     LEFT JOIN Products p ON dpd.P_productCode = p.P_productCode
     LEFT JOIN Brands b ON p.B_brandID = b.B_brandID

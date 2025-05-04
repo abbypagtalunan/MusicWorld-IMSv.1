@@ -158,7 +158,7 @@ export default function DeliveriesPage() {
       dateAdded: formatDateForDisplay(item.D_deliveryDate),
       supplier: item.supplierName || item.S_supplierID,
       supplierID: item.S_supplierID,
-      totalCost: item.totalCost ? `₱${parseFloat(item.totalCost).toFixed(2)}` : "₱0.00"
+      totalCost: item.totalCost ? `₱${parseFloat(item.totalCost).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}` : "₱0.00"
     }));
   };
 
@@ -180,7 +180,7 @@ export default function DeliveriesPage() {
       // Log the product data to see what fields we have
       console.log("Processing product item:", item);
       
-      const unitPrice = parseFloat(item.DPD_unitPrice) || 0;
+      const unitPrice = parseFloat(item.P_unitPrice) || 0;
       const quantity = parseInt(item.DPD_quantity) || 0;
       
       grouped[deliveryNumKey].push({
@@ -189,8 +189,8 @@ export default function DeliveriesPage() {
         brand: item.B_brandName || item.brandName || "Unknown",
         product: item.P_productName || item.productName || "Unknown Product",
         quantity: quantity,
-        unitPrice: `₱${unitPrice.toFixed(2)}`,
-        total: `₱${(unitPrice * quantity).toFixed(2)}`
+        unitPrice: `₱${unitPrice.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`,
+        total: `₱${(unitPrice * quantity).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`
       });
     });
     
@@ -211,8 +211,8 @@ export default function DeliveriesPage() {
             brand: item.brandName || "Unknown",
             product: item.productName || "Unknown Product",
             quantity: parseInt(item.DPD_quantity) || 0,
-            unitPrice: `₱${parseFloat(item.DPD_unitPrice).toFixed(2)}`,
-            total: `₱${(parseFloat(item.DPD_unitPrice) * parseInt(item.DPD_quantity)).toFixed(2)}`
+            unitPrice: `₱${parseFloat(item.P_unitPrice).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`,
+            total: `₱${(parseFloat(item.P_unitPrice) * parseInt(item.DPD_quantity)).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`
           }));
           
           // Update only the products for this specific delivery
