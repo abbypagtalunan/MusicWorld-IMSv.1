@@ -41,10 +41,6 @@ export default function BatchDeliveriesPage() {
   const [loading, setLoading] = useState(true);
   const [selectedSupplier, setSelectedSupplier] = useState("");
   
-  const [filteredSuppliers, setFilteredSuppliers] = useState([]);
-  const [filteredBrands, setFilteredBrands] = useState([]);
-  const [filteredProducts, setFilteredProducts] = useState([]);
-  
   // State for payment details
   const [paymentTypes, setPaymentTypes] = useState([]);
   const [paymentModes, setPaymentModes] = useState([]);
@@ -83,21 +79,6 @@ export default function BatchDeliveriesPage() {
   useEffect(() => {
     loadAllData();
   }, []);
-
-  useEffect(() => {
-    setFilteredSuppliers(suppliers);
-    setFilteredBrands(brands);
-    setFilteredProducts(products);
-  }, [suppliers, brands, products]);
-  
-  useEffect(() => {
-    if (selectedSupplier) {
-      const filteredBrands = getFilteredBrands();
-      const filteredProducts = getFilteredProducts();
-      setFilteredBrands(filteredBrands);
-      setFilteredProducts(filteredProducts);
-    }
-  }, [selectedSupplier]);
 
   // Function to load all needed data
   const loadAllData = async () => {
@@ -178,6 +159,9 @@ export default function BatchDeliveriesPage() {
       // Find the supplier ID based on the selected supplier name
       const supplierObj = suppliers.find(s => s.S_supplierName === value);
       setSelectedSupplier(supplierObj ? supplierObj.S_supplierID : "");
+    }
+    
+    if (field === 'brand') {
     }
   };
 
@@ -404,64 +388,35 @@ export default function BatchDeliveriesPage() {
       toast.error(error.response?.data?.message || "Failed to save payment details");
     }
   };
-
-  // Get products filtered by the selected supplier
-  const getFilteredProducts = () => {
-    if (!selectedSupplier) return products;
-    return products.filter(product => product.S_supplierID === selectedSupplier);
-  };
-
-  // Get brands filtered by the selected supplier
-  const getFilteredBrands = () => {
-    if (!selectedSupplier) return brands;
-    
-    // Get unique brand IDs from products of this supplier
-    const supplierProductBrandIds = [...new Set(
-      products
-        .filter(product => product.S_supplierID === selectedSupplier)
-        .map(product => product.B_brandID)
-    )];
-    
-    // Return only brands that match these IDs
-    return brands.filter(brand => supplierProductBrandIds.includes(brand.B_brandID));
-  };
   
   // Search handler for suppliers
   const handleSupplierSearch = (searchTerm) => {
     if (!searchTerm) {
-      setFilteredSuppliers(suppliers);
-      return;
+      return suppliers;
     }
-    const filtered = suppliers.filter(supplier => 
+    return suppliers.filter(supplier => 
       supplier.S_supplierName.toLowerCase().includes(searchTerm.toLowerCase())
     );
-    setFilteredSuppliers(filtered);
   };
-  
+
   // Search handler for brands
   const handleBrandSearch = (searchTerm) => {
-    const baseBrands = getFilteredBrands();
     if (!searchTerm) {
-      setFilteredBrands(baseBrands);
-      return;
+      return brands;
     }
-    const filtered = baseBrands.filter(brand => 
+    return brands.filter(brand => 
       brand.B_brandName.toLowerCase().includes(searchTerm.toLowerCase())
     );
-    setFilteredBrands(filtered);
   };
 
   // Search handler for products
   const handleProductSearch = (searchTerm) => {
-    const baseProducts = getFilteredProducts();
     if (!searchTerm) {
-      setFilteredProducts(baseProducts);
-      return;
+      return products;
     }
-    const filtered = baseProducts.filter(product => 
+    return products.filter(product => 
       product.P_productName.toLowerCase().includes(searchTerm.toLowerCase())
     );
-    setFilteredProducts(filtered);
   };
 
   return (
@@ -637,11 +592,26 @@ export default function BatchDeliveriesPage() {
                           <Input
                             placeholder="Search suppliers..."
                             className="mb-2"
-                            onChange={(e) => handleSupplierSearch(e.target.value)}
+                            id="supplierSearch"
+                            onChange={(e) => {
+                              const searchTerm = e.target.value;
+                              const results = handleSupplierSearch(searchTerm);
+                              // Hide/show options based on search results
+                              suppliers.forEach(supplier => {
+                                const element = document.getElementById(`supplier-${supplier.S_supplierID}`);
+                                if (element) {
+                                  element.style.display = results.some(s => s.S_supplierID === supplier.S_supplierID) ? 'block' : 'none';
+                                }
+                              });
+                            }}
                           />
                         </div>
-                        {filteredSuppliers.map(supplier => (
-                          <SelectItem key={supplier.S_supplierID} value={supplier.S_supplierID}>
+                        {suppliers.map(supplier => (
+                          <SelectItem 
+                            key={supplier.S_supplierID} 
+                            value={supplier.S_supplierID}
+                            id={`supplier-${supplier.S_supplierID}`}
+                          >
                             {supplier.S_supplierName}
                           </SelectItem>
                         ))}
@@ -663,11 +633,28 @@ export default function BatchDeliveriesPage() {
                           <Input
                             placeholder="Search brands..."
                             className="mb-2"
-                            onChange={(e) => handleBrandSearch(e.target.value)}
+                            id="brandSearch"
+                            onChange={(e) => {
+                              const searchTerm = e.target.value;
+                              const results = brands.filter(brand => 
+                                brand.B_brandName.toLowerCase().includes(searchTerm.toLowerCase())
+                              );
+                              // Hide/show options based on search results
+                              brands.forEach(brand => {
+                                const element = document.getElementById(`brand-${brand.B_brandID}`);
+                                if (element) {
+                                  element.style.display = results.some(b => b.B_brandID === brand.B_brandID) ? 'block' : 'none';
+                                }
+                              });
+                            }}
                           />
                         </div>
-                        {filteredBrands.map(brand => (
-                          <SelectItem key={brand.B_brandID} value={brand.B_brandName}>
+                        {brands.map(brand => (
+                          <SelectItem 
+                            key={brand.B_brandID} 
+                            value={brand.B_brandName}
+                            id={`brand-${brand.B_brandID}`}
+                          >
                             {brand.B_brandName}
                           </SelectItem>
                         ))}
@@ -689,11 +676,28 @@ export default function BatchDeliveriesPage() {
                           <Input
                             placeholder="Search products..."
                             className="mb-2"
-                            onChange={(e) => handleProductSearch(e.target.value)}
+                            id="productSearch"
+                            onChange={(e) => {
+                              const searchTerm = e.target.value;
+                              const results = products.filter(product => 
+                                product.P_productName.toLowerCase().includes(searchTerm.toLowerCase())
+                              );
+                              // Hide/show options based on search results
+                              products.forEach(product => {
+                                const element = document.getElementById(`product-${product.P_productCode}`);
+                                if (element) {
+                                  element.style.display = results.some(p => p.P_productCode === product.P_productCode) ? 'block' : 'none';
+                                }
+                              });
+                            }}
                           />
                         </div>
-                        {filteredProducts.map(product => (
-                          <SelectItem key={product.P_productCode} value={product.P_productName}>
+                        {products.map(product => (
+                          <SelectItem 
+                            key={product.P_productCode} 
+                            value={product.P_productName}
+                            id={`product-${product.P_productCode}`}
+                          >
                             {product.P_productName}
                           </SelectItem>
                         ))}
