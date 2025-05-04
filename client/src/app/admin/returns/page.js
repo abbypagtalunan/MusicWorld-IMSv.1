@@ -297,9 +297,9 @@ export default function ReturnsPage() {
                 {/* Left side - Product items table */}
                 <Card className="w-full lg:w-2/3 flex flex-col">
                   <CardContent className="p-4 flex flex-col justify-between flex-grow">
-                    <div className="overflow-x-auto max-h-[60vh] flex-grow">
+                    <div className="flex flex-col overflow-auto max-h-screen w-full">
                       <Table>
-                        <TableHeader className="sticky top-0 bg-white z-10">
+                        <TableHeader className="sticky top-0 z-10 bg-white">
                           <TableRow>
                             <TableHead className="text-center">Date</TableHead>
                             <TableHead className="text-center">Return ID</TableHead>
@@ -559,9 +559,9 @@ export default function ReturnsPage() {
                 {/* Left side - Product items table */}
                 <Card className="w-full lg:w-2/3 flex flex-col">
                   <CardContent className="p-4 flex flex-col justify-between flex-grow">
-                    <div className="overflow-x-auto max-h-[60vh] flex-grow">
+                    <div className="flex flex-col overflow-auto max-h-screen w-full">
                       <Table>
-                        <TableHeader>
+                        <TableHeader className="sticky top-0 z-10 bg-white">
                           <TableRow>
                             <TableHead className="text-center">Date</TableHead>
                             <TableHead className="text-center">Product Code</TableHead>
