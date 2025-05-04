@@ -141,28 +141,25 @@ const OrderDashboard = () => {
   
   
   
-  // Fetch data for product list
   useEffect(() => {
     axios
       .get("http://localhost:8080/products")
       .then((res) => {
-        const mappedProducts = res.data.map((p) => ({
-          code: p.P_productCode,
-          name: p.P_productName,
-          category: p.category,
-          brand: p.brand,
-          supplier: p.supplier,
-          supplierId: p.S_supplierID,
-          price: p.P_sellingPrice,
-          stock: p.stock,
-          status: p.status,
-          dateAdded: p.P_dateAdded,
-          label: `${p.P_productName} | B${p.brand} | S${p.supplier}`,
+        console.log("Fetched products:", res.data);
+        const mappedProducts = res.data.map((product) => ({
+          code: product.P_productCode,
+          name: product.P_productName,
+          category: product.category,
+          brand: product.brand,
+          supplier: product.supplier,
+          price: product.P_sellingPrice,
+          label: `${product.P_productName} - B${product.brand} - S${product.supplier}`,
         }));
         setProducts(mappedProducts);
       })
       .catch((err) => console.error("Failed to fetch products:", err));
-  }, []);  
+  }, []);
+  
 
   const handleProductSelect = (product) => {
     console.log("Selected Product:", product);
@@ -210,6 +207,7 @@ const OrderDashboard = () => {
     setSelectedProduct(null);
     setOrderQuantity(1);
     setOrderDiscount(0);
+    setSelectedProductDiscount(0)
     setIsEditMode(false); // Reset to add mode
   };
 
@@ -227,10 +225,24 @@ const OrderDashboard = () => {
     if (selectedProduct) {
       setSelectedProduct(selectedProduct);
       setOrderQuantity(quantity);
+  
+      // Find the matching discount object from productDiscounts
+      const matchedDiscount = productDiscounts.find(d =>
+        d.D_discountType === discount.toString() || parseFloat(discount).toFixed(2) === d.D_discountType.replace("%", "")
+      );
+       console.log("Discount: ", selectedProductDiscount)
+  
+      if (matchedDiscount) {
+        setSelectedProductDiscount(matchedDiscount);
+      } else {
+        setSelectedProductDiscount(null); 
+      }
+  
       setOrderDiscount(parseFloat(discount));
       setIsEditMode(true);
     }
   };
+  
   
   const handleAddFreebie = () => {
   if (!selectedFreebie || freebieQuantity <= 0) return;
@@ -474,13 +486,14 @@ const OrderDashboard = () => {
                       <CommandGroup>
                         {products.map((product) => (
                           <CommandItem
-                            key={product.code}
-                            value={product.name}
-                            onSelect={() => handleProductSelect(product)}
-                          >
-                            <Check className={cn("mr-2 h-4 w-4", selectedProduct?.code === product.code ? "opacity-100" : "opacity-0")} />
-                            {product.name}
-                          </CommandItem>
+                          key={product.code}
+                          value={product.label}
+                          onSelect={() => handleProductSelect(product)}
+                        >
+                          <Check className={cn("mr-2 h-4 w-4", selectedProduct?.code === product.code ? "opacity-100" : "opacity-0")} />
+                          {product.label}
+                        </CommandItem>
+                        
                         ))}
                       </CommandGroup>
                     </Command>
