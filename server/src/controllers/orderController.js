@@ -43,7 +43,7 @@ const addOrder = (req, res) => {
         console.error('Error inserting order:', err);
         return res.status(500).json({ message: 'Error inserting order' });
       }
-      return res.status(201).json({ message: 'Order added successfully', id: orderId });
+      return res.status(201).json({id: orderId});
     });
   });
 };

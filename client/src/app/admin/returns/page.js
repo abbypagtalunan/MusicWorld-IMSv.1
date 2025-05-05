@@ -148,6 +148,7 @@ export default function ReturnsPage() {
         setCustomerReturns(customerRes.data);
         const supplierRes = await axios.get(`${config.returns.api.fetch}?source=supplier`);
         setSupplierReturns(supplierRes.data);
+
         // Fetch dropdown options
         const suppliersRes = await axios.get(config.suppliers.api.fetch);
         setSuppliers(suppliersRes.data);
@@ -296,7 +297,6 @@ export default function ReturnsPage() {
             {/* Customer Returns Tab */}
             <TabsContent value="customer">
               <div className="flex flex-col lg:flex-row gap-4 items-stretch">
-                {/* Left side - Product items table */}
                 <Card className="w-full lg:w-2/3 flex flex-col">
                   <CardContent className="p-4 flex flex-col justify-between flex-grow">
                     <div className="flex flex-col overflow-auto max-h-screen w-full">
@@ -352,12 +352,14 @@ export default function ReturnsPage() {
                                         </TableHeader>
                                         <TableBody>
                                           <TableRow>
-                                            <TableCell>{item.R_dateOfReturn}</TableCell>
+                                            <TableCell>{new Date(item.R_dateOfReturn).toLocaleDateString()}</TableCell>
                                             <TableCell>{item.P_productCode}</TableCell>
-                                            <TableCell>{item.S_supplierID}</TableCell>
-                                            <TableCell>{item.B_brandName}</TableCell>
-                                            <TableCell>{item.C_category}</TableCell>
-                                            <TableCell>{item.P_productName}</TableCell>
+                                            <TableCell>
+                                              {suppliers.find(s => s.S_supplierID === item.S_supplierID)?.S_supplierName || "Unknown"}
+                                            </TableCell>
+                                            <TableCell>{item.B_brandName || "N/A"}</TableCell>
+                                            <TableCell>{item.C_category || "N/A"}</TableCell>
+                                            <TableCell>{item.P_productName || "Unknown"}</TableCell>
                                             <TableCell>{item.R_returnQuantity}</TableCell>
                                             <TableCell>{item.R_discountAmount}%</TableCell>
                                             <TableCell>{formatToPHP(item.R_TotalPrice)}</TableCell>
@@ -426,8 +428,6 @@ export default function ReturnsPage() {
                     </div>
                   </CardContent>
                 </Card>
-
-                {/* Right side - Add form */}
                 <Card className="w-full lg:w-1/3 flex flex-col justify-between text-gray-700">
                   <CardHeader className="pb-0">
                     <CardTitle className="text-center text-xl">Add Customer Product Return</CardTitle>
@@ -446,7 +446,7 @@ export default function ReturnsPage() {
                                 key={product[config.products.codeField]} 
                                 value={product[config.products.nameField]}
                               >
-                                {product[config.products.nameField]}
+                                {`${product[config.products.nameField]} - ${product.brand} - ${product.supplier}`}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -551,7 +551,6 @@ export default function ReturnsPage() {
             {/* Supplier Returns Tab */}
             <TabsContent value="supplier">
               <div className="flex flex-col lg:flex-row gap-4 items-stretch">
-                {/* Left side - Product items table */}
                 <Card className="w-full lg:w-2/3 flex flex-col">
                   <CardContent className="p-4 flex flex-col justify-between flex-grow">
                     <div className="flex flex-col overflow-auto max-h-screen w-full">
@@ -573,7 +572,9 @@ export default function ReturnsPage() {
                               <TableRow key={item.R_returnID}>
                                 <TableCell className="text-center">{new Date(item.R_dateOfReturn).toLocaleDateString()}</TableCell>
                                 <TableCell className="text-center">{item.P_productCode}</TableCell>
-                                <TableCell className="text-center">{item.S_supplierID}</TableCell>
+                                <TableCell className="text-center">
+                                  {suppliers.find(s => s.S_supplierID === item.S_supplierID)?.S_supplierName || "Unknown"}
+                                </TableCell>
                                 <TableCell className="text-center">
                                   {products.find(p => p.P_productCode === item.P_productCode)?.P_productName || "Unknown"}
                                 </TableCell>
@@ -641,8 +642,6 @@ export default function ReturnsPage() {
                     </div>
                   </CardContent>
                 </Card>
-
-                {/* Right side - Add form */}
                 <Card className="w-full lg:w-1/3 flex flex-col justify-between text-gray-700">
                   <CardHeader className="pb-0">
                     <CardTitle className="text-center text-xl">Add Product Return to Supplier</CardTitle>
@@ -712,10 +711,10 @@ export default function ReturnsPage() {
                           <SelectContent>
                             {products.map((product) => (
                               <SelectItem 
-                                key={product.P_productID} 
+                                key={product.P_productCode} 
                                 value={product.P_productName}
                               >
-                                {product.P_productName}
+                                {`${product.P_productName} - ${product.brand} - ${product.supplier}`}
                               </SelectItem>
                             ))}
                           </SelectContent>

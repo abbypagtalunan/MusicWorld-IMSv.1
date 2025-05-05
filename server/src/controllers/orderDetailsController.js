@@ -12,7 +12,7 @@ const getAllOrderDetails = (req, res) => {
   });
 };
 
-// Route to add a new order detail
+
 const addOrderDetail = (req, res) => {
   const {
     O_orderID,
@@ -22,6 +22,8 @@ const addOrderDetail = (req, res) => {
     OD_unitPrice,
     OD_discountAmount,
   } = req.body;
+
+  console.log("Received order detail data:", req.body);  // Add logging
 
   if (!O_orderID || !P_productCode || OD_quantity == null || OD_unitPrice == null) {
     return res.status(400).json({ message: 'Missing required fields' });
@@ -41,10 +43,11 @@ const addOrderDetail = (req, res) => {
         console.error('Error inserting order detail:', err);
         return res.status(500).json({ message: 'Error inserting order detail' });
       }
-      res.status(201).json({ message: 'Order detail added successfully', id: insertId });
+      res.status(201).json({id: insertId});
     }
   );
 };
+
 
 // Route to update an existing order detail
 const updateOrderDetail = (req, res) => {
