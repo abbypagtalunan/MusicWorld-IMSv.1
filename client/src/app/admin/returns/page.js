@@ -44,12 +44,10 @@ import {
   TabsContent,
 } from "@/components/ui/tabs";
 import { Trash2, Ellipsis } from "lucide-react";
-
 // Helper function to format PHP currency
 const formatToPHP = (amount) => {
   return `₱${Number(amount).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`;
 };
-
 export default function ReturnsPage() {
   const config = {
     returns: {
@@ -109,13 +107,11 @@ export default function ReturnsPage() {
       },
     },
   };
-
   // State
   const [searchTerm, setSearchTerm] = useState("");
   const [customerReturns, setCustomerReturns] = useState([]);
   const [supplierReturns, setSupplierReturns] = useState([]);
   const [activeTab, setActiveTab] = useState("customer");
-
   // Customer Return Form
   const [productName, setProductName] = useState("");
   const [selectedSupplier, setSelectedSupplier] = useState("");
@@ -124,25 +120,22 @@ export default function ReturnsPage() {
   const [returnType, setReturnType] = useState("");
   const [selectedDiscount, setSelectedDiscount] = useState("0");
   const [productPrice, setProductPrice] = useState(0);
-
   // Supplier Return Form
   const [deliveryNumber, setDeliveryNumber] = useState("");
   const [supplierName, setSupplierName] = useState("");
   const [productItem, setProductItem] = useState("");
   const [brand, setBrand] = useState("");
   const [quantity, setQuantity] = useState("");
-  const [amount, setAmount] = useState("");
-
+  const [amount, setAmount] = useState(""); // Total price for Supplier Returns
+  const [selectedProductPrice, setSelectedProductPrice] = useState(0); // Price of the selected product for Supplier Returns
   // Dropdown Options
   const [suppliers, setSuppliers] = useState([]);
   const [brands, setBrands] = useState([]);
   const [products, setProducts] = useState([]);
   const [deliveryNumbers, setDeliveryNumbers] = useState([]);
-
   // Search Terms for Supplier Dropdowns
   const [supplierSearchTerm, setSupplierSearchTerm] = useState("");
   const [supplierSearchTerm2, setSupplierSearchTerm2] = useState("");
-
   // Fetch Data on Load
   useEffect(() => {
     const fetchData = async () => {
@@ -152,7 +145,6 @@ export default function ReturnsPage() {
         setCustomerReturns(customerRes.data);
         const supplierRes = await axios.get(`${config.returns.api.fetch}?source=supplier`);
         setSupplierReturns(supplierRes.data);
-
         // Fetch dropdown options
         const suppliersRes = await axios.get(config.suppliers.api.fetch);
         setSuppliers(suppliersRes.data);
@@ -168,7 +160,6 @@ export default function ReturnsPage() {
     };
     fetchData();
   }, []);
-
   // Handle Add Customer Return
   const handleAddCustomerReturn = async () => {
     if (
@@ -200,7 +191,6 @@ export default function ReturnsPage() {
       alert("Failed to add customer return.");
     }
   };
-
   const resetCustomerForm = () => {
     setProductName("");
     setSelectedSupplier("");
@@ -210,7 +200,6 @@ export default function ReturnsPage() {
     setSelectedDiscount("0");
     setProductPrice(0);
   };
-
   // Handle Add Supplier Return
   const handleAddSupplierReturn = async () => {
     if (!deliveryNumber || !supplierName || !productItem || !brand || !quantity) {
@@ -225,7 +214,8 @@ export default function ReturnsPage() {
       R_returnQuantity: parseInt(quantity),
       R_discountAmount: 0,
       D_deliveryNumber: parseInt(deliveryNumber),
-      S_supplierID: supplierName
+      S_supplierID: supplierName,
+      R_TotalPrice: amount, // Include the calculated total price
     };
     try {
       await axios.post(config.returns.api.add, newReturn);
@@ -236,7 +226,6 @@ export default function ReturnsPage() {
       alert("Failed to add supplier return.");
     }
   };
-
   const resetSupplierForm = () => {
     setDeliveryNumber("");
     setSupplierName("");
@@ -244,21 +233,19 @@ export default function ReturnsPage() {
     setBrand("");
     setQuantity("");
     setAmount("");
+    setSelectedProductPrice(0); // Reset product price
   };
-
   // Handle Delete
   const handleDelete = async (id, password, type) => {
     if (password !== "2095") {
       alert("Incorrect password.");
       return;
     }
-  
     try {
       // Send DELETE request to backend
       const response = await axios.delete(`${config.returns.api.delete}/${id}`, {
         data: { adminPW: password } // Send password in body
       });
-  
       if (response.status === 200) {
         // Remove item from local state after successful deletion
         if (type === "customer") {
@@ -277,15 +264,13 @@ export default function ReturnsPage() {
       alert("Failed to delete item.");
     }
   };
-
   // Auto-calculate total price for customer returns
   const calculateTotalPrice = (e) => {
     const quantity = parseInt(e.target.value);
     const total = quantity * productPrice;
     setSelectedQuantity(quantity);
   };
-
-  // Update product price when product is selected
+  // Update product price when product is selected for Customer Returns
   const handleProductSelect = (selectedName) => {
     const product = products.find(p => p[config.products.nameField] === selectedName);
     if (product) {
@@ -293,7 +278,20 @@ export default function ReturnsPage() {
       setProductPrice(product[config.products.priceField] || 0);
     }
   };
-
+  // Calculate total price for Supplier Returns
+  const calculateSupplierTotalPrice = (e) => {
+    const quantity = parseInt(e.target.value);
+    const total = quantity * selectedProductPrice;
+    setAmount(formatToPHP(total)); // Format and display the total price
+  };
+  // Update product price when product is selected for Supplier Returns
+  const handleSupplierProductSelect = (selectedName) => {
+    const product = products.find(p => p.P_productName === selectedName);
+    if (product) {
+      setProductItem(product.P_productCode);
+      setSelectedProductPrice(product[config.products.priceField] || 0); // Set the product price
+    }
+  };
   return (
     <SidebarProvider>
       <div className="flex h-screen w-screen">
@@ -311,7 +309,6 @@ export default function ReturnsPage() {
                 RETURN TO SUPPLIER
               </TabsTrigger>
             </TabsList>
-
             {/* Customer Returns Tab */}
             <TabsContent value="customer">
               <div className="flex flex-col lg:flex-row gap-4 items-stretch">
@@ -345,7 +342,7 @@ export default function ReturnsPage() {
                                 <TableCell className="flex space-x-2">
                                   <Dialog>
                                     <DialogTrigger asChild>
-                                      <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600">
+                                      <Button variant="ghost" size="sm" className="text-gray-500 hover:text-black">
                                         <Ellipsis size={16} />
                                       </Button>
                                     </DialogTrigger>
@@ -589,7 +586,6 @@ export default function ReturnsPage() {
                 </Card>
               </div>
             </TabsContent>
-
             {/* Supplier Returns Tab */}
             <TabsContent value="supplier">
               <div className="flex flex-col lg:flex-row gap-4 items-stretch">
@@ -633,7 +629,7 @@ export default function ReturnsPage() {
                                       <DialogHeader>
                                         <DialogTitle>
                                           <span className="text-lg text-red-900">Delete Transaction</span>{" "}
-                                          <span className="text-lg text-gray-400 font-normal italic">{item.D_deliveryNumber}</span>
+                                          <span className="text-lg text-gray-400 font-normal italic">{item.R_returnID}</span>
                                         </DialogTitle>
                                         <DialogClose />
                                       </DialogHeader>
@@ -643,11 +639,11 @@ export default function ReturnsPage() {
                                       </p>
                                       <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">
                                         <div className="flex-1">
-                                          <Label htmlFor={`password-${item.D_deliveryNumber}`} className="text-base font-medium text-gray-700 block mb-2">
+                                          <Label htmlFor={`password-${item.R_returnID}`} className="text-base font-medium text-gray-700 block mb-2">
                                             Admin Password
                                           </Label>
                                           <Input
-                                            id={`password-${item.D_deliveryNumber}`}
+                                            id={`password-${item.R_returnID}`}
                                             type="password"
                                             required
                                             placeholder="Enter valid password"
@@ -759,12 +755,7 @@ export default function ReturnsPage() {
                       </div>
                       <div>
                         <Label htmlFor="productName">Product Name</Label>
-                        <Select onValueChange={(selectedName) => {
-                          const product = products.find(p => p.P_productName === selectedName);
-                          if (product) {
-                            setProductItem(product.P_productCode);
-                          }
-                        }}>
+                        <Select onValueChange={handleSupplierProductSelect}>
                           <SelectTrigger id="productName">
                             <SelectValue placeholder="Select product" />
                           </SelectTrigger>
@@ -805,7 +796,10 @@ export default function ReturnsPage() {
                           type="number"
                           placeholder="Enter quantity"
                           value={quantity}
-                          onChange={(e) => setQuantity(e.target.value)}
+                          onChange={(e) => {
+                            setQuantity(e.target.value);
+                            calculateSupplierTotalPrice(e);
+                          }}
                           className="mt-1"
                         />
                       </div>
