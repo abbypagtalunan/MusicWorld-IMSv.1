@@ -36,7 +36,7 @@ export default function BatchDeliveriesPage() {
   const [products, setProducts] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [brands, setBrands] = useState([]);
-  const [deliveryNumber, setDeliveryNumber] = useState("DR-" + Math.floor(Math.random() * 90000 + 10000));
+  const [deliveryNumber, setDeliveryNumber] = useState("");
   const [deliveryDate, setDeliveryDate] = useState("");
   const [loading, setLoading] = useState(true);
   const [selectedSupplier, setSelectedSupplier] = useState("");
@@ -282,9 +282,16 @@ export default function BatchDeliveriesPage() {
         return;
       }
       
-      // Validate required fields
-      if (!deliveryNumber || !deliveryDate || !selectedSupplier) {
+      // Validate required fields for delivery
+      if (!deliveryNumber || !deliveryDate) {
         toast.error("Please fill in all required delivery information");
+        return;
+      }
+      
+      // Validate required fields for payment details
+      if (!paymentDetails.paymentType || !paymentDetails.paymentMode || 
+          !paymentDetails.paymentStatus || !paymentDetails.dateDue || !paymentDetails.datePayment1) {
+        toast.error("Please fill in all required payment details");
         return;
       }
       
@@ -317,27 +324,23 @@ export default function BatchDeliveriesPage() {
       
       await Promise.all(productPromises);
       
-      // Step 3: Save payment details
-      if (paymentDetails.paymentType && paymentDetails.paymentMode && 
-          paymentDetails.paymentStatus && paymentDetails.dateDue && paymentDetails.datePayment1) {
-        
-        const paymentPayload = {
-          D_deliveryNumber: deliveryNumber,
-          D_paymentTypeID: parseInt(paymentDetails.paymentType),
-          D_modeOfPaymentID: parseInt(paymentDetails.paymentMode),
-          D_paymentStatusID: parseInt(paymentDetails.paymentStatus),
-          DPD_dateOfPaymentDue: paymentDetails.dateDue,
-          DPD_dateOfPayment1: paymentDetails.datePayment1,
-          DPD_dateOfPayment2: paymentDetails.datePayment2 || null
-        };
-        
-        await axios.post(API_CONFIG.paymentDetails, paymentPayload);
-      }
+      // Step 3: Save payment details - removed conditional since we validated above
+      const paymentPayload = {
+        D_deliveryNumber: deliveryNumber,
+        D_paymentTypeID: parseInt(paymentDetails.paymentType),
+        D_modeOfPaymentID: parseInt(paymentDetails.paymentMode),
+        D_paymentStatusID: parseInt(paymentDetails.paymentStatus),
+        DPD_dateOfPaymentDue: paymentDetails.dateDue,
+        DPD_dateOfPayment1: paymentDetails.datePayment1,
+        DPD_dateOfPayment2: paymentDetails.datePayment2 || null
+      };
       
-      toast.success("Delivery successfully saved!");
+      await axios.post(API_CONFIG.paymentDetails, paymentPayload);
+      
+      toast.success("Delivery and payment details successfully saved!");
       
       // Generate a new delivery number for next entry
-      setDeliveryNumber("DR-" + Math.floor(Math.random() * 90000 + 10000));
+      setDeliveryNumber("");
       setProductItems([]);
       setPaymentDetails({
         paymentType: "",
@@ -374,7 +377,7 @@ export default function BatchDeliveriesPage() {
       toast.success("Delivery deleted successfully");
       
       // Reset form
-      setDeliveryNumber("DR-" + Math.floor(Math.random() * 90000 + 10000));
+      setDeliveryNumber("");
       setProductItems([]);
       setPaymentDetails({
         paymentType: "",
@@ -558,46 +561,8 @@ export default function BatchDeliveriesPage() {
                     onClick={handleSaveDelivery}
                     disabled={loading}
                   >
-                    SAVE DELIVERY
+                    SAVE ALL DETAILS
                   </Button>
-                  <Dialog>
-                        <DialogTrigger asChild>
-                        <Button variant="outline" className="bg-gray-400 text-white">
-                        DELETE DELIVERY
-                      </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-3xl p-7 text-gray-700">
-                        <DialogHeader>
-                            <DialogTitle>
-                              <span className="text-lg text-red-900">Delete Transaction</span>{" "}
-                              <span className="text-lg text-gray-400 font-normal italic">{deliveryNumber}</span></DialogTitle>
-                            <DialogClose />
-                          </DialogHeader>
-                          <p className='text-sm text-gray-800 mt-2 pl-4'> Deleting this transaction will reflect on Void Transactions. Enter the admin password to delete this transaction. </p>
-                          <div className="flex items-center gap-4 mt-4 pl-10">          
-                            <div className="flex-1">
-                              <label htmlFor={`password-${deliveryNumber}`} className="text-base font-medium text-gray-700 block mb-2">
-                                Admin Password
-                              </label>
-                              <Input 
-                                type="password" 
-                                id={`password-${deliveryNumber}`} 
-                                required
-                                placeholder="Enter valid password"  
-                                className="w-full" 
-                              />
-                            </div>       
-                            <Button 
-                              className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
-                              onClick={() => handleDeleteDelivery(
-                                document.getElementById(`password-${deliveryNumber}`).value)
-                              }
-                            >
-                              DELETE TRANSACTION
-                            </Button>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
                 </div>
               </CardContent>
             </Card>
@@ -822,7 +787,7 @@ export default function BatchDeliveriesPage() {
                     <SelectContent>
                       {paymentModes.map(mode => (
                         <SelectItem key={mode.D_modeOfPaymentID} value={mode.D_modeOfPaymentID.toString()}>
-                          {mode.D_modeName}
+                          {mode.D_mopName}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -875,16 +840,6 @@ export default function BatchDeliveriesPage() {
                     onChange={(e) => handlePaymentDetailChange('datePayment2', e.target.value)}
                   />
                 </div>
-              </div>
-
-              <div className="flex justify-end mt-6">
-                <Button 
-                  className="bg-blue-400 text-white"
-                  onClick={handleSavePaymentDetails}
-                  disabled={loading}
-                >
-                  SAVE DETAILS
-                </Button>
               </div>
             </CardContent>
           </Card>
