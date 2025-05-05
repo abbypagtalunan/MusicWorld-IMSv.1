@@ -131,13 +131,16 @@ const updateProductPrice = (productData, callback) => {
 
 // Delete a Product
 const deleteProduct = (productCode, callback) => {
-  const deleteProductQuery = `DELETE FROM Products WHERE P_productCode = ?`;
-
-  db.query(deleteProductQuery, [productCode], (err, results) => {
-    if (err) return callback(err);
-    callback(null, results);
-  });  
-};
+  const query = `UPDATE Products SET isDeleted = '1' WHERE P_productCode = ?`;
+    
+  db.query(query, [productCode], (err, results) => {
+    if (err) {
+      callback(err, null);
+    } else {
+      callback(null, results);
+    }
+  });
+}
 
 module.exports = {
   getAllProducts,
