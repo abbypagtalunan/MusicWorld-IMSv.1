@@ -1,3 +1,5 @@
+// models/returnsModel.js
+
 const db = require('../../db');
 
 // Get all active returns (not temporarily deleted)

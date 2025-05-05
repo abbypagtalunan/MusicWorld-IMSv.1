@@ -139,6 +139,10 @@ export default function ReturnsPage() {
   const [products, setProducts] = useState([]);
   const [deliveryNumbers, setDeliveryNumbers] = useState([]);
 
+  // Search Terms for Supplier Dropdowns
+  const [supplierSearchTerm, setSupplierSearchTerm] = useState("");
+  const [supplierSearchTerm2, setSupplierSearchTerm2] = useState("");
+
   // Fetch Data on Load
   useEffect(() => {
     const fetchData = async () => {
@@ -177,7 +181,6 @@ export default function ReturnsPage() {
       alert("Please fill in all required fields.");
       return;
     }
-
     const newReturn = {
       P_productCode: productName,
       returnTypeDescription: "Customer Return",
@@ -188,7 +191,6 @@ export default function ReturnsPage() {
       D_deliveryNumber: 1, // dummy value
       S_supplierID: selectedSupplier
     };
-
     try {
       await axios.post(config.returns.api.add, newReturn);
       alert("Customer return added successfully!");
@@ -215,7 +217,6 @@ export default function ReturnsPage() {
       alert("Please fill in all required fields.");
       return;
     }
-
     const newReturn = {
       P_productCode: productItem,
       returnTypeDescription: "Supplier Return",
@@ -226,7 +227,6 @@ export default function ReturnsPage() {
       D_deliveryNumber: parseInt(deliveryNumber),
       S_supplierID: supplierName
     };
-
     try {
       await axios.post(config.returns.api.add, newReturn);
       alert("Supplier return added successfully!");
@@ -247,16 +247,34 @@ export default function ReturnsPage() {
   };
 
   // Handle Delete
-  const handleDelete = (id, password, type) => {
+  const handleDelete = async (id, password, type) => {
     if (password !== "2095") {
       alert("Incorrect password.");
       return;
     }
-
-    if (type === "customer") {
-      setCustomerReturns((prev) => prev.filter((item) => item.R_returnID !== id));
-    } else {
-      setSupplierReturns((prev) => prev.filter((item) => item.R_returnID !== id));
+  
+    try {
+      // Send DELETE request to backend
+      const response = await axios.delete(`${config.returns.api.delete}/${id}`, {
+        data: { adminPW: password } // Send password in body
+      });
+  
+      if (response.status === 200) {
+        // Remove item from local state after successful deletion
+        if (type === "customer") {
+          setCustomerReturns((prev) =>
+            prev.filter((item) => item.R_returnID !== id)
+          );
+        } else {
+          setSupplierReturns((prev) =>
+            prev.filter((item) => item.R_returnID !== id)
+          );
+        }
+        alert("Item deleted successfully.");
+      }
+    } catch (error) {
+      console.error("Error deleting item:", error);
+      alert("Failed to delete item.");
     }
   };
 
@@ -351,20 +369,26 @@ export default function ReturnsPage() {
                                           </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                          <TableRow>
-                                            <TableCell>{new Date(item.R_dateOfReturn).toLocaleDateString()}</TableCell>
-                                            <TableCell>{item.P_productCode}</TableCell>
-                                            <TableCell>
-                                              {suppliers.find(s => s.S_supplierID === item.S_supplierID)?.S_supplierName || "Unknown"}
-                                            </TableCell>
-                                            <TableCell>{item.B_brandName || "N/A"}</TableCell>
-                                            <TableCell>{item.C_category || "N/A"}</TableCell>
-                                            <TableCell>{item.P_productName || "Unknown"}</TableCell>
-                                            <TableCell>{item.R_returnQuantity}</TableCell>
-                                            <TableCell>{item.R_discountAmount}%</TableCell>
-                                            <TableCell>{formatToPHP(item.R_TotalPrice)}</TableCell>
-                                          </TableRow>
-                                        </TableBody>
+                                        <TableRow>
+                                          <TableCell>{new Date(item.R_dateOfReturn).toLocaleDateString()}</TableCell>
+                                          <TableCell>{item.P_productCode}</TableCell>
+                                          <TableCell>
+                                            {suppliers.find(s => s.S_supplierID === item.S_supplierID)?.S_supplierName || "Unknown"}
+                                          </TableCell>
+                                          <TableCell>
+                                            {brands.find(b => b.B_brandID === products.find(p => p.P_productCode === item.P_productCode)?.B_brandID)?.B_brandName || "N/A"}
+                                          </TableCell>
+                                          <TableCell>
+                                            {products.find(p => p.P_productCode === item.P_productCode)?.category || "N/A"}
+                                          </TableCell>
+                                          <TableCell>
+                                            {products.find(p => p.P_productCode === item.P_productCode)?.P_productName || "Unknown"}
+                                          </TableCell>
+                                          <TableCell>{item.R_returnQuantity}</TableCell>
+                                          <TableCell>{item.R_discountAmount}%</TableCell>
+                                          <TableCell>{formatToPHP(item.R_TotalPrice)}</TableCell>
+                                        </TableRow>
+                                      </TableBody>
                                       </Table>
                                     </DialogContent>
                                   </Dialog>
@@ -454,26 +478,44 @@ export default function ReturnsPage() {
                       </div>
                       <div>
                         <Label htmlFor="supplier">Supplier</Label>
-                        <Select onValueChange={(selectedName) => {
-                          const selected = suppliers.find(s => s[config.suppliers.nameField] === selectedName);
-                          if (selected) {
-                            setSelectedSupplier(selected[config.suppliers.idField]);
-                          } else {
-                            setSelectedSupplier("");
-                          }
-                        }}>
+                        <Select
+                          onValueChange={(selectedName) => {
+                            const selected = suppliers.find(
+                              (s) => s[config.suppliers.nameField] === selectedName
+                            );
+                            if (selected) {
+                              setSelectedSupplier(selected[config.suppliers.idField]);
+                            } else {
+                              setSelectedSupplier("");
+                            }
+                          }}
+                        >
                           <SelectTrigger id="supplier" className="mt-1">
                             <SelectValue placeholder="Select supplier" />
                           </SelectTrigger>
                           <SelectContent>
-                            {suppliers.map((supplier) => (
-                              <SelectItem 
-                                key={supplier[config.suppliers.idField]} 
-                                value={supplier[config.suppliers.nameField]}
-                              >
-                                {supplier[config.suppliers.nameField]}
-                              </SelectItem>
-                            ))}
+                            <div className="px-2 py-1 border-b">
+                              <Input
+                                placeholder="Search supplier..."
+                                value={supplierSearchTerm}
+                                onChange={(e) => setSupplierSearchTerm(e.target.value)}
+                                className="w-full text-sm"
+                              />
+                            </div>
+                            {suppliers
+                              .filter((supplier) =>
+                                supplier[config.suppliers.nameField]
+                                  .toLowerCase()
+                                  .includes(supplierSearchTerm.toLowerCase())
+                              )
+                              .map((supplier) => (
+                                <SelectItem
+                                  key={supplier[config.suppliers.idField]}
+                                  value={supplier[config.suppliers.nameField]}
+                                >
+                                  {supplier[config.suppliers.nameField]}
+                                </SelectItem>
+                              ))}
                           </SelectContent>
                         </Select>
                       </div>
@@ -673,27 +715,45 @@ export default function ReturnsPage() {
                         </Select>
                       </div>
                       <div>
-                        <Label htmlFor="supplier">Supplier</Label>
-                        <Select onValueChange={(selectedName) => {
-                          const selected = suppliers.find(s => s.S_supplierName === selectedName);
-                          if (selected) {
-                            setSupplierName(selected.S_supplierID);
-                          } else {
-                            setSupplierName("");
-                          }
-                        }}>
-                          <SelectTrigger id="supplier" className="mt-1">
+                        <Label htmlFor="supplier2">Supplier</Label>
+                        <Select
+                          onValueChange={(selectedName) => {
+                            const selected = suppliers.find(
+                              (s) => s.S_supplierName === selectedName
+                            );
+                            if (selected) {
+                              setSupplierName(selected.S_supplierID);
+                            } else {
+                              setSupplierName("");
+                            }
+                          }}
+                        >
+                          <SelectTrigger id="supplier2" className="mt-1">
                             <SelectValue placeholder="Select supplier" />
                           </SelectTrigger>
                           <SelectContent>
-                            {suppliers.map((supplier) => (
-                              <SelectItem 
-                                key={supplier.S_supplierID} 
-                                value={supplier.S_supplierName}
-                              >
-                                {supplier.S_supplierName}
-                              </SelectItem>
-                            ))}
+                            <div className="px-2 py-1 border-b">
+                              <Input
+                                placeholder="Search supplier..."
+                                value={supplierSearchTerm2}
+                                onChange={(e) => setSupplierSearchTerm2(e.target.value)}
+                                className="w-full text-sm"
+                              />
+                            </div>
+                            {suppliers
+                              .filter((supplier) =>
+                                supplier.S_supplierName
+                                  .toLowerCase()
+                                  .includes(supplierSearchTerm2.toLowerCase())
+                              )
+                              .map((supplier) => (
+                                <SelectItem
+                                  key={supplier.S_supplierID}
+                                  value={supplier.S_supplierName}
+                                >
+                                  {supplier.S_supplierName}
+                                </SelectItem>
+                              ))}
                           </SelectContent>
                         </Select>
                       </div>
