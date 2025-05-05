@@ -38,6 +38,8 @@ const OrderDashboard = () => {
   // Whole order variables
   const [hasInteractedWithPayModal, setHasInteractedWithPayModal] = useState(false);
   const [payment, setPayment] = useState(0); 
+  const [selectedDiscountType, setSelectedDiscountType] = useState("");
+  const [wholeOrderDiscountInput, setWholeOrderDiscountInput] = useState("");
   const [wholeOrderDiscount, setWholeOrderDiscount] = useState(0);
   const [receiptNumber, setReceiptNumber] = useState("");
   const [receiptNumberError, setReceiptNumberError] = useState("");
@@ -78,11 +80,19 @@ const OrderDashboard = () => {
       D_totalProductDiscount: totalProductDiscount,
       T_transactionDate: transactionDate,
       isTemporarilyDeleted: false,
+      O_orderPayment: payment
     };
+    console.log("PAYMENT ORDERLOAD: ", orderPayload.O_orderPayment)
     console.log("Order Payload:", orderPayload);
   
     axios.post("http://localhost:8080/orders", orderPayload)
       .then((response) => {
+
+        if (!data || data.length === 0) {
+          toast.error("No products or freebies to save. Please add items to the order.");
+          return;
+        }
+
         data.forEach((item) => {
           const isFreebie = item.Product?.includes('(Freebie)');
           const price = parseFloat(item["Price"]) || 0;
@@ -186,6 +196,7 @@ const OrderDashboard = () => {
         "Product": selectedProduct.name,
         "Price": price,
         "Quantity": quantity,
+        "Discount Type": selectedProductDiscount?.D_discountType || "",
         "Discount": discountAmount,
         "Discount Value": discountAmount,
         "Total": total,
@@ -204,32 +215,24 @@ const OrderDashboard = () => {
   const handleEdit = (row) => {
     const {
       "Product Code": code,
-      "Product": name,
-      "Price": price,
-      "Quantity": quantity,
-      "Discount": discount,
-      "Total": total,
+      Quantity: quantity,
+      Discount: discount,
+      "Discount Type": discountType, 
     } = row;
   
-    const selectedProduct = products.find(product => product.code === code);
-    if (selectedProduct) {
-      setSelectedProduct(selectedProduct);
-      setOrderQuantity(quantity);
+    const matchedProduct = products.find((p) => p.code === code);
+    if (!matchedProduct) return;
   
-      // Find the matching discount object from productDiscounts
-      const matchedDiscount = productDiscounts.find(d =>
-        d.D_discountType === discount.toString() || parseFloat(discount).toFixed(2) === d.D_discountType.replace("%", "")
-      );
-       console.log("Discount: ", selectedProductDiscount)
+    setSelectedProduct(matchedProduct);
+    setOrderQuantity(quantity);
+    setOrderDiscount(parseFloat(discount));
   
-      if (matchedDiscount) {
-        setSelectedProductDiscount(matchedDiscount);
-      } else {
-        setSelectedProductDiscount(null); 
-      }
-      setOrderDiscount(parseFloat(discount));
-      setIsEditMode(true);
-    }
+    const matchedDiscount = productDiscounts.find(
+      (d) => d.D_discountType === discountType
+    );
+  
+    setSelectedProductDiscount(matchedDiscount);
+    setIsEditMode(true);
   };
   
   const handleAddFreebie = () => {
@@ -290,11 +293,8 @@ const OrderDashboard = () => {
           <div className="rounded-lg shadow-sm border-b sticky top-0 z-20 bg-white px-8 py-8">
             <h1 className="text-3xl text-black font-bold">Summary of Order/s</h1>
           </div>
-
-
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-4 w-full p-4">
             
-            {/* Left Section */}
             {/* TABLE */}
             <div className="lg:col-span-2 space-y-4 min-w-0">
               <div className="h-[50%] text-xl bg-white shadow-md p-4 rounded-xl">
@@ -318,16 +318,40 @@ const OrderDashboard = () => {
                     </label>
                     <input
                       type="text"
-                      value={wholeOrderDiscount === 0 ? "" : formatNumberWithCommas(wholeOrderDiscount.toString())}
+                      value={wholeOrderDiscountInput}
                       onChange={(e) => {
-                        const rawValue = e.target.value.replace(/[^0-9.]/g, ""); 
-                        setWholeOrderDiscount(rawValue === "" ? "" : parseFloat(rawValue) || 0); 
+                        const rawValue = e.target.value;
+
+                        // Allow only numbers and one dot
+                        const sanitized = rawValue.replace(/[^0-9.]/g, "").replace(/(\..*?)\..*/g, "$1");
+
+                        setWholeOrderDiscountInput(sanitized);
+
+                        // Only update number state if it's a valid float
+                        const numeric = parseFloat(sanitized);
+                        setWholeOrderDiscount(!isNaN(numeric) ? numeric : 0);
                       }}
-                      className={`px-2 py-1 w-full border rounded-md text-[13px] text-center focus:outline-none ${isInvalidDiscount ? "border-red-600 text-red-600" : "border-blue-600 text-black"}`}
+                      inputMode="decimal"
+                      className={`px-2 py-1 w-full border rounded-md text-[13px] text-center focus:outline-none ${
+                        isInvalidDiscount ? "border-red-600 text-red-600" : "border-blue-600 text-black"
+                      }`}
                     />
                   </div>
 
-                  <button onClick={() => setIsModalOpen(true)} className="px-4 py-1 mt-5 bg-blue-600 text-white rounded-md text-[13px]">
+                  <button
+                    onClick={() => {
+                      if (data.length === 0) {
+                        toast.error("Please add at least one product or freebie before proceeding to payment.");
+                        return;
+                      }
+                      setIsModalOpen(true);
+                    }}
+                    className={`px-4 py-1 mt-5 rounded-md text-[13px] transition-colors ${
+                      data.length === 0
+                        ? "bg-gray-400 text-white cursor-not-allowed"
+                        : "bg-blue-600 text-white hover:bg-blue-700"
+                    }`}
+                  >
                     INPUT PAYMENT
                   </button>
 
@@ -362,16 +386,21 @@ const OrderDashboard = () => {
                             const rawValue = e.target.value.replace(/[^0-9.]/g, ""); 
                             const updatedPayment = rawValue === "" ? 0 : parseFloat(rawValue);
                             setPayment(updatedPayment);
+                            console.log("Payment: ", payment)
                           }}
                           onBlur={() => {
                             if (!payment || parseFloat(payment.toString().replace(/,/g, "")) < discountedTotal) {
                               setHasInteractedWithPayModal(true);
                             }
                           }}
-                          onMouseLeave={() => {
+                          onMouseLeave={(e) => {
                             if (!payment || parseFloat(payment.toString().replace(/,/g, "")) < discountedTotal) {
                               setHasInteractedWithPayModal(true);
                             }
+                            const rawValue = e.target.value.replace(/[^0-9.]/g, ""); 
+                            const updatedPayment = rawValue === "" ? 0 : parseFloat(rawValue);
+                            setPayment(updatedPayment);
+                            console.log("Payment: ", payment)
                           }}
                           className={`w-[80%] px-2 py-1 border rounded-md text-center focus:outline-none ${
                             hasInteractedWithPayModal && !payment 
@@ -540,7 +569,12 @@ const OrderDashboard = () => {
               <DropdownMenu>
                 <label className="block text-sm mb-1">With Product Discount?</label>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start text-sm">
+                  <Button
+                    variant="outline"
+                    className={`w-full justify-start text-sm ${
+                      isEditMode ? "pointer-events-none opacity-50 text-gray" : ""
+                    }`}
+                  >
                     {selectedProductDiscount?.D_discountType || " "}
                   </Button>
                 </DropdownMenuTrigger>
@@ -549,22 +583,25 @@ const OrderDashboard = () => {
                   {productDiscounts.map((itemDiscount) => (
                     <DropdownMenuItem
                       key={itemDiscount.D_productDiscountID}
+                      disabled={isEditMode}
                       onClick={() => {
                         const discountType = itemDiscount.D_discountType;
-                        const currentPrice = parseFloat(selectedProduct?.price);
-                        const currentQuantity = parseInt(orderQuantity);
-                      
+                        setSelectedDiscountType(discountType);
+                        console.log("Discount Type: ", discountType);
+                        const currentPrice = parseFloat(selectedProduct?.price || "0");
+                        const currentQuantity = parseInt(orderQuantity || "1");
+
                         setSelectedProductDiscount(itemDiscount);
                         if (discountType.includes("%")) {
-                          const percent = parseFloat(discountType); // e.g. "10%" becomes 10
+                          const percent = parseFloat(discountType);
                           const computed = currentPrice * currentQuantity * (percent / 100);
                           setOrderDiscount(computed.toFixed(2));
                         } else if (discountType.toLowerCase().includes("specific")) {
-                          setOrderDiscount(""); // User will type manually
+                          setOrderDiscount("");
                         } else {
                           setOrderDiscount("0");
                         }
-                      }}  
+                      }}
                     >
                       {itemDiscount.D_discountType}
                     </DropdownMenuItem>
