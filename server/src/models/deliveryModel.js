@@ -1,5 +1,9 @@
 const db = require('../../db');
 
+// =========================
+// DELIVERY CORE FUNCTIONS
+// =========================
+
 // Get all Deliveries
 const getAllDeliveries = (callback) => {
   const query = `
@@ -252,14 +256,195 @@ const deleteDelivery = (deliveryNum, callback) => {
   });
 };
 
+// =========================
+// DELIVERY PAYMENT TYPES
+// =========================
+
+// Get all Delivery Payment Types
+const getAllDeliveryPaymentTypes = (callback) => {
+  const query = `SELECT D_paymentTypeID, D_paymentName FROM DeliveryPaymentTypes ORDER BY D_paymentTypeID`;
+  db.query(query, (err, results) => {
+    if (err) {
+      callback(err, null);
+    } else {
+      callback(null, results);
+    }
+  });
+};
+
+// Add a new Delivery Payment Type
+const addDeliveryPaymentType = (statusData, callback) => {
+  const { D_paymentName } = statusData;
+  const query = `INSERT INTO DeliveryPaymentTypes (D_paymentName) VALUES (?)`;
+  db.query(query, [D_paymentName], (err, results) => {
+    if (err) {
+      callback(err, null);
+    } else {
+      callback(null, results.insertId);
+    }
+  });
+};
+
+// Update an existing Delivery Payment Type
+const updateDeliveryPaymentType = (statusId, statusData, callback) => {
+  const { D_paymentName } = statusData;
+  const query = `UPDATE DeliveryPaymentTypes SET D_paymentName = ? WHERE D_paymentTypeID = ?`;
+  db.query(query, [D_paymentName, statusId], (err, results) => {
+    if (err) {
+      callback(err, null);
+    } else {
+      callback(null, results);
+    }
+  });
+};
+
+// Delete a Delivery Payment Type
+const deleteDeliveryPaymentType = (statusId, callback) => {
+  const query = `DELETE FROM DeliveryPaymentTypes WHERE D_paymentTypeID = ?`;
+  db.query(query, [statusId], (err, results) => {
+    if (err) {
+      callback(err, null);
+    } else {
+      callback(null, results);
+    }
+  });
+};
+
+// =========================
+// DELIVERY MODE OF PAYMENT
+// =========================
+
+// Get all Delivery Mode of Payments
+const getAllDeliveryModeOfPayments = (callback) => {
+  const query = `SELECT D_modeOfPaymentID, D_mopName FROM DeliveryModeOfPayment ORDER BY D_modeOfPaymentID`;
+  db.query(query, (err, results) => {
+    if (err) {
+      callback(err, null);
+    } else {
+      callback(null, results);
+    }
+  });
+};
+
+// Add a new Delivery Mode of Payment
+const addDeliveryModeOfPayment = (statusData, callback) => {
+  const { D_mopName } = statusData;
+  const query = `INSERT INTO DeliveryModeOfPayment (D_mopName) VALUES (?)`;
+  db.query(query, [D_mopName], (err, results) => {
+    if (err) {
+      callback(err, null);
+    } else {
+      callback(null, results.insertId);
+    }
+  });
+};
+
+// Update an existing Delivery Mode of Payment
+const updateDeliveryModeOfPayment = (statusId, statusData, callback) => {
+  const { D_mopName } = statusData;
+  const query = `UPDATE DeliveryModeOfPayment SET D_mopName = ? WHERE D_modeOfPaymentID = ?`;
+  db.query(query, [D_mopName, statusId], (err, results) => {
+    if (err) {
+      callback(err, null);
+    } else {
+      callback(null, results);
+    }
+  });
+};
+
+// Delete a Delivery Mode of Payment
+const deleteDeliveryModeOfPayment = (statusId, callback) => {
+  const query = `DELETE FROM DeliveryModeOfPayment WHERE D_modeOfPaymentID = ?`;
+  db.query(query, [statusId], (err, results) => {
+    if (err) {
+      callback(err, null);
+    } else {
+      callback(null, results);
+    }
+  });
+};
+
+// =========================
+// DELIVERY PAYMENT STATUS
+// =========================
+
+// Get all Delivery Payment Statuses
+const getAllDeliveryPaymentStatuses = (callback) => {
+  const query = `SELECT D_paymentStatusID, D_statusName FROM DeliveryPaymentStatus ORDER BY D_paymentStatusID`;
+  db.query(query, (err, results) => {
+    if (err) {
+      callback(err, null);
+    } else {
+      callback(null, results);
+    }
+  });
+};
+
+// Add a new Delivery Payment Status
+const addDeliveryPaymentStatus = (data, callback) => {
+  const { D_statusName } = data;
+  const query = `INSERT INTO DeliveryPaymentStatus (D_statusName) VALUES (?)`;
+  db.query(query, [D_statusName], (err, results) => {
+    if (err) {
+      callback(err, null);
+    } else {
+      callback(null, results.insertId);
+    }
+  });
+};
+
+// Update an existing Delivery Payment Status
+const updateDeliveryPaymentStatus = (id, data, callback) => {
+  const { D_statusName } = data;
+  const query = `UPDATE DeliveryPaymentStatus SET D_statusName = ? WHERE D_paymentStatusID = ?`;
+  db.query(query, [D_statusName, id], (err, results) => {
+    if (err) {
+      callback(err, null);
+    } else {
+      callback(null, results);
+    }
+  });
+};
+
+// Delete a Delivery Payment Status
+const deleteDeliveryPaymentStatus = (id, callback) => {
+  const query = `DELETE FROM DeliveryPaymentStatus WHERE D_paymentStatusID = ?`;
+  db.query(query, [id], (err, results) => {
+    if (err) {
+      callback(err, null);
+    } else {
+      callback(null, results);
+    }
+  });
+};
+
 module.exports = {
+  // Delivery Core Functions
   getAllDeliveries,
   searchDeliveries,
   addDelivery,
   addDeliveryProducts,
   getDeliveryProducts,
-  getDeliveryProductsByDeliveryNumber,  // Add this new function
+  getDeliveryProductsByDeliveryNumber,
   getPaymentDetails,
   updatePaymentDetails,
-  deleteDelivery
+  deleteDelivery,
+  
+  // Delivery Payment Types
+  getAllDeliveryPaymentTypes,
+  addDeliveryPaymentType,
+  updateDeliveryPaymentType,
+  deleteDeliveryPaymentType,
+  
+  // Delivery Mode of Payment
+  getAllDeliveryModeOfPayments,
+  addDeliveryModeOfPayment,
+  updateDeliveryModeOfPayment,
+  deleteDeliveryModeOfPayment,
+  
+  // Delivery Payment Status
+  getAllDeliveryPaymentStatuses,
+  addDeliveryPaymentStatus,
+  updateDeliveryPaymentStatus,
+  deleteDeliveryPaymentStatus
 };

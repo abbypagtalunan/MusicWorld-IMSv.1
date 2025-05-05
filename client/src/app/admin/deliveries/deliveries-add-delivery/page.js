@@ -69,11 +69,11 @@ export default function BatchDeliveriesPage() {
     suppliers: "http://localhost:8080/suppliers",
     brands: "http://localhost:8080/brands",
     deliveries: "http://localhost:8080/deliveries",
-    deliveryProducts: "http://localhost:8080/deliveryProducts",
-    paymentTypes: "http://localhost:8080/deliveryPaymentTypes",
-    paymentModes: "http://localhost:8080/deliveryModeOfPayment",
-    paymentStatuses: "http://localhost:8080/deliveryPaymentStatus",
-    paymentDetails: "http://localhost:8080/deliveryPaymentDetails"
+    deliveryProducts: "http://localhost:8080/deliveryProductDetails",
+    paymentTypes: "http://localhost:8080/deliveries/payment-types",
+    paymentModes: "http://localhost:8080/deliveries/mode-of-payment",
+    paymentStatuses: "http://localhost:8080/deliveries/payment-status",
+    paymentDetails: "http://localhost:8080/deliveries/payment-details"
   };
 
   useEffect(() => {
@@ -237,6 +237,7 @@ export default function BatchDeliveriesPage() {
     const productToAdd = {
       productCode: selectedProduct.P_productCode || generateProductCode(),
       supplier: suppliers.find(s => s.S_supplierID === newProduct.supplier)?.S_supplierName || newProduct.supplier,
+      supplierID: newProduct.supplier,
       brand: newProduct.brand,
       product: newProduct.product,
       quantity: quantity,
@@ -309,19 +310,16 @@ export default function BatchDeliveriesPage() {
       const productPromises = productItems.map(item => {
         // Extract numeric quantity value
         const quantityValue = parseInt(item.quantity.split(' ')[0]);
-        // Extract numeric unit price value
-        const unitPriceValue = parseFloat(item.unitPrice.replace(/,/g, ''));
         
         const productDetailPayload = {
           D_deliveryNumber: deliveryNumber,
           P_productCode: item.productCode,
-          DPD_quantity: quantityValue,
-          DPD_unitPrice: unitPriceValue
+          DPD_quantity: quantityValue
         };
         
         return axios.post(API_CONFIG.deliveryProducts, productDetailPayload);
       });
-      
+
       await Promise.all(productPromises);
       
       // Step 3: Save payment details - removed conditional since we validated above

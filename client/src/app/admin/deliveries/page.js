@@ -52,13 +52,13 @@ export default function DeliveriesPage() {
       fetch: "http://localhost:8080/suppliers",
     },
     paymentTypes: {
-      fetch: "http://localhost:8080/deliveryPaymentTypes",
+      fetch: "http://localhost:8080/deliveries/payment-types",
     },
     paymentModes: {
-      fetch: "http://localhost:8080/deliveryModeOfPayment",
+      fetch: "http://localhost:8080/deliveries/mode-of-payment",
     },
     paymentStatuses: {
-      fetch: "http://localhost:8080/deliveryPaymentStatus",
+      fetch: "http://localhost:8080/deliveries/payment-status",
     }
   };
   
