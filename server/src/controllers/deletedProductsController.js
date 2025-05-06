@@ -1,10 +1,10 @@
-const deletedModel = require('../models/deletedModel'); // Import the product model
+const deletedProductsModel = require('../models/deletedProductsModel'); // Import the product model
 
 // Route to fetch all products
 const getAllDeleted = (req, res) => {
 
   // Access the getAllProducts method or query
-  deletedModel.getAllDeleted((err, results) => {
+  deletedProductsModel.getAllDeleted((err, results) => {
     if (err) {
       console.error('Error fetching data from database:', err);
       res.status(500).json({ error: 'Error fetching data' });
@@ -14,15 +14,28 @@ const getAllDeleted = (req, res) => {
   });
 };
 
+const retrieveDeleted = (req, res) => {
+  const productCode = req.params.id;
+
+  deletedProductsModel.retrieveDeleted(productCode, (err, results) => {
+    if (err) {
+      console.error('Error retrieving transaction:', err);
+      res.status(500).json({ message: 'Error retrieving transaction', results });
+    } else {
+      res.status(200).json({ message: 'Transaction retrieved successfully', results });
+    }
+  });
+}
+
 const deleteDeleted = (req, res) => {
-    const transactionID = req.params.id;
+    const productCode = req.params.id;
     const { adminPW } = req.body;
 
     if (adminPW !== "1234") {
       return res.status(403).json({ message: "Invalid admin password" });
     }
   
-    deletedModel.deletePermanently(transactionID, (err, results) => {
+    deletedProductsModel.deletePermanently(productCode, (err, results) => {
       if (err) {
         console.error('Error deleting transaction:', err);
         res.status(500).json({ message: 'Error deleting transaction', results });
@@ -34,5 +47,6 @@ const deleteDeleted = (req, res) => {
 
 module.exports = {
     getAllDeleted,
+    retrieveDeleted,
     deleteDeleted,
 };

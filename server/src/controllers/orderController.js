@@ -14,7 +14,7 @@ const getAllOrders = (req, res) => {
 
 // Add a new order
 const addOrder = (req, res) => {
-  const { O_receiptNumber, T_totalAmount, D_wholeOrderDiscount, D_totalProductDiscount, T_transactionDate, isTemporarilyDeleted } = req.body;
+  const { O_receiptNumber, T_totalAmount, D_wholeOrderDiscount, D_totalProductDiscount, T_transactionDate, isTemporarilyDeleted, O_orderPayment } = req.body;
 
   // Validate receipt number
   if (!O_receiptNumber || isNaN(O_receiptNumber)) {
@@ -38,7 +38,7 @@ const addOrder = (req, res) => {
     }
 
     // No duplicates, insert the order
-    ordersModel.addOrder({ O_receiptNumber, T_totalAmount, D_wholeOrderDiscount, D_totalProductDiscount, T_transactionDate, isTemporarilyDeleted }, (err, orderId) => {
+    ordersModel.addOrder({ O_receiptNumber, T_totalAmount, D_wholeOrderDiscount, D_totalProductDiscount, T_transactionDate, isTemporarilyDeleted, O_orderPayment }, (err, orderId) => {
       if (err) {
         console.error('Error inserting order:', err);
         return res.status(500).json({ message: 'Error inserting order' });
@@ -51,7 +51,7 @@ const addOrder = (req, res) => {
 // Update an existing order
 const updateOrder = (req, res) => {
   const orderId = req.params.id;
-  const { O_receiptNumber, T_totalAmount, D_wholeOrderDiscount, D_totalProductDiscount, T_transactionDate, isTemporarilyDeleted } = req.body;
+  const { O_receiptNumber, T_totalAmount, D_wholeOrderDiscount, D_totalProductDiscount, T_transactionDate, isTemporarilyDeleted, O_orderPayment } = req.body;
 
   // Validate receipt number
   if (!O_receiptNumber || isNaN(O_receiptNumber)) {
@@ -64,7 +64,7 @@ const updateOrder = (req, res) => {
   }
 
   // Update the order in the model
-  ordersModel.updateOrder(orderId, { O_receiptNumber, T_totalAmount, D_wholeOrderDiscount, D_totalProductDiscount, T_transactionDate, isTemporarilyDeleted }, (err, results) => {
+  ordersModel.updateOrder(orderId, { O_receiptNumber, T_totalAmount, D_wholeOrderDiscount, D_totalProductDiscount, T_transactionDate, isTemporarilyDeleted, O_orderPayment}, (err, results) => {
     if (err) {
       console.error('Error updating order:', err);
       return res.status(500).json({ message: 'Error updating order' });
