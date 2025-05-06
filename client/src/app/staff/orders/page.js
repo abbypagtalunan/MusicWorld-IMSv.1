@@ -59,7 +59,8 @@ export default function OrdersPage() {
           quantity: o.OD_quantity,
           unitPrice: o.OD_unitPrice,
           discountAmount: o.OD_discountAmount,
-          itemTotal: o.OD_itemTotal,
+          itemTotal: o.OD_netSale,
+          itemGross: o.OD_grossSale,
           brandName: o.B_brandName,
           supplierName: o.S_supplierName,
         }));
@@ -70,9 +71,6 @@ export default function OrdersPage() {
       });
   }, []);
   
-  
-    
-
     const formatDate = (isoString) => {
       const date = new Date(isoString);
       const pad = (n) => n.toString().padStart(2, "0");
@@ -252,7 +250,8 @@ export default function OrdersPage() {
                                 <TableHead>Quantity</TableHead>
                                 <TableHead>Discount Type</TableHead>
                                 <TableHead>Discount Amount</TableHead>
-                                <TableHead>Total</TableHead>
+                                <TableHead>NET Sale</TableHead>
+                                <TableHead>Gross Sale</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -271,6 +270,7 @@ export default function OrdersPage() {
                                 <TableCell>{detail.discountType || "---"}</TableCell>
                                 <TableCell>{formatPeso(detail.discountAmount)}</TableCell>
                                 <TableCell>{formatPeso(detail.itemTotal)}</TableCell>
+                                <TableCell>{formatPeso(detail.itemGross)}</TableCell>
                             </TableRow>                            
                               ))}
                             </TableBody>

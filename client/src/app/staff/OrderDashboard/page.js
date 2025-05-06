@@ -37,14 +37,17 @@ const OrderDashboard = () => {
 
   // Whole order variables
   const [hasInteractedWithPayModal, setHasInteractedWithPayModal] = useState(false);
+ 
   const [payment, setPayment] = useState(0); 
   const [selectedDiscountType, setSelectedDiscountType] = useState("");
   const [wholeOrderDiscountInput, setWholeOrderDiscountInput] = useState("");
   const [wholeOrderDiscount, setWholeOrderDiscount] = useState(0);
   const [receiptNumber, setReceiptNumber] = useState("");
   const [receiptNumberError, setReceiptNumberError] = useState("");
-  const totalAmount = data.reduce((sum, item) => sum + parseFloat(item.Total), 0);
-  const discountedTotal = Math.max(totalAmount - wholeOrderDiscount, 0);
+  const [netItemSale, setNetItemSale] = useState(0);
+
+  const totalAmount = data.reduce((sum, item) => sum + parseFloat(item.Total), 0); //Total after discount
+  const discountedTotal = Math.max(totalAmount - wholeOrderDiscount, 0); //Total after whole order discount and product discount
   const parsedPayment = parseFloat(payment.toString().replace(/,/g, "")) || 0;
   const change = Math.max(parsedPayment - discountedTotal, 0);
   const isInvalidDiscount = wholeOrderDiscount > totalAmount;
@@ -106,6 +109,7 @@ const OrderDashboard = () => {
             OD_quantity: quantity,
             OD_unitPrice: isFreebie ? 0.00 : price,
             OD_discountAmount: isFreebie ? 0.00 : discount,
+            // OD_itemTotal GENERATED ALWAYS AS (((`OD_unitPrice` * `OD_quantity`) - `OD_discountAmount`))
           };
           console.log("Order Detail Payload:", detailPayload);
   
@@ -147,6 +151,7 @@ const OrderDashboard = () => {
           brand: p.brand,
           supplier: p.supplier,
           price: p.P_sellingPrice,
+          unitPrice: p.P_unitPrice,
           stock: p.stock,
           label: `${p.P_productName} - B${p.brand} - S${p.supplier}`,
         }));
@@ -166,11 +171,15 @@ const OrderDashboard = () => {
       return; 
     }
   
-    const price = parseFloat(selectedProduct.price) || 0;
+    const sellingPrice = parseFloat(selectedProduct.price) || 0;
+    const unitPrice = parseFloat(selectedProduct.unitPrice) || 0;
     const quantity = parseInt(orderQuantity) || 1;
     const discountAmount = parseFloat(orderDiscount) || 0;
-    const total = (price * quantity) - discountAmount;
+    const netSales = (sellingPrice * quantity) - discountAmount;
     console.log('Discount Amount: ', discountAmount)
+    console.log("Net Sales (Selling price): ", netSales)
+    
+    setNetItemSale(netSales)
   
     if (isEditMode) {
       // Update the existing item
@@ -182,7 +191,7 @@ const OrderDashboard = () => {
                 "Quantity": quantity,
                 "Discount": discountAmount,
                 "Discount Value": discountAmount,
-                "Total": total,
+                "Total": netSales,
               }
             : item
         );
@@ -194,12 +203,12 @@ const OrderDashboard = () => {
         "Supplier": selectedProduct.supplier,
         "Brand": selectedProduct.brand,
         "Product": selectedProduct.name,
-        "Price": price,
+        "Price": sellingPrice,
         "Quantity": quantity,
         "Discount Type": selectedProductDiscount?.D_discountType || "",
         "Discount": discountAmount,
         "Discount Value": discountAmount,
-        "Total": total,
+        "Total": netSales,
       };
       setData((prevData) => [...prevData, newItem]);
     }
@@ -321,13 +330,8 @@ const OrderDashboard = () => {
                       value={wholeOrderDiscountInput}
                       onChange={(e) => {
                         const rawValue = e.target.value;
-
-                        // Allow only numbers and one dot
                         const sanitized = rawValue.replace(/[^0-9.]/g, "").replace(/(\..*?)\..*/g, "$1");
-
                         setWholeOrderDiscountInput(sanitized);
-
-                        // Only update number state if it's a valid float
                         const numeric = parseFloat(sanitized);
                         setWholeOrderDiscount(!isNaN(numeric) ? numeric : 0);
                       }}
@@ -387,6 +391,7 @@ const OrderDashboard = () => {
                             const updatedPayment = rawValue === "" ? 0 : parseFloat(rawValue);
                             setPayment(updatedPayment);
                             console.log("Payment: ", payment)
+                            console.log("!!!!!discountedTotal: ", discountedTotal)
                           }}
                           onBlur={() => {
                             if (!payment || parseFloat(payment.toString().replace(/,/g, "")) < discountedTotal) {

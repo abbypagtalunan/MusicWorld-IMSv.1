@@ -14,7 +14,8 @@ const getAllOrderDetails = (callback) => {
       od.OD_quantity,
       od.OD_unitPrice,
       od.OD_discountAmount,
-      od.OD_itemTotal,
+      od.OD_netSale,
+      od.OD_grossSale,
       b.B_brandName,
       s.S_supplierName
     FROM OrderDetails od
@@ -44,7 +45,6 @@ const addOrderDetail = (data, callback) => {
     OD_unitPrice,
     OD_discountAmount,
   } = data;
-
 
   const query = `
     INSERT INTO OrderDetails 
