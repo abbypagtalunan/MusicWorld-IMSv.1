@@ -4,6 +4,7 @@ import axios from "axios";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/admin-sidebar";
 import { format } from 'date-fns';
+
 // UI Components
 import {
   Table,
@@ -44,10 +45,12 @@ import {
   TabsContent,
 } from "@/components/ui/tabs";
 import { Trash2, Ellipsis } from "lucide-react";
+
 // Helper function to format PHP currency
 const formatToPHP = (amount) => {
   return `₱${Number(amount).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`;
 };
+
 export default function ReturnsPage() {
   const config = {
     returns: {
@@ -107,11 +110,13 @@ export default function ReturnsPage() {
       },
     },
   };
+
   // State
   const [searchTerm, setSearchTerm] = useState("");
   const [customerReturns, setCustomerReturns] = useState([]);
   const [supplierReturns, setSupplierReturns] = useState([]);
   const [activeTab, setActiveTab] = useState("customer");
+
   // Customer Return Form
   const [productName, setProductName] = useState("");
   const [selectedSupplier, setSelectedSupplier] = useState("");
@@ -120,6 +125,7 @@ export default function ReturnsPage() {
   const [returnType, setReturnType] = useState("");
   const [selectedDiscount, setSelectedDiscount] = useState("0");
   const [productPrice, setProductPrice] = useState(0);
+
   // Supplier Return Form
   const [deliveryNumber, setDeliveryNumber] = useState("");
   const [supplierName, setSupplierName] = useState("");
@@ -128,14 +134,17 @@ export default function ReturnsPage() {
   const [quantity, setQuantity] = useState("");
   const [amount, setAmount] = useState(""); // Total price for Supplier Returns
   const [selectedProductPrice, setSelectedProductPrice] = useState(0); // Price of the selected product for Supplier Returns
+
   // Dropdown Options
   const [suppliers, setSuppliers] = useState([]);
   const [brands, setBrands] = useState([]);
   const [products, setProducts] = useState([]);
   const [deliveryNumbers, setDeliveryNumbers] = useState([]);
+
   // Search Terms for Supplier Dropdowns
   const [supplierSearchTerm, setSupplierSearchTerm] = useState("");
   const [supplierSearchTerm2, setSupplierSearchTerm2] = useState("");
+
   // Fetch Data on Load
   useEffect(() => {
     const fetchData = async () => {
@@ -145,6 +154,7 @@ export default function ReturnsPage() {
         setCustomerReturns(customerRes.data);
         const supplierRes = await axios.get(`${config.returns.api.fetch}?source=supplier`);
         setSupplierReturns(supplierRes.data);
+
         // Fetch dropdown options
         const suppliersRes = await axios.get(config.suppliers.api.fetch);
         setSuppliers(suppliersRes.data);
@@ -160,6 +170,7 @@ export default function ReturnsPage() {
     };
     fetchData();
   }, []);
+
   // Handle Add Customer Return
   const handleAddCustomerReturn = async () => {
     if (
@@ -172,6 +183,7 @@ export default function ReturnsPage() {
       alert("Please fill in all required fields.");
       return;
     }
+
     const newReturn = {
       P_productCode: productName,
       returnTypeDescription: "Customer Return",
@@ -182,6 +194,7 @@ export default function ReturnsPage() {
       D_deliveryNumber: 1, // dummy value
       S_supplierID: selectedSupplier
     };
+
     try {
       await axios.post(config.returns.api.add, newReturn);
       alert("Customer return added successfully!");
@@ -191,6 +204,7 @@ export default function ReturnsPage() {
       alert("Failed to add customer return.");
     }
   };
+
   const resetCustomerForm = () => {
     setProductName("");
     setSelectedSupplier("");
@@ -200,12 +214,14 @@ export default function ReturnsPage() {
     setSelectedDiscount("0");
     setProductPrice(0);
   };
+
   // Handle Add Supplier Return
   const handleAddSupplierReturn = async () => {
     if (!deliveryNumber || !supplierName || !productItem || !brand || !quantity) {
       alert("Please fill in all required fields.");
       return;
     }
+
     const newReturn = {
       P_productCode: productItem,
       returnTypeDescription: "Supplier Return",
@@ -217,6 +233,7 @@ export default function ReturnsPage() {
       S_supplierID: supplierName,
       R_TotalPrice: amount, // Include the calculated total price
     };
+
     try {
       await axios.post(config.returns.api.add, newReturn);
       alert("Supplier return added successfully!");
@@ -226,6 +243,7 @@ export default function ReturnsPage() {
       alert("Failed to add supplier return.");
     }
   };
+
   const resetSupplierForm = () => {
     setDeliveryNumber("");
     setSupplierName("");
@@ -235,17 +253,20 @@ export default function ReturnsPage() {
     setAmount("");
     setSelectedProductPrice(0); // Reset product price
   };
+
   // Handle Delete
   const handleDelete = async (id, password, type) => {
     if (password !== "2095") {
       alert("Incorrect password.");
       return;
     }
+
     try {
       // Send DELETE request to backend
       const response = await axios.delete(`${config.returns.api.delete}/${id}`, {
         data: { adminPW: password } // Send password in body
       });
+
       if (response.status === 200) {
         // Remove item from local state after successful deletion
         if (type === "customer") {
@@ -264,12 +285,14 @@ export default function ReturnsPage() {
       alert("Failed to delete item.");
     }
   };
+
   // Auto-calculate total price for customer returns
   const calculateTotalPrice = (e) => {
     const quantity = parseInt(e.target.value);
     const total = quantity * productPrice;
     setSelectedQuantity(quantity);
   };
+
   // Update product price when product is selected for Customer Returns
   const handleProductSelect = (selectedName) => {
     const product = products.find(p => p[config.products.nameField] === selectedName);
@@ -278,12 +301,14 @@ export default function ReturnsPage() {
       setProductPrice(product[config.products.priceField] || 0);
     }
   };
+
   // Calculate total price for Supplier Returns
   const calculateSupplierTotalPrice = (e) => {
     const quantity = parseInt(e.target.value);
     const total = quantity * selectedProductPrice;
     setAmount(formatToPHP(total)); // Format and display the total price
   };
+
   // Update product price when product is selected for Supplier Returns
   const handleSupplierProductSelect = (selectedName) => {
     const product = products.find(p => p.P_productName === selectedName);
@@ -292,6 +317,7 @@ export default function ReturnsPage() {
       setSelectedProductPrice(product[config.products.priceField] || 0); // Set the product price
     }
   };
+
   return (
     <SidebarProvider>
       <div className="flex h-screen w-screen">
@@ -300,6 +326,7 @@ export default function ReturnsPage() {
           <div className="flex items-center justify-between mb-4 bg-white p-2 rounded-lg">
             <h1 className="text-lg text-gray-600 font-medium">Processing of Returns</h1>
           </div>
+
           <Tabs defaultValue="customer" onValueChange={setActiveTab}>
             <TabsList className="w-full flex justify-start bg-white shadow-md rounded-md px-6 py-6 mb-4">
               <TabsTrigger value="customer" className="data-[state=active]:text-indigo-600 hover:text-black">
@@ -309,6 +336,7 @@ export default function ReturnsPage() {
                 RETURN TO SUPPLIER
               </TabsTrigger>
             </TabsList>
+
             {/* Customer Returns Tab */}
             <TabsContent value="customer">
               <div className="flex flex-col lg:flex-row gap-4 items-stretch">
@@ -366,26 +394,26 @@ export default function ReturnsPage() {
                                           </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                        <TableRow>
-                                          <TableCell>{new Date(item.R_dateOfReturn).toLocaleDateString()}</TableCell>
-                                          <TableCell>{item.P_productCode}</TableCell>
-                                          <TableCell>
-                                            {suppliers.find(s => s.S_supplierID === item.S_supplierID)?.S_supplierName || "Unknown"}
-                                          </TableCell>
-                                          <TableCell>
-                                            {brands.find(b => b.B_brandID === products.find(p => p.P_productCode === item.P_productCode)?.B_brandID)?.B_brandName || "N/A"}
-                                          </TableCell>
-                                          <TableCell>
-                                            {products.find(p => p.P_productCode === item.P_productCode)?.category || "N/A"}
-                                          </TableCell>
-                                          <TableCell>
-                                            {products.find(p => p.P_productCode === item.P_productCode)?.P_productName || "Unknown"}
-                                          </TableCell>
-                                          <TableCell>{item.R_returnQuantity}</TableCell>
-                                          <TableCell>{item.R_discountAmount}%</TableCell>
-                                          <TableCell>{formatToPHP(item.R_TotalPrice)}</TableCell>
-                                        </TableRow>
-                                      </TableBody>
+                                          <TableRow>
+                                            <TableCell>{new Date(item.R_dateOfReturn).toLocaleDateString()}</TableCell>
+                                            <TableCell>{item.P_productCode}</TableCell>
+                                            <TableCell>
+                                              {suppliers.find(s => s.S_supplierID === item.S_supplierID)?.S_supplierName || "Unknown"}
+                                            </TableCell>
+                                            <TableCell>
+                                              {brands.find(b => b.B_brandID === products.find(p => p.P_productCode === item.P_productCode)?.B_brandID)?.B_brandName || "N/A"}
+                                            </TableCell>
+                                            <TableCell>
+                                              {products.find(p => p.P_productCode === item.P_productCode)?.category || "N/A"}
+                                            </TableCell>
+                                            <TableCell>
+                                              {products.find(p => p.P_productCode === item.P_productCode)?.P_productName || "Unknown"}
+                                            </TableCell>
+                                            <TableCell>{item.R_returnQuantity}</TableCell>
+                                            <TableCell>{item.R_discountAmount}%</TableCell>
+                                            <TableCell>{formatToPHP(item.R_TotalPrice)}</TableCell>
+                                          </TableRow>
+                                        </TableBody>
                                       </Table>
                                     </DialogContent>
                                   </Dialog>
@@ -449,6 +477,7 @@ export default function ReturnsPage() {
                     </div>
                   </CardContent>
                 </Card>
+
                 <Card className="w-full lg:w-1/3 flex flex-col justify-between text-gray-700">
                   <CardHeader className="pb-0">
                     <CardTitle className="text-center text-xl">Add Customer Product Return</CardTitle>
@@ -586,6 +615,7 @@ export default function ReturnsPage() {
                 </Card>
               </div>
             </TabsContent>
+
             {/* Supplier Returns Tab */}
             <TabsContent value="supplier">
               <div className="flex flex-col lg:flex-row gap-4 items-stretch">
@@ -680,6 +710,7 @@ export default function ReturnsPage() {
                     </div>
                   </CardContent>
                 </Card>
+
                 <Card className="w-full lg:w-1/3 flex flex-col justify-between text-gray-700">
                   <CardHeader className="pb-0">
                     <CardTitle className="text-center text-xl">Add Product Return to Supplier</CardTitle>

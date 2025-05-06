@@ -30,6 +30,7 @@ const discountRoutes = require('./src/routes/discountRoutes');
 const orderRoutes = require('./src/routes/orderRoutes');
 const orderDetailsRoutes = require('./src/routes/orderDetailsRoutes');
 const transactionRoutes = require('./src/routes/transactionRoutes');
+const accountRoutes = require('./src/routes/accountRoutes');
 
 // Mount routes
 app.use("/suppliers", supplierRoutes);
@@ -47,6 +48,7 @@ app.use("/returnTypes", returnTypeRoutes);
 app.use("/orders", orderRoutes);
 app.use("/orderDetails", orderDetailsRoutes);
 app.use("/transactions", transactionRoutes);
+app.use("/api/users", require("./src/routes/accountRoutes"));
 
 // Log that server is running
 const PORT = process.env.PORT || 8080;
