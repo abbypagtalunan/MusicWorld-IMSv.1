@@ -61,6 +61,7 @@ export default function OrdersPage() {
           discountAmount: o.OD_discountAmount,
           itemTotal: o.OD_netSale,
           itemGross: o.OD_grossSale,
+          itemGrossProfit: o.OD_grossProfit,
           brandName: o.B_brandName,
           supplierName: o.S_supplierName,
         }));
@@ -252,6 +253,7 @@ export default function OrdersPage() {
                                 <TableHead>Discount Amount</TableHead>
                                 <TableHead>NET Sale</TableHead>
                                 <TableHead>Gross Sale</TableHead>
+                                <TableHead>Gross Profit</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -271,6 +273,7 @@ export default function OrdersPage() {
                                 <TableCell>{formatPeso(detail.discountAmount)}</TableCell>
                                 <TableCell>{formatPeso(detail.itemTotal)}</TableCell>
                                 <TableCell>{formatPeso(detail.itemGross)}</TableCell>
+                                <TableCell>{formatPeso(detail.itemGrossProfit)}</TableCell>
                             </TableRow>                            
                               ))}
                             </TableBody>
