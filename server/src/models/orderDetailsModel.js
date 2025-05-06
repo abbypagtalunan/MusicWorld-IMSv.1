@@ -8,16 +8,22 @@ const getAllOrderDetails = (callback) => {
       od.OD_detailID,
       od.O_orderID,
       od.P_productCode,
+      p.P_productName,         
       od.D_productDiscountID,
       d.D_discountType,
       od.OD_quantity,
       od.OD_unitPrice,
       od.OD_discountAmount,
-      od.OD_itemTotal
+      od.OD_itemTotal,
+      b.B_brandName,
+      s.S_supplierName
     FROM OrderDetails od
     LEFT JOIN Products p ON od.P_productCode = p.P_productCode
     LEFT JOIN Discounts d ON od.D_productDiscountID = d.D_productDiscountID
-    ORDER BY od.OD_detailID`;
+    LEFT JOIN Brands b ON p.B_brandID = b.B_brandID
+    LEFT JOIN Suppliers s ON p.S_supplierID = s.S_supplierID
+    ORDER BY od.OD_detailID;
+    `;
 
   db.query(query, (err, results) => {
     if (err) {

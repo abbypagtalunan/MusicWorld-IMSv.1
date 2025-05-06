@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppSidebar } from "@/components/staff-sidebar"
 import { SidebarProvider } from "@/components/ui/sidebar"
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table";
@@ -10,56 +9,95 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose, } from "@/components/ui/dialog";
 import { Search, ListFilter, Trash2, Ellipsis } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
-
-//Not fetching from an API yet, so data is currently static
-
-// sample product data
-const products = [
-  { productCode: "188090", brand: "Cort", category: "Guitar", quantity: 2 },
-  { productCode: "188091", brand: "Lazer", category: "Drum", quantity: 1 },
-  { productCode: "188092", brand: "Lazer", category: "Drum", quantity: 3 },
-  { productCode: "188093", brand: "Alice", category: "Violin String", quantity: 0 },
-  { productCode: "188094", brand: "Bee", category: "Harmonica", quantity: 0 },
-  { productCode: "188095", brand: "Cort", category: "Guitar", quantity: 2 },
-  { productCode: "188096", brand: "Cort", category: "Guitar", quantity: 2 },
-  { productCode: "188097", brand: "Lazer", category: "Drum", quantity: 1 },
-  { productCode: "188098", brand: "Lazer", category: "Drum", quantity: 3 },
-];
-
-// sample deliveries data
-const delivery = [
-  { deliveryNum: "188090", supplier: "Lazer" },
-  { deliveryNum: "188091", supplier: "Lazer" },
-  { deliveryNum: "188092", supplier: "Lazer" },
-  { deliveryNum: "188093", supplier: "Mirbros" },
-  { deliveryNum: "188094", supplier: "Mirbros" },
-  { deliveryNum: "188095", supplier: "Mirbros" },
-  { deliveryNum: "188096", supplier: "Lazer" },
-  { deliveryNum: "188097", supplier: "Lazer" },
-  { deliveryNum: "188098", supplier: "Lazer" },
-];
-
-// sample transaction data
-const transactions = [
-  { dateAdded: "11/12/22", transactionID: "9090", transactionType: "Sales", productCode: "188090", receiptNum: "110090", product: "AD W/ W Case", totalPrice: "₱15,995" },
-  { dateAdded: "11/12/22", transactionID: "9091", transactionType: "Return", productCode: "188091", receiptNum: "111091",  product: "Maple Snare Drum", totalPrice: "₱4,500" },
-  { dateAdded: "11/12/22", transactionID: "9092", transactionType: "Sales", productCode: "188092", receiptNum: "112092",  product: "Cymbal Straight Stand", totalPrice: "₱1,995" },
-  { dateAdded: "11/12/22", transactionID: "9093", transactionType: "Sales", productCode: "188093", receiptNum: "113093",  product: "Alice Violin String", totalPrice: "₱29,995"  },
-  { dateAdded: "11/12/22", transactionID: "9094", transactionType: "Sales", productCode: "188094", receiptNum: "114094",  product: "Bee Harmonica", totalPrice: "₱125" },
-  { dateAdded: "11/12/22", transactionID: "9095", transactionType: "Sales", productCode: "188095", receiptNum: "115095",  product: "Cort Acoustic Guitar", totalPrice: "₱2,595" },
-  { dateAdded: "11/12/22", transactionID: "9096", transactionType: "Return", productCode: "188096", receiptNum: "116096",  product: "AD W/ W Case", totalPrice: "₱395" },
-  { dateAdded: "11/12/22", transactionID: "9097", transactionType: "Return", productCode: "188097", receiptNum: "117097",  product: "Maple Snare Drum", totalPrice: "₱295" },
-  { dateAdded: "11/12/22", transactionID: "9098", transactionType: "Return", productCode: "188098", receiptNum: "118098",  product: "Cymbal Straight Stand", totalPrice: "₱15,995" },
-];
+import axios from "axios";
 
 export default function OrdersPage() {
+
   const [selectedFilter, setSelectedFilter] = useState(null);
   const [selectedSubFilter, setSelectedSubFilter] = useState(null);
-
   const handleFilterSelect = (filter, subFilter = null) => {
     setSelectedFilter(filter);
     setSelectedSubFilter(subFilter);
   };
+
+  // Order and Order Details
+  const [orders, setOrders] = useState([]);
+  const [orderDetails, setOrderDetails] = useState([]);
+  const [selectedOrderID, setSelectedOrderID] = useState(null);
+
+  // Fetch Orders
+  useEffect(() => {
+    axios
+      .get("http://localhost:8080/orders")
+      .then((res) => {
+        const mappedOrders = res.data.map((o) => ({
+          orderID: o.O_orderID,
+          receiptNo: o.O_receiptNumber,
+          totalAmount: o.T_totalAmount,
+          wholeOrderDiscount: o.D_wholeOrderDiscount,
+          totalProductDiscount: o.D_totalProductDiscount,
+          transacDate: o.T_transactionDate,
+          orderPayment: o.O_orderPayment,
+          isDel: o.isTemporarilyDeleted
+        }));
+        setOrders(mappedOrders);
+      })
+      .catch((err) => console.error("Failed to fetch orders:", err));
+  }, []);  
+
+  // Fetch Order Details
+  useEffect(() => {
+    axios.get("http://localhost:8080/orderDetails")
+      .then(res => {
+        const mappedOrderDetails = res.data.map((o) => ({
+          orderDetailID: o.OD_detailID,
+          orderID: o.O_orderID,
+          productCode: o.P_productCode,
+          productName: o.P_productName,    
+          discountID: o.D_productDiscountID,
+          discountType: o.D_discountType,
+          quantity: o.OD_quantity,
+          unitPrice: o.OD_unitPrice,
+          discountAmount: o.OD_discountAmount,
+          itemTotal: o.OD_itemTotal,
+          brandName: o.B_brandName,
+          supplierName: o.S_supplierName,
+        }));
+        setOrderDetails(mappedOrderDetails);
+      })
+      .catch(err => {
+        console.error("Failed to fetch order details:", err);
+      });
+  }, []);
+  
+  
+    
+
+    const formatDate = (isoString) => {
+      const date = new Date(isoString);
+      const pad = (n) => n.toString().padStart(2, "0");
+      const month = pad(date.getMonth() + 1);
+      const day = pad(date.getDate());
+      const year = date.getFullYear();
+      return `${month}/${day}/${year}`;
+    };
+    
+    const formatTime = (isoString) => {
+      const date = new Date(isoString);
+      let hours = date.getHours();
+      const minutes = date.getMinutes().toString().padStart(2, "0");
+      const seconds = date.getSeconds().toString().padStart(2, "0");
+      const ampm = hours >= 12 ? "PM" : "AM";
+      hours = hours % 12 || 12;
+      const paddedHours = hours.toString().padStart(2, "0");
+      return `${paddedHours}:${minutes}:${seconds} ${ampm}`;
+    };
+
+    const formatPeso = (value) => {
+      const num = parseFloat(value);
+      return isNaN(num) ? "₱0.00" : `₱${num.toFixed(2)}`;
+    };
+    
   return (
     <SidebarProvider>
       <div className="flex h-screen w-screen">
@@ -157,79 +195,93 @@ export default function OrdersPage() {
               </div>
             </div>
           </div>
+
+          {/* TABLE */}
           <div className="p-4 bg-white shadow-md rounded-lg flex flex-col overflow-auto w-full">
           <h1 className="text-gray-600 font-bold">Customer Orders</h1>
             <Table>
               <TableHeader className="sticky top-0 bg-white z-10">
                 <TableRow>
+                  <TableHead>Order ID</TableHead>
                   <TableHead>Date</TableHead>
-                  <TableHead>Transaction ID</TableHead>
-                  <TableHead>Transaction Type</TableHead>
-                  <TableHead>Product Code</TableHead>
+                  <TableHead>Time</TableHead>
                   <TableHead>Receipt Number</TableHead>
-                  <TableHead>Product</TableHead>
-                  <TableHead>Total</TableHead>
-                  <TableHead>Details</TableHead>
+                  <TableHead>Total Amount</TableHead>
+                  <TableHead>Total Product Discount</TableHead>
+                  <TableHead>Whole Order Discount</TableHead>
+                  <TableHead>Payment</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-              {transactions.map((transaction) => {
-                  const product = products.find((p) => p.productCode === transaction.productCode) || {};
-                  const deliveries = delivery.find((d) => d.deliveryNum === transaction.productCode) || {};
+              {orders.map((order) => {
                   return (
-                  <TableRow key={transaction.transactionID}>
-                    <TableCell>{transaction.dateAdded}</TableCell>
-                    <TableCell>{transaction.transactionID}</TableCell>
-                    <TableCell>{transaction.transactionType}</TableCell>
-                    <TableCell>{transaction.productCode}</TableCell>
-                    <TableCell>{transaction.receiptNum}</TableCell>
-                    <TableCell>{transaction.product}</TableCell>
-                    <TableCell>{transaction.totalPrice}</TableCell>
+                  <TableRow>
+                    <TableCell>{order.orderID}</TableCell>
+                    <TableCell>{formatDate(order.transacDate)}</TableCell>
+                    <TableCell>{formatTime(order.transacDate)}</TableCell>
+                    <TableCell>{order.receiptNo || "0"}</TableCell>
+                    <TableCell>{formatPeso(order.totalAmount)}</TableCell>
+                    <TableCell>{formatPeso(order.totalProductDiscount)}</TableCell>
+                    <TableCell>{formatPeso(order.wholeOrderDiscount)}</TableCell>
+                    <TableCell>{formatPeso(order.orderPayment)}</TableCell>
+
                 {/*Details toggle button with modal pop-up */}              
                     <TableCell className="flex space-x-2">              
                       <Dialog>
                         <DialogTrigger asChild>
-                          <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600">
+                          <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600" onClick={() => setSelectedOrderID(order.orderID)} >
                             <Ellipsis size={16} />
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="w-[90vw] max-w-3xl sm:max-w-lg md:max-w-3xl max-h-[90vh] overflow-y-auto p-6">
+                        <DialogContent className="w-full max-w-screen-lg sm:max-w-screen-md md:max-w-screen-lg lg:max-w-screen-xl max-h-[95vh] overflow-y-auto p-6">
                         <DialogHeader>
-                            <DialogTitle>Transaction Details</DialogTitle>
+                            <DialogTitle>Order Details</DialogTitle>
                             <DialogClose />
                           </DialogHeader>
-                          {products && deliveries ? (
+                          {orders ? (
                           <Table>
                             <TableHeader>
                               <TableRow>
-                                <TableHead>Date</TableHead>
+                                <TableHead>Order ID</TableHead>
+                                <TableHead>Order Detail ID</TableHead>
                                 <TableHead>Product Code</TableHead>
+                                <TableHead>Product</TableHead>
                                 <TableHead>Supplier</TableHead>
                                 <TableHead>Brand</TableHead>
-                                <TableHead>Category</TableHead>
-                                <TableHead>Product</TableHead>
+                                <TableHead>Price</TableHead>
                                 <TableHead>Quantity</TableHead>
+                                <TableHead>Discount Type</TableHead>
+                                <TableHead>Discount Amount</TableHead>
                                 <TableHead>Total</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
+                            {orderDetails
+                              .filter((detail) => detail.orderID === selectedOrderID)
+                              .map((detail) => (
                               <TableRow>
-                                <TableCell>{transaction.dateAdded}</TableCell>
-                                <TableCell>{transaction.productCode}</TableCell>
-                                <TableCell>{deliveries.supplier}</TableCell>
-                                <TableCell>{product.brand}</TableCell>
-                                <TableCell>{product.category}</TableCell>
-                                <TableCell>{transaction.product}</TableCell>
-                                <TableCell>{product.quantity}</TableCell>
-                                <TableCell>{transaction.totalPrice}</TableCell>
-                              </TableRow>
+                                <TableCell>{detail.orderID}</TableCell>
+                                <TableCell>{detail.orderDetailID}</TableCell>
+                                <TableCell>{detail.productCode}</TableCell>
+                                <TableCell>{detail.productName}</TableCell>
+                                <TableCell>{detail.supplierName}</TableCell>
+                                <TableCell>{detail.brandName}</TableCell>
+                                <TableCell>{detail.unitPrice === 0.00 ? "Freebie" : formatPeso(detail.unitPrice)}</TableCell>
+                                <TableCell>{detail.quantity}</TableCell>
+                                <TableCell>{detail.discountType || "---"}</TableCell>
+                                <TableCell>{formatPeso(detail.discountAmount)}</TableCell>
+                                <TableCell>{formatPeso(detail.itemTotal)}</TableCell>
+                            </TableRow>                            
+                              ))}
                             </TableBody>
                           </Table>
                           ) : (
                             <p className="text-gray-500">Product details not found.</p>
                           )}
                         </DialogContent>
-                      </Dialog>                     
+                      </Dialog>            
+
+
                       {/* For deleting transactions */}
                       <Dialog>
                         <DialogTrigger asChild>
@@ -241,24 +293,24 @@ export default function OrdersPage() {
                         <DialogHeader>
                             <DialogTitle>
                               <span className="text-lg text-red-900">Delete Transaction</span>{" "}
-                              <span className="text-lg text-gray-400 font-normal italic">{transaction.transactionID}</span></DialogTitle>
+                              <span className="text-lg text-gray-400 font-normal italic">{order.transactionID}</span></DialogTitle>
                             <DialogClose />
                           </DialogHeader>
                           <p className='text-sm text-gray-800 mt-2 pl-4'> Deleting this transaction will reflect on Void Transactions. Enter the admin password to delete this transaction. </p>
                           <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">        
                             <div className="flex-1">
-                              <label htmlFor={`password-${transaction.transactionID}`} className="text-base font-medium text-gray-700 block mb-2">
+                              <label htmlFor={`password-${order.transactionID}`} className="text-base font-medium text-gray-700 block mb-2">
                                 Admin Password
                               </label>
-                              <Input type="password" id={`password-${transaction.transactionID}`} required
+                              <Input type="password" id={`password-${order.transactionID}`} required
                                 placeholder="Enter valid password"  className="w-full" 
                               />
                             </div>
           
                             <Button 
                               className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
-                              onClick={() => handleDelete(transaction.transactionID, 
-                                document.getElementById(`password-${transaction.transactionID}`).value)}
+                              onClick={() => handleDelete(order.transactionID, 
+                                document.getElementById(`password-${order.transactionID}`).value)}
                             >
                               DELETE TRANSACTION
                             </Button>

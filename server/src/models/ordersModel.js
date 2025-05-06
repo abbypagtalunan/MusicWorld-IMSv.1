@@ -8,10 +8,10 @@ const getAllOrders = (callback) => {
       o.O_receiptNumber,
       o.T_totalAmount,
       o.D_wholeOrderDiscount,
-      SUM(od.OD_discountAmount) AS D_totalProductDiscount FROM ORDER DETAILS,
       o.T_transactionDate,
       o.isTemporarilyDeleted,
-      o.O_orderPayment
+      o.O_orderPayment,
+      SUM(od.OD_discountAmount) AS D_totalProductDiscount
     FROM Orders o
     LEFT JOIN OrderDetails od ON o.O_orderID = od.O_orderID
     GROUP BY 
@@ -20,7 +20,8 @@ const getAllOrders = (callback) => {
       o.T_totalAmount,
       o.D_wholeOrderDiscount,
       o.T_transactionDate,
-      o.isTemporarilyDeleted
+      o.isTemporarilyDeleted,
+      o.O_orderPayment
     ORDER BY o.O_orderID;
 `;
 
