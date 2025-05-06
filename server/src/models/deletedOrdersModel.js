@@ -15,7 +15,7 @@ const getAllDeleted = (callback) => {
       c.C_categoryName AS category,
       od.OD_unitPrice,
       od.OD_quantity,
-      od.OD_itemTotal,
+      od.OD_netSale,
       o.isTemporarilyDeleted,
       'Orders' as source
     FROM Orders o

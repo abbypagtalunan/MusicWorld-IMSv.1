@@ -37,7 +37,7 @@ const getAllDeleted = (callback) => {
 };
 
 const retrieveDeleted = (productCode, callback) => {
-  const query = `UPDATE Products SET isDeleted = '0' WHERE P_productCode = ?`;
+  const query = `UPDATE Products SET isDeleted = '0', P_productStatusID = '1' WHERE P_productCode = ?`;
     
   db.query(query, [productCode], (err, results) => {
     if (err) {
