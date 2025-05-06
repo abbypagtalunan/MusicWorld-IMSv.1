@@ -54,7 +54,7 @@ app.use("/returnTypes", returnTypeRoutes);
 app.use("/orders", orderRoutes);
 app.use("/orderDetails", orderDetailsRoutes);
 app.use("/transactions", transactionRoutes);
-app.use("/api/users", require("./src/routes/accountRoutes"));
+app.use("/accounts", accountRoutes);
 
 // Log that server is running
 const PORT = process.env.PORT || 8080;
