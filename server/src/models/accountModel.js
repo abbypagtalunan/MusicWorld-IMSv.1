@@ -1,6 +1,4 @@
-// src/models/accountModel.js
-const mysql = require('mysql2/promise');
-const db = require('../../db'); // assuming you have a db.js with connection pool
+const db = require('../../db');
 
 module.exports = {
   // Get current user by ID

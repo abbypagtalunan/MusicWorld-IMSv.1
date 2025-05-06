@@ -1,9 +1,5 @@
 // src/controllers/accountController.js
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 const Account = require('../models/accountModel');
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
 
 exports.login = async (req, res) => {
   const { email, password } = req.body;
