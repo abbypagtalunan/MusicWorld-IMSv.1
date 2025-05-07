@@ -91,6 +91,25 @@ const updateProductPrice = (productData, callback) => {
   );
 };
 
+// For Ordering: Deduct Product Stock Number
+const deductProductStockNumber = (productData, callback) => {
+  const { productCode, quantityOrdered } = productData;
+
+  const query = `
+    UPDATE Products 
+    SET P_stockNum = GREATEST(P_stockNum - ?, 0) 
+    WHERE P_productCode = ? AND isDeleted = 0
+  `;
+
+  db.query(query, [quantityOrdered, String(productCode)], (err, results) => {
+    if (err) {
+      callback(err, null);
+    } else {
+      callback(null, results);
+    }
+  });
+};
+
 // Delete a Product
 const deleteProduct = (productCode, callback) => {
   const query = `UPDATE Products SET isDeleted = 1, P_productStatusID = 4 WHERE P_productCode = ? AND isDeleted = 0`;
@@ -109,5 +128,6 @@ module.exports = {
   addProduct,
   updateProduct,
   updateProductPrice,
+  deductProductStockNumber,
   deleteProduct,
 };

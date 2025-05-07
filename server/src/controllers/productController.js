@@ -71,6 +71,34 @@ const updateProductPrice = (req, res) => {
   });
 };
 
+// Update stock of product
+const deductProductStockNumber = (req, res) => {
+  const { productCode } = req.params; 
+  const { quantityOrdered } = req.body; 
+
+  if (quantityOrdered == null || isNaN(quantityOrdered)) {
+    return res.status(400).json({ message: "Invalid quantity ordered" });
+  }
+
+  const productData = {
+    productCode,
+    quantityOrdered,
+  };
+
+  productModel.deductProductStockNumber(productData, (err, results) => {
+    if (err) {
+      console.error('Error deducting product stock number:', err);
+      return res.status(500).json({ message: 'Error deducting product stock number' });
+    }
+
+    if (results.affectedRows === 0) {
+      return res.status(404).json({ message: 'Product not found or already deleted' });
+    }
+    res.status(200).json({ message: 'Product stock number deducted successfully' });
+  });
+};
+
+
 // Route to delete a product
 const deleteProduct = (req, res) => {
   const productCode = req.params.id;
@@ -100,10 +128,13 @@ const deleteProduct = (req, res) => {
   });
 };
 
+
+
 module.exports = {
     getAllProducts,
     addProduct,
     updateProduct,
     updateProductPrice,
+    deductProductStockNumber,
     deleteProduct,
 };
