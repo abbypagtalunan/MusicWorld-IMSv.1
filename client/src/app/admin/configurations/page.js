@@ -100,66 +100,66 @@ export default function ConfigurationsPage() {
       },
     },
 
-    returnType: {
-      label: "Return Type",
-      idField: "RT_returnTypeID",
-      nameField: "RT_returnTypeDescription",
-      isAutoInc: true,
-      api: {
-        fetch: "http://localhost:8080/returnType",
-        add: "http://localhost:8080/returnType",
-        update: "http://localhost:8080/returnType",
-        delete: "http://localhost:8080/returnType",
-      },
-    },
+    // returnType: {
+    //   label: "Return Type",
+    //   idField: "RT_returnTypeID",
+    //   nameField: "RT_returnTypeDescription",
+    //   isAutoInc: true,
+    //   api: {
+    //     fetch: "http://localhost:8080/returnType",
+    //     add: "http://localhost:8080/returnType",
+    //     update: "http://localhost:8080/returnType",
+    //     delete: "http://localhost:8080/returnType",
+    //   },
+    // },
 
-    deliveryModeOfPayment: {
-      label: "Delivery MOP",
-      idField: "D_modeOfPaymentID",
-      nameField: "D_mopName",
-      isAutoInc: true,
-      api: {
-        fetch: "http://localhost:8080/deliveryMOP",
-        add: "http://localhost:8080/deliveryMOP",
-        update: "http://localhost:8080/deliveryMOP",
-        delete: "http://localhost:8080/deliveryMOP",
-      },
-    },
+    // deliveryModeOfPayment: {
+    //   label: "Delivery MOP",
+    //   idField: "D_modeOfPaymentID",
+    //   nameField: "D_mopName",
+    //   isAutoInc: true,
+    //   api: {
+    //     fetch: "http://localhost:8080/deliveryMOP",
+    //     add: "http://localhost:8080/deliveryMOP",
+    //     update: "http://localhost:8080/deliveryMOP",
+    //     delete: "http://localhost:8080/deliveryMOP",
+    //   },
+    // },
 
-    deliveryPaymentTypes: {
-      label: "Delivery Payment Type",
-      idField: "D_paymentTypeID",
-      nameField: "D_paymentName",
-      isAutoInc: true,
-      api: {
-        fetch: "http://localhost:8080/deliveryPayTypes",
-        add: "http://localhost:8080/deliveryPayTypes",
-        update: "http://localhost:8080/deliveryPayTypes",
-        delete: "http://localhost:8080/deliveryPayTypes",
-      },
-    },
+    // deliveryPaymentTypes: {
+    //   label: "Delivery Payment Type",
+    //   idField: "D_paymentTypeID",
+    //   nameField: "D_paymentName",
+    //   isAutoInc: true,
+    //   api: {
+    //     fetch: "http://localhost:8080/deliveryPayTypes",
+    //     add: "http://localhost:8080/deliveryPayTypes",
+    //     update: "http://localhost:8080/deliveryPayTypes",
+    //     delete: "http://localhost:8080/deliveryPayTypes",
+    //   },
+    // },
 
-    deliveryPaymentStatus: {
-      label: "Delivery Payment Status",
-      idField: "D_paymentStatusID",
-      nameField: "D_statusName",
-      isAutoInc: true,
-      api: {
-        fetch: "http://localhost:8080/deliveryPayStatus",
-        add: "http://localhost:8080/deliveryPayStatus",
-        update: "http://localhost:8080/deliveryPayStatus",
-        delete: "http://localhost:8080/deliveryPayStatus",
-      },
-    },
+    // deliveryPaymentStatus: {
+    //   label: "Delivery Payment Status",
+    //   idField: "D_paymentStatusID",
+    //   nameField: "D_statusName",
+    //   isAutoInc: true,
+    //   api: {
+    //     fetch: "http://localhost:8080/deliveryPayStatus",
+    //     add: "http://localhost:8080/deliveryPayStatus",
+    //     update: "http://localhost:8080/deliveryPayStatus",
+    //     delete: "http://localhost:8080/deliveryPayStatus",
+    //   },
+    // },
   };
 
   const [activeTab, setActiveTab] = useState("supplier");
   const config = configMap[activeTab];
   const [data, setData] = useState([]);
   const [values, setValues] = useState({
-    [config.idField]: "",
-    [config.nameField]: "",
-    [config.statusField]: "",
+    [configMap.idField]: "",
+    [configMap.nameField]: "",
+    [configMap.statusField]: "",
   });
 
   const [editingItem, setEditingItem] = useState(null);
