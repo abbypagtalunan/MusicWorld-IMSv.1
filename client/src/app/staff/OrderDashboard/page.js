@@ -145,32 +145,7 @@ const OrderDashboard = () => {
         toast.error(`An error occurred while saving the order.`);
       }
     }
-  };
-  
-  // Fetch data for product list
-  useEffect(() => {
-    axios
-      .get("http://localhost:8080/products")
-      .then((res) => {
-        const mappedProducts = res.data.map((p) => ({
-          code: p.P_productCode,
-          name: p.P_productName,
-          brand: p.brand,
-          supplier: p.supplier,
-          price: p.P_sellingPrice,
-          unitPrice: p.P_unitPrice,
-          stock: p.stock,
-          label: `${p.P_productName} - B${p.brand} - S${p.supplier}`,
-        }));
-        setProducts(mappedProducts);
-      })
-      .catch((err) => console.error("Failed to fetch products:", err));
-  }, []);  
-
-  const handleProductSelect = (product) => {
-    console.log("Selected Product:", product);
-    setSelectedProduct(product);  
-    setOpenProduct(false); 
+    refreshAll();
   };
 
   const handleAddOrderItem = () => {
@@ -198,7 +173,6 @@ const OrderDashboard = () => {
     };
   
     let updatedData = [];
-  
     if (isEditMode) {
       updatedData = data.map((item) =>
         item["Product Code"] === selectedProduct.code
@@ -256,6 +230,38 @@ const OrderDashboard = () => {
     setSelectedProductDiscount(matchedDiscount);
     setIsEditMode(true);
   };
+
+    // Fetch data for product list
+    useEffect(() => {
+      fetchProductsCombobox();
+    }, []);  
+  
+    const fetchProductsCombobox = async () => {
+      try {
+        const res = await axios.get("http://localhost:8080/products");
+        const mappedProducts = res.data.map((p) => ({
+          code: p.P_productCode,
+          name: p.P_productName,
+          brand: p.brand,
+          supplier: p.supplier,
+          price: p.P_sellingPrice,
+          unitPrice: p.P_unitPrice,
+          stock: p.stock,
+          label: `${p.P_productName} - B${p.brand} - S${p.supplier}`,
+        }));
+        setProducts(mappedProducts);
+        console.log("Products fetched and mapped.");
+      } catch (err) {
+        console.error("Failed to fetch products:", err);
+      }
+    };
+    
+  
+    const handleProductSelect = (product) => {
+      console.log("Selected Product:", product);
+      setSelectedProduct(product);  
+      setOpenProduct(false); 
+    };
   
   const handleAddFreebie = () => {
   if (!selectedFreebie || freebieQuantity <= 0) return;
@@ -305,6 +311,40 @@ const OrderDashboard = () => {
     };
     fetchProductDiscounts();
   }, []);
+
+  const refreshAll = async () => {
+    fetchProductsCombobox();
+    // Reset all states
+    setData([]);
+    setIsModalOpen(false);
+  
+    // Order-related
+    setSelectedProduct(null);
+    setOpenProduct(false);
+    setIsEditMode(false);
+    setOrderQuantity(1);
+    setOrderDiscount(0);
+    setProductDiscounts([]);
+    setSelectedProductDiscount(null);
+  
+    // Freebies
+    setOpenFreebie(false);
+    setSelectedFreebie(null);
+    setFreebieQuantity(0);
+  
+    // Whole order and payment
+    setHasInteractedWithPayModal(false);
+    setPayment(0);
+    setSelectedDiscountType("");
+    setWholeOrderDiscountInput("");
+    setWholeOrderDiscount(0);
+    setReceiptNumber("");
+    setReceiptNumberError("");
+    setTotalProductDiscounted(0);
+    setNetItemSale(0);
+    setUnitPrice(0);
+    console.log("Form reset complete.");
+  };
   
   return (
     <SidebarProvider>
