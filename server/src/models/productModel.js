@@ -15,13 +15,16 @@ const getAllProducts = (callback) => {
       p.P_unitPrice,
       p.P_sellingPrice,
       ps.P_productStatusName as status,
-      p.P_dateAdded
+      p.P_dateAdded,
+      p.isDeleted,
+      'Products' as source
     FROM Products p
     LEFT JOIN Categories c ON p.C_categoryID = c.C_categoryID
     LEFT JOIN Brands b ON p.B_brandID = b.B_brandID
     LEFT JOIN Suppliers s ON p.S_supplierID = s.S_supplierID
     LEFT JOIN ProductStock pk ON p.PS_StockDetailsID = pk.PS_StockDetailsID
-    LEFT JOIN ProductStatus ps ON p.P_productStatusID = ps.P_productStatusID;
+    LEFT JOIN ProductStatus ps ON p.P_productStatusID = ps.P_productStatusID
+    WHERE p.isDeleted = 0 AND p.P_productStatusID != 4
   `;
   
   db.query(query, (err, results) => {
@@ -131,9 +134,9 @@ const updateProductPrice = (productData, callback) => {
 
 // Delete a Product
 const deleteProduct = (productCode, callback) => {
-  const query = `UPDATE Products SET isDeleted = '1' WHERE P_productCode = ?`;
+  const query = `UPDATE Products SET isDeleted = 1, P_productStatusID = 4 WHERE P_productCode = ? AND isDeleted = 0`;
     
-  db.query(query, [productCode], (err, results) => {
+  db.query(query, [String(productCode)], (err, results) => {
     if (err) {
       callback(err, null);
     } else {

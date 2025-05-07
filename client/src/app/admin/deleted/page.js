@@ -232,8 +232,14 @@ export default function DeletedPage() {
       .then(() => {
         toast.success("Item restored");
         refreshTable();
+        setRDDOpen(false);
+        setSelectedTransactions([]);
       })
-      .catch(err => toast.error("Restore failed"));
+      .catch(() => {
+        toast.error("Restore failed");
+        setRDDOpen(false);
+        setSelectedTransactions([]);
+      });
   };  
 
   useEffect(() => {
@@ -242,7 +248,7 @@ export default function DeletedPage() {
 
 // Multiple Retrieve
 const [isRDDOpen, setRDDOpen] = useState("");
-const handleMultiRetrieve = (uniqueKey) => {
+const handleMultiRetrieve = () => {
   Promise.all(
     selectedTransactions.map((uniqueKey) => {
       const [id] = uniqueKey.split("-");
@@ -252,10 +258,14 @@ const handleMultiRetrieve = (uniqueKey) => {
     .then(() => {
       toast.success("Selected items restored.");
       refreshTable();
-      setAdminPW("");
       setRDDOpen(false);
+      setSelectedTransactions([]);
     })
-    .catch(() => toast.error("Error restoring selected items."));
+    .catch(() => {
+      toast.error("Error restoring selected items.");
+      setRDDOpen(false);
+      setSelectedTransactions([]);
+    });
 }
 
   // Delete
@@ -281,7 +291,9 @@ const handleMultiRetrieve = (uniqueKey) => {
       .then(() => {
         toast.success("Transaction deleted successfully");
         refreshTable();
+        setMDDOpen(false);
         setAdminPW("");
+        setSelectedTransactions([]);
       })
       .catch(err => {
         console.error("Delete error:", {
@@ -298,6 +310,9 @@ const handleMultiRetrieve = (uniqueKey) => {
           "Unknown error deleting transaction";
         
         toast.error(msg);
+        setMDDOpen(false);
+        setAdminPW("");
+        setSelectedTransactions([]);
       });
     };
  
@@ -322,8 +337,13 @@ const handleMultiRetrieve = (uniqueKey) => {
         refreshTable();
         setAdminPW("");
         setMDDOpen(false);
+        setSelectedTransactions([]);
       })
-      .catch(() => toast.error("Error deleting selected products."));
+      .catch(() => { 
+        toast.error("Error deleting selected products.");
+        setMDDOpen(false);
+        setSelectedTransactions([]);
+      });
   };  
 
 

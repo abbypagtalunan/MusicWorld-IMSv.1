@@ -132,6 +132,20 @@ export default function ProductsPage() {
     dateAdded: item.P_dateAdded
   }));
 
+  const isAddValid =
+      values[config.product.codeField] &&
+      values[config.product.categoryField] &&
+      values[config.product.skuField] &&    
+      values[config.product.nameField] &&
+      values[config.product.brandField] &&
+      values[config.product.supplierField] &&
+      values[config.product.stockField] &&
+      values[config.product.unitpriceField] &&
+      values[config.product.sellingpriceField] &&
+      values[config.product.statusField] &&
+      values[config.product.dateField]
+  
+
   // Fetch
   useEffect(() => {
     axios
@@ -312,7 +326,7 @@ export default function ProductsPage() {
       stockAmt: values[config.product.stockField],
       P_unitPrice: values[config.product.unitpriceField],
       P_sellingPrice: values[config.product.sellingpriceField],
-      P_productStatusID: values[config.product.statusID],
+      P_productStatusID: 1,
       P_dateAdded: values[config.product.dateField]
     };
 
@@ -419,40 +433,37 @@ export default function ProductsPage() {
   // Delete
   const [adminPW, setAdminPW] = useState("");
   const [isDDOpen, setDDOpen] = useState("");
-  const [isMDDOpen, setMDDOpen] = useState("");
-  const handleDelete = (productCode, adminPWInput) => {
-    axios({
-      method: 'delete',
-      url: `http://localhost:8080/products/${productCode}`,
-      data: { adminPW: adminPWInput }, 
-      headers: {
-        'Content-Type': 'application/json',
+  const handleDelete = (productCode) => {
+    axios.delete(`${config.product.api.delete}/${productCode}`, {
+      data: {adminPW}
+    })
+    .then((response) => {
+      if (response.data.affectedRows > 0) {
+        toast.success("Item deleted successfully");
+        refreshTable();
+        setDDOpen(false);
+        setAdminPW("");
+        setSelectedProducts([]);
+      } else {
+        toast.error("Product not found or already deleted");
       }
     })
-      .then(() => {
-        toast.success("Product deleted successfully");
-        refreshTable();
-        setAdminPW("");
-        setDDOpen(false);
-      })
-      .catch(err => {
-        console.error("Delete error:", {
-          message: err.message,
-          response: err.response,
-          data: err.response?.data,
-          status: err.response?.status
-        });
-      
-        const msg =
-          err.response?.data?.message ||
-          err.response?.statusText ||
-          err.message ||
-          "Unknown error deleting product";
-      
-        toast.error(msg);
-      });
-  };
-  
+    .catch(err => {
+      console.error("Delete error:", err.response?.data || err.message);
+      if (err.response?.status === 403) {
+        toast.error("Invalid admin password");
+      } else {
+        toast.error("Deletion failed: " + (err.response?.data?.message || err.message));
+      }
+      setDDOpen(false);
+      setAdminPW("");
+      setSelectedProducts([]);
+    })
+  };  
+ 
+  useEffect(() => {
+    setSelectedProducts([]);
+  }, [selectedFilter, selectedSubFilter]); 
 
   // Multiple Delete
   const [selectedProducts, setSelectedProducts] = useState([]);
@@ -477,32 +488,48 @@ export default function ProductsPage() {
     }
   };
 
+  const [isMDDOpen, setMDDOpen] = useState("");
   const handleMultiDelete = (password) => {
-    if (!password) return toast.error("Password is required.");
+    if (!password) {
+      toast.error("Password is required.");
+      return;
+    }
+  
+    if (selectedProducts.length === 0) {
+      toast.error("No products selected.");
+      return;
+    }
+  
     Promise.all(
-      selectedProducts.map((code) =>
-        axios({
-          method: 'delete',
-          url: `${config.product.api.delete}/${code}`,
-          data: { adminPW: password /*adminPWInput */ }, 
-          headers: {
-            'Content-Type': 'application/json',
-          }
+      selectedProducts.map((productCode) =>
+        axios.delete(`${config.product.api.delete}/${productCode}`, {
+          data: { adminPW: password },
         })
       )
     )
-      .then(() => {
-        toast.success("Selected products deleted.");
-        refreshTable();
-        setAdminPW("");
-        setMDDOpen(false);
+      .then((responses) => {
+        const successCount = responses.filter(
+          (res) => res.data?.affectedRows > 0
+        ).length;
+        
+        if (successCount > 0) {
+          toast.success(`Deleted ${successCount} product(s) successfully`);
+            refreshTable();
+            setSelectedProducts([]); 
+            setAdminPW(""); 
+            setMDDOpen(false);
+        } else {
+          toast.error("No products were deleted (already deleted or not found)");
+        }
       })
-      .catch(() => toast.error("Error deleting selected products."));
-
-      useEffect(() => {
+      .catch((err) => {
+        console.error("Multi-delete error:", err);
+        toast.error("Error deleting selected products");
+        setDDOpen(false);
+        setAdminPW("");
         setSelectedProducts([]);
-      }, [selectedFilter, selectedSubFilter]);
-  };  
+      })
+  };
 
   return (
     <SidebarProvider>
@@ -712,9 +739,9 @@ export default function ProductsPage() {
                     <Input placeholder="Enter selling price"  type="number" required onChange={(e) => setValues({...values, [config.product.sellingpriceField]: e.target.value,})}/>
 
                     <Label>Product Status</Label>
-                    <Select onValueChange={(value) => setValues({ ...values, [config.product.statusID]: value })}>
+                    <Select disabled value="1">
                       <SelectTrigger>
-                        <SelectValue placeholder="Select Status"/>
+                        <SelectValue/>
                       </SelectTrigger>
                       <SelectContent>
                         {pStatus.map((pstatus) => (
@@ -914,7 +941,7 @@ export default function ProductsPage() {
                         if (!open) setAdminPW("");
                       }}>
                           <DialogTrigger asChild>
-                        <Button variant="ghost" size="sm" className="text-gray-500 hover:text-red-600">
+                        <Button variant="ghost" size="sm" className="text-gray-500 hover:text-red-600" onClick={() => {setSelectedProduct(item); }}>
                           <Trash2 size={16} />
                         </Button>
                           </DialogTrigger>
@@ -922,13 +949,13 @@ export default function ProductsPage() {
                           <DialogHeader>
                               <DialogTitle>
                                 <span className="text-lg text-red-900">Delete Transaction</span>{" "}
-                                <span className="text-lg text-gray-400 font-normal italic">{item.productCode}</span></DialogTitle>
+                                <span className="text-lg text-gray-400 font-normal italic">{selectedProduct?.productCode}</span></DialogTitle>
                               <DialogClose />
                             </DialogHeader>
                             <p className='text-sm text-gray-800 mt-2 pl-4'> Deleting this transaction will reflect on Void Transactions. Enter the admin password to delete this transaction. </p>
                             <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">         
                               <div className="flex-1">
-                                <label htmlFor={`password-${item.productCode}`} className="text-base font-medium text-gray-700 block mb-2">
+                                <label htmlFor={`password-${selectedProduct?.productCode}`} className="text-base font-medium text-gray-700 block mb-2">
                                   Admin Password
                                 </label>
                                 <Input type="password" required placeholder="Enter valid password" className="w-full" value={adminPW}
@@ -940,10 +967,8 @@ export default function ProductsPage() {
             
                               <Button 
                                 className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
-                                onClick={() => handleDelete(
-                                  item.productCode,
-                                  adminPW
-                                )}
+                                onClick={() => {handleDelete(selectedProduct?.productCode);
+                                setDDOpen(false);}}
                               >
                                 DELETE TRANSACTION
                               </Button>

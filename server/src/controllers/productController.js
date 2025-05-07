@@ -16,8 +16,8 @@ const getAllProducts = (req, res) => {
 
 // Route to add a new product
 const addProduct = (req, res) => {
-  const { P_productCode, C_categoryID, P_SKU, P_productName, B_brandID, S_supplierID, stockAmt, P_unitPrice, P_sellingPrice, P_productStatusID, P_dateAdded } = req.body;
-  if (!P_productCode || !P_productName || !P_productStatusID) {
+  const { P_productCode, C_categoryID, P_SKU, P_productName, B_brandID, S_supplierID, stockAmt, P_unitPrice, P_sellingPrice, P_productStatusID = 1, P_dateAdded } = req.body;
+  if (!P_productCode || !P_productName ) {
     return res.status(400).json({ message: 'Missing required fields' });
   }
 
@@ -76,17 +76,27 @@ const deleteProduct = (req, res) => {
   const productCode = req.params.id;
   const { adminPW } = req.body;
 
-  if (adminPW !== "1234") {
+  if (!adminPW || adminPW !== "1234") {
     return res.status(403).json({ message: "Invalid admin password" });
   }
 
   productModel.deleteProduct(productCode, (err, results) => {
     if (err) {
       console.error('Error deleting product:', err);
-      res.status(500).json({ message: 'Error deleting product', results });
-    } else {
-      res.status(200).json({ message: 'product deleted successfully', results });
+      return res.status(500).json({ 
+        message: 'Error deleting product',
+        error: err.message 
+      });
     }
+    if (!results || results.affectedRows === 0) {
+      return res.status(404).json({ 
+        message: 'Product not found or already deleted' 
+      });
+    }
+    res.status(200).json({ 
+      message: 'Product deleted successfully',
+      affectedRows: results.affectedRows 
+    });
   });
 };
 
