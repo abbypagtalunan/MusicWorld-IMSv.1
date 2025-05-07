@@ -423,7 +423,8 @@ export default function DeliveriesPage() {
             <div className="flex items-center space-x-2">
               <div className="relative flex items-center space-x-2 w-96">
                 <div className="relative flex-1">
-                  <input
+                  {/* Search */}
+                  <Input
                     type="text"
                     id="deliverySearch"
                     name="deliverySearch"
