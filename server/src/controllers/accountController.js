@@ -1,6 +1,6 @@
-// controllers/accountController.js
 const Account = require('../models/accountModel');
 
+// Get all accounts
 exports.getAllAccounts = (req, res) => {
   Account.getAllAccounts((err, accounts) => {
     if (err) {
@@ -11,6 +11,7 @@ exports.getAllAccounts = (req, res) => {
   });
 };
 
+// Get one account by ID
 exports.getAccountById = (req, res) => {
   Account.getAccountById(req.params.id, (err, account) => {
     if (err) {
@@ -22,6 +23,7 @@ exports.getAccountById = (req, res) => {
   });
 };
 
+// Create a new account
 exports.createAccount = (req, res) => {
   const { accountID, firstName, lastName, roleID, password } = req.body;
 
@@ -38,6 +40,7 @@ exports.createAccount = (req, res) => {
   });
 };
 
+// Update an account
 exports.updateAccount = (req, res) => {
   const { firstName, lastName, roleID } = req.body;
 
@@ -54,12 +57,42 @@ exports.updateAccount = (req, res) => {
   });
 };
 
+// Delete an account
 exports.deleteAccount = (req, res) => {
-  Account.deleteAccount(req.params.id, (err, result) => {
+  const { id } = req.params;
+  const { adminPW } = req.body;
+
+  if (!id || !adminPW) {
+    return res.status(400).json({ message: "Admin password and staff ID are required." });
+  }
+
+  Account.deleteAccount(id, adminPW, (err, result) => {
     if (err) {
-      console.error("Error deleting account:", err);
-      return res.status(500).json({ message: "Error deleting account" });
+      console.error("Error deleting account:", err.message);
+      return res.status(403).json({ message: "Deletion failed", error: err.message });
     }
     res.json({ message: "Account deleted successfully" });
+  });
+};
+
+// Reset password
+exports.resetPassword = (req, res) => {
+  const { id } = req.params;
+  const { newPassword, confirmPassword } = req.body;
+
+  if (!newPassword || !confirmPassword) {
+    return res.status(400).json({ message: "New password and confirmation are required" });
+  }
+
+  if (newPassword !== confirmPassword) {
+    return res.status(400).json({ message: "Passwords do not match" });
+  }
+
+  Account.resetPassword(id, newPassword, (err, result) => {
+    if (err) {
+      console.error("Error resetting password:", err);
+      return res.status(500).json({ message: "Failed to reset password" });
+    }
+    res.json({ message: "Password reset successfully" });
   });
 };

@@ -1,4 +1,3 @@
-// models/accountModel.js
 const pool = require('../../db');
 
 class Account {
@@ -18,11 +17,12 @@ class Account {
 
   static createAccount(data, callback) {
     const { accountID, firstName, lastName, roleID, password } = data;
-    const dateCreated = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}@example.com`;
+    const dateCreated = new Date().toISOString().split('T')[0];
 
     pool.query(
-      "INSERT INTO UserAccounts (accountID, firstName, lastName, roleID, password, dateCreated) VALUES (?, ?, ?, ?, ?, ?)",
-      [accountID, firstName, lastName, roleID, password, dateCreated],
+      "INSERT INTO UserAccounts (accountID, firstName, lastName, roleID, email, password, dateCreated) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      [accountID, firstName, lastName, roleID, email, password, dateCreated],
       (error, result) => {
         if (error) return callback(error);
         callback(null, result);
@@ -43,11 +43,36 @@ class Account {
     );
   }
 
-  static deleteAccount(id, callback) {
-    pool.query("DELETE FROM UserAccounts WHERE accountID = ?", [id], (error, result) => {
-      if (error) return callback(error);
-      callback(null, result);
-    });
+  static deleteAccount(id, adminPassword, callback) {
+    // Step 1: Verify admin password
+    pool.query(
+      "SELECT * FROM UserAccounts WHERE accountID = ? AND password = ?",
+      [id, adminPassword],
+      (error, results) => {
+        if (error) return callback(error);
+
+        if (!results.length) {
+          return callback(new Error("Invalid admin credentials"));
+        }
+
+        // Step 2: Delete the target staff account
+        pool.query("DELETE FROM UserAccounts WHERE accountID = ?", [id], (error, result) => {
+          if (error) return callback(error);
+          callback(null, result);
+        });
+      }
+    );
+  }
+
+  static resetPassword(accountID, newPassword, callback) {
+    pool.query(
+      "UPDATE UserAccounts SET password = ? WHERE accountID = ?",
+      [newPassword, accountID],
+      (error, result) => {
+        if (error) return callback(error);
+        callback(null, result);
+      }
+    );
   }
 }
 
