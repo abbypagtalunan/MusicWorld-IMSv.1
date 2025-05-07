@@ -54,7 +54,6 @@ export default function OrdersPage() {
           orderID: o.O_orderID,
           productCode: o.P_productCode,
           productName: o.P_productName,    
-          discountID: o.D_productDiscountID,
           discountType: o.D_discountType,
           quantity: o.OD_quantity,
           unitPrice: o.OD_unitPrice,

@@ -8,19 +8,19 @@ const getAllOrderDetails = (callback) => {
       od.OD_detailID,
       od.O_orderID,
       od.P_productCode,
-      p.P_productName,         
-      od.D_productDiscountID,
-      d.D_discountType,
+      p.P_productName,    
+      od.D_discountType,
       od.OD_quantity,
       od.OD_unitPrice,
+      od.OD_sellingPrice,
       od.OD_discountAmount,
       od.OD_netSale,
       od.OD_grossSale,
+      od.OD_grossProfit,
       b.B_brandName,
       s.S_supplierName
     FROM OrderDetails od
     LEFT JOIN Products p ON od.P_productCode = p.P_productCode
-    LEFT JOIN Discounts d ON od.D_productDiscountID = d.D_productDiscountID
     LEFT JOIN Brands b ON p.B_brandID = b.B_brandID
     LEFT JOIN Suppliers s ON p.S_supplierID = s.S_supplierID
     ORDER BY od.OD_detailID;
@@ -31,6 +31,7 @@ const getAllOrderDetails = (callback) => {
       callback(err, null);
     } else {
       callback(null, results);
+      console.log("Query Results:", results);
     }
   });
 };
@@ -40,25 +41,27 @@ const addOrderDetail = (data, callback) => {
   const {
     O_orderID,
     P_productCode,
-    D_productDiscountID,
+    D_discountType,
     OD_quantity,
     OD_unitPrice,
+    OD_sellingPrice,
     OD_discountAmount,
   } = data;
 
   const query = `
     INSERT INTO OrderDetails 
-    (O_orderID, P_productCode, D_productDiscountID, OD_quantity, OD_unitPrice, OD_discountAmount) 
-    VALUES (?, ?, ?, ?, ?, ?)`;
+    (O_orderID, P_productCode, D_discountType, OD_quantity, OD_unitPrice, OD_sellingPrice, OD_discountAmount) 
+    VALUES (?, ?, ?, ?, ?, ?, ?)`;
 
   db.query(
     query,
     [
       O_orderID,
       P_productCode,
-      D_productDiscountID,
+      D_discountType,
       OD_quantity,
       OD_unitPrice,
+      OD_sellingPrice,
       OD_discountAmount
     ],
     (err, results) => {
@@ -77,9 +80,10 @@ const updateOrderDetail = (id, data, callback) => {
   const {
     O_orderID,
     P_productCode,
-    D_productDiscountID,
+    D_discountType,
     OD_quantity,
     OD_unitPrice,
+    OD_sellingPrice,
     OD_discountAmount,
   } = data;
 
@@ -90,9 +94,10 @@ const updateOrderDetail = (id, data, callback) => {
     SET 
       O_orderID = ?, 
       P_productCode = ?, 
-      D_productDiscountID = ?, 
+      D_discountType = ?,
       OD_quantity = ?, 
       OD_unitPrice = ?, 
+      OD_sellingPrice = ?,
       OD_discountAmount = ?, 
       OD_itemTotal = ?
     WHERE OD_detailID = ?`;
@@ -102,9 +107,10 @@ const updateOrderDetail = (id, data, callback) => {
     [
       O_orderID,
       P_productCode,
-      D_productDiscountID,
+      D_discountType,
       OD_quantity,
       OD_unitPrice,
+      OD_sellingPrice,
       OD_discountAmount,
       OD_itemTotal,
       id
@@ -123,7 +129,6 @@ const updateOrderDetail = (id, data, callback) => {
 
 // Delete an OrderDetail
 const deleteOrderDetail = (id, callback) => {
-  // First get the order ID so we can update its discount after deletion
   const getOrderIdQuery = `SELECT O_orderID FROM OrderDetails WHERE OD_detailID = ?`;
   db.query(getOrderIdQuery, [id], (err, result) => {
     if (err || result.length === 0) {

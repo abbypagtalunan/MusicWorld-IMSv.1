@@ -44,7 +44,9 @@ const OrderDashboard = () => {
   const [wholeOrderDiscount, setWholeOrderDiscount] = useState(0);
   const [receiptNumber, setReceiptNumber] = useState("");
   const [receiptNumberError, setReceiptNumberError] = useState("");
+  const [totalProductDiscounted, setTotalProductDiscounted] = useState(0);
   const [netItemSale, setNetItemSale] = useState(0);
+  const [unitPrice, setUnitPrice] = useState(0);
 
   const totalAmount = data.reduce((sum, item) => sum + parseFloat(item.Total), 0); //Total after discount
   const discountedTotal = Math.max(totalAmount - wholeOrderDiscount, 0); //Total after whole order discount and product discount
@@ -64,12 +66,6 @@ const OrderDashboard = () => {
       return;
     }
 
-    const totalProductDiscount = data.reduce((sum, item) => {
-      const totalItemDiscount = parseFloat(item["Discount Value"]);
-      return sum + totalItemDiscount;
-    }, 0);
-
-    console.log(totalProductDiscount)
     const transactionDate = new Date(Date.now() + 8 * 60 * 60 * 1000)
       .toISOString()
       .slice(0, 19)
@@ -80,7 +76,7 @@ const OrderDashboard = () => {
       O_receiptNumber: receiptNumber,
       T_totalAmount: discountedTotal,
       D_wholeOrderDiscount: wholeOrderDiscount || 0,
-      D_totalProductDiscount: totalProductDiscount,
+      D_totalProductDiscount: totalProductDiscounted,
       T_transactionDate: transactionDate,
       isTemporarilyDeleted: false,
       O_orderPayment: payment
@@ -105,11 +101,11 @@ const OrderDashboard = () => {
           const detailPayload = {
             O_orderID: response.data.id.orderId,
             P_productCode: item["Product Code"],
-            D_productDiscountID: isFreebie ? null : item["Discount ID"] || null,
+            D_discountType: isFreebie ? "Freebie" : selectedDiscountType,
             OD_quantity: quantity,
-            OD_unitPrice: isFreebie ? 0.00 : price,
+            OD_sellingPrice: isFreebie ? 0.00 : price,
+            OD_unitPrice: isFreebie ? 0.00 : unitPrice,
             OD_discountAmount: isFreebie ? 0.00 : discount,
-            // OD_itemTotal GENERATED ALWAYS AS (((`OD_unitPrice` * `OD_quantity`) - `OD_discountAmount`))
           };
           console.log("Order Detail Payload:", detailPayload);
   
@@ -123,9 +119,9 @@ const OrderDashboard = () => {
       .then(() => {
         toast.success("Payment confirmed and order successfully added!");
         setIsModalOpen(false);
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
+        // setTimeout(() => {
+        //   window.location.reload();
+        // }, 1000);
        })
       .catch((err) => {
         console.error("Error processing payment:", err);
@@ -176,42 +172,48 @@ const OrderDashboard = () => {
     const quantity = parseInt(orderQuantity) || 1;
     const discountAmount = parseFloat(orderDiscount) || 0;
     const netSales = (sellingPrice * quantity) - discountAmount;
-    console.log('Discount Amount: ', discountAmount)
-    console.log("Net Sales (Selling price): ", netSales)
-    
-    setNetItemSale(netSales)
+  
+    const newItem = {
+      "Product Code": selectedProduct.code,
+      "Supplier": selectedProduct.supplier,
+      "Brand": selectedProduct.brand,
+      "Product": selectedProduct.name,
+      "Price": sellingPrice,
+      "Quantity": quantity,
+      "Discount Type": selectedProductDiscount?.D_discountType || "",
+      "Discount": discountAmount,
+      "Discount Value": discountAmount,
+      "Total": netSales,
+    };
+  
+    let updatedData = [];
   
     if (isEditMode) {
-      // Update the existing item
-      setData((prevData) => {
-        return prevData.map((item) =>
-          item["Product Code"] === selectedProduct.code
-            ? {
-                ...item,
-                "Quantity": quantity,
-                "Discount": discountAmount,
-                "Discount Value": discountAmount,
-                "Total": netSales,
-              }
-            : item
-        );
-      });
+      updatedData = data.map((item) =>
+        item["Product Code"] === selectedProduct.code
+          ? { ...item, ...newItem }
+          : item
+      );
     } else {
-      // Add a new item
-      const newItem = {
-        "Product Code": selectedProduct.code,
-        "Supplier": selectedProduct.supplier,
-        "Brand": selectedProduct.brand,
-        "Product": selectedProduct.name,
-        "Price": sellingPrice,
-        "Quantity": quantity,
-        "Discount Type": selectedProductDiscount?.D_discountType || "",
-        "Discount": discountAmount,
-        "Discount Value": discountAmount,
-        "Total": netSales,
-      };
-      setData((prevData) => [...prevData, newItem]);
+      updatedData = [...data, newItem];
     }
+  
+    // Calculate total product discount including the new/updated item
+    const totalProductDiscount = updatedData.reduce((sum, item) => {
+      return sum + (parseFloat(item["Discount Value"]) || 0);
+    }, 0);
+  
+    setData(updatedData);
+    setTotalProductDiscounted(totalProductDiscount);
+    setNetItemSale(netSales);
+    setUnitPrice(unitPrice);
+    setSelectedDiscountType(selectedDiscountType);
+    console.log("<Discount Type>: ", selectedDiscountType);
+  
+    console.log('[Total ProductDiscount Amount]: ', totalProductDiscount);
+    console.log('Discount Amount: ', discountAmount);
+    console.log('Net Sales (Selling price): ', netSales);
+    console.log('<Unit Price>: ', unitPrice);
   
     // Reset form
     setSelectedProduct(null);

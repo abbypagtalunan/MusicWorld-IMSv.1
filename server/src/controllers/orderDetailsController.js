@@ -17,15 +17,16 @@ const addOrderDetail = (req, res) => {
   const {
     O_orderID,
     P_productCode,
-    D_productDiscountID,
+    D_discountType,
     OD_quantity,
     OD_unitPrice,
+    OD_sellingPrice,
     OD_discountAmount,
   } = req.body;
 
-  console.log("Received order detail data:", req.body);  // Add logging
+  console.log("Received order detail data:", req.body); 
 
-  if (!O_orderID || !P_productCode || OD_quantity == null || OD_unitPrice == null) {
+  if (!O_orderID || !P_productCode || OD_quantity == null || OD_unitPrice == null || OD_sellingPrice == null) {
     return res.status(400).json({ message: 'Missing required fields' });
   }
 
@@ -33,9 +34,10 @@ const addOrderDetail = (req, res) => {
     {
       O_orderID,
       P_productCode,
-      D_productDiscountID,
+      D_discountType,
       OD_quantity,
       OD_unitPrice,
+      OD_sellingPrice,
       OD_discountAmount,
     },
     (err, insertId) => {
@@ -55,13 +57,14 @@ const updateOrderDetail = (req, res) => {
   const {
     O_orderID,
     P_productCode,
-    D_productDiscountID,
+    D_discountType,
     OD_quantity,
     OD_unitPrice,
+    OD_sellingPrice,
     OD_discountAmount,
   } = req.body;
 
-  if (!O_orderID || !P_productCode || OD_quantity == null || OD_unitPrice == null) {
+  if (!O_orderID || !P_productCode || OD_quantity == null || OD_unitPrice == null || OD_sellingPrice == null) {
     return res.status(400).json({ message: 'Missing required fields' });
   }
 
@@ -70,9 +73,10 @@ const updateOrderDetail = (req, res) => {
     {
       O_orderID,
       P_productCode,
-      D_productDiscountID,
+      D_discountType,
       OD_quantity,
       OD_unitPrice,
+      OD_sellingPrice,
       OD_discountAmount,
     },
     (err, results) => {
