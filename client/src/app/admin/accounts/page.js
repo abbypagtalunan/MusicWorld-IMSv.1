@@ -91,12 +91,8 @@ export default function ManageAccountsPage() {
   });
 
   // Delete modal
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [adminPW, setAdminPW] = useState("");
-
-  // Selected staff checkboxes
-  const [selectedStaff, setSelectedStaff] = useState([]);
 
   // Fetch staff data on mount
   useEffect(() => {
@@ -166,26 +162,6 @@ const handleAccountDelete = (accountCode) => {
     setPasswordData({ oldPassword: "", newPassword: "", confirmPassword: "" });
   };
 
-  // Delete handler
-  const handleDelete = () => {
-    if (!deleteTarget || !adminPW) return;
-
-    axios
-      .delete(`http://localhost:8080/accounts/${code}`, {
-        data: { adminPW },
-        headers: { "Content-Type": "application/json" },
-      })
-      .then(() => {
-        setStaffs(staffs.filter((s) => s.code !== deleteTarget.code));
-        setIsDeleteOpen(false);
-        setDeleteTarget(null);
-        setAdminPW("");
-      })
-      .catch((err) => {
-        console.error("Delete failed:", err.response?.data || err.message);
-        alert("Failed to delete staff.");
-      });
-  };
 
   // Handle filter selection
   const handleFilterSelect = (filter, subFilter = null) => {
@@ -195,7 +171,7 @@ const handleAccountDelete = (accountCode) => {
 
   // Get filtered/sorted staff list
   const getFilteredStaffs = () => {
-    let sorted = [...staffs];
+    let sorted = staffs.map(staff => ({ ...staff }));
     if (!selectedFilter || !selectedSubFilter) return sorted;
 
     switch (selectedFilter) {
@@ -234,24 +210,6 @@ const handleAccountDelete = (accountCode) => {
     }
 
     return sorted;
-  };
-
-  // Checkbox handlers
-  const handleSelectStaff = (code) => {
-    setSelectedStaff((prev) =>
-      prev.includes(code)
-        ? prev.filter((c) => c !== code)
-        : [...prev, code]
-    );
-  };
-
-  const handleSelectAll = (e) => {
-    if (e.target.checked) {
-      const allCodes = getFilteredStaffs().map((item) => item.code);
-      setSelectedStaff(allCodes);
-    } else {
-      setSelectedStaff([]);
-    }
   };
 
   // Placeholder for update logic
@@ -499,46 +457,6 @@ const handleAccountDelete = (accountCode) => {
                         </DialogFooter>
                       </DialogContent>
                     </Dialog>
-                    <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-                      <DialogTrigger asChild>
-                        <Button className="bg-red-500 text-white" disabled={selectedStaff.length === 0}>
-                          Delete Selected
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
-                        <DialogHeader>
-                          <DialogTitle>
-                            <span className="text-lg text-red-900">Delete Multiple Transactions</span>
-                            <span className="text-lg text-gray-400 font-normal italic ml-2">({selectedStaff.length} items)</span>
-                          </DialogTitle>
-                          <DialogClose />
-                        </DialogHeader>
-                        <p className="text-sm text-gray-800 mt-2 pl-4">
-                          Deleting these transactions will reflect on Void Transactions. Enter the admin password to delete the selected products.
-                        </p>
-                        <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">
-                          <div className="flex-1">
-                            <label htmlFor="password" className="text-base font-medium block mb-2">
-                              Admin Password
-                            </label>
-                            <Input
-                              type="password"
-                              required
-                              placeholder="Enter admin password"
-                              className="w-full"
-                              value={adminPW}
-                              onChange={(e) => setAdminPW(e.target.value)}
-                            />
-                          </div>
-                          <Button
-                            className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
-                            onClick={handleDelete}
-                          >
-                            DELETE TRANSACTIONS
-                          </Button>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
                   </div>
                 </div>
                 <Card className="w-full">
@@ -547,9 +465,6 @@ const handleAccountDelete = (accountCode) => {
                       <Table>
                         <TableHeader className="sticky top-0 z-10 bg-white">
                           <TableRow>
-                            <TableHead>
-                              <input type="checkbox" onChange={handleSelectAll} checked={selectedStaff.length === getFilteredStaffs().length && selectedStaff.length > 0} />
-                            </TableHead>
                             <TableHead>Date Created</TableHead>
                             <TableHead>Name</TableHead>
                             <TableHead>Role</TableHead>
@@ -559,15 +474,8 @@ const handleAccountDelete = (accountCode) => {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {getFilteredStaffs().map((staff, index) => (
-                            <TableRow key={index}>
-                              <TableCell>
-                                <input
-                                  type="checkbox"
-                                  checked={selectedStaff.includes(staff.code)}
-                                  onChange={() => handleSelectStaff(staff.code)}
-                                />
-                              </TableCell>
+                          {getFilteredStaffs().map((staff) => (
+                            <TableRow key={staff.code}>
                               <TableCell className="text-center">{new Date(staff.dateCreated).toLocaleDateString()}</TableCell>
                               <TableCell>{`${staff.firstName} ${staff.lastName}`}</TableCell>
                               <TableCell>{staff.roleID}</TableCell>
