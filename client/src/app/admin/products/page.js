@@ -21,14 +21,13 @@ export default function ProductsPage() {
       codeField: "P_productCode",
       categoryField: "P_category",
       categoryID: "P_categoryID",
-      skuField: "P_SKU",
       nameField: "P_productName",
       brandField: "P_brand",
       brandID: "P_brandID",
       supplierField: "P_supplier",
       supplierID: "P_supplierID",
-      stockField: "stockAmt",
-      stockID: "P_StockDetailsID",
+      stockField: "P_stockNum",
+      lastRestockField: "P_lastRestockDateTime",
       unitpriceField: "P_unitPrice",
       sellingpriceField: "P_sellingPrice",
       statusField: "P_productStatusName",
@@ -82,16 +81,6 @@ export default function ProductsPage() {
         fetch: "http://localhost:8080/productStatus",
       },
     },
-
-    productStock: {
-      label: "Product Stock",
-      idField: "PStockID",
-      amtField: "PStockNum",
-      isAutoInc: false,
-      api: {
-        fetch: "http://localhost:8080/productStocks",
-      },
-    },
   };
 
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -99,12 +88,12 @@ export default function ProductsPage() {
   const [data, setData] = useState([]);
   const [values, setValues] = useState({
     [config.product.codeField]: "",
-    [config.product.categoryField]: "",
-    [config.product.skuField]: "",    
+    [config.product.categoryField]: "",    
     [config.product.nameField]: "",
     [config.product.brandField]: "",
     [config.product.supplierField]: "",
     [config.product.stockField]: "",
+    [config.product.lastRestockField]: "",
     [config.product.unitpriceField]: "",
     [config.product.sellingpriceField]: "",
     [config.product.statusField]: "",
@@ -118,14 +107,13 @@ export default function ProductsPage() {
     productCode: item.P_productCode,
     category: item.category || "",
     categoryID: item.C_categoryID,
-    SKU: item.P_SKU,
     productName: item.P_productName,
     brand: item.brand || "",
     brandID: item.B_brandID,
     supplier: item.supplier || "",
     supplierID: item.S_supplierID,
-    stockNumber: item.stock || 0,
-    stockID: item.P_StockDetailsID,
+    stockNumber: item.stock || 1,
+    lastRestock: item.P_lastRestockDateTime,
     price: item.P_unitPrice,
     sellingPrice: item.P_sellingPrice,
     status: item.status,
@@ -134,12 +122,12 @@ export default function ProductsPage() {
 
   const isAddValid =
       values[config.product.codeField] &&
-      values[config.product.categoryField] &&
-      values[config.product.skuField] &&    
+      values[config.product.categoryField] &&    
       values[config.product.nameField] &&
       values[config.product.brandField] &&
       values[config.product.supplierField] &&
       values[config.product.stockField] &&
+      values[config.product.lastRestockField] &&
       values[config.product.unitpriceField] &&
       values[config.product.sellingpriceField] &&
       values[config.product.statusField] &&
@@ -156,11 +144,11 @@ export default function ProductsPage() {
       setValues({
         [config.product.codeField]: "",
         [config.product.categoryField]: "",
-        [config.product.skuField]: "",    
         [config.product.nameField]: "",
         [config.product.brandField]: "",
         [config.product.supplierField]: "",
         [config.product.stockField]: "",
+        [config.product.lastRestockField]: "",
         [config.product.unitpriceField]: "",
         [config.product.sellingpriceField]: "",
         [config.product.statusField]: "",
@@ -182,21 +170,15 @@ export default function ProductsPage() {
     const selectedBrand = brands.find(b => b.B_brandName === item.brand);
     const selectedCategory = categories.find(c => c.C_categoryName === item.category);
     const selectedStatus = pStatus.find(p => p.P_productStatusName === item.status);
-    const selectedStock = pStock.find(
-      (s) => s?.PS_StockDetailsID?.toString() === item.stockID?.toString()
-    );
-    const stockAmt =
-      selectedStock?.P_stockNum?.toString() ||
-      item.stockNumber?.toString() || "";
   
     setValues({
       [config.product.codeField]: item.productCode,
       [config.product.categoryField]: selectedCategory?.C_categoryID?.toString() || "",
-      [config.product.skuField]: item.SKU,
       [config.product.nameField]: item.productName,
       [config.product.brandField]: selectedBrand?.B_brandID?.toString() || "",
       [config.product.supplierField]: selectedSupplier?.S_supplierID?.toString() || "",
-      [config.product.stockField]: stockAmt,
+      [config.product.stockField]: item.stockNumber,
+      [config.product.lastRestockField]: item.lastRestock,
       [config.product.unitpriceField]: item.price,
       [config.product.sellingpriceField]: item.sellingPrice,
       [config.product.statusID]: selectedStatus?.P_productStatusID?.toString() || "",
@@ -305,13 +287,6 @@ export default function ProductsPage() {
       .then(res => setPStatus(res.data))
       .catch((err) => console.error("Failed to fetch product status options:", err));
   }, []);
-  const[pStock, setPStock] = useState([]);
-  useEffect(() => {
-    axios
-      .get("http://localhost:8080/productStocks")
-      .then(res => setPStock(res.data))
-      .catch((err) => console.error("Failed to fetch product status options:", err));
-  }, []);
  
   // Submit
   const handleSubmit = (e) => {
@@ -319,11 +294,11 @@ export default function ProductsPage() {
     const payload = { 
       P_productCode: values[config.product.codeField],
       C_categoryID: values[config.product.categoryField],
-      P_SKU: values[config.product.skuField],
       P_productName: values[config.product.nameField],
       B_brandID: values[config.product.brandField],
       S_supplierID: values[config.product.supplierField],
-      stockAmt: values[config.product.stockField],
+      P_stockNum: values[config.product.stockField],
+      P_lastRestockDateTime: values[config.product.lastRestockField],
       P_unitPrice: values[config.product.unitpriceField],
       P_sellingPrice: values[config.product.sellingpriceField],
       P_productStatusID: 1,
@@ -357,12 +332,12 @@ export default function ProductsPage() {
   const resetForm = (customFields = {}) => {
     setValues({
       [config.product.codeField]: "",
-      [config.product.categoryField]: "",
-      [config.product.skuField]: "",    
+      [config.product.categoryField]: "",   
       [config.product.nameField]: "",
       [config.product.brandField]: "",
       [config.product.supplierField]: "",
       [config.product.stockField]: "",
+      [config.product.lastRestockField]: "",
       [config.product.unitpriceField]: "",
       [config.product.sellingpriceField]: "",
       [config.product.statusField]: "",
@@ -376,11 +351,11 @@ export default function ProductsPage() {
   const handleEdit = () => {
     const payload = { 
       C_categoryID: values[config.product.categoryField] || selectedProduct.categoryID,
-      P_SKU: values[config.product.skuField] || selectedProduct.SKU,
       P_productName: values[config.product.nameField] || selectedProduct.productName,
       B_brandID: values[config.product.brandField] || selectedProduct.brandID,
       S_supplierID: values[config.product.supplierField] || selectedProduct.supplierID,
-      stockAmt: values[config.product.stockField] || selectedProduct.stockAmount,
+      stockNumber: values[config.product.stockField] || selectedProduct.stockNumber,
+      lastRestock: [config.product.lastRestockField] || selectedProduct.lastRestock,
       P_unitPrice: values[config.product.unitpriceField] || selectedProduct.unitPrice,
       P_sellingPrice: values[config.product.sellingpriceField] || selectedProduct.sellingPrice,
       P_productStatusID: values[config.product.statusID] || selectedProduct.statusID
@@ -690,9 +665,6 @@ export default function ProductsPage() {
                         ))}
                       </SelectContent>
                     </Select>
-                    
-                    <Label>SKU</Label>
-                    <Input placeholder="Enter stock keeping unit" required onChange={(e) => setValues({ ...values, [config.product.skuField]: e.target.value })}/>
 
                     <Label>Product Name</Label>
                     <Input placeholder="Enter product name" required onChange={(e) => setValues({ ...values, [config.product.nameField]: e.target.value })}/>
@@ -731,7 +703,10 @@ export default function ProductsPage() {
 
                     <Label>Stock amount</Label>
                     <Input type="number" placeholder="Enter Stock amount" required onChange={(e) => setValues({ ...values, [config.product.stockField]: e.target.value })}/>
-
+                    
+                    <Label>Last Restock Date and Time</Label>
+                    <Input type="datedatetime-local" required onChange={(e) => setValues({ ...values, [config.product.lastRestockField]: e.target.value })}/>
+                    
                     <Label>Price</Label>
                     <Input placeholder="Enter price"  type="number" required onChange={(e) => setValues({ ...values, [config.product.unitpriceField]: e.target.value })}/>
 
@@ -755,7 +730,7 @@ export default function ProductsPage() {
                     </Select>
 
                     <Label>Date Added</Label>
-                    <Input type="date" name="Pdateadded"  required onChange={(e) => setValues({ ...values, [config.product.dateField]: e.target.value })}/>
+                    <Input type="date" required onChange={(e) => setValues({ ...values, [config.product.dateField]: e.target.value })}/>
                     <Button className="bg-blue-400 text-white w-full mt-4" onClick={handleSubmit}>Add Product</Button>
                   </div>
                 </SheetContent>
@@ -894,11 +869,11 @@ export default function ProductsPage() {
                   </TableHead>
                   <TableHead>Product Code</TableHead>
                   <TableHead>Category</TableHead>
-                  <TableHead>SKU (Stock Keeping Unit)</TableHead>
                   <TableHead>Product</TableHead>
                   <TableHead>Brand</TableHead>
                   <TableHead>Supplier</TableHead>
                   <TableHead>Stock amount</TableHead>
+                  <TableHead>Last Restock Date and Time</TableHead>
                   <TableHead>Price</TableHead>
                   <TableHead>Selling Price</TableHead>
                   <TableHead>Status</TableHead>
@@ -922,11 +897,11 @@ export default function ProductsPage() {
                     </TableCell>
                     <TableCell>{item.productCode}</TableCell>
                     <TableCell>{item.category}</TableCell>
-                    <TableCell>{item.SKU}</TableCell>
                     <TableCell>{item.productName}</TableCell>
                     <TableCell>{item.brand}</TableCell>
                     <TableCell>{item.supplier}</TableCell>
                     <TableCell>{item.stockNumber} pcs</TableCell>
+                    <TableCell>{new Date(item.P_lastRestockDateTime).toLocaleDateString()}</TableCell>
                     <TableCell>{item.price}</TableCell>
                     <TableCell>{item.sellingPrice}</TableCell>
                     <TableCell className={`font-semibold ${getStatusTextColor(item.status)}`}>{item.status}</TableCell>
@@ -1006,9 +981,6 @@ export default function ProductsPage() {
                 </SelectContent>
               </Select>
 
-              <label className="text-black font-semibold text-sm">SKU</label>
-              <Input value={values[config.product.skuField] ?? ""} onChange={(e) => setValues({ ...values, [config.product.skuField]: e.target.value })}/>
-
               <label className="text-black font-semibold text-sm">Product Name</label>
               <Input value={values[config.product.nameField]  ?? ""} onChange={(e) => setValues({ ...values, [config.product.nameField]: e.target.value })}/>
 
@@ -1046,6 +1018,9 @@ export default function ProductsPage() {
 
               <label className="text-black font-semibold text-sm">Stock amount</label>
               <Input type="number" value={values[config.product.stockField]  ?? ""} /*defaultValue={selectedProduct.quantity}*/ onChange={(e) => setValues({ ...values, [config.product.stockField]: e.target.value })}/>
+
+              <label className="text-black font-semibold text-sm">Last Restock Date and Time</label>
+              <Input value={selectedProduct.lastRestockField} className="bg-gray-200" />
 
               <label className="text-black font-semibold text-sm">Price</label>
               <Input type="text" value={values[config.product.unitpriceField]  ?? ""} /*defaultValue={selectedProduct.price}*/ onChange={(e) => setValues({ ...values, [config.product.unitpriceField]: e.target.value })}/>
