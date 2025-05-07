@@ -23,8 +23,9 @@ import {
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Search, FilePen, Trash } from "lucide-react";
+import { Search, ListFilter, FilePen, Trash } from "lucide-react";
 import { toast, Toaster } from "react-hot-toast";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
 
 export default function ConfigurationsPage() {
   const configMap = {
@@ -166,6 +167,13 @@ export default function ConfigurationsPage() {
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedItemID, setSelectedItemID] = useState(null);
 
+  // Filter state
+  const [activeFilter, setActiveFilter] = useState(null);
+  const [activeFilterValue, setActiveFilterValue] = useState(null);
+
+  // Set tabs that only have the filter function
+  const showFilter = ["supplier", "brand", "category"].includes(activeTab);
+
   // Fetch
   useEffect(() => {
     const currentConfig = configMap[activeTab];
@@ -185,6 +193,9 @@ export default function ConfigurationsPage() {
   
     setEditingItem(null);
     setSearchTerm("");
+    // Reset filters on tab switch
+    setActiveFilter(null);
+    setActiveFilterValue(null);
   }, [activeTab]); 
 
   // Refresh Table upon changes
@@ -193,6 +204,12 @@ export default function ConfigurationsPage() {
       .get(config.api.fetch)
       .then((res) => setData(res.data))
       .catch((error) => console.error("Error fetching data:", error));
+  };
+
+  // Handle Filter Selection 
+  const handleFilterSelect = (filterType, value) => {
+    setActiveFilter(filterType);
+    setActiveFilterValue(value);
   };
 
   // Search
@@ -318,17 +335,15 @@ export default function ConfigurationsPage() {
   return (
     <SidebarProvider>
       <div className="flex h-screen w-screen">
-        
         <AppSidebar />
-        <div className="flex-1 p-4 flex flex-col overflow-hidden" onClick={handleCardClick}>
+        <div className="flex-1 p-4 flex flex-col" onClick={handleCardClick}>
           <Toaster position="top-center" />
-            <div className="z-10 sticky top-0 mb-4 bg-white p-4 rounded-lg">
-              <h1 className="text-lg text-gray-600 font-medium">Configuration</h1>
-            </div>
+          <h1 className="text-lg font-medium text-gray-600 mt-4 mb-6">
+            Configurations
+          </h1>
 
-          <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-            <div className="w-full z-10 sticky">
-            <TabsList className="w-full flex justify-start bg-white rounded-md shadow-md px-6 py-6 space-x-4">
+          <Tabs defaultValue={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="w-full flex justify-start bg-white shadow-md rounded-md px-6 py-6 mb-4">
               {Object.entries(configMap).map(([key, cfg]) => (
                 <TabsTrigger
                   key={key}
@@ -339,9 +354,7 @@ export default function ConfigurationsPage() {
                 </TabsTrigger>
               ))}
             </TabsList>
-          </div>
 
-          <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-4">
             {Object.entries(configMap).map(([key, cfg]) => (
               <TabsContent key={key} value={key}>
                 <div className="flex flex-col lg:flex-row gap-6">
@@ -349,16 +362,80 @@ export default function ConfigurationsPage() {
                   <div className="w-full lg:w-2/3">
                     <Card>
                       <CardContent className="p-4">
-                        <div className="relative mb-4">
+                      <div className="flex items-center space-x-2">
+                        <div className="relative w-80">
                           {/* Search */}
                           <Search className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
                           <Input
                             placeholder={`Search ${cfg.label.toLowerCase()}`}
-                            className="pl-9 py-2 text-sm"
+                            className="w-full pl-10 pr-4 py-2 "
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                           />
                         </div>
+                        {/* Filter */}
+                        {["supplier", "brand", "category"].includes(key) && (
+                        <div className="flex items-center space-x-2">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" className="flex items-center space-x-2">
+                                <ListFilter className="w-4 h-4" />
+                                <span>Filter</span>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start">
+                              <DropdownMenuSub>
+                              <DropdownMenuSubTrigger>Name</DropdownMenuSubTrigger>
+                                <DropdownMenuSubContent>
+                                  <DropdownMenuItem onClick={() => handleFilterSelect("Name", "Ascending")}>
+                                    Ascending
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleFilterSelect("Name", "Descending")}>
+                                    Descending
+                                  </DropdownMenuItem>
+                                </DropdownMenuSubContent>
+                              </DropdownMenuSub>
+
+                              <DropdownMenuSub>
+                              <DropdownMenuSubTrigger>Code No.</DropdownMenuSubTrigger>
+                                <DropdownMenuSubContent>
+                                <DropdownMenuItem onClick={() => handleFilterSelect("Name", "Ascending")}>
+                                    Ascending
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleFilterSelect("Name", "Descending")}>
+                                    Descending
+                                  </DropdownMenuItem>
+                                </DropdownMenuSubContent>
+                              </DropdownMenuSub>
+                              
+
+
+                              <DropdownMenuSub>
+                                <DropdownMenuSubTrigger>Status</DropdownMenuSubTrigger>
+                                <DropdownMenuSubContent>
+                                  <DropdownMenuItem onClick={() => handleFilterSelect("Status", "Active")}>
+                                    Active
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleFilterSelect("Status", "Discontinued")}>
+                                    Discontinued
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleFilterSelect("Status", "Archived")}>
+                                    Archived
+                                  </DropdownMenuItem>
+                                </DropdownMenuSubContent>
+                              </DropdownMenuSub>
+
+                              <DropdownMenuItem 
+                                onClick={() => handleFilterSelect(null, null)} 
+                                className="text-red-500 font-medium"
+                                >
+                                  Reset Filters
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                        )}
+                      </div>
 
                         <Table>
                           <TableBody>
@@ -532,7 +609,6 @@ export default function ConfigurationsPage() {
                 </div>
               </TabsContent>
             ))}
-            </div>
           </Tabs>
         </div>
       </div>

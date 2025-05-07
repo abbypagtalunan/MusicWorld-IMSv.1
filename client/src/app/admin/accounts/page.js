@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { AppSidebar } from "@/components/admin-sidebar";
@@ -71,13 +70,26 @@ export default function ManageAccountsPage() {
 
   // Staff accounts (fetched from API)
   const [staffs, setStaffs] = useState([]);
+  const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Filter state
   const [selectedFilter, setSelectedFilter] = useState(null);
   const [selectedSubFilter, setSelectedSubFilter] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // Edit modal
+  // Add staff modal
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [newStaff, setNewStaff] = useState({
+    accountID: "",
+    firstName: "",
+    lastName: "",
+    roleID: "",
+    password: "",
+    confirmPassword: "",
+  });
+
+  // Edit staff modal
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editedStaff, setEditedStaff] = useState({});
 
@@ -91,26 +103,30 @@ export default function ManageAccountsPage() {
   });
 
   // Delete modal
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isDeleteAccountDialogOpen, setIsDeleteAccountDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [adminPW, setAdminPW] = useState("");
 
   // Selected staff checkboxes
   const [selectedStaff, setSelectedStaff] = useState([]);
 
-  // Fetch staff data on mount
+  // Fetch data on mount
   useEffect(() => {
-    const fetchAccounts = async () => {
+    const fetchData = async () => {
       try {
-        const response = await axios.get("http://localhost:8080/accounts");
-        setStaffs(response.data);
+        const [staffRes, rolesRes] = await Promise.all([
+          axios.get("http://localhost:8080/accounts"),
+          axios.get("http://localhost:8080/role"),
+        ]);
+        setStaffs(staffRes.data);
+        setRoles(rolesRes.data);
       } catch (error) {
-        console.error("Error fetching staff data:", error);
+        console.error("Error fetching data:", error);
       } finally {
         setLoading(false);
       }
     };
-    fetchAccounts();
+    fetchData();
   }, []);
 
   // Handle copying user code
@@ -127,30 +143,54 @@ export default function ManageAccountsPage() {
       return;
     }
 
-    console.log(`Resetting password for ${resetStaff?.code}...`);
-    setIsResetOpen(false);
-    setResetStaff(null);
-    setPasswordData({ oldPassword: "", newPassword: "", confirmPassword: "" });
+    axios
+      .put(`http://localhost:8080/accounts/${resetStaff.code}/reset-password`, {
+        newPassword: passwordData.newPassword,
+        confirmPassword: passwordData.confirmPassword,
+      })
+      .then(() => {
+        alert("Password reset successfully");
+        setIsResetOpen(false);
+        setResetStaff(null);
+        setPasswordData({ oldPassword: "", newPassword: "", confirmPassword: "" });
+      })
+      .catch((err) => {
+        console.error("Password reset error:", err.response?.data || err.message);
+        alert("Failed to reset password");
+        setIsResetOpen(false);
+        setResetStaff(null);
+        setPasswordData({ oldPassword: "", newPassword: "", confirmPassword: "" });
+      });
   };
 
   // Delete handler
-  const handleDelete = () => {
-    if (!deleteTarget || !adminPW) return;
+  const handleAccountDelete = (accountCode) => {
+    if (!accountCode || !adminPW) {
+      alert("Admin password is required.");
+      return;
+    }
 
     axios
-      .delete(`http://localhost:8080/accounts/${deleteTarget.code}`, {
+      .delete(`http://localhost:8080/accounts/${accountCode}`, {
         data: { adminPW },
-        headers: { "Content-Type": "application/json" },
       })
       .then(() => {
-        setStaffs(staffs.filter((s) => s.code !== deleteTarget.code));
-        setIsDeleteOpen(false);
+        setStaffs(staffs.filter((s) => s.code !== accountCode));
+        setIsDeleteAccountDialogOpen(false);
         setDeleteTarget(null);
         setAdminPW("");
       })
       .catch((err) => {
-        console.error("Delete failed:", err.response?.data || err.message);
-        alert("Failed to delete staff.");
+        const errorMessage =
+          err.response?.data?.message ||
+          err.response?.data?.error ||
+          err.message ||
+          "Unknown error";
+        console.error("Delete error:", errorMessage);
+        alert(`Failed to delete account: ${errorMessage}`);
+        setIsDeleteAccountDialogOpen(false);
+        setDeleteTarget(null);
+        setAdminPW("");
       });
   };
 
@@ -160,14 +200,24 @@ export default function ManageAccountsPage() {
     setSelectedSubFilter(subFilter);
   };
 
-  // Get filtered/sorted staff list
+  // Get filtered/sorted/searched staff list
   const getFilteredStaffs = () => {
-    let sorted = [...staffs];
-    if (!selectedFilter || !selectedSubFilter) return sorted;
+    let filtered = [...staffs];
+
+    // Step 1: Apply search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter((staff) =>
+        `${staff.firstName} ${staff.lastName} ${staff.code}`.toLowerCase().includes(query)
+      );
+    }
+
+    // Step 2: Apply sort/filter
+    if (!selectedFilter || !selectedSubFilter) return filtered;
 
     switch (selectedFilter) {
       case "Name":
-        sorted.sort((a, b) => {
+        filtered.sort((a, b) => {
           const aName = `${a.firstName} ${a.lastName}`;
           const bName = `${b.firstName} ${b.lastName}`;
           return selectedSubFilter === "Ascending"
@@ -175,32 +225,38 @@ export default function ManageAccountsPage() {
             : bName.localeCompare(aName);
         });
         break;
+        case "Role":
+  // Get roleName from selectedSubFilter (e.g., "Admin", "Staff")
+        const selectedRole = roles.find(
+            (r) => r.roleName.toLowerCase() === selectedSubFilter.toLowerCase()
+        );
 
-      case "Role":
-        sorted = sorted.filter((s) => s.role === selectedSubFilter);
-        break;
-
+        if (selectedRole) {
+            // Filter staff by matching roleID
+            filtered = filtered.filter((s) => s.roleID === selectedRole.roleID);
+        } else if (selectedSubFilter.toLowerCase() === "all") {
+            // Optional: Show all staff when "All" is selected
+            filtered = [...staffs];
+        }
       case "User Code":
-        sorted.sort((a, b) => {
-          const codeA = parseInt(a.code, 10);
-          const codeB = parseInt(b.code, 10);
+        filtered.sort((a, b) => {
+          const codeA = parseInt(a.accountID, 10);
+          const codeB = parseInt(b.accountID, 10);
           return selectedSubFilter === "Low to High" ? codeA - codeB : codeB - codeA;
         });
         break;
-
       case "Date Created":
-        sorted.sort((a, b) => {
+        filtered.sort((a, b) => {
           const dateA = new Date(a.dateCreated);
           const dateB = new Date(b.dateCreated);
           return selectedSubFilter === "Oldest" ? dateA - dateB : dateB - dateA;
         });
         break;
-
       default:
         break;
     }
 
-    return sorted;
+    return filtered;
   };
 
   // Checkbox handlers
@@ -221,12 +277,62 @@ export default function ManageAccountsPage() {
     }
   };
 
-  // Placeholder for update logic
-  const handleUpdateStaff = (updatedStaff) => {
-    setStaffs(
-      staffs.map((s) => (s.code === updatedStaff.code ? updatedStaff : s))
-    );
-    setIsEditOpen(false);
+  // Submit add staff
+  const handleAddStaff = async () => {
+    const { accountID, firstName, lastName, roleID, password, confirmPassword } = newStaff;
+    if (!accountID || !firstName || !lastName || !roleID || !password || !confirmPassword) {
+      alert("Please fill in all fields.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      alert("Passwords do not match!");
+      return;
+    }
+
+    try {
+      await axios.post("http://localhost:8080/accounts", {
+        accountID,
+        firstName,
+        lastName,
+        roleID,
+        password,
+      });
+      setIsAddOpen(false);
+      setNewStaff({
+        accountID: "",
+        firstName: "",
+        lastName: "",
+        roleID: "",
+        password: "",
+        confirmPassword: "",
+      });
+      const res = await axios.get("http://localhost:8080/accounts");
+      setStaffs(res.data);
+    } catch (err) {
+      alert("Failed to add staff.");
+      console.error(err);
+    }
+  };
+
+  // Submit edit staff
+  const handleUpdateStaff = async (updatedStaff) => {
+    try {
+      await axios.put(
+        `http://localhost:8080/accounts/${updatedStaff.code}`,
+        {
+          firstName: updatedStaff.firstName,
+          lastName: updatedStaff.lastName,
+          roleID: updatedStaff.roleID,
+        }
+      );
+      setStaffs(
+        staffs.map((s) => (s.code === updatedStaff.code ? updatedStaff : s))
+      );
+      setIsEditOpen(false);
+    } catch (err) {
+      alert("Failed to update staff.");
+      console.error(err);
+    }
   };
 
   return (
@@ -239,490 +345,527 @@ export default function ManageAccountsPage() {
           </div>
 
           <Tabs defaultValue="my-account" onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+            {/* TAB LIST */}
             <div className="w-full z-10 sticky">
               <TabsList className="w-full flex justify-start bg-white rounded-md shadow-md px-6 py-6 space-x-4">
-                <TabsTrigger value="my-account" className="data-[state=active]:text-indigo-600 hover:text-black">MY ACCOUNT</TabsTrigger>
-                <TabsTrigger value="staff" className="data-[state=active]:text-indigo-600 hover:text-black">STAFF</TabsTrigger>
+                <TabsTrigger value="my-account" className="data-[state=active]:text-indigo-600 hover:text-black">
+                  MY ACCOUNT
+                </TabsTrigger>
+                <TabsTrigger value="staff" className="data-[state=active]:text-indigo-600 hover:text-black">
+                  STAFF
+                </TabsTrigger>
               </TabsList>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              <TabsContent value="my-account" className="mt-0">
-                <div className="flex flex-col lg:flex-row gap-4 items-stretch">
-                  <Card className="w-full lg:w-2/3 text-gray-700 content-center">
-                    <CardHeader className="pb-0">
-                      <CardTitle className="text-xl text-center">Account Information</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-10 space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                          <Label className="text-sm text-gray-500">First Name</Label>
-                          <p className="text-base font-medium text-gray-800">{admin.firstName}</p>
-                          <Label className="text-sm text-gray-500 mt-3 block">Role</Label>
-                          <p className="text-base font-medium text-gray-800">{admin.role}</p>
-                        </div>
-                        <div>
-                          <Label className="text-sm text-gray-500">Last Name</Label>
-                          <p className="text-base font-medium text-gray-800">{admin.lastName}</p>
-                          <Label className="text-sm text-gray-500 mt-3 block">Date Created</Label>
-                          <p className="text-base font-medium text-gray-800">{admin.dateCreated}</p>
-                        </div>
-                      </div>
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button className="bg-blue-400 text-white">Edit Account</Button>
-                        </DialogTrigger>
-                        <DialogContent className="w-[30vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
-                          <DialogHeader>
-                            <DialogTitle className="text-blue-400 text-xl font-bold">Edit Account Information</DialogTitle>
-                          </DialogHeader>
-                          <div className="flex flex-col gap-4 mt-4 text-gray-700">
-                            <Label>Date Created</Label>
-                            <Input value={admin.dateCreated} disabled />
-                            <Label>First Name</Label>
-                            <Input type="text" defaultValue={admin.firstName} placeholder="Enter first name" />
-                            <Label>Last Name</Label>
-                            <Input type="text" defaultValue={admin.lastName} placeholder="Enter last name" />
-                            <Label>Role</Label>
-                            <Select defaultValue={admin.role.toLowerCase()}>
-                              <SelectTrigger className="mt-1">
-                                <SelectValue placeholder="Select role" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="admin">Admin</SelectItem>
-                                <SelectItem value="staff">Staff</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <DialogFooter className="mt-6">
-                            <Button className="bg-blue-400 text-white w-full">Save Edit</Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
-                    </CardContent>
-                  </Card>
-                  <Card className="w-full lg:w-1/3 text-gray-700">
-                    <CardHeader className="pb-0">
-                      <CardTitle className="text-xl text-center">Login Details</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 space-y-4">
+            {/* MY ACCOUNT TAB */}
+            <TabsContent value="my-account" className="mt-0">
+              <div className="flex flex-col lg:flex-row gap-4 items-stretch p-4">
+                <Card className="w-full lg:w-2/3 text-gray-700 content-center">
+                  <CardHeader className="pb-0">
+                    <CardTitle className="text-xl text-center">Account Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-10 space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <Label>User Code</Label>
-                        <div className="flex items-center gap-2">
-                          <Input value={admin.code} disabled />
-                          <Button size="icon" variant="ghost" onClick={handleCopyCode}>
-                            <Copy size={16} />
-                          </Button>
-                        </div>
+                        <Label className="text-sm text-gray-500">First Name</Label>
+                        <p className="text-base font-medium text-gray-800">{admin.firstName}</p>
+                        <Label className="text-sm text-gray-500 mt-3 block">Role</Label>
+                        <p className="text-base font-medium text-gray-800">{admin.role}</p>
                       </div>
                       <div>
-                        <Label>Password</Label>
-                        <div className="flex items-center gap-2">
-                          <Input type={showPassword ? "text" : "password"} value={admin.password} disabled />
-                          <Button size="icon" variant="ghost" onClick={() => setShowPassword(!showPassword)}>
-                            <Eye size={16} />
-                          </Button>
-                        </div>
+                        <Label className="text-sm text-gray-500">Last Name</Label>
+                        <p className="text-base font-medium text-gray-800">{admin.lastName}</p>
+                        <Label className="text-sm text-gray-500 mt-3 block">Date Created</Label>
+                        <p className="text-base font-medium text-gray-800">{admin.dateCreated}</p>
                       </div>
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button className="bg-blue-400 text-white">Change Password</Button>
-                        </DialogTrigger>
-                        <DialogContent className="w-[30vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
-                          <DialogHeader>
-                            <DialogTitle className="text-blue-400 text-xl font-bold">Change Password</DialogTitle>
-                          </DialogHeader>
-                          <div className="flex flex-col gap-4 mt-4 text-gray-700">
-                            <Label>Old Password</Label>
-                            <Input type="password" placeholder="Enter your old password" />
-                            <Label>New Password</Label>
-                            <Input type="password" placeholder="Enter your new password" />
-                            <Label>Confirm New Password</Label>
-                            <Input type="password" placeholder="Confirm new password" />
-                          </div>
-                          <DialogFooter>
-                            <Button className="bg-blue-400 text-white w-full">Update Password</Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
-                    </CardContent>
-                  </Card>
-                </div>
-              </TabsContent>
-
-              {/* STAFF TAB */}
-              <TabsContent value="staff" className="mt-0">
-                <div className="mb-4">
-                  <h2 className="text-xl font-semibold text-gray-800">Staff ({staffs.length})</h2>
-                </div>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-                  <div className="flex gap-2 flex-1">
-                    <Input placeholder="Search staff..." className="w-full sm:w-auto" />
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="flex items-center space-x-2">
-                          <ListFilter className="w-4 h-4" />
-                          <span>Filter</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start">
-                        <DropdownMenuSub>
-                          <DropdownMenuSubTrigger>Date Created</DropdownMenuSubTrigger>
-                          <DropdownMenuSubContent>
-                            <DropdownMenuItem onClick={() => handleFilterSelect("Date Created", "Oldest")}>
-                              Oldest First
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleFilterSelect("Date Created", "Newest")}>
-                              Newest First
-                            </DropdownMenuItem>
-                          </DropdownMenuSubContent>
-                        </DropdownMenuSub>
-                        <DropdownMenuSub>
-                          <DropdownMenuSubTrigger>Name</DropdownMenuSubTrigger>
-                          <DropdownMenuSubContent>
-                            <DropdownMenuItem onClick={() => handleFilterSelect("Name", "Ascending")}>
-                              Ascending
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleFilterSelect("Name", "Descending")}>
-                              Descending
-                            </DropdownMenuItem>
-                          </DropdownMenuSubContent>
-                        </DropdownMenuSub>
-                        <DropdownMenuSub>
-                          <DropdownMenuSubTrigger>Role</DropdownMenuSubTrigger>
-                          <DropdownMenuSubContent>
-                            <DropdownMenuItem onClick={() => handleFilterSelect("Role", "Admin")}>Admin</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleFilterSelect("Role", "Staff")}>Staff</DropdownMenuItem>
-                          </DropdownMenuSubContent>
-                        </DropdownMenuSub>
-                        <DropdownMenuSub>
-                          <DropdownMenuSubTrigger>User Code</DropdownMenuSubTrigger>
-                          <DropdownMenuSubContent>
-                            <DropdownMenuItem onClick={() => handleFilterSelect("User Code", "Low to High")}>
-                              Low to High
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleFilterSelect("User Code", "High to Low")}>
-                              High to Low
-                            </DropdownMenuItem>
-                          </DropdownMenuSubContent>
-                        </DropdownMenuSub>
-                        <DropdownMenuItem
-                          onClick={() => handleFilterSelect(null, null)}
-                          className="text-red-500 font-medium"
-                        >
-                          Reset Filters
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  <div className="flex gap-2">
+                    </div>
                     <Dialog>
                       <DialogTrigger asChild>
-                        <Button className="bg-blue-400 text-white">Add Staff</Button>
+                        <Button className="bg-blue-400 text-white">Edit Account</Button>
                       </DialogTrigger>
-                      <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
+                      <DialogContent className="w-[30vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
                         <DialogHeader>
-                          <DialogTitle className="text-blue-400 text-xl font-bold">Add Staff</DialogTitle>
+                          <DialogTitle className="text-blue-400 text-xl font-bold">Edit Account Information</DialogTitle>
                           <DialogClose />
                         </DialogHeader>
                         <div className="flex flex-col gap-4 mt-4 text-gray-700">
-                          <div className="flex flex-col sm:flex-row gap-4">
-                            <div className="flex-1">
-                              <Label>First Name</Label>
-                              <Input type="text" placeholder="Enter first name" />
-                            </div>
-                            <div className="flex-1">
-                              <Label>Last Name</Label>
-                              <Input type="text" placeholder="Enter last name" />
-                            </div>
-                          </div>
-                          <div>
-                            <Label>Role</Label>
-                            <Select>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select role" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="Admin">Admin</SelectItem>
-                                <SelectItem value="Staff">Staff</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <Label>User Code</Label>
-                            <Input type="text" placeholder="Enter user code" />
-                          </div>
-                          <div>
-                            <Label>Password</Label>
-                            <Input type="password" placeholder="Enter password" />
-                          </div>
-                          <div>
-                            <Label>Confirm Password</Label>
-                            <Input type="password" placeholder="Confirm password" />
-                          </div>
+                          <Label>Date Created</Label>
+                          <Input value={admin.dateCreated} disabled />
+                          <Label>First Name</Label>
+                          <Input type="text" defaultValue={admin.firstName} placeholder="Enter first name" />
+                          <Label>Last Name</Label>
+                          <Input type="text" defaultValue={admin.lastName} placeholder="Enter last name" />
+                          <Label>Role</Label>
+                          <Select defaultValue={admin.role.toLowerCase()}>
+                            <SelectTrigger className="mt-1">
+                              <SelectValue placeholder="Select role" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="admin">Admin</SelectItem>
+                              <SelectItem value="staff">Staff</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
                         <DialogFooter className="mt-6">
-                          <Button className="bg-blue-400 text-white w-full">Submit</Button>
+                          <Button className="bg-blue-400 text-white w-full">Save Edit</Button>
                         </DialogFooter>
                       </DialogContent>
                     </Dialog>
-                    <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-                      <DialogTrigger asChild>
-                        <Button className="bg-red-500 text-white" disabled={selectedStaff.length === 0}>
-                          Delete Selected
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
-                        <DialogHeader>
-                          <DialogTitle>
-                            <span className="text-lg text-red-900">Delete Multiple Transactions</span>
-                            <span className="text-lg text-gray-400 font-normal italic ml-2">({selectedStaff.length} items)</span>
-                          </DialogTitle>
-                          <DialogClose />
-                        </DialogHeader>
-                        <p className="text-sm text-gray-800 mt-2 pl-4">
-                          Deleting these transactions will reflect on Void Transactions. Enter the admin password to delete the selected products.
-                        </p>
-                        <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">
-                          <div className="flex-1">
-                            <label htmlFor="password" className="text-base font-medium block mb-2">
-                              Admin Password
-                            </label>
-                            <Input
-                              type="password"
-                              required
-                              placeholder="Enter admin password"
-                              className="w-full"
-                              value={adminPW}
-                              onChange={(e) => setAdminPW(e.target.value)}
-                            />
-                          </div>
-                          <Button
-                            className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
-                            onClick={handleDelete}
-                          >
-                            DELETE TRANSACTIONS
-                          </Button>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                </div>
-                <Card className="w-full">
-                  <CardContent className="p-4 flex flex-col justify-between flex-grow">
-                    <div className="flex flex-col overflow-auto max-h-[60vh] w-full">
-                      <Table>
-                        <TableHeader className="sticky top-0 z-10 bg-white">
-                          <TableRow>
-                            <TableHead>
-                              <input type="checkbox" onChange={handleSelectAll} checked={selectedStaff.length === getFilteredStaffs().length && selectedStaff.length > 0} />
-                            </TableHead>
-                            <TableHead>Date Created</TableHead>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Role</TableHead>
-                            <TableHead>User Code</TableHead>
-                            <TableHead>Reset Password</TableHead>
-                            <TableHead>Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {getFilteredStaffs().map((staff, index) => (
-                            <TableRow key={index}>
-                              <TableCell>
-                                <input
-                                  type="checkbox"
-                                  checked={selectedStaff.includes(staff.code)}
-                                  onChange={() => handleSelectStaff(staff.code)}
-                                />
-                              </TableCell>
-                              <TableCell className="text-center">{new Date(staff.dateCreated).toLocaleDateString()}</TableCell>
-                              <TableCell>{`${staff.firstName} ${staff.lastName}`}</TableCell>
-                              <TableCell>{staff.roleID}</TableCell>
-                              <TableCell>{staff.accountID}</TableCell>
-                              <TableCell>
-                                <Button
-                                  variant="outline"
-                                  onClick={() => {
-                                    setIsResetOpen(true);
-                                    setResetStaff(staff);
-                                  }}
-                                >
-                                  Reset
-                                </Button>
-                              </TableCell>
-                              <Dialog open={isResetOpen} onOpenChange={setIsResetOpen}>
-                                <DialogContent className="w-[30vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
-                                  <DialogHeader>
-                                    <DialogTitle className="text-blue-400 text-xl font-bold">
-                                      Reset Password for {resetStaff?.firstName} {resetStaff?.lastName}
-                                    </DialogTitle>
-                                    <DialogClose />
-                                  </DialogHeader>
-                                  <div className="flex flex-col gap-4 mt-4 text-gray-700">
-                                    <Label>New Password</Label>
-                                    <Input
-                                      type="password"
-                                      placeholder="Enter new password"
-                                      value={passwordData.newPassword}
-                                      onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                                    />
-                                    <Label>Confirm New Password</Label>
-                                    <Input
-                                      type="password"
-                                      placeholder="Confirm new password"
-                                      value={passwordData.confirmPassword}
-                                      onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                                    />
-                                  </div>
-                                  <DialogFooter className="mt-6">
-                                    <Button
-                                      className="w-full bg-blue-400 text-white"
-                                      onClick={handleResetPassword}
-                                    >
-                                      Reset Password
-                                    </Button>
-                                  </DialogFooter>
-                                </DialogContent>
-                              </Dialog>
-                              <TableCell className="flex space-x-2">
-                                <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-                                  <DialogTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="text-gray-500 hover:text-blue-400"
-                                      onClick={() => {
-                                        setEditedStaff(staff);
-                                        setIsEditOpen(true);
-                                      }}
-                                    >
-                                      <FilePen size={16} />
-                                    </Button>
-                                  </DialogTrigger>
-                                  <DialogContent className="w-[30vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
-                                    <DialogHeader>
-                                      <DialogTitle className="text-blue-400 text-xl font-bold">Edit Staff</DialogTitle>
-                                      <DialogClose />
-                                    </DialogHeader>
-                                    <div className="flex flex-col gap-4 mt-4 text-gray-700">
-                                      <div>
-                                        <Label>Date Created</Label>
-                                        <Input value={editedStaff.dateCreated} disabled />
-                                      </div>
-                                      <div>
-                                        <Label>First Name</Label>
-                                        <Input
-                                          type="text"
-                                          value={editedStaff.firstName}
-                                          onChange={(e) => setEditedStaff({ ...editedStaff, firstName: e.target.value })}
-                                        />
-                                      </div>
-                                      <div>
-                                        <Label>Last Name</Label>
-                                        <Input
-                                          type="text"
-                                          value={editedStaff.lastName}
-                                          onChange={(e) => setEditedStaff({ ...editedStaff, lastName: e.target.value })}
-                                        />
-                                      </div>
-                                      <div>
-                                        <Label>Role</Label>
-                                        <Select
-                                          value={editedStaff.role}
-                                          onValueChange={(value) => setEditedStaff({ ...editedStaff, role: value })}
-                                        >
-                                          <SelectTrigger>
-                                            <SelectValue placeholder="Select role" />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            <SelectItem value="Admin">Admin</SelectItem>
-                                            <SelectItem value="Staff">Staff</SelectItem>
-                                          </SelectContent>
-                                        </Select>
-                                      </div>
-                                      <div>
-                                        <Label>User Code</Label>
-                                        <Input value={editedStaff.code} disabled />
-                                      </div>
-                                    </div>
-                                    <DialogFooter className="mt-6">
-                                      <Button
-                                        className="w-full bg-blue-400 text-white"
-                                        onClick={() => handleUpdateStaff(editedStaff)}
-                                      >
-                                        Update Staff
-                                      </Button>
-                                    </DialogFooter>
-                                  </DialogContent>
-                                </Dialog>
-                                <Dialog>
-                                  <DialogTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="text-gray-500 hover:text-red-600"
-                                    >
-                                      <Trash2 size={16} />
-                                    </Button>
-                                  </DialogTrigger>
-                                  <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
-                                    <DialogHeader>
-                                      <DialogTitle>
-                                        <span className="text-lg text-red-900">Delete Staff</span>{" "}
-                                        <span className="text-lg text-gray-400 font-normal italic">
-                                          {staff.code}
-                                        </span>
-                                      </DialogTitle>
-                                      <DialogClose />
-                                    </DialogHeader>
-                                    <p className="text-sm text-gray-800 mt-2 pl-4">
-                                      Deleting this staff account is permanent. Enter the admin password to confirm.
-                                    </p>
-                                    <div className="flex items-center gap-4 mt-4 pl-4">
-                                      <div className="flex-1">
-                                        <label
-                                          htmlFor={`password-${staff.code}`}
-                                          className="text-base font-medium text-gray-700 block mb-2"
-                                        >
-                                          Admin Password
-                                        </label>
-                                        <Input
-                                          type="password"
-                                          id={`password-${staff.code}`}
-                                          required
-                                          placeholder="Enter valid password"
-                                          className="w-full"
-                                        />
-                                      </div>
-                                      <DialogFooter className="mt-6">
-                                        <Button
-                                          className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
-                                          onClick={() =>
-                                            handleDelete(
-                                              staff.code,
-                                              document.getElementById(`password-${staff.code}`).value
-                                            )
-                                          }
-                                        >
-                                          DELETE STAFF
-                                        </Button>
-                                      </DialogFooter>
-                                    </div>
-                                  </DialogContent>
-                                </Dialog>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
                   </CardContent>
                 </Card>
-              </TabsContent>
-            </div>
+                <Card className="w-full lg:w-1/3 text-gray-700">
+                  <CardHeader className="pb-0">
+                    <CardTitle className="text-xl text-center">Login Details</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 space-y-4">
+                    <div>
+                      <Label>User Code</Label>
+                      <div className="flex items-center gap-2">
+                        <Input value={admin.code} disabled />
+                        <Button size="icon" variant="ghost" onClick={handleCopyCode}>
+                          <Copy size={16} />
+                        </Button>
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Password</Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type={showPassword ? "text" : "password"}
+                          value={admin.password}
+                          disabled
+                        />
+                        <Button size="icon" variant="ghost" onClick={() => setShowPassword(!showPassword)}>
+                          <Eye size={16} />
+                        </Button>
+                      </div>
+                    </div>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button className="bg-blue-400 text-white">Change Password</Button>
+                      </DialogTrigger>
+                      <DialogContent className="w-[30vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
+                        <DialogHeader>
+                          <DialogTitle className="text-blue-400 text-xl font-bold">Change Password</DialogTitle>
+                          <DialogClose />
+                        </DialogHeader>
+                        <div className="flex flex-col gap-4 mt-4 text-gray-700">
+                          <Label>Old Password</Label>
+                          <Input type="password" placeholder="Enter your old password" />
+                          <Label>New Password</Label>
+                          <Input type="password" placeholder="Enter new password" />
+                          <Label>Confirm New Password</Label>
+                          <Input type="password" placeholder="Confirm new password" />
+                        </div>
+                        <DialogFooter>
+                          <Button className="bg-blue-400 text-white w-full">Update Password</Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            {/* STAFF TAB */}
+            <TabsContent value="staff" className="mt-0">
+              <div className="mt-2 p-2">
+                <h2 className="text-xl font-semibold text-gray-800">Staff ({staffs.length})</h2>
+              </div>
+              {/* FILTERS & ACTIONS */}
+              <div className="p-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
+                <div className="flex gap-2 flex-1">
+                  <Input
+                    placeholder="Search staff..."
+                    className="w-full sm:w-auto"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="flex items-center space-x-2">
+                        <ListFilter className="w-4 h-4" />
+                        <span>Filter</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>Date Created</DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent>
+                          <DropdownMenuItem onClick={() => handleFilterSelect("Date Created", "Oldest")}>
+                            Oldest First
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleFilterSelect("Date Created", "Newest")}>
+                            Newest First
+                          </DropdownMenuItem>
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>Name</DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent>
+                          <DropdownMenuItem onClick={() => handleFilterSelect("Name", "Ascending")}>
+                            Ascending
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleFilterSelect("Name", "Descending")}>
+                            Descending
+                          </DropdownMenuItem>
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>Role</DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent>
+                          <DropdownMenuItem onClick={() => handleFilterSelect("Role", "Admin")}>Admin</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleFilterSelect("Role", "Staff")}>Staff</DropdownMenuItem>
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>User Code</DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent>
+                          <DropdownMenuItem onClick={() => handleFilterSelect("User Code", "Low to High")}>
+                            Low to High
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleFilterSelect("User Code", "High to Low")}>
+                            High to Low
+                          </DropdownMenuItem>
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          handleFilterSelect(null, null);
+                          setSearchQuery("");
+                        }}
+                        className="text-red-500 font-medium"
+                      >
+                        Reset Filters
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+                <div className="flex gap-2">
+                  <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+                    <DialogTrigger asChild>
+                      <Button className="bg-blue-400 text-white p-4">Add Staff</Button>
+                    </DialogTrigger>
+                    <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
+                      <DialogHeader>
+                        <DialogTitle className="text-blue-400 text-xl font-bold">Add Staff</DialogTitle>
+                        <DialogClose />
+                      </DialogHeader>
+                      <div className="flex flex-col gap-4 mt-4 text-gray-700">
+                        <div className="flex flex-col sm:flex-row gap-4">
+                          <div className="flex-1">
+                            <Label>First Name</Label>
+                            <Input
+                              type="text"
+                              value={newStaff.firstName}
+                              onChange={(e) =>
+                                setNewStaff({ ...newStaff, firstName: e.target.value })
+                              }
+                              placeholder="Enter first name"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <Label>Last Name</Label>
+                            <Input
+                              type="text"
+                              value={newStaff.lastName}
+                              onChange={(e) =>
+                                setNewStaff({ ...newStaff, lastName: e.target.value })
+                              }
+                              placeholder="Enter last name"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <Label>Role</Label>
+                          <Select
+                            value={newStaff.roleID}
+                            onValueChange={(value) =>
+                              setNewStaff({ ...newStaff, roleID: value })
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select role" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {roles.length > 0 ? (
+                                roles.map((role) => (
+                                  <SelectItem key={role.roleID} value={role.roleID.toString()}>
+                                    {role.roleName}
+                                  </SelectItem>
+                                ))
+                              ) : (
+                                <p className="text-sm text-gray-500 p-2">No roles found</p>
+                              )}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>User Code</Label>
+                          <Input
+                            type="text"
+                            value={newStaff.accountID}
+                            onChange={(e) =>
+                              setNewStaff({ ...newStaff, accountID: e.target.value })
+                            }
+                            placeholder="Enter user code"
+                          />
+                        </div>
+                        <div>
+                          <Label>Password</Label>
+                          <Input
+                            type="password"
+                            value={newStaff.password}
+                            onChange={(e) =>
+                              setNewStaff({ ...newStaff, password: e.target.value })
+                            }
+                            placeholder="Enter password"
+                          />
+                        </div>
+                        <div>
+                          <Label>Confirm Password</Label>
+                          <Input
+                            type="password"
+                            value={newStaff.confirmPassword}
+                            onChange={(e) =>
+                              setNewStaff({ ...newStaff, confirmPassword: e.target.value })
+                            }
+                            placeholder="Confirm new password"
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter className="mt-6">
+                        <Button
+                          className="w-full bg-blue-400 text-white"
+                          onClick={handleAddStaff}
+                        >
+                          Submit
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </div>
+              <Card className="w-full">
+                <CardContent className="p-4 flex flex-col justify-between flex-grow">
+                  <div className="flex flex-col overflow-auto max-h-[60vh] w-full">
+                    <Table>
+                      <TableHeader className="sticky top-0 z-10 bg-white">
+                        <TableRow className="text-left text-gray-500 font-medium">
+                          <TableHead>Date Created</TableHead>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Role</TableHead>
+                          <TableHead>User Code</TableHead>
+                          <TableHead>Reset Password</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {getFilteredStaffs().map((staff) => (
+                          <TableRow key={staff.accountID} className="text-left p-6 hover:bg-gray-50 ">
+                            <TableCell> 
+                              {new Date(staff.dateCreated).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell>{`${staff.firstName} ${staff.lastName}`}</TableCell>
+                            <TableCell>
+                              {roles.find((role) => role.roleID === staff.roleID)?.roleName || "Loading..."}
+                            </TableCell>
+                            <TableCell>{staff.accountID}</TableCell>
+                            <TableCell>
+                              <Button
+                                variant="outline"
+                                onClick={() => {
+                                  setIsResetOpen(true);
+                                  setResetStaff(staff);
+                                }}
+                              >
+                                Reset
+                              </Button>
+                            </TableCell>
+                            <TableCell className="flex space-x-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-gray-500 hover:text-blue-600"
+                                onClick={() => {
+                                  setEditedStaff(staff);
+                                  setIsEditOpen(true);
+                                }}
+                              >
+                                <FilePen size={16} />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-gray-500 hover:text-red-600"
+                                onClick={() => {
+                                  setDeleteTarget(staff);
+                                  setIsDeleteAccountDialogOpen(true);
+                                }}
+                              >
+                                <Trash2 size={16} />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
           </Tabs>
         </div>
       </div>
+
+      {/* Edit Modal */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="w-[30vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
+          <DialogHeader>
+            <DialogTitle className="text-blue-400 text-xl font-bold">
+              Edit Staff - {editedStaff?.firstName} {editedStaff?.lastName}
+            </DialogTitle>
+            <DialogClose />
+          </DialogHeader>
+          <div className="flex flex-col gap-4 mt-4 text-gray-700">
+            <div>
+              <Label>Date Created</Label>
+              <Input value={editedStaff?.dateCreated || ""} disabled />
+            </div>
+            <div>
+              <Label>First Name</Label>
+              <Input
+                value={editedStaff?.firstName || ""}
+                onChange={(e) =>
+                  setEditedStaff({ ...editedStaff, firstName: e.target.value })
+                }
+              />
+            </div>
+            <div>
+              <Label>Last Name</Label>
+              <Input
+                value={editedStaff?.lastName || ""}
+                onChange={(e) =>
+                  setEditedStaff({ ...editedStaff, lastName: e.target.value })
+                }
+              />
+            </div>
+            <div>
+              <Label>Role</Label>
+              <Select
+                value={editedStaff?.roleID?.toString() || ""}
+                onValueChange={(value) =>
+                  setEditedStaff({ ...editedStaff, roleID: parseInt(value) })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  {roles.length > 0 ? (
+                    roles.map((role) => (
+                      <SelectItem key={role.roleID} value={role.roleID.toString()}>
+                        {role.roleName}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-500 p-2">No roles available</p>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>User Code</Label>
+              <Input value={editedStaff?.code || ""} disabled />
+            </div>
+          </div>
+          <DialogFooter className="mt-6">
+            <Button
+              className="w-full bg-blue-400 text-white"
+              onClick={() => handleUpdateStaff(editedStaff)}
+            >
+              Update Staff
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset Password Modal */}
+      <Dialog open={isResetOpen} onOpenChange={setIsResetOpen}>
+        <DialogContent className="w-[30vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
+          <DialogHeader>
+            <DialogTitle className="text-blue-400 text-xl font-bold">
+              Reset Password for {resetStaff?.firstName} {resetStaff?.lastName}
+            </DialogTitle>
+            <DialogClose />
+          </DialogHeader>
+          <div className="flex flex-col gap-4 mt-4 text-gray-700">
+            <Label>New Password</Label>
+            <Input
+              type="password"
+              placeholder="Enter new password"
+              value={passwordData.newPassword}
+              onChange={(e) =>
+                setPasswordData({ ...passwordData, newPassword: e.target.value })
+              }
+            />
+            <Label>Confirm New Password</Label>
+            <Input
+              type="password"
+              placeholder="Confirm new password"
+              value={passwordData.confirmPassword}
+              onChange={(e) =>
+                setPasswordData({ ...passwordData, confirmPassword: e.target.value })
+              }
+            />
+          </div>
+          <DialogFooter className="mt-6">
+            <Button
+              className="w-full bg-blue-400 text-white"
+              onClick={handleResetPassword}
+            >
+              Reset Password
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Account Modal */}
+      <Dialog open={isDeleteAccountDialogOpen} onOpenChange={setIsDeleteAccountDialogOpen}>
+        <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
+          <DialogHeader>
+            <DialogTitle>
+              <span className="text-lg text-red-900">Delete Account</span>{" "}
+              <span className="text-lg text-gray-400 font-normal italic">{deleteTarget?.code}</span>
+            </DialogTitle>
+            <DialogClose />
+          </DialogHeader>
+          <p className="text-sm text-gray-800 mt-2 pl-4">
+            Deleting this account is permanent. Enter the admin password to confirm deletion.
+          </p>
+          <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">
+            <div className="flex-1">
+              <label htmlFor="admin-password" className="text-base font-medium text-gray-700 block mb-2">
+                Admin Password
+              </label>
+              <Input
+                type="password"
+                required
+                placeholder="Enter admin password"
+                className="w-full"
+                value={adminPW}
+                onChange={(e) => setAdminPW(e.target.value)}
+              />
+            </div>
+            <Button
+              className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
+              onClick={() => handleAccountDelete(deleteTarget?.code)}
+            >
+              DELETE ACCOUNT
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 }

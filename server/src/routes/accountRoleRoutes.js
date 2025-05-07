@@ -1,10 +1,8 @@
-// routes/accountRoleRoutes.js
-
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const accountRoleController = require("../controllers/accountRoleController");
+const accountRoleController = require('../controllers/accountRoleController');
 
-router.get("/", accountRoleController.getAllRoles); // GET /roles
-router.get("/:roleID", accountRoleController.getRoleById); // GET /roles/1
+router.get('/', accountRoleController.getAllRoles);       // GET /api/roles
+router.get('/:roleID', accountRoleController.getRoleById); // GET /api/roles/1
 
 module.exports = router;
