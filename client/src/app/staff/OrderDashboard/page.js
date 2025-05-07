@@ -56,7 +56,7 @@ const OrderDashboard = () => {
   const totalWithWholeDiscount = totalAmount - wholeOrderDiscount;
 
   // Add order and order details
-  const handlePaymentConfirmation = (e) => {
+  const handlePaymentConfirmation = async (e) => {
     if (payment === 0) {
       toast.error("Enter payment.");
       return;
@@ -65,7 +65,7 @@ const OrderDashboard = () => {
       toast.error("Enter receipt number.");
       return;
     }
-
+  
     const transactionDate = new Date(Date.now() + 8 * 60 * 60 * 1000)
       .toISOString()
       .slice(0, 19)
@@ -81,75 +81,70 @@ const OrderDashboard = () => {
       isTemporarilyDeleted: false,
       O_orderPayment: payment
     };
-    console.log("PAYMENT ORDERLOAD: ", orderPayload.O_orderPayment)
+  
+    console.log("PAYMENT ORDERLOAD: ", orderPayload.O_orderPayment);
     console.log("Order Payload:", orderPayload);
   
-    axios.post("http://localhost:8080/orders", orderPayload)
-      .then((response) => {
-
-        if (!data || data.length === 0) {
-          toast.error("No products or freebies to save. Please add items to the order.");
-          return;
-        }
-
-        data.forEach((item) => {
-          const isFreebie = item.Product?.includes('(Freebie)');
-          const price = parseFloat(item["Price"]) || 0;
-          const discount = parseFloat(item["Discount"]) || 0;
-          const quantity = parseInt(item["Quantity"]) || 0;
+    try {
+      // Create order
+      const response = await axios.post("http://localhost:8080/orders", orderPayload);
+      
+      if (!data || data.length === 0) {
+        toast.error("No products or freebies to save. Please add items to the order.");
+        return;
+      }
   
-          const detailPayload = {
-            O_orderID: response.data.id.orderId,
-            P_productCode: item["Product Code"],
-            D_discountType: isFreebie ? "Freebie" : selectedDiscountType,
-            OD_quantity: quantity,
-            OD_sellingPrice: isFreebie ? 0.00 : price,
-            OD_unitPrice: isFreebie ? 0.00 : unitPrice,
-            OD_discountAmount: isFreebie ? 0.00 : discount,
-          };
-          console.log("Order Detail Payload:", detailPayload);
+      // Loop through the data and create order details and update stock
+      for (let item of data) {
+        const isFreebie = item.Product?.includes('(Freebie)');
+        const price = parseFloat(item["Price"]) || 0;
+        const discount = parseFloat(item["Discount"]) || 0;
+        const quantity = parseInt(item["Quantity"]) || 0;
   
-          // Create order detail
-          axios.post("http://localhost:8080/orderDetails", detailPayload)
+        const detailPayload = {
+          O_orderID: response.data.id.orderId,
+          P_productCode: item["Product Code"],
+          D_discountType: isFreebie ? "Freebie" : selectedDiscountType,
+          OD_quantity: quantity,
+          OD_sellingPrice: isFreebie ? 0.00 : price,
+          OD_unitPrice: isFreebie ? 0.00 : unitPrice,
+          OD_discountAmount: isFreebie ? 0.00 : discount,
+        };
+  
+        console.log("Order Detail Payload:", detailPayload);
+  
+        // Create order detail
+        await axios.post("http://localhost:8080/orderDetails", detailPayload)
           .catch(err => {
             console.error("Failed to save order detail:", detailPayload, err.response?.data || err.message);
           });
-
-          // Update the stock number for the product 
-          axios.patch(`http://localhost:8080/products/${item["Product Code"]}/deductStock`, {
+  
+        // Update the stock number for the product 
+        try {
+          await axios.patch(`http://localhost:8080/products/${item["Product Code"]}/deductStock`, {
             quantityOrdered: quantity,
-          })
-          .then(response => {
-            console.log(`Stock updated for product ${item["Product Code"]}` + "with Quantity: ", quantity);
-            console.log('Response data:', response.data); 
-          })
-          .catch(err => {
-            console.error("Failed to update stock:", err.response ? err.response.data : err.message);
-            console.log(`Stock did not update for product ${item["Product Code"]}` + " with Quantity: ", quantity);
-            console.log(`Quantity:`, quantity);
           });
-
-
-        });
-      })
-      .then(() => {
-        toast.success("Payment confirmed and order successfully added!");
-        setIsModalOpen(false);
-        // setTimeout(() => {
-        //   window.location.reload();
-        // }, 1000);
-       })
-      .catch((err) => {
-        console.error("Error processing payment:", err);
-        if (
-          err.response?.status === 409 ||
-          err.response?.data?.message?.includes('Orders.O_receiptNumber')
-        ) {
-          toast.error(`Receipt Number already exists. Enter a different receipt`);
-        } else {
-          toast.error(`An error occurred while saving the order.`);
+          console.log(`Stock updated for product ${item["Product Code"]} with Quantity:`, quantity);
+        } catch (err) {
+          console.error("Failed to update stock:", err.response ? err.response.data : err.message);
+          console.log(`Stock did not update for product ${item["Product Code"]} with Quantity:`, quantity);
         }
-      });
+      }
+  
+      toast.success("Payment confirmed and order successfully added!");
+      setIsModalOpen(false);
+  
+    } catch (err) {
+      console.error("Error processing payment:", err);
+      if (
+        err.response?.status === 409 ||
+        err.response?.data?.message?.includes('Orders.O_receiptNumber')
+      ) {
+        toast.error(`Receipt Number already exists. Enter a different receipt`);
+      } else {
+        toast.error(`An error occurred while saving the order.`);
+      }
+    }
   };
   
   // Fetch data for product list
