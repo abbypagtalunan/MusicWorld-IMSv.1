@@ -1,3 +1,5 @@
+// models/accountModel.js
+
 const pool = require('../../db');
 
 class Account {
@@ -17,7 +19,7 @@ class Account {
 
   static createAccount(data, callback) {
     const { accountID, firstName, lastName, roleID, password } = data;
-    const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}@example.com`;
+    const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}@gmail.com`;
     const dateCreated = new Date().toISOString().split('T')[0];
 
     pool.query(
@@ -73,6 +75,14 @@ class Account {
         callback(null, result);
       }
     );
+  }
+
+  // NEW: Fetch user by ID for login
+  static getUserForLogin(accountID, callback) {
+    pool.query("SELECT * FROM UserAccounts WHERE accountID = ?", [accountID], (error, results) => {
+      if (error) return callback(error);
+      callback(null, results[0]);
+    });
   }
 }
 

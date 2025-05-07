@@ -1,3 +1,5 @@
+// controllers/accountController.js
+
 const Account = require('../models/accountModel');
 
 // Get all accounts
@@ -94,5 +96,41 @@ exports.resetPassword = (req, res) => {
       return res.status(500).json({ message: "Failed to reset password" });
     }
     res.json({ message: "Password reset successfully" });
+  });
+};
+
+// NEW: Login user
+exports.loginUser = (req, res) => {
+  const { accountID, password } = req.body;
+
+  if (!accountID || !password) {
+    return res.status(400).json({ message: "Account ID and password are required" });
+  }
+
+  Account.getUserForLogin(accountID, (err, user) => {
+    if (err) {
+      console.error("Database error:", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+
+    if (!user) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    // Compare plain text password
+    if (password !== user.password) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    // Return basic user info
+    res.json({
+      message: "Login successful",
+      user: {
+        accountID: user.accountID,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        roleID: user.roleID,
+      },
+    });
   });
 };

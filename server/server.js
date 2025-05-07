@@ -34,6 +34,7 @@ const orderDetailsRoutes = require('./src/routes/orderDetailsRoutes');
 const transactionRoutes = require('./src/routes/transactionRoutes');
 const accountRoutes = require('./src/routes/accountRoutes');
 const accountRoleRoutes = require('./src/routes/accountRoleRoutes');
+const { loginUser } = require('./src/controllers/accountController'); // Import the login function
 
 // Mount routes
 app.use("/suppliers", supplierRoutes);
@@ -55,6 +56,7 @@ app.use("/orderDetails", orderDetailsRoutes);
 app.use("/transactions", transactionRoutes);
 app.use("/accounts", accountRoutes); // All account-related routes
 app.use("/role", accountRoleRoutes); // All account role-related routes
+app.use("/login", loginUser); // 👈 LOGIN ROUTE
 // Log that server is running
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
