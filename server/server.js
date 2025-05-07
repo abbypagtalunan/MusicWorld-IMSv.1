@@ -33,7 +33,7 @@ const discountRoutes = require('./src/routes/discountRoutes');
 const orderRoutes = require('./src/routes/orderRoutes');
 const orderDetailsRoutes = require('./src/routes/orderDetailsRoutes');
 const transactionRoutes = require('./src/routes/transactionRoutes');
-const accountRoutes = require('./src/routes/accountRoutes'); // All account-related routes
+const accountRoutes = require('./src/routes/accountRoutes');
 
 // Mount routes
 app.use("/suppliers", supplierRoutes);
