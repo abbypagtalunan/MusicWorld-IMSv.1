@@ -374,128 +374,126 @@ const handleMultiRetrieve = () => {
               {Object.entries(configMap).map(([key, cfg]) => (
                 <TabsContent key={key} value={key}>
                   {/* Table */}
-                    <Card>
-                      <CardContent className="p-4">
-                        <div className="relative mb-4">
-                          {/* Search */}
-                          <div className="flex items-center justify-between mb-4 bg-white p-2 rounded-lg">
-                            <div className="flex items-center space-x-2">
-                              <div className="relative w-80">
-                                <Input
-                                  type="text"
-                                  placeholder={`Search ${config.label}...`}
-                                  className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                  value={searchTerm}
-                                  onChange={(e) => {
-                                    setSearchTerm(e.target.value);
+                    <Card className="overflow-hidden">
+                    <div className="max-h-[600px] overflow-y-auto relative">
+                      <CardContent className="p-0">
+                        {/* Search */}
+                        <div className=" bg-white p-4 flex justify-between items-center">
+                            <div className="relative w-80">
+                              <Input
+                                type="text"
+                                placeholder={`Search ${config.label}...`}
+                                className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                value={searchTerm}
+                                onChange={(e) => {
+                                  setSearchTerm(e.target.value);
+                                  setSelectedTransactions([]);
+                                }}
+                              />
+                              <div className="absolute left-3 top-2.5 text-gray-500">
+                                <Search className="w-5 h-5" variant="outline"/>
+                              </div>
+                              {searchTerm && (
+                                <div
+                                  className="absolute right-3 top-2.5 text-gray-500 cursor-pointer"
+                                  onClick={() => {
+                                    setSearchTerm("");
                                     setSelectedTransactions([]);
                                   }}
-                                />
-                                <div className="absolute left-3 top-2.5 text-gray-500">
-                                  <Search className="w-5 h-5" variant="outline"/>
+                                >
+                                  <X className="w-5 h-5" />
                                 </div>
-                                {searchTerm && (
-                                  <div
-                                    className="absolute right-3 top-2.5 text-gray-500 cursor-pointer"
-                                    onClick={() => {
-                                      setSearchTerm("");
-                                      setSelectedTransactions([]);
-                                    }}
-                                  >
-                                    <X className="w-5 h-5" />
-                                  </div>
-                                )}
-                              </div>
+                              )}
                             </div>
 
-                            <div className="flex items-center gap-2">
+                            <div className="flex gap-2">
                               <Dialog open={isRDDOpen} onOpenChange={(open) => {
-                                  setRDDOpen(open);
-                                  if (!open) {
-                                    setSelectedTransactions([]);
-                                  }
-                                }}>
-                                  <DialogTrigger asChild>
-                                    <Button className="bg-blue-500 text-white" disabled={selectedTransactions.length === 0}>
-                                      Retrieve Selected
+                                setRDDOpen(open);
+                                if (!open) {
+                                  setSelectedTransactions([]);
+                                }
+                              }}>
+                                <DialogTrigger asChild>
+                                  <Button className="bg-blue-500 text-white" disabled={selectedTransactions.length === 0}>
+                                    Retrieve Selected
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
+                                  <DialogHeader>
+                                      <DialogTitle>Are you sure you want to retrieve these transactions?</DialogTitle>
+                                      <DialogDescription>This action will restore the transactions and update the sales report.</DialogDescription>
+                                  </DialogHeader>
+                                  <div className="flex justify-end gap-4 mt-4">
+                                    <Button
+                                      className="bg-blue-400 text-white hover:bg-blue-700"
+                                      onClick={() => handleMultiRetrieve()}
+                                    >
+                                    Confirm
                                     </Button>
-                                  </DialogTrigger>
-                                  <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
-                                    <DialogHeader>
-                                        <DialogTitle>Are you sure you want to retrieve these transactions?</DialogTitle>
-                                        <DialogDescription>This action will restore the transactions and update the sales report.</DialogDescription>
-                                    </DialogHeader>
-                                    <div className="flex justify-end gap-4 mt-4">
-                                      <Button
-                                        className="bg-blue-400 text-white hover:bg-blue-700"
-                                        onClick={() => handleMultiRetrieve()}
-                                      >
-                                      Confirm
-                                      </Button>
-                                      <DialogClose asChild>
-                                      <Button variant="outline">Cancel</Button>
-                                      </DialogClose>
-                                  </div>  
-                                  </DialogContent>
-                                </Dialog>
+                                    <DialogClose asChild>
+                                    <Button variant="outline">Cancel</Button>
+                                    </DialogClose>
+                                </div>  
+                                </DialogContent>
+                              </Dialog>
                                 
-                                <Dialog open={isMDDOpen} onOpenChange={(open) => {
-                                  setMDDOpen(open);
-                                  if (!open) {
-                                    setSelectedTransactions([]);
-                                    setAdminPW("");
-                                  }
-                                }}>
-                                  <DialogTrigger asChild>
-                                    <Button className="bg-red-500 text-white" disabled={selectedTransactions.length === 0}>
-                                      Delete Selected
-                                    </Button>
-                                  </DialogTrigger>
-                                  <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
-                                    <DialogHeader>
-                                      <DialogTitle>
-                                        <span className="text-lg text-red-900">Delete Multiple Transactions</span>
-                                        <span className="text-lg text-gray-400 font-normal italic ml-2">({selectedTransactions.length} items)</span>
-                                      </DialogTitle>
-                                      <DialogClose />
-                                    </DialogHeader>
-                                    <p className="text-sm text-gray-800 mt-2 pl-4">
-                                      Deleting these transactions will reflect on Void Transactions. Enter the admin password to delete the selected products.
-                                    </p>
-                                    <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">
-                                      <div className="flex-1">
-                                        <label htmlFor="password" className="text-base font-medium text-gray-700 block mb-2">Admin Password</label>
-                                          <Input
-                                            type="password"
-                                            required
-                                            placeholder="Enter admin password"
-                                            className="w-full"
-                                            value={adminPW}
-                                            onChange={(e) => setAdminPW(e.target.value)}
-                                          />
-                                      </div>
-                                      <Button
-                                        className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
-                                        onClick={() =>
-                                          handleMultiDelete(adminPW)
-                                          
-                                        }
-                                      >
-                                        DELETE TRANSACTIONS
-                                      </Button>
+                              <Dialog open={isMDDOpen} onOpenChange={(open) => {
+                                setMDDOpen(open);
+                                if (!open) {
+                                  setSelectedTransactions([]);
+                                  setAdminPW("");
+                                }
+                              }}>
+                                <DialogTrigger asChild>
+                                  <Button className="bg-red-500 text-white" disabled={selectedTransactions.length === 0}>
+                                    Delete Selected
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
+                                  <DialogHeader>
+                                    <DialogTitle>
+                                      <span className="text-lg text-red-900">Delete Multiple Transactions</span>
+                                      <span className="text-lg text-gray-400 font-normal italic ml-2">({selectedTransactions.length} items)</span>
+                                    </DialogTitle>
+                                    <DialogClose />
+                                  </DialogHeader>
+                                  <p className="text-sm text-gray-800 mt-2 pl-4">
+                                    Deleting these transactions will reflect on Void Transactions. Enter the admin password to delete the selected products.
+                                  </p>
+                                  <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">
+                                    <div className="flex-1">
+                                      <label htmlFor="password" className="text-base font-medium text-gray-700 block mb-2">Admin Password</label>
+                                        <Input
+                                          type="password"
+                                          required
+                                          placeholder="Enter admin password"
+                                          className="w-full"
+                                          value={adminPW}
+                                          onChange={(e) => setAdminPW(e.target.value)}
+                                        />
                                     </div>
-                                  </DialogContent>
-                                </Dialog>
-                              </div>
+                                    <Button
+                                      className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
+                                      onClick={() =>
+                                        handleMultiDelete(adminPW)
+                                        
+                                      }
+                                    >
+                                      DELETE TRANSACTIONS
+                                    </Button>
+                                  </div>
+                                </DialogContent>
+                              </Dialog>
                             </div>
                           </div>
 
-                        <Table>
-                          <TableHeader className="sticky top-0 bg-white z-10">
-                            <TableRow>
+                      <div className="sticky top-[72px] z-10 bg-white">
+                          <Table className="min-w-full">
+                          <TableHeader className="sticky top-[72px] z-10 bg-white shadow-sm">
+                              <TableRow>
                               {activeTab === "order" && (
                                 <>
-                                  <TableHead>
+                                  <TableHead className="px-4 py-2">
                                     <input type="checkbox" onChange={handleSelectAll} checked={selectedTransactions.length === getFilteredTransactions().length && selectedTransactions.length > 0} />
                                   </TableHead>
                                   <TableHead>Order ID</TableHead>
@@ -559,6 +557,11 @@ const handleMultiRetrieve = () => {
                               )}
                             </TableRow>
                           </TableHeader>
+                          </Table>
+                          </div>
+
+                        <div className="overflow-y-auto max-h-[450px]">
+                      <Table className="min-w-full">
                           <TableBody>
                           {getCurrentTabData().length === 0 ? (
                             <TableRow>
@@ -800,7 +803,9 @@ const handleMultiRetrieve = () => {
                           )}
                         </TableBody>
                       </Table>
+                      </div>
                     </CardContent>
+                    </div>
                   </Card>
                 </TabsContent>                            
               ))}
