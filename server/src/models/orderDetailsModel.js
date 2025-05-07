@@ -36,6 +36,47 @@ const getAllOrderDetails = (callback) => {
   });
 };
 
+// Reports fetching
+const fetchReportData = (callback) => {
+  const query = `
+    SELECT 
+      o.O_orderID,
+      o.O_receiptNumber,
+      o.T_transactionDate,
+      o.T_totalAmount,
+      o.D_wholeOrderDiscount,
+      o.O_orderPayment,
+      od.OD_detailID,
+      od.P_productCode,
+      p.P_productName,
+      od.D_discountType,
+      od.OD_quantity,
+      od.OD_unitPrice,
+      od.OD_sellingPrice,
+      od.OD_discountAmount,
+      od.OD_netSale,
+      od.OD_grossSale,
+      od.OD_grossProfit,
+      b.B_brandName,
+      s.S_supplierName
+    FROM Orders o
+    LEFT JOIN OrderDetails od ON o.O_orderID = od.O_orderID
+    LEFT JOIN Products p ON od.P_productCode = p.P_productCode
+    LEFT JOIN Brands b ON p.B_brandID = b.B_brandID
+    LEFT JOIN Suppliers s ON p.S_supplierID = s.S_supplierID
+    ORDER BY o.O_orderID, od.OD_detailID;
+  `;
+
+  db.query(query, (err, results) => {
+    if (err) {
+      callback(err, null);
+    } else {
+      callback(null, results);
+      console.log("Report Query Results:", results);
+    }
+  });
+};
+
 
 const addOrderDetail = (data, callback) => {
   const {
@@ -160,6 +201,7 @@ const getOrderDetailById = (id, callback) => {
 
 module.exports = {
   getAllOrderDetails,
+  fetchReportData,
   addOrderDetail,
   updateOrderDetail,
   deleteOrderDetail,
