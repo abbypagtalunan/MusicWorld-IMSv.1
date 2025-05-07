@@ -114,6 +114,22 @@ const OrderDashboard = () => {
           .catch(err => {
             console.error("Failed to save order detail:", detailPayload, err.response?.data || err.message);
           });
+
+          // Update the stock number for the product 
+          axios.patch(`http://localhost:8080/products/${item["Product Code"]}/deductStock`, {
+            quantityOrdered: quantity,
+          })
+          .then(response => {
+            console.log(`Stock updated for product ${item["Product Code"]}` + "with Quantity: ", quantity);
+            console.log('Response data:', response.data); 
+          })
+          .catch(err => {
+            console.error("Failed to update stock:", err.response ? err.response.data : err.message);
+            console.log(`Stock did not update for product ${item["Product Code"]}` + " with Quantity: ", quantity);
+            console.log(`Quantity:`, quantity);
+          });
+
+
         });
       })
       .then(() => {
