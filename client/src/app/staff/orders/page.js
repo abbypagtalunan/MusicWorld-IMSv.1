@@ -1,18 +1,17 @@
 "use client";
-
 import { useEffect, useState } from "react";
-import { AppSidebar } from "@/components/staff-sidebar"
-import { SidebarProvider } from "@/components/ui/sidebar"
+import { AppSidebar } from "@/components/staff-sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose, } from "@/components/ui/dialog";
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { Search, ListFilter, Trash2, Ellipsis } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
+import { toast, Toaster } from "react-hot-toast";
 import axios from "axios";
 
 export default function OrdersPage() {
-
   const [selectedFilter, setSelectedFilter] = useState(null);
   const [selectedSubFilter, setSelectedSubFilter] = useState(null);
   const handleFilterSelect = (filter, subFilter = null) => {
@@ -38,22 +37,23 @@ export default function OrdersPage() {
           totalProductDiscount: o.D_totalProductDiscount,
           transacDate: o.T_transactionDate,
           orderPayment: o.O_orderPayment,
-          isDel: o.isTemporarilyDeleted
+          isDel: o.isTemporarilyDeleted,
         }));
         setOrders(mappedOrders);
       })
       .catch((err) => console.error("Failed to fetch orders:", err));
-  }, []);  
+  }, []);
 
   // Fetch Order Details
   useEffect(() => {
-    axios.get("http://localhost:8080/orderDetails")
-      .then(res => {
+    axios
+      .get("http://localhost:8080/orderDetails")
+      .then((res) => {
         const mappedOrderDetails = res.data.map((o) => ({
           orderDetailID: o.OD_detailID,
           orderID: o.O_orderID,
           productCode: o.P_productCode,
-          productName: o.P_productName,    
+          productName: o.P_productName,
           discountType: o.D_discountType,
           quantity: o.OD_quantity,
           unitPrice: o.OD_unitPrice,
@@ -66,36 +66,98 @@ export default function OrdersPage() {
         }));
         setOrderDetails(mappedOrderDetails);
       })
-      .catch(err => {
-        console.error("Failed to fetch order details:", err);
-      });
+      .catch((err) => console.error("Failed to fetch order details:", err));
   }, []);
-  
-    const formatDate = (isoString) => {
-      const date = new Date(isoString);
-      const pad = (n) => n.toString().padStart(2, "0");
-      const month = pad(date.getMonth() + 1);
-      const day = pad(date.getDate());
-      const year = date.getFullYear();
-      return `${month}/${day}/${year}`;
-    };
-    
-    const formatTime = (isoString) => {
-      const date = new Date(isoString);
-      let hours = date.getHours();
-      const minutes = date.getMinutes().toString().padStart(2, "0");
-      const seconds = date.getSeconds().toString().padStart(2, "0");
-      const ampm = hours >= 12 ? "PM" : "AM";
-      hours = hours % 12 || 12;
-      const paddedHours = hours.toString().padStart(2, "0");
-      return `${paddedHours}:${minutes}:${seconds} ${ampm}`;
-    };
 
-    const formatPeso = (value) => {
-      const num = parseFloat(value);
-      return isNaN(num) ? "₱0.00" : `₱${num.toFixed(2)}`;
-    };
-    
+  const formatDate = (isoString) => {
+    const date = new Date(isoString);
+    const pad = (n) => n.toString().padStart(2, "0");
+    const month = pad(date.getMonth() + 1);
+    const day = pad(date.getDate());
+    const year = date.getFullYear();
+    return `${month}/${day}/${year}`;
+  };
+
+  const formatTime = (isoString) => {
+    const date = new Date(isoString);
+    let hours = date.getHours();
+    const minutes = date.getMinutes().toString().padStart(2, "0");
+    const seconds = date.getSeconds().toString().padStart(2, "0");
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12 || 12;
+    const paddedHours = hours.toString().padStart(2, "0");
+    return `${paddedHours}:${minutes}:${seconds} ${ampm}`;
+  };
+
+  const formatPeso = (value) => {
+    const num = parseFloat(value);
+    return isNaN(num) ? "₱0.00" : `₱${num.toFixed(2)}`;
+  };
+
+  // Delete
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [adminPW, setAdminPW] = useState("");
+  const [isDDOpen, setDDOpen] = useState(false);
+
+  const config = {
+    order: {
+      label: "Order",
+      idField: "orderID",
+      api: {
+        fetch: "http://localhost:8080/orders",
+        delete: "http://localhost:8080/orders", // URL for deleting orders
+      },
+    },
+  };
+
+  const handleDelete = (orderID) => {
+    axios
+      .delete(`${config.order.api.delete}/${orderID}`, {
+        data: { adminPW },
+      })
+      .then((response) => {
+        if (response.data.affectedRows > 0) {
+          toast.success("Order deleted successfully");
+          refreshTable();
+          setDDOpen(false);
+          setAdminPW("");
+          setSelectedProduct(null);
+        } else {
+          toast.error("Order not found or already deleted");
+        }
+      })
+      .catch((err) => {
+        console.error("Delete error:", err.response?.data || err.message);
+        if (err.response?.status === 403) {
+          toast.error("Invalid admin password");
+        } else {
+          toast.error("Deletion failed: " + (err.response?.data?.message || err.message));
+        }
+        setDDOpen(false);
+        setAdminPW("");
+        setSelectedProduct(null);
+      });
+  };
+
+  const refreshTable = () => {
+    axios
+      .get("http://localhost:8080/orders")
+      .then((res) => {
+        const mappedOrders = res.data.map((o) => ({
+          orderID: o.O_orderID,
+          receiptNo: o.O_receiptNumber,
+          totalAmount: o.T_totalAmount,
+          wholeOrderDiscount: o.D_wholeOrderDiscount,
+          totalProductDiscount: o.D_totalProductDiscount,
+          transacDate: o.T_transactionDate,
+          orderPayment: o.O_orderPayment,
+          isDel: o.isTemporarilyDeleted,
+        }));
+        setOrders(mappedOrders);
+      })
+      .catch((err) => console.error("Error fetching orders:", err));
+  };
+
   return (
     <SidebarProvider>
       <div className="flex h-screen w-screen">
@@ -283,51 +345,73 @@ export default function OrdersPage() {
                         </DialogContent>
                       </Dialog>            
 
-
-                      {/* For deleting transactions */}
-                      <Dialog>
-                        <DialogTrigger asChild>
-                      <Button variant="ghost" size="sm" className="text-gray-500 hover:text-red-600">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-gray-500 hover:text-red-600"
+                        onClick={() => {
+                          setSelectedProduct(order);
+                          setDDOpen(true);
+                        }}
+                      >
                         <Trash2 size={16} />
                       </Button>
-                        </DialogTrigger>
-                        <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
-                        <DialogHeader>
-                            <DialogTitle>
-                              <span className="text-lg text-red-900">Delete Transaction</span>{" "}
-                              <span className="text-lg text-gray-400 font-normal italic">{order.transactionID}</span></DialogTitle>
-                            <DialogClose />
-                          </DialogHeader>
-                          <p className='text-sm text-gray-800 mt-2 pl-4'> Deleting this transaction will reflect on Void Transactions. Enter the admin password to delete this transaction. </p>
-                          <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">        
-                            <div className="flex-1">
-                              <label htmlFor={`password-${order.transactionID}`} className="text-base font-medium text-gray-700 block mb-2">
-                                Admin Password
-                              </label>
-                              <Input type="password" id={`password-${order.transactionID}`} required
-                                placeholder="Enter valid password"  className="w-full" 
-                              />
-                            </div>
-          
-                            <Button 
-                              className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
-                              onClick={() => handleDelete(order.transactionID, 
-                                document.getElementById(`password-${order.transactionID}`).value)}
-                            >
-                              DELETE TRANSACTION
-                            </Button>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
                     </TableCell>
                   </TableRow>
                   );
                 })}
               </TableBody>
             </Table>
+            <Dialog open={isDDOpen} onOpenChange={(open) => {
+              setDDOpen(open);
+              if (!open) {
+                setAdminPW("");
+              }
+            }}>
+              <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
+                <DialogHeader>
+                  <DialogTitle>
+                    <span className="text-lg text-red-900">Delete Transaction</span>{" "}
+                    <span className="text-lg text-gray-400 font-normal italic">
+                      {selectedProduct?.productCode}
+                    </span>
+                  </DialogTitle>
+                  <DialogClose />
+                </DialogHeader>
+                <p className="text-sm text-gray-800 mt-2 pl-4">
+                  Deleting this transaction will reflect on Void Transactions. Enter the admin password to delete this transaction.
+                </p>
+                <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">
+                  <div className="flex-1">
+                    <label className="text-base font-medium text-gray-700 block mb-2">
+                      Admin Password
+                    </label>
+                    <Input
+                      type="password"
+                      required
+                      placeholder="Enter valid password"
+                      className="w-full"
+                      value={adminPW}
+                      onChange={(e) => setAdminPW(e.target.value)}
+                    />
+                  </div>
+
+                  <Button
+                    className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
+                    onClick={() => {
+                      handleDelete(selectedProduct?.productCode);
+                      setDDOpen(false);
+                    }}
+                  >
+                    DELETE TRANSACTION
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
       </div>
+      <Toaster position="top-center" />
     </SidebarProvider>
   );
 }

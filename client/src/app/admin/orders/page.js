@@ -173,8 +173,7 @@ export default function OrdersPage() {
           <div className="flex items-center justify-between mb-4 bg-white p-2 rounded-lg">
             <div className="flex items-center space-x-2">
               <div className="relative w-80">
-                {/* Search */}
-                <Input
+                <input
                   type="text"
                   placeholder="Search transaction, id, product"
                   className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
