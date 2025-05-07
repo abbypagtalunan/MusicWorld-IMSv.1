@@ -1,8 +1,12 @@
-const express = require("express");
+// routes/accountRoutes.js
+const express = require('express');
 const router = express.Router();
-const accountController = require("../controllers/accountController");
+const accountController = require('../controllers/accountController');
 
-router.get("/", accountController.getAllAccounts); // GET /accounts
-router.get("/:id", accountController.getAccountById); // GET /accounts/123
+router.get('/', accountController.getAllAccounts);         // GET all staff
+router.get('/:id', accountController.getAccountById);       // GET one staff
+router.post('/', accountController.createAccount);         // POST create staff
+router.put('/:id', accountController.updateAccount);       // PUT update staff
+router.delete('/:id', accountController.deleteAccount);     // DELETE staff
 
 module.exports = router;
