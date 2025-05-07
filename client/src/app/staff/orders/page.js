@@ -6,14 +6,27 @@ import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
-import { Search, ListFilter, Trash2, Ellipsis } from "lucide-react";
+import { Search, ListFilter, Trash2, Ellipsis, Calendar } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { format } from "date-fns";
 import { toast, Toaster } from "react-hot-toast";
 import axios from "axios";
 
 export default function OrdersPage() {
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
+  
+  // Filter states
   const [selectedFilter, setSelectedFilter] = useState(null);
   const [selectedSubFilter, setSelectedSubFilter] = useState(null);
+
+  // Date filter states
+  const [date, setDate] = useState(null);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+
+  // Handle filter selection 
   const handleFilterSelect = (filter, subFilter = null) => {
     setSelectedFilter(filter);
     setSelectedSubFilter(subFilter);
@@ -21,6 +34,7 @@ export default function OrdersPage() {
 
   // Order and Order Details
   const [orders, setOrders] = useState([]);
+  const [filteredOrders, setFilteredOrders] = useState([]);
   const [orderDetails, setOrderDetails] = useState([]);
   const [selectedOrderID, setSelectedOrderID] = useState(null);
 
@@ -40,6 +54,7 @@ export default function OrdersPage() {
           isDel: o.isTemporarilyDeleted,
         }));
         setOrders(mappedOrders);
+        setFilteredOrders(mappedOrders);
       })
       .catch((err) => console.error("Failed to fetch orders:", err));
   }, []);
@@ -69,6 +84,78 @@ export default function OrdersPage() {
       .catch((err) => console.error("Failed to fetch order details:", err));
   }, []);
 
+  // Apply search and filters to orders
+  useEffect(() => {
+    let result = [...orders];
+    
+    // Apply search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(order => 
+        order.orderID.toString().toLowerCase().includes(query) || 
+        (order.receiptNo && order.receiptNo.toString().toLowerCase().includes(query))
+      );
+    }
+    
+    // Apply selected filter
+    if (selectedFilter && selectedSubFilter) {
+      switch(selectedFilter) {
+        case "Order ID":
+          result = result.sort((a, b) => {
+            return selectedSubFilter === "Ascending" 
+              ? a.orderID - b.orderID 
+              : b.orderID - a.orderID;
+          });
+          break;
+        case "Receipt Number":
+          result = result.sort((a, b) => {
+            if (!a.receiptNo) return 1;
+            if (!b.receiptNo) return -1;
+            return selectedSubFilter === "Ascending" 
+              ? a.receiptNo.localeCompare(b.receiptNo) 
+              : b.receiptNo.localeCompare(a.receiptNo);
+          });
+          break;
+        case "Total Amount":
+          result = result.sort((a, b) => {
+            return selectedSubFilter === "Low to High" 
+              ? a.totalAmount - b.totalAmount 
+              : b.totalAmount - a.totalAmount;
+          });
+          break;
+        case "Payment":
+          result = result.sort((a, b) => {
+            return selectedSubFilter === "Low to High" 
+              ? a.orderPayment - b.orderPayment 
+              : b.orderPayment - a.orderPayment;
+          });
+          break;
+        case "Date added":
+          result = result.sort((a, b) => {
+            const dateA = new Date(a.transacDate);
+            const dateB = new Date(b.transacDate);
+            return selectedSubFilter === "Low to High" 
+              ? dateA - dateB 
+              : dateB - dateA;
+          });
+          break;
+      }
+    }
+    
+    // Apply date filter
+    if (date) {
+      const selectedDate = new Date(date);
+      result = result.filter(order => {
+        const orderDate = new Date(order.transacDate);
+        return orderDate.getDate() === selectedDate.getDate() && 
+                orderDate.getMonth() === selectedDate.getMonth() && 
+                orderDate.getFullYear() === selectedDate.getFullYear();
+      });
+    }
+    
+    setFilteredOrders(result);
+  }, [orders, searchQuery, selectedFilter, selectedSubFilter, date]);
+  
   const formatDate = (isoString) => {
     const date = new Date(isoString);
     const pad = (n) => n.toString().padStart(2, "0");
@@ -166,10 +253,13 @@ export default function OrdersPage() {
           <div className="flex items-center justify-between mb-4 bg-white p-2 rounded-lg">
             <div className="flex items-center space-x-2">
               <div className="relative w-80">
-                <input
+                {/* Search */}
+                <Input
                   type="text"
-                  placeholder="Search transaction, id, product"
+                  placeholder="Search order id, receipt number"
                   className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                 />
                 <div className="absolute left-3 top-2.5 text-gray-500">
                   <Search className="w-5 h-5" />
@@ -185,13 +275,13 @@ export default function OrdersPage() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start">
                     <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>Transaction Type</DropdownMenuSubTrigger>
+                      <DropdownMenuSubTrigger>Order ID</DropdownMenuSubTrigger>
                       <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Transaction Type", "Sales")}>
-                          Sales
+                        <DropdownMenuItem onClick={() => handleFilterSelect("Order ID", "Ascending")}>
+                          Ascending
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Transaction Type", "Return")}>
-                          Return
+                        <DropdownMenuItem onClick={() => handleFilterSelect("Order ID", "Descending")}>
+                          Descending
                         </DropdownMenuItem>
                       </DropdownMenuSubContent>
                     </DropdownMenuSub>
@@ -209,24 +299,24 @@ export default function OrdersPage() {
                     </DropdownMenuSub>
                     
                     <DropdownMenuSub>
-                    <DropdownMenuSubTrigger>Product Name</DropdownMenuSubTrigger>
+                      <DropdownMenuSubTrigger>Total Amount</DropdownMenuSubTrigger>
                       <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Product Name", "Ascending")}>
-                          Ascending
+                        <DropdownMenuItem onClick={() => handleFilterSelect("Total Amount", "Low to High")}>
+                          Low to High
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Product Name", "Descending")}>
-                          Descending
+                        <DropdownMenuItem onClick={() => handleFilterSelect("Total Amount", "High to Low")}>
+                          High to Low
                         </DropdownMenuItem>
                       </DropdownMenuSubContent>
                     </DropdownMenuSub>
 
                     <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>Price</DropdownMenuSubTrigger>
+                      <DropdownMenuSubTrigger>Payment</DropdownMenuSubTrigger>
                       <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Price", "Low to High")}>
+                        <DropdownMenuItem onClick={() => handleFilterSelect("Payment", "Low to High")}>
                           Low to High
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Price", "High to Low")}>
+                        <DropdownMenuItem onClick={() => handleFilterSelect("Payment", "High to Low")}>
                           High to Low
                         </DropdownMenuItem>
                       </DropdownMenuSubContent>
@@ -252,6 +342,42 @@ export default function OrdersPage() {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>   
+
+               {/* Calendar Button for Date Filtering */}
+               <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                  <PopoverTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      className={`flex items-center space-x-2 ${date ? 'text-blue-600 border-blue-600' : ''}`}
+                    >
+                      <Calendar className="w-4 h-4" />
+                      <span>{date ? format(date, 'MM/dd/yyyy') : 'Date'}</span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={date}
+                      onSelect={(date) => {
+                        setDate(date);
+                        setIsCalendarOpen(false);
+                      }}
+                      initialFocus
+                    />
+                    {date && (
+                      <div className="p-2 border-t flex justify-end">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => setDate(null)}
+                          className="text-red-500"
+                        >
+                          Clear
+                        </Button>
+                      </div>
+                    )}
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
           </div>
@@ -273,9 +399,9 @@ export default function OrdersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-              {orders.map((order) => {
+              {filteredOrders.map((order) => {
                   return (
-                  <TableRow>
+                  <TableRow key={order.orderID}>
                     <TableCell>{order.orderID}</TableCell>
                     <TableCell>{formatDate(order.transacDate)}</TableCell>
                     <TableCell>{formatTime(order.transacDate)}</TableCell>
@@ -322,6 +448,7 @@ export default function OrdersPage() {
                               .filter((detail) => detail.orderID === selectedOrderID)
                               .map((detail) => (
                               <TableRow>
+                              <TableRow key={detail.orderDetailID}></TableRow>
                                 <TableCell>{detail.orderID}</TableCell>
                                 <TableCell>{detail.orderDetailID}</TableCell>
                                 <TableCell>{detail.productCode}</TableCell>
@@ -368,6 +495,7 @@ export default function OrdersPage() {
                 setAdminPW("");
               }
             }}>
+              {/* For deleting transactions */}
               <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
                 <DialogHeader>
                   <DialogTitle>
