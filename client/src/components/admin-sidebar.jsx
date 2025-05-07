@@ -60,12 +60,12 @@ const data = {
       icon: Undo2Icon,
       path: "returns"
     },
-    {
-      title: "Discounts",
-      url: "./discounts",
-      icon: TicketPercentIcon,
-      path: "discounts"
-    },
+    // {
+    //   title: "Discounts",
+    //   url: "./discounts",
+    //   icon: TicketPercentIcon,
+    //   path: "discounts"
+    // },
     {
       title: "Deleted Transactions",
       url: "./deleted",

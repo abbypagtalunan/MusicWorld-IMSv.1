@@ -6,12 +6,12 @@ const getAllDeleted = (callback) => {
     SELECT 
       p.P_productCode,
       c.C_categoryName as category,
-      p.P_SKU,
       p.P_productName,
       b.B_brandName as brand,
       s.S_supplierName as supplier,
       p.S_supplierID,
-      pk.P_stockNum as stock,
+      p.P_stockNum as stock,
+      p.P_lastRestockDateTime,
       p.P_unitPrice,
       p.P_sellingPrice,
       ps.P_productStatusName as status,
@@ -22,9 +22,8 @@ const getAllDeleted = (callback) => {
     LEFT JOIN Categories c ON p.C_categoryID = c.C_categoryID
     LEFT JOIN Brands b ON p.B_brandID = b.B_brandID
     LEFT JOIN Suppliers s ON p.S_supplierID = s.S_supplierID
-    LEFT JOIN ProductStock pk ON p.PS_StockDetailsID = pk.PS_StockDetailsID
     LEFT JOIN ProductStatus ps ON p.P_productStatusID = ps.P_productStatusID
-    WHERE p.isDeleted = TRUE`
+    WHERE p.isDeleted = 1 AND p.P_productStatusID = 4`
     ;
     
     db.query(query, (err, results) => {

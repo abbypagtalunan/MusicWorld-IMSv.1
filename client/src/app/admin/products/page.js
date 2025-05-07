@@ -33,7 +33,7 @@ export default function ProductsPage() {
       statusField: "P_productStatusName",
       statusId: "P_productStatusID",
       dateField: "P_dateAdded",
-      isAutoInc: false,
+      isAutoInc: true,
       api: {
         fetch: "http://localhost:8080/products", 
         add: "http://localhost:8080/products",  
@@ -87,17 +87,14 @@ export default function ProductsPage() {
 
   const [data, setData] = useState([]);
   const [values, setValues] = useState({
-    [config.product.codeField]: "",
     [config.product.categoryField]: "",    
     [config.product.nameField]: "",
     [config.product.brandField]: "",
     [config.product.supplierField]: "",
     [config.product.stockField]: "",
-    [config.product.lastRestockField]: "",
     [config.product.unitpriceField]: "",
     [config.product.sellingpriceField]: "",
     [config.product.statusField]: "",
-    [config.product.dateField]: "",
   });
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -113,25 +110,22 @@ export default function ProductsPage() {
     supplier: item.supplier || "",
     supplierID: item.S_supplierID,
     stockNumber: item.stock || 1,
-    lastRestock: item.P_lastRestockDateTime,
+    lastRestock: item.P_lastRestockDateTime ? formatDateTime(item.P_lastRestockDateTime) : "N/A",
     price: item.P_unitPrice,
     sellingPrice: item.P_sellingPrice,
     status: item.status,
-    dateAdded: item.P_dateAdded
+    dateAdded: item.P_dateAdded ? formatDate(item.P_dateAdded) : "N/A"
   }));
 
   const isAddValid =
-      values[config.product.codeField] &&
       values[config.product.categoryField] &&    
       values[config.product.nameField] &&
       values[config.product.brandField] &&
       values[config.product.supplierField] &&
       values[config.product.stockField] &&
-      values[config.product.lastRestockField] &&
       values[config.product.unitpriceField] &&
       values[config.product.sellingpriceField] &&
-      values[config.product.statusField] &&
-      values[config.product.dateField]
+      values[config.product.statusField]
   
 
   // Fetch
@@ -202,6 +196,7 @@ export default function ProductsPage() {
             ) || (item[config.idField] || "").includes(searchTerm)
         )
       : [];
+      
     let sortedTransactions = [...data];
     if (!selectedFilter || !selectedSubFilter) return sortedTransactions;
 
@@ -292,17 +287,14 @@ export default function ProductsPage() {
   const handleSubmit = (e) => {
     e.preventDefault();
     const payload = { 
-      P_productCode: values[config.product.codeField],
       C_categoryID: values[config.product.categoryField],
       P_productName: values[config.product.nameField],
       B_brandID: values[config.product.brandField],
       S_supplierID: values[config.product.supplierField],
       P_stockNum: values[config.product.stockField],
-      P_lastRestockDateTime: values[config.product.lastRestockField],
       P_unitPrice: values[config.product.unitpriceField],
       P_sellingPrice: values[config.product.sellingpriceField],
-      P_productStatusID: 1,
-      P_dateAdded: values[config.product.dateField]
+      P_productStatusID: 1
     };
 
     axios
@@ -331,17 +323,14 @@ export default function ProductsPage() {
 
   const resetForm = (customFields = {}) => {
     setValues({
-      [config.product.codeField]: "",
       [config.product.categoryField]: "",   
       [config.product.nameField]: "",
       [config.product.brandField]: "",
       [config.product.supplierField]: "",
       [config.product.stockField]: "",
-      [config.product.lastRestockField]: "",
       [config.product.unitpriceField]: "",
       [config.product.sellingpriceField]: "",
       [config.product.statusField]: "",
-      [config.product.dateField]: "",
       ...customFields
     });
   };
@@ -354,8 +343,7 @@ export default function ProductsPage() {
       P_productName: values[config.product.nameField] || selectedProduct.productName,
       B_brandID: values[config.product.brandField] || selectedProduct.brandID,
       S_supplierID: values[config.product.supplierField] || selectedProduct.supplierID,
-      stockNumber: values[config.product.stockField] || selectedProduct.stockNumber,
-      lastRestock: [config.product.lastRestockField] || selectedProduct.lastRestock,
+      P_stockNum: values[config.product.stockField] || selectedProduct.stockNumber,
       P_unitPrice: values[config.product.unitpriceField] || selectedProduct.unitPrice,
       P_sellingPrice: values[config.product.sellingpriceField] || selectedProduct.sellingPrice,
       P_productStatusID: values[config.product.statusID] || selectedProduct.statusID
@@ -381,10 +369,23 @@ export default function ProductsPage() {
   };
 
   // Price edit
+  const [openProduct, setOpenProduct] = useState(false);
+  const [PSearchTerm, setPSearchTerm] = useState("");
+  const [selectProductforPU, setSelectedProductforPU] = useState(null);
   const [isPDOpen, setPDopen] = useState(false);
   const handlePriceUpdate = async () => {
     const productCode = values[config.product.codeField];;
     const P_sellingPrice = values[config.product.sellingpriceField];
+
+    if (!productCode) {
+      toast.error("No product selected");
+      return;
+    }
+
+    if (!P_sellingPrice) {
+      toast.error("No price entered");
+      return;
+    }
 
     axios
       .put(`http://localhost:8080/products/update-price/${productCode}`, { P_sellingPrice })
@@ -393,10 +394,10 @@ export default function ProductsPage() {
         refreshTable();
         resetForm({
           [config.product.codeField]: "",
-          [config.product.nameField]: "",
-          [config.product.supplierField]: "",
           [config.product.sellingpriceField]: "",
         });
+        setPSearchTerm("");
+        setSelectedProductforPU(null);
         setPDopen(false);
       })  
       .catch((err) => {
@@ -648,9 +649,6 @@ export default function ProductsPage() {
                     <SheetTitle className="text-blue-400 text-xl font-bold">Add New Product</SheetTitle>
                   </SheetHeader>
                   <div className="overflow-y-auto flex flex-col space-y-4">
-                    <Label className>Product Code</Label>
-                    <Input placeholder="Enter product code" type="number" required onChange={(e) => setValues({...values, [config.product.codeField]: e.target.value})} />
-
                     <Label>Category</Label>
                     <Select onValueChange={(value) => setValues({ ...values, [config.product.categoryField]: value })}>
                       <SelectTrigger>
@@ -704,10 +702,7 @@ export default function ProductsPage() {
 
                     <Label>Stock amount</Label>
                     <Input type="number" placeholder="Enter Stock amount" required onChange={(e) => setValues({ ...values, [config.product.stockField]: e.target.value })}/>
-                    
-                    <Label>Last Restock Date and Time</Label>
-                    <Input type="datedatetime-local" required onChange={(e) => setValues({ ...values, [config.product.lastRestockField]: e.target.value })}/>
-                    
+
                     <Label>Price</Label>
                     <Input placeholder="Enter price"  type="number" required onChange={(e) => setValues({ ...values, [config.product.unitpriceField]: e.target.value })}/>
 
@@ -729,9 +724,6 @@ export default function ProductsPage() {
                         ))}
                       </SelectContent>
                     </Select>
-
-                    <Label>Date Added</Label>
-                    <Input type="date" required onChange={(e) => setValues({ ...values, [config.product.dateField]: e.target.value })}/>
                     <Button className="bg-blue-400 text-white w-full mt-4" onClick={handleSubmit}>Add Product</Button>
                   </div>
                 </SheetContent>
@@ -749,47 +741,46 @@ export default function ProductsPage() {
                   <div className="flex flex-col gap-4 mt-4 text-gray-700">
                     <Label>Product Code</Label>
                     <Input disabled placeholder="Auto-filled" className="bg-gray-300" value={values[config.product.codeField] ?? ""}/>
-                    
-                    <Label>Product Name</Label>
+
+                    <Label>Product </Label>
                     <Select onValueChange={(value) => {
                       const selected = data.find(p => p.productCode === value);
                       if (selected) {
                         setValues({
                           ...values,
                           [config.product.codeField]: selected.productCode,
-                          [config.product.nameField]: selected.productName,
-                          [config.product.supplierField]: selected.supplierID.toString(),
                           [config.product.sellingpriceField]: selected.sellingPrice,
                         });
                       }
                     }}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select Product" />
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Search/Select Product" />
                       </SelectTrigger>
                       <SelectContent>
-                        {data.map((product) => (
-                          <SelectItem
-                            key={product.productCode}
-                            value={product.productCode}>
-                            {product.productName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>  
-                    </Select>
-
-                    <Label>Supplier</Label>
-                    <Select value = {values[config.product.supplierField] ?? ""}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select Supplier" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {suppliers.map((supplier) => (
-                          <SelectItem
-                            key={supplier.S_supplierID}
-                            value={supplier.S_supplierID.toString()}>
-                            {supplier.S_supplierName}
-                          </SelectItem>
-                        ))}
+                        <div className="p-2">
+                          <Input
+                            placeholder="Search/Select product"
+                            className="mb-2"
+                            onChange={(e) => setPSearchTerm(e.target.value)}
+                            value={PSearchTerm}
+                          />
+                        </div>
+                        {data
+                          .filter(product =>
+                            product.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            product.supplier.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            product.brand.toLowerCase().includes(searchTerm.toLowerCase())
+                          )
+                          .map((product) => (
+                            <SelectItem
+                              key={product.productCode}
+                              value={product.productCode}
+                            >
+                              <div className="flex flex-col">
+                                <span>{product.productName}-S{product.supplier}-B{product.brand}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
                       </SelectContent>  
                     </Select>
 
@@ -885,7 +876,6 @@ export default function ProductsPage() {
               <TableBody>
               {getFilteredTransactions().filter(item =>
                 (item.productName?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
-                (item.productCode?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
                 (item.category?.toLowerCase() || "").includes(searchTerm.toLowerCase())                
               ).map((item) => (
                   <TableRow key={item.productCode} className={getStatusColor(item.status)}>
@@ -902,11 +892,11 @@ export default function ProductsPage() {
                     <TableCell>{item.brand}</TableCell>
                     <TableCell>{item.supplier}</TableCell>
                     <TableCell>{item.stockNumber} pcs</TableCell>
-                    <TableCell>{new Date(item.P_lastRestockDateTime).toLocaleDateString()}</TableCell>
+                    <TableCell>{item.lastRestock}</TableCell>
                     <TableCell>{item.price}</TableCell>
                     <TableCell>{item.sellingPrice}</TableCell>
                     <TableCell className={`font-semibold ${getStatusTextColor(item.status)}`}>{item.status}</TableCell>
-                    <TableCell>{new Date(item.dateAdded).toLocaleDateString()}</TableCell>
+                    <TableCell>{item.dateAdded}</TableCell>
                     <TableCell className="flex space-x-2">
                       <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600" onClick={() => openEditSheet(item)}>
                         <FilePen size={16} />
@@ -990,10 +980,7 @@ export default function ProductsPage() {
               </Select>
 
               <label className="text-black font-semibold text-sm">Stock amount</label>
-              <Input type="number" value={values[config.product.stockField]  ?? ""} /*defaultValue={selectedProduct.quantity}*/ onChange={(e) => setValues({ ...values, [config.product.stockField]: e.target.value })}/>
-
-              <label className="text-black font-semibold text-sm">Last Restock Date and Time</label>
-              <Input value={selectedProduct.lastRestockField} className="bg-gray-200" />
+              <Input type="number" value={values[config.product.stockField]  ?? ""} onChange={(e) => setValues({ ...values, [config.product.stockField]: e.target.value })}/>
 
               <label className="text-black font-semibold text-sm">Price</label>
               <Input type="text" value={values[config.product.unitpriceField]  ?? ""} /*defaultValue={selectedProduct.price}*/ onChange={(e) => setValues({ ...values, [config.product.unitpriceField]: e.target.value })}/>
@@ -1104,5 +1091,34 @@ function getStatusTextColor(status) {
       return "text-orange-600";
     case "Discontinued":
       return "text-gray-500";
+  }
+}
+
+function formatDateTime(dateTimeString) {
+  try {
+    const date = new Date(dateTimeString);
+    return date.toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+  } catch (e) {
+    return "N/A";
+  }
+}
+
+function formatDate(dateString) {
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  } catch (e) {
+    return "N/A";
   }
 }

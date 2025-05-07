@@ -12,7 +12,19 @@ const getAllOrderDetails = (req, res) => {
   });
 };
 
+// Fetch report data
+const fetchReportData = (req, res) => {
+  orderDetailsModel.fetchReportData((err, results) => {
+    if (err) {
+      console.error('Error fetching report data from database:', err);
+      res.status(500).json({ error: 'Error fetching report data' });
+    } else {
+      res.json(results);
+    }
+  });
+};
 
+// Add order detail
 const addOrderDetail = (req, res) => {
   const {
     O_orderID,
@@ -109,6 +121,7 @@ const deleteOrderDetail = (req, res) => {
 
 module.exports = {
   getAllOrderDetails,
+  fetchReportData,
   addOrderDetail,
   updateOrderDetail,
   deleteOrderDetail,
