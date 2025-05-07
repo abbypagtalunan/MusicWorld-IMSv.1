@@ -1,5 +1,4 @@
-// models/accountRoleModel.js
-const pool = require('../../db'); // Adjust this path based on your project structure
+const pool = require('../../db');
 
 class AccountRole {
   static getAllRoles(callback) {

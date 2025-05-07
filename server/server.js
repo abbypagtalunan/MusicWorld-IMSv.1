@@ -33,6 +33,7 @@ const orderRoutes = require('./src/routes/orderRoutes');
 const orderDetailsRoutes = require('./src/routes/orderDetailsRoutes');
 const transactionRoutes = require('./src/routes/transactionRoutes');
 const accountRoutes = require('./src/routes/accountRoutes');
+const accountRoleRoutes = require('./src/routes/accountRoleRoutes');
 
 // Mount routes
 app.use("/suppliers", supplierRoutes);
@@ -53,7 +54,7 @@ app.use("/orders", orderRoutes);
 app.use("/orderDetails", orderDetailsRoutes);
 app.use("/transactions", transactionRoutes);
 app.use("/accounts", accountRoutes); // All account-related routes
-
+app.use("/role", accountRoleRoutes); // All account role-related routes
 // Log that server is running
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
