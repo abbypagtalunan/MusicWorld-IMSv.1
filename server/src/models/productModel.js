@@ -37,13 +37,13 @@ const getAllProducts = (callback) => {
 
 // Add a new Product
 const addProduct = (productData, callback) => {
-  const { P_productCode, C_categoryID, P_productName, B_brandID, S_supplierID, P_stockNum, P_lastRestockDateTime, P_unitPrice, P_sellingPrice, P_productStatusID, P_dateAdded } = productData;
+  const { C_categoryID, P_productName, B_brandID, S_supplierID, P_stockNum, P_unitPrice, P_sellingPrice, P_productStatusID } = productData;
 
-  const insertProductQuery = `INSERT INTO Products (P_productCode, C_categoryID, P_productName, B_brandID, S_supplierID, P_stockNum, P_lastRestockDateTime, P_unitPrice, P_sellingPrice, P_productStatusID, P_dateAdded) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+  const insertProductQuery = `INSERT INTO Products (C_categoryID, P_productName, B_brandID, S_supplierID, P_stockNum, P_unitPrice, P_sellingPrice, P_productStatusID) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
 
   db.query(
     insertProductQuery,
-    [ P_productCode, C_categoryID, P_productName, B_brandID, S_supplierID, P_stockNum, P_lastRestockDateTime, P_unitPrice, P_sellingPrice, P_productStatusID, P_dateAdded ],
+    [ C_categoryID, P_productName, B_brandID, S_supplierID, P_stockNum, P_unitPrice, P_sellingPrice, P_productStatusID ],
     (err, results) => {
       if (err) return callback(err);
       callback(null, results);
@@ -54,22 +54,32 @@ const addProduct = (productData, callback) => {
 
 // Update an existing brand
 const updateProduct = (productCode, productData, callback) => {
-  const { C_categoryID, P_productName, B_brandID, S_supplierID, P_stockNum, P_lastRestockDateTime, P_unitPrice, P_sellingPrice, P_productStatusID } = productData;
+  const { C_categoryID, P_productName, B_brandID, S_supplierID, P_stockNum, P_unitPrice, P_sellingPrice, P_productStatusID } = productData;
 
-    const updateProductQuery = `
+    const currentStockQuery = `SELECT P_stockNum FROM Products WHERE P_productCode = ?`;
+
+    db.query(currentStockQuery, [productCode], (err, res) => {
+      if (err) return callback(err);
+
+      const currentStock = res[0]?.P_stockNum;
+      const newStock = P_stockNum;
+
+      const lastRestock = currentStock !== newStock ? `, P_lastRestockDateTime = CURRENT_TIMESTAMP` : '';
+
+      const updateProductQuery = `
       UPDATE Products
-      SET  C_categoryID = ?, P_productName = ?, B_brandID = ?, S_supplierID = ?, P_stockNum = ?, P_unitPrice = ?, P_sellingPrice = ?, P_productStatusID = ? 
+      SET  C_categoryID = ?, P_productName = ?, B_brandID = ?, S_supplierID = ?, P_stockNum = ?, P_unitPrice = ?, P_sellingPrice = ?, P_productStatusID = ? ${lastRestock} 
       WHERE P_productCode = ?;
-    `;
+      `;
 
     db.query(
       updateProductQuery,
-      [ C_categoryID, P_productName, B_brandID, S_supplierID, P_stockNum, P_lastRestockDateTime, P_unitPrice, P_sellingPrice, P_productStatusID, productCode ],
+      [ C_categoryID, P_productName, B_brandID, S_supplierID, P_stockNum, P_unitPrice, P_sellingPrice, P_productStatusID, productCode ],
       (err, results) => {
         if (err) return callback(err);
         callback(null, results);
-    }
-  );
+    }); 
+  });
 };
 
 const updateProductPrice = (productData, callback) => {

@@ -16,12 +16,12 @@ const getAllProducts = (req, res) => {
 
 // Route to add a new product
 const addProduct = (req, res) => {
-  const { P_productCode, C_categoryID, P_productName, B_brandID, S_supplierID, P_stockNum, P_lastRestockDateTime, P_unitPrice, P_sellingPrice, P_productStatusID = 1, P_dateAdded } = req.body;
-  if (!P_productCode || !P_productName ) {
+  const { C_categoryID, P_productName, B_brandID, S_supplierID, P_stockNum, P_unitPrice, P_sellingPrice, P_productStatusID = 1 } = req.body;
+  if ( !P_productName ) {
     return res.status(400).json({ message: 'Missing required fields' });
   }
 
-  productModel.addProduct({ P_productCode, C_categoryID, P_productName, B_brandID, S_supplierID, P_stockNum, P_lastRestockDateTime, P_unitPrice, P_sellingPrice, P_productStatusID, P_dateAdded }, (err, productId) => {
+  productModel.addProduct({  C_categoryID, P_productName, B_brandID, S_supplierID, P_stockNum, P_unitPrice, P_sellingPrice, P_productStatusID }, (err, productId) => {
     if (err) {
       console.error('Error inserting product:', err);
       res.status(500).json({ message: 'Error inserting product' });
@@ -34,9 +34,9 @@ const addProduct = (req, res) => {
 // Route to update product details
 const updateProduct = (req, res) => {
   const productCode = req.params.id;  // Extract product ID from the URL parameter
-  const { C_categoryID, P_productName, B_brandID, S_supplierID, P_stockNum, P_lastRestockDateTime, P_unitPrice, P_sellingPrice, P_productStatusID } = req.body; // Get the new data from the request body
+  const { C_categoryID, P_productName, B_brandID, S_supplierID, P_stockNum, P_unitPrice, P_sellingPrice, P_productStatusID } = req.body; // Get the new data from the request body
 
-  productModel.updateProduct(productCode, { C_categoryID, P_productName, B_brandID, S_supplierID, P_stockNum, P_lastRestockDateTime, P_unitPrice, P_sellingPrice, P_productStatusID }, (err, results) => {
+  productModel.updateProduct(productCode, { C_categoryID, P_productName, B_brandID, S_supplierID, P_stockNum, P_unitPrice, P_sellingPrice, P_productStatusID }, (err, results) => {
     if (err) {
       console.error('Error updating product:', err);
       return res.status(500).json({ message: 'Error updating product' });
