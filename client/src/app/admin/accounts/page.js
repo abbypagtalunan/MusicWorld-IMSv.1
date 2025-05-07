@@ -359,7 +359,7 @@ export default function ManageAccountsPage() {
 
             {/* MY ACCOUNT TAB */}
             <TabsContent value="my-account" className="mt-0">
-              <div className="flex flex-col lg:flex-row gap-4 items-stretch">
+              <div className="flex flex-col lg:flex-row gap-4 items-stretch p-4">
                 <Card className="w-full lg:w-2/3 text-gray-700 content-center">
                   <CardHeader className="pb-0">
                     <CardTitle className="text-xl text-center">Account Information</CardTitle>
@@ -469,11 +469,11 @@ export default function ManageAccountsPage() {
 
             {/* STAFF TAB */}
             <TabsContent value="staff" className="mt-0">
-              <div className="mb-4">
+              <div className="mt-2 p-2">
                 <h2 className="text-xl font-semibold text-gray-800">Staff ({staffs.length})</h2>
               </div>
               {/* FILTERS & ACTIONS */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+              <div className="p-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
                 <div className="flex gap-2 flex-1">
                   <Input
                     placeholder="Search staff..."
@@ -544,7 +544,7 @@ export default function ManageAccountsPage() {
                 <div className="flex gap-2">
                   <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
                     <DialogTrigger asChild>
-                      <Button className="bg-blue-400 text-white">Add Staff</Button>
+                      <Button className="bg-blue-400 text-white p-4">Add Staff</Button>
                     </DialogTrigger>
                     <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
                       <DialogHeader>
@@ -651,7 +651,7 @@ export default function ManageAccountsPage() {
                   <div className="flex flex-col overflow-auto max-h-[60vh] w-full">
                     <Table>
                       <TableHeader className="sticky top-0 z-10 bg-white">
-                        <TableRow>
+                        <TableRow className="text-left text-gray-500 font-medium">
                           <TableHead>Date Created</TableHead>
                           <TableHead>Name</TableHead>
                           <TableHead>Role</TableHead>
@@ -662,8 +662,8 @@ export default function ManageAccountsPage() {
                       </TableHeader>
                       <TableBody>
                         {getFilteredStaffs().map((staff) => (
-                          <TableRow key={staff.accountID}>
-                            <TableCell className="text-center">
+                          <TableRow key={staff.accountID} className="text-left p-6 hover:bg-gray-50 ">
+                            <TableCell> 
                               {new Date(staff.dateCreated).toLocaleDateString()}
                             </TableCell>
                             <TableCell>{`${staff.firstName} ${staff.lastName}`}</TableCell>
