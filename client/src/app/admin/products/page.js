@@ -911,45 +911,17 @@ export default function ProductsPage() {
                         <FilePen size={16} />
                       </Button>
                       {/* For deleting transactions */}
-                      <Dialog open={isDDOpen} onOpenChange={(open) => {
-                        setDDOpen(open);
-                        if (!open) setAdminPW("");
-                      }}>
-                          <DialogTrigger asChild>
-                        <Button variant="ghost" size="sm" className="text-gray-500 hover:text-red-600" onClick={() => {setSelectedProduct(item); }}>
-                          <Trash2 size={16} />
-                        </Button>
-                          </DialogTrigger>
-                          <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
-                          <DialogHeader>
-                              <DialogTitle>
-                                <span className="text-lg text-red-900">Delete Transaction</span>{" "}
-                                <span className="text-lg text-gray-400 font-normal italic">{selectedProduct?.productCode}</span></DialogTitle>
-                              <DialogClose />
-                            </DialogHeader>
-                            <p className='text-sm text-gray-800 mt-2 pl-4'> Deleting this transaction will reflect on Void Transactions. Enter the admin password to delete this transaction. </p>
-                            <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">         
-                              <div className="flex-1">
-                                <label htmlFor={`password-${selectedProduct?.productCode}`} className="text-base font-medium text-gray-700 block mb-2">
-                                  Admin Password
-                                </label>
-                                <Input type="password" required placeholder="Enter valid password" className="w-full" value={adminPW}
-                                    onChange={(e) =>
-                                      setAdminPW(e.target.value)
-                                    }
-                                />
-                              </div>
-            
-                              <Button 
-                                className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
-                                onClick={() => {handleDelete(selectedProduct?.productCode);
-                                setDDOpen(false);}}
-                              >
-                                DELETE TRANSACTION
-                              </Button>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-gray-500 hover:text-red-600"
+                        onClick={() => {
+                          setSelectedProduct(item);
+                          setDDOpen(true);
+                        }}
+                      >
+                        <Trash2 size={16} />
+                      </Button>
                     </TableCell>
                 </TableRow>
               ))}
@@ -1052,6 +1024,54 @@ export default function ProductsPage() {
           )}
         </SheetContent>
       </Sheet>
+
+      <Dialog open={isDDOpen} onOpenChange={(open) => {
+        setDDOpen(open);
+        if (!open) {
+          setAdminPW("");
+        }
+      }}>
+        <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
+          <DialogHeader>
+            <DialogTitle>
+              <span className="text-lg text-red-900">Delete Transaction</span>{" "}
+              <span className="text-lg text-gray-400 font-normal italic">
+                {selectedProduct?.productCode}
+              </span>
+            </DialogTitle>
+            <DialogClose />
+          </DialogHeader>
+          <p className="text-sm text-gray-800 mt-2 pl-4">
+            Deleting this transaction will reflect on Void Transactions. Enter the admin password to delete this transaction.
+          </p>
+          <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">
+            <div className="flex-1">
+              <label className="text-base font-medium text-gray-700 block mb-2">
+                Admin Password
+              </label>
+              <Input
+                type="password"
+                required
+                placeholder="Enter valid password"
+                className="w-full"
+                value={adminPW}
+                onChange={(e) => setAdminPW(e.target.value)}
+              />
+            </div>
+
+            <Button
+              className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
+              onClick={() => {
+                handleDelete(selectedProduct?.productCode);
+                setDDOpen(false);
+              }}
+            >
+              DELETE TRANSACTION
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
         </div>
       </div>
     </div>
