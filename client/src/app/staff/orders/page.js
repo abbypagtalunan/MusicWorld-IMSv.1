@@ -93,7 +93,9 @@ export default function OrdersPage() {
       const query = searchQuery.toLowerCase();
       result = result.filter(order => 
         order.orderID.toString().toLowerCase().includes(query) || 
-        (order.receiptNo && order.receiptNo.toString().toLowerCase().includes(query))
+        // Safe string conversion for receipt number
+        (order.receiptNo !== null && order.receiptNo !== undefined && 
+         order.receiptNo.toString().toLowerCase().includes(query))
       );
     }
     
@@ -109,11 +111,30 @@ export default function OrdersPage() {
           break;
         case "Receipt Number":
           result = result.sort((a, b) => {
+            // Handle null, undefined, or empty receipt numbers
+            if (!a.receiptNo && !b.receiptNo) return 0;
             if (!a.receiptNo) return 1;
             if (!b.receiptNo) return -1;
-            return selectedSubFilter === "Ascending" 
-              ? a.receiptNo.localeCompare(b.receiptNo) 
-              : b.receiptNo.localeCompare(a.receiptNo);
+            
+            // Convert both to strings for consistent comparison
+            const receiptA = a.receiptNo.toString();
+            const receiptB = b.receiptNo.toString();
+            
+            // Check if both are numeric strings
+            const numA = parseFloat(receiptA);
+            const numB = parseFloat(receiptB);
+            
+            if (!isNaN(numA) && !isNaN(numB)) {
+              //Does numeric comparison after validity check
+              return selectedSubFilter === "Ascending" 
+                ? numA - numB 
+                : numB - numA;
+            } else {
+              // String comparison
+              return selectedSubFilter === "Ascending" 
+                ? receiptA.localeCompare(receiptB) 
+                : receiptB.localeCompare(receiptA);
+            }
           });
           break;
         case "Total Amount":
