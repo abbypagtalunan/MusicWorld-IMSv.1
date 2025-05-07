@@ -298,7 +298,7 @@ export default function OrdersPage() {
                               <span className="text-lg text-gray-400 font-normal italic">{order.transactionID}</span></DialogTitle>
                             <DialogClose />
                           </DialogHeader>
-                          <p className='text-sm text-gray-800 mt-2 pl-4'> Deleting this transaction will reflect on Void Transactions. Enter the admin password to delete this transaction. </p>
+                          <p className='text-sm text-gray-800 mt-2 pl-4'> Deleting this transaction will reflect on Deleted Transactions. Enter the admin password to delete this transaction. </p>
                           <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">        
                             <div className="flex-1">
                               <label htmlFor={`password-${order.transactionID}`} className="text-base font-medium text-gray-700 block mb-2">
