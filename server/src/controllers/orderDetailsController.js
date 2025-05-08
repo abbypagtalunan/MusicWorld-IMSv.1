@@ -62,7 +62,6 @@ const addOrderDetail = (req, res) => {
   );
 };
 
-
 // Route to update an existing order detail
 const updateOrderDetail = (req, res) => {
   const orderDetailId = req.params.id;

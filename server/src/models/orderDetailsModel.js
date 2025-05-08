@@ -1,7 +1,6 @@
 const db = require('../../db');
 const orders = require('../models/ordersModel.js');
 
-// Get all OrderDetails with product name, discount type, and computed total
 const getAllOrderDetails = (callback) => {
   const query = `
     SELECT 
@@ -46,6 +45,7 @@ const fetchReportData = (callback) => {
       o.T_totalAmount,
       o.D_wholeOrderDiscount,
       o.O_orderPayment,
+      o.isTemporarilyDeleted,
       od.OD_detailID,
       od.P_productCode,
       p.P_productName,
@@ -64,6 +64,7 @@ const fetchReportData = (callback) => {
     LEFT JOIN Products p ON od.P_productCode = p.P_productCode
     LEFT JOIN Brands b ON p.B_brandID = b.B_brandID
     LEFT JOIN Suppliers s ON p.S_supplierID = s.S_supplierID
+    WHERE o.isTemporarilyDeleted = 0
     ORDER BY o.O_orderID, od.OD_detailID;
   `;
 

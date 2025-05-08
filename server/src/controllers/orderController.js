@@ -53,17 +53,14 @@ const updateOrder = (req, res) => {
   const orderId = req.params.id;
   const { O_receiptNumber, T_totalAmount, D_wholeOrderDiscount, D_totalProductDiscount, T_transactionDate, isTemporarilyDeleted, O_orderPayment } = req.body;
 
-  // Validate receipt number
   if (!O_receiptNumber || isNaN(O_receiptNumber)) {
     return res.status(400).json({ message: 'Invalid or missing receipt number' });
   }
 
-  // Validate total amount
   if (typeof T_totalAmount !== 'number' || T_totalAmount < 0) {
     return res.status(400).json({ message: 'Invalid total amount' });
   }
 
-  // Update the order in the model
   ordersModel.updateOrder(orderId, { O_receiptNumber, T_totalAmount, D_wholeOrderDiscount, D_totalProductDiscount, T_transactionDate, isTemporarilyDeleted, O_orderPayment}, (err, results) => {
     if (err) {
       console.error('Error updating order:', err);
@@ -79,27 +76,53 @@ const updateOrder = (req, res) => {
 };
 
 // DELETE order
-const deleteOrder = (req, res) => {
+
+const softDeleteOrder = (req, res) => {
   const orderId = req.params.id;
+  const { adminPW } = req.body;
 
-  // Delete the order in the model
-  ordersModel.deleteOrder(orderId, (err, results) => {
+  if (!adminPW) {
+    return res.status(400).json({ message: "Password is required" });
+  }
+
+  // Check if an admin with that password exists
+  const query = `
+    SELECT * FROM UserAccounts 
+    WHERE roleID = 1 AND password = ? 
+  `;
+
+  db.query(query, [adminPW], (err, results) => {
     if (err) {
-      console.error('Error deleting order:', err);
-      return res.status(500).json({ message: 'Error deleting order' });
+      console.error('Error checking admin credentials:', err);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+    console.log('Admin lookup result:', results);
+
+    if (results.length === 0) {
+      return res.status(403).json({ message: "Invalid admin credentials" });
     }
 
-    if (results.affectedRows === 0) {
-      return res.status(404).json({ message: 'Order not found' });
-    }
+    // Admin validated — proceed to delete order
+    ordersModel.softDeleteOrder(orderId, (err, results) => {
+      if (err) {
+        console.error('Error deleting order:', err);
+        return res.status(500).json({ message: 'Error deleting order' });
+      }
 
-    res.status(200).json({ message: 'Order deleted successfully' });
+      if (results.affectedRows === 0) {
+        return res.status(404).json({ message: 'Order not found' });
+      }
+
+      res.status(200).json({ message: 'Order deleted successfully' });
+    });
   });
 };
+
 
 module.exports = {
   getAllOrders,
   addOrder,
   updateOrder,
-  deleteOrder,
+  // deleteOrder,
+  softDeleteOrder
 };

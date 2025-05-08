@@ -231,29 +231,23 @@ export default function OrdersPage() {
       idField: "orderID",
       api: {
         fetch: "http://localhost:8080/orders",
-        delete: "http://localhost:8080/orders", // URL for deleting orders
+        delete: "http://localhost:8080/orders",
       },
     },
   };
 
-  const handleDelete = (orderID) => {
-    axios
-      .delete(`${config.order.api.delete}/${orderID}`, {
-        data: { adminPW },
+    const handleDelete = (orderID) => {
+      axios.delete(`${config.order.api.delete}/${orderID}`, {
+        data: {adminPW}
       })
       .then((response) => {
-        if (response.data.affectedRows > 0) {
-          toast.success("Order deleted successfully");
-          refreshTable();
-          setDDOpen(false);
-          setAdminPW("");
-          setSelectedProduct(null);
-        } else {
-          toast.error("Order not found or already deleted");
-        }
+        toast.success("Item deleted successfully");
+        refreshTable();
+        setDDOpen(false);
+        setAdminPW("");
+        setSelectedOrderID([]);
       })
-      .catch((err) => {
-        console.error("Delete error:", err.response?.data || err.message);
+      .catch(err => {
         if (err.response?.status === 403) {
           toast.error("Invalid admin password");
         } else {
@@ -261,9 +255,9 @@ export default function OrdersPage() {
         }
         setDDOpen(false);
         setAdminPW("");
-        setSelectedProduct(null);
-      });
-  };
+        setSelectedOrderID([]);
+      })
+    };
 
   const refreshTable = () => {
     axios
@@ -282,6 +276,28 @@ export default function OrdersPage() {
         setOrders(mappedOrders);
       })
       .catch((err) => console.error("Error fetching orders:", err));
+
+      axios
+      .get("http://localhost:8080/orderDetails")
+      .then((res) => {
+        const mappedOrderDetails = res.data.map((o) => ({
+          orderDetailID: o.OD_detailID,
+          orderID: o.O_orderID,
+          productCode: o.P_productCode,
+          productName: o.P_productName,
+          discountType: o.D_discountType,
+          quantity: o.OD_quantity,
+          unitPrice: o.OD_unitPrice,
+          discountAmount: o.OD_discountAmount,
+          itemTotal: o.OD_netSale,
+          itemGross: o.OD_grossSale,
+          itemGrossProfit: o.OD_grossProfit,
+          brandName: o.B_brandName,
+          supplierName: o.S_supplierName,
+        }));
+        setOrderDetails(mappedOrderDetails);
+      })
+      .catch((err) => console.error("Failed to fetch order details:", err));
   };
 
   return (
