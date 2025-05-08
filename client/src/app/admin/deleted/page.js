@@ -345,7 +345,6 @@ const handleMultiRetrieve = () => {
       .catch(() => { 
         toast.error("Error deleting selected products.");
         setMDDOpen(false);
-        setAdminPW("");
         setSelectedTransactions([]);
       });
   };  

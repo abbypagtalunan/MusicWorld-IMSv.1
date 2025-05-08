@@ -28,7 +28,7 @@ const RDaction = ({ item, handleRetrieve, handleDelete, idField, codeField }) =>
                 <div className="flex justify-end gap-4 mt-4">
                     <Button
                         className="bg-blue-400 text-white hover:bg-blue-700"
-                        onClick={() => {handleRetrieve(`${item[idField]}-${item[codeField]}`); setRDOpen(false);}}
+                        onClick={() => {handleRetrieve(`${item[idField]}-${item[codeField]}`); setRDOpen(false); setAdminPW("");}}
                     >
                     Confirm
                     </Button>

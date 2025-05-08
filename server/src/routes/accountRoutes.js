@@ -13,4 +13,5 @@ router.put('/:id', accountController.updateAccount);        // PUT update staff
 router.put('/:id/reset-password', accountController.resetPassword); // PUT reset password
 router.delete('/:id', accountController.deleteAccount);     // DELETE staff
 
+router.post('/login', accountController.loginUser);
 module.exports = router;

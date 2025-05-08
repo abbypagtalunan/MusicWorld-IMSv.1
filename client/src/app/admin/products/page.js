@@ -754,17 +754,9 @@ export default function ProductsPage() {
                       }
                     }}>
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Search/Select Product" />
+                        <SelectValue placeholder="Select Product" />
                       </SelectTrigger>
                       <SelectContent>
-                        <div className="p-2">
-                          <Input
-                            placeholder="Search/Select product"
-                            className="mb-2"
-                            onChange={(e) => setPSearchTerm(e.target.value)}
-                            value={PSearchTerm}
-                          />
-                        </div>
                         {data
                           .filter(product =>
                             product.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1052,6 +1044,7 @@ export default function ProductsPage() {
               onClick={() => {
                 handleDelete(selectedProduct?.productCode);
                 setDDOpen(false);
+                setAdminPW("");
               }}
             >
               DELETE TRANSACTION
