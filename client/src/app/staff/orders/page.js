@@ -1,18 +1,19 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { AppSidebar } from "@/components/staff-sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
-import { Search, ListFilter, Trash2, Ellipsis, Calendar } from "lucide-react";
+import { Search, ListFilter, Trash2, Ellipsis, CalendarDays } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { toast, Toaster } from "react-hot-toast";
 import axios from "axios";
+import { cn } from "@/lib/utils";
 
 export default function OrdersPage() {
   // Search state
@@ -22,21 +23,21 @@ export default function OrdersPage() {
   const [selectedFilter, setSelectedFilter] = useState(null);
   const [selectedSubFilter, setSelectedSubFilter] = useState(null);
 
-  // Date filter states
-  const [date, setDate] = useState(null);
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-
-  // Handle filter selection 
-  const handleFilterSelect = (filter, subFilter = null) => {
-    setSelectedFilter(filter);
-    setSelectedSubFilter(subFilter);
-  };
+  // Date filter states - updated to use fromDate/toDate
+  const [fromDate, setFromDate] = useState(null);
+  const [toDate, setToDate] = useState(null);
 
   // Order and Order Details
   const [orders, setOrders] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [orderDetails, setOrderDetails] = useState([]);
   const [selectedOrderID, setSelectedOrderID] = useState(null);
+
+  // Add the missing handleFilterSelect function
+  const handleFilterSelect = (filter, subFilter) => {
+    setSelectedFilter(filter);
+    setSelectedSubFilter(subFilter);
+  };
 
   // Fetch Orders
   useEffect(() => {
@@ -163,19 +164,22 @@ export default function OrdersPage() {
       }
     }
     
-    // Apply date filter
-    if (date) {
-      const selectedDate = new Date(date);
+    // Apply date range filter - updated to use fromDate and toDate
+    if (fromDate || toDate) {
       result = result.filter(order => {
-        const orderDate = new Date(order.transacDate);
-        return orderDate.getDate() === selectedDate.getDate() && 
-                orderDate.getMonth() === selectedDate.getMonth() && 
-                orderDate.getFullYear() === selectedDate.getFullYear();
+        const transactionTime = new Date(order.transacDate).getTime();
+        const from = fromDate ? new Date(fromDate).setHours(0, 0, 0, 0) : null;
+        const to = toDate ? new Date(toDate).setHours(23, 59, 59, 999) : null;
+
+        if (from && to) return transactionTime >= from && transactionTime <= to;
+        if (from) return transactionTime >= from;
+        if (to) return transactionTime <= to;
+        return true;
       });
     }
     
     setFilteredOrders(result);
-  }, [orders, searchQuery, selectedFilter, selectedSubFilter, date]);
+  }, [orders, searchQuery, selectedFilter, selectedSubFilter, fromDate, toDate]);
   
   const formatDate = (isoString) => {
     const date = new Date(isoString);
@@ -200,6 +204,20 @@ export default function OrdersPage() {
   const formatPeso = (value) => {
     const num = parseFloat(value);
     return isNaN(num) ? "₱0.00" : `₱${num.toFixed(2)}`;
+  };
+
+  // Handle date range selection
+  const handleFromDateChange = (date) => {
+    setFromDate(date);
+    if (toDate && date > toDate) {
+      setToDate(null);
+    }
+  };
+
+  const handleToDateChange = (date) => {
+    if (!fromDate || date >= fromDate) {
+      setToDate(date);
+    }
   };
 
   // Delete
@@ -364,33 +382,68 @@ export default function OrdersPage() {
                   </DropdownMenuContent>
                 </DropdownMenu>   
 
-               {/* Calendar Button for Date Filtering */}
-               <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                {/* Date Range Filters - From and To */}
+                <Popover>
                   <PopoverTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      className={`flex items-center space-x-2 ${date ? 'text-blue-600 border-blue-600' : ''}`}
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-[150px] flex items-center justify-between px-3 py-2 border rounded-md font-normal",
+                        !fromDate && "text-muted-foreground"
+                      )}
                     >
-                      <Calendar className="w-4 h-4" />
-                      <span>{date ? format(date, 'MM/dd/yyyy') : 'Date'}</span>
+                      <CalendarDays className="mr-2 h-4 w-4" />
+                      {fromDate ? format(fromDate, "PPP") : <span>From</span>}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-[250px] p-0">
                     <CalendarComponent
                       mode="single"
-                      selected={date}
-                      onSelect={(date) => {
-                        setDate(date);
-                        setIsCalendarOpen(false);
-                      }}
+                      selected={fromDate}
+                      onSelect={handleFromDateChange}
                       initialFocus
                     />
-                    {date && (
+                    {fromDate && (
                       <div className="p-2 border-t flex justify-end">
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          onClick={() => setDate(null)}
+                          onClick={() => setFromDate(null)}
+                          className="text-red-500"
+                        >
+                          Clear
+                        </Button>
+                      </div>
+                    )}
+                  </PopoverContent>
+                </Popover>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-[150px] flex items-center justify-between px-3 py-2 border rounded-md font-normal",
+                        !toDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarDays className="mr-2 h-4 w-4" />
+                      {toDate ? format(toDate, "PPP") : <span>To</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[250px] p-0">
+                    <CalendarComponent
+                      mode="single"
+                      selected={toDate}
+                      onSelect={handleToDateChange}
+                      initialFocus
+                      disabled={(date) => fromDate && date < fromDate}
+                    />
+                    {toDate && (
+                      <div className="p-2 border-t flex justify-end">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => setToDate(null)}
                           className="text-red-500"
                         >
                           Clear
@@ -417,6 +470,7 @@ export default function OrdersPage() {
                   <TableHead>Total Product Discount</TableHead>
                   <TableHead>Whole Order Discount</TableHead>
                   <TableHead>Payment</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -468,8 +522,7 @@ export default function OrdersPage() {
                             {orderDetails
                               .filter((detail) => detail.orderID === selectedOrderID)
                               .map((detail) => (
-                              <TableRow>
-                              <TableRow key={detail.orderDetailID}></TableRow>
+                              <TableRow key={detail.orderDetailID}>
                                 <TableCell>{detail.orderID}</TableCell>
                                 <TableCell>{detail.orderDetailID}</TableCell>
                                 <TableCell>{detail.productCode}</TableCell>
@@ -483,7 +536,7 @@ export default function OrdersPage() {
                                 <TableCell>{formatPeso(detail.itemTotal)}</TableCell>
                                 <TableCell>{formatPeso(detail.itemGross)}</TableCell>
                                 <TableCell>{formatPeso(detail.itemGrossProfit)}</TableCell>
-                            </TableRow>                            
+                              </TableRow>                            
                               ))}
                             </TableBody>
                           </Table>
@@ -522,7 +575,7 @@ export default function OrdersPage() {
                   <DialogTitle>
                     <span className="text-lg text-red-900">Delete Transaction</span>{" "}
                     <span className="text-lg text-gray-400 font-normal italic">
-                      {selectedProduct?.productCode}
+                      {selectedProduct?.orderID}
                     </span>
                   </DialogTitle>
                   <DialogClose />
@@ -548,8 +601,7 @@ export default function OrdersPage() {
                   <Button
                     className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
                     onClick={() => {
-                      handleDelete(selectedProduct?.productCode);
-                      setDDOpen(false);
+                      handleDelete(selectedProduct?.orderID);
                     }}
                   >
                     DELETE TRANSACTION
