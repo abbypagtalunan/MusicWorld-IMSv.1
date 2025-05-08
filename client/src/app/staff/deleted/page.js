@@ -2,7 +2,7 @@
 
 import { useState, useEffect, act } from "react";
 import axios from "axios";
-import { AppSidebar } from "@/components/admin-sidebar";
+import { AppSidebar } from "@/components/staff-sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

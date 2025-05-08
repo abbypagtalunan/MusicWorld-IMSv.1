@@ -10,12 +10,15 @@ const getAllDeleted = (callback) => {
       p.P_productName,
       o.T_totalAmount,
       o.T_transactionDate,
+      o.O_orderPayment,
       s.S_supplierName AS supplier,
       b.B_brandName AS brand,
       c.C_categoryName AS category,
       od.OD_unitPrice,
       od.OD_quantity,
       od.OD_netSale,
+      od.OD_detailID,
+      od.OD_discountAmount,
       o.isTemporarilyDeleted,
       'Orders' as source
     FROM Orders o

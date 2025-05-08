@@ -25,17 +25,20 @@ export default function DeletedPage() {
     order: {
       label: "Orders",
       idField: "O_orderID",
+      idDetail: "OD_detailID",
       codeField: "P_productCode",
       receiptField: "O_receiptNumber",
       nameField: "P_productName",
       totalamtField: "T_totalAmount",
+      paymentField: "O_orderPayment",
       dateField: "T_transactionDate",
       supplierField: "supplier",
       brandField: "brand",
       categoryField: "category",
       quantityField: "OD_quantity",
       sellingpriceField: "OD_unitPrice",
-      itemtotalField: "OD_itemTotal",
+      itemtotalField: "OD_netSale",
+      discAmtField: "OD_discountAmount",
       setter: setDeletedOrders,
       api: {
         fetch: "http://localhost:8080/deletedOrders", 
@@ -497,13 +500,13 @@ const handleMultiRetrieve = () => {
                                   <TableHead className="px-4 py-2">
                                     <input type="checkbox" onChange={handleSelectAll} checked={selectedTransactions.length === getFilteredTransactions().length && selectedTransactions.length > 0} />
                                   </TableHead>
+                                  <TableHead>Date</TableHead>
                                   <TableHead>Order ID</TableHead>
-                                  <TableHead>Product Code</TableHead>
                                   <TableHead>Receipt Number</TableHead>
+                                  <TableHead>Product Code</TableHead>
                                   <TableHead>Product</TableHead>
-                                  <TableHead>Order Total Amount</TableHead>
-                                  <TableHead>Order Date</TableHead>
-                                  <TableHead>Details</TableHead>
+                                  <TableHead>Quantity</TableHead>
+                                  <TableHead>Item Total</TableHead>
                                   <TableHead>Retrieve/Delete</TableHead>
                                 </>
                               )}
@@ -582,12 +585,13 @@ const handleMultiRetrieve = () => {
                                         onChange={() => handleSelectTransaction(`${item[config.idField]}-${item[config.codeField]}`)}
                                       />
                                     </TableCell> 
-                                    <TableCell>{item[config.idField]}</TableCell>
-                                    <TableCell>{item[config.codeField]}</TableCell>
-                                    <TableCell>{item[config.receiptField]}</TableCell>
-                                    <TableCell>{item[config.nameField]}</TableCell>
-                                    <TableCell>{item[config.totalamtField]}</TableCell>
                                     <TableCell>{new Date(item[config.dateField]).toLocaleDateString()}</TableCell>
+                                    <TableCell>{item[config.idField]}</TableCell>
+                                    <TableCell>{item[config.receiptField]}</TableCell>
+                                    <TableCell>{item[config.codeField]}</TableCell>
+                                    <TableCell>{item[config.nameField] + " " + item[config.supplierField] + " " + item[config.brandField]}</TableCell>
+                                    <TableCell>{item[config.quantityField]}</TableCell>
+                                    <TableCell>{item[config.itemtotalField]}</TableCell>
                                     <TableCell>
                                       <Dialog>
                                         <DialogTrigger asChild>
@@ -603,24 +607,29 @@ const handleMultiRetrieve = () => {
                                           <Table>
                                             <TableHeader>
                                               <TableRow>
+                                                <TableHead>Order Detail ID</TableHead>
                                                 <TableHead>Product Code</TableHead>
                                                 <TableHead>Supplier</TableHead>
                                                 <TableHead>Brand</TableHead>
                                                 <TableHead>Category</TableHead>
                                                 <TableHead>Product</TableHead>
                                                 <TableHead>Selling Price</TableHead>
+                                                <TableHead>Discount Amount</TableHead>
                                                 <TableHead>Quantity</TableHead>
                                                 <TableHead>Item total</TableHead>
                                               </TableRow>
                                             </TableHeader>
                                             <TableBody>
                                               <TableRow>
+                                              <TableCell>{item[config.idDetail]}</TableCell>
                                                 <TableCell>{item[config.codeField]}</TableCell>
                                                 <TableCell>{item[config.supplierField]}</TableCell>
                                                 <TableCell>{item[config.brandField]}</TableCell>
                                                 <TableCell>{item[config.brandField]}</TableCell>
                                                 <TableCell>{item[config.nameField]}</TableCell>
                                                 <TableCell>{item[config.sellingpriceField]}</TableCell>
+                                                <TableCell>{item[config.discAmtField]}</TableCell>
+                                                
                                                 <TableCell>{item[config.quantityField]}</TableCell>
                                                 <TableCell>{item[config.itemtotalField]}</TableCell>
                                               </TableRow>
