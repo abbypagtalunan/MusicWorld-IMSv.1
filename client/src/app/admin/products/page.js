@@ -507,6 +507,51 @@ export default function ProductsPage() {
       })
   };
 
+  const handleDownloadCSV = (data) => {
+    const headers = [
+      "Product Code",
+      "Product Name",
+      "Category",
+      "Supplier",
+      "Brand",
+      "Stock Number",
+      "Last Restock",
+      "Unit Price",
+      "Selling Price",
+      "Status",
+      "Date Product Added"
+    ];
+  
+    const rows = data.map(item => [
+      item.productCode,
+      item.productName,
+      item.category,
+      item.supplier,
+      item.brand,
+      item.stockNumber,
+      item.lastRestock,
+      item.price,
+      item.sellingPrice,
+      item.status,
+      item.dateAdded
+    ]);
+  
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row => row.map(val => `"${val}"`).join(","))
+    ].join("\n");
+  
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "products.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <SidebarProvider>
       <div className="flex h-screen w-screen">
@@ -789,7 +834,11 @@ export default function ProductsPage() {
                 </DialogContent>
               </Dialog>
 
-              <Button className="bg-blue-400 text-white">
+              {/* DOWNLOAD */}
+              <Button
+                onClick={() => handleDownloadCSV(data)}
+                className="bg-blue-400 text-white"
+              >
                 <Download className="w-4 h-4" />
               </Button>
 
