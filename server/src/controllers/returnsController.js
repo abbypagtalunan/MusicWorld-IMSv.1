@@ -1,3 +1,5 @@
+// controllers/returnsController.js
+
 const returnModel = require('../models/returnsModel');
 const { getOrCreateReturnTypeId } = require('./returnTypeController');
 
@@ -100,7 +102,6 @@ const updateReturn = (req, res) => {
     return res.status(400).json({ message: 'Missing required fields' });
   }
 
-  // Fetch product price using existing model method
   const getProductPrice = (callback) => {
     const db = require('../../db'); // Importing your central DB connection
     const query = 'SELECT P_sellingPrice FROM Products WHERE P_productCode = ?';

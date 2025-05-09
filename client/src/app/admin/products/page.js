@@ -21,20 +21,19 @@ export default function ProductsPage() {
       codeField: "P_productCode",
       categoryField: "P_category",
       categoryID: "P_categoryID",
-      skuField: "P_SKU",
       nameField: "P_productName",
       brandField: "P_brand",
       brandID: "P_brandID",
       supplierField: "P_supplier",
       supplierID: "P_supplierID",
-      stockField: "stockAmt",
-      stockID: "P_StockDetailsID",
+      stockField: "P_stockNum",
+      lastRestockField: "P_lastRestockDateTime",
       unitpriceField: "P_unitPrice",
       sellingpriceField: "P_sellingPrice",
       statusField: "P_productStatusName",
       statusId: "P_productStatusID",
       dateField: "P_dateAdded",
-      isAutoInc: false,
+      isAutoInc: true,
       api: {
         fetch: "http://localhost:8080/products", 
         add: "http://localhost:8080/products",  
@@ -82,25 +81,13 @@ export default function ProductsPage() {
         fetch: "http://localhost:8080/productStatus",
       },
     },
-
-    productStock: {
-      label: "Product Stock",
-      idField: "PStockID",
-      amtField: "PStockNum",
-      isAutoInc: false,
-      api: {
-        fetch: "http://localhost:8080/productStocks",
-      },
-    },
   };
 
   const [selectedProduct, setSelectedProduct] = useState(null);
 
   const [data, setData] = useState([]);
   const [values, setValues] = useState({
-    [config.product.codeField]: "",
-    [config.product.categoryField]: "",
-    [config.product.skuField]: "",    
+    [config.product.categoryField]: "",    
     [config.product.nameField]: "",
     [config.product.brandField]: "",
     [config.product.supplierField]: "",
@@ -108,7 +95,6 @@ export default function ProductsPage() {
     [config.product.unitpriceField]: "",
     [config.product.sellingpriceField]: "",
     [config.product.statusField]: "",
-    [config.product.dateField]: "",
   });
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -118,19 +104,29 @@ export default function ProductsPage() {
     productCode: item.P_productCode,
     category: item.category || "",
     categoryID: item.C_categoryID,
-    SKU: item.P_SKU,
     productName: item.P_productName,
     brand: item.brand || "",
     brandID: item.B_brandID,
     supplier: item.supplier || "",
     supplierID: item.S_supplierID,
-    stockNumber: item.stock || 0,
-    stockID: item.P_StockDetailsID,
+    stockNumber: item.stock || 1,
+    lastRestock: item.P_lastRestockDateTime ? formatDateTime(item.P_lastRestockDateTime) : "N/A",
     price: item.P_unitPrice,
     sellingPrice: item.P_sellingPrice,
     status: item.status,
-    dateAdded: item.P_dateAdded
+    dateAdded: item.P_dateAdded ? formatDate(item.P_dateAdded) : "N/A"
   }));
+
+  const isAddValid =
+      values[config.product.categoryField] &&    
+      values[config.product.nameField] &&
+      values[config.product.brandField] &&
+      values[config.product.supplierField] &&
+      values[config.product.stockField] &&
+      values[config.product.unitpriceField] &&
+      values[config.product.sellingpriceField] &&
+      values[config.product.statusField]
+  
 
   // Fetch
   useEffect(() => {
@@ -142,11 +138,11 @@ export default function ProductsPage() {
       setValues({
         [config.product.codeField]: "",
         [config.product.categoryField]: "",
-        [config.product.skuField]: "",    
         [config.product.nameField]: "",
         [config.product.brandField]: "",
         [config.product.supplierField]: "",
         [config.product.stockField]: "",
+        [config.product.lastRestockField]: "",
         [config.product.unitpriceField]: "",
         [config.product.sellingpriceField]: "",
         [config.product.statusField]: "",
@@ -168,21 +164,15 @@ export default function ProductsPage() {
     const selectedBrand = brands.find(b => b.B_brandName === item.brand);
     const selectedCategory = categories.find(c => c.C_categoryName === item.category);
     const selectedStatus = pStatus.find(p => p.P_productStatusName === item.status);
-    const selectedStock = pStock.find(
-      (s) => s?.PS_StockDetailsID?.toString() === item.stockID?.toString()
-    );
-    const stockAmt =
-      selectedStock?.P_stockNum?.toString() ||
-      item.stockNumber?.toString() || "";
   
     setValues({
       [config.product.codeField]: item.productCode,
       [config.product.categoryField]: selectedCategory?.C_categoryID?.toString() || "",
-      [config.product.skuField]: item.SKU,
       [config.product.nameField]: item.productName,
       [config.product.brandField]: selectedBrand?.B_brandID?.toString() || "",
       [config.product.supplierField]: selectedSupplier?.S_supplierID?.toString() || "",
-      [config.product.stockField]: stockAmt,
+      [config.product.stockField]: item.stockNumber,
+      [config.product.lastRestockField]: item.lastRestock,
       [config.product.unitpriceField]: item.price,
       [config.product.sellingpriceField]: item.sellingPrice,
       [config.product.statusID]: selectedStatus?.P_productStatusID?.toString() || "",
@@ -206,6 +196,7 @@ export default function ProductsPage() {
             ) || (item[config.idField] || "").includes(searchTerm)
         )
       : [];
+      
     let sortedTransactions = [...data];
     if (!selectedFilter || !selectedSubFilter) return sortedTransactions;
 
@@ -291,29 +282,19 @@ export default function ProductsPage() {
       .then(res => setPStatus(res.data))
       .catch((err) => console.error("Failed to fetch product status options:", err));
   }, []);
-  const[pStock, setPStock] = useState([]);
-  useEffect(() => {
-    axios
-      .get("http://localhost:8080/productStocks")
-      .then(res => setPStock(res.data))
-      .catch((err) => console.error("Failed to fetch product status options:", err));
-  }, []);
  
   // Submit
   const handleSubmit = (e) => {
     e.preventDefault();
     const payload = { 
-      P_productCode: values[config.product.codeField],
       C_categoryID: values[config.product.categoryField],
-      P_SKU: values[config.product.skuField],
       P_productName: values[config.product.nameField],
       B_brandID: values[config.product.brandField],
       S_supplierID: values[config.product.supplierField],
-      stockAmt: values[config.product.stockField],
+      P_stockNum: values[config.product.stockField],
       P_unitPrice: values[config.product.unitpriceField],
       P_sellingPrice: values[config.product.sellingpriceField],
-      P_productStatusID: values[config.product.statusID],
-      P_dateAdded: values[config.product.dateField]
+      P_productStatusID: 1
     };
 
     axios
@@ -342,9 +323,7 @@ export default function ProductsPage() {
 
   const resetForm = (customFields = {}) => {
     setValues({
-      [config.product.codeField]: "",
-      [config.product.categoryField]: "",
-      [config.product.skuField]: "",    
+      [config.product.categoryField]: "",   
       [config.product.nameField]: "",
       [config.product.brandField]: "",
       [config.product.supplierField]: "",
@@ -352,7 +331,6 @@ export default function ProductsPage() {
       [config.product.unitpriceField]: "",
       [config.product.sellingpriceField]: "",
       [config.product.statusField]: "",
-      [config.product.dateField]: "",
       ...customFields
     });
   };
@@ -362,11 +340,10 @@ export default function ProductsPage() {
   const handleEdit = () => {
     const payload = { 
       C_categoryID: values[config.product.categoryField] || selectedProduct.categoryID,
-      P_SKU: values[config.product.skuField] || selectedProduct.SKU,
       P_productName: values[config.product.nameField] || selectedProduct.productName,
       B_brandID: values[config.product.brandField] || selectedProduct.brandID,
       S_supplierID: values[config.product.supplierField] || selectedProduct.supplierID,
-      stockAmt: values[config.product.stockField] || selectedProduct.stockAmount,
+      P_stockNum: values[config.product.stockField] || selectedProduct.stockNumber,
       P_unitPrice: values[config.product.unitpriceField] || selectedProduct.unitPrice,
       P_sellingPrice: values[config.product.sellingpriceField] || selectedProduct.sellingPrice,
       P_productStatusID: values[config.product.statusID] || selectedProduct.statusID
@@ -392,10 +369,23 @@ export default function ProductsPage() {
   };
 
   // Price edit
+  const [openProduct, setOpenProduct] = useState(false);
+  const [PSearchTerm, setPSearchTerm] = useState("");
+  const [selectProductforPU, setSelectedProductforPU] = useState(null);
   const [isPDOpen, setPDopen] = useState(false);
   const handlePriceUpdate = async () => {
     const productCode = values[config.product.codeField];;
     const P_sellingPrice = values[config.product.sellingpriceField];
+
+    if (!productCode) {
+      toast.error("No product selected");
+      return;
+    }
+
+    if (!P_sellingPrice) {
+      toast.error("No price entered");
+      return;
+    }
 
     axios
       .put(`http://localhost:8080/products/update-price/${productCode}`, { P_sellingPrice })
@@ -404,10 +394,10 @@ export default function ProductsPage() {
         refreshTable();
         resetForm({
           [config.product.codeField]: "",
-          [config.product.nameField]: "",
-          [config.product.supplierField]: "",
           [config.product.sellingpriceField]: "",
         });
+        setPSearchTerm("");
+        setSelectedProductforPU(null);
         setPDopen(false);
       })  
       .catch((err) => {
@@ -419,40 +409,37 @@ export default function ProductsPage() {
   // Delete
   const [adminPW, setAdminPW] = useState("");
   const [isDDOpen, setDDOpen] = useState("");
-  const [isMDDOpen, setMDDOpen] = useState("");
-  const handleDelete = (productCode, adminPWInput) => {
-    axios({
-      method: 'delete',
-      url: `http://localhost:8080/products/${productCode}`,
-      data: { adminPW: adminPWInput }, 
-      headers: {
-        'Content-Type': 'application/json',
+  const handleDelete = (productCode) => {
+    axios.delete(`${config.product.api.delete}/${productCode}`, {
+      data: {adminPW}
+    })
+    .then((response) => {
+      if (response.data.affectedRows > 0) {
+        toast.success("Item deleted successfully");
+        refreshTable();
+        setDDOpen(false);
+        setAdminPW("");
+        setSelectedProducts([]);
+      } else {
+        toast.error("Product not found or already deleted");
       }
     })
-      .then(() => {
-        toast.success("Product deleted successfully");
-        refreshTable();
-        setAdminPW("");
-        setDDOpen(false);
-      })
-      .catch(err => {
-        console.error("Delete error:", {
-          message: err.message,
-          response: err.response,
-          data: err.response?.data,
-          status: err.response?.status
-        });
-      
-        const msg =
-          err.response?.data?.message ||
-          err.response?.statusText ||
-          err.message ||
-          "Unknown error deleting product";
-      
-        toast.error(msg);
-      });
-  };
-  
+    .catch(err => {
+      console.error("Delete error:", err.response?.data || err.message);
+      if (err.response?.status === 403) {
+        toast.error("Invalid admin password");
+      } else {
+        toast.error("Deletion failed: " + (err.response?.data?.message || err.message));
+      }
+      setDDOpen(false);
+      setAdminPW("");
+      setSelectedProducts([]);
+    })
+  };  
+ 
+  useEffect(() => {
+    setSelectedProducts([]);
+  }, [selectedFilter, selectedSubFilter]); 
 
   // Multiple Delete
   const [selectedProducts, setSelectedProducts] = useState([]);
@@ -477,32 +464,93 @@ export default function ProductsPage() {
     }
   };
 
+  const [isMDDOpen, setMDDOpen] = useState("");
   const handleMultiDelete = (password) => {
-    if (!password) return toast.error("Password is required.");
+    if (!password) {
+      toast.error("Password is required.");
+      return;
+    }
+  
+    if (selectedProducts.length === 0) {
+      toast.error("No products selected.");
+      return;
+    }
+  
     Promise.all(
-      selectedProducts.map((code) =>
-        axios({
-          method: 'delete',
-          url: `${config.product.api.delete}/${code}`,
-          data: { adminPW: password /*adminPWInput */ }, 
-          headers: {
-            'Content-Type': 'application/json',
-          }
+      selectedProducts.map((productCode) =>
+        axios.delete(`${config.product.api.delete}/${productCode}`, {
+          data: { adminPW: password },
         })
       )
     )
-      .then(() => {
-        toast.success("Selected products deleted.");
-        refreshTable();
-        setAdminPW("");
-        setMDDOpen(false);
+      .then((responses) => {
+        const successCount = responses.filter(
+          (res) => res.data?.affectedRows > 0
+        ).length;
+        
+        if (successCount > 0) {
+          toast.success(`Deleted ${successCount} product(s) successfully`);
+            refreshTable();
+            setSelectedProducts([]); 
+            setAdminPW(""); 
+            setMDDOpen(false);
+        } else {
+          toast.error("No products were deleted (already deleted or not found)");
+        }
       })
-      .catch(() => toast.error("Error deleting selected products."));
-
-      useEffect(() => {
+      .catch((err) => {
+        console.error("Multi-delete error:", err);
+        toast.error("Error deleting selected products");
+        setDDOpen(false);
+        setAdminPW("");
         setSelectedProducts([]);
-      }, [selectedFilter, selectedSubFilter]);
-  };  
+      })
+  };
+
+  const handleDownloadCSV = (data) => {
+    const headers = [
+      "Product Code",
+      "Product Name",
+      "Category",
+      "Supplier",
+      "Brand",
+      "Stock Number",
+      "Last Restock",
+      "Unit Price",
+      "Selling Price",
+      "Status",
+      "Date Product Added"
+    ];
+  
+    const rows = data.map(item => [
+      item.productCode,
+      item.productName,
+      item.category,
+      item.supplier,
+      item.brand,
+      item.stockNumber,
+      item.lastRestock,
+      item.price,
+      item.sellingPrice,
+      item.status,
+      item.dateAdded
+    ]);
+  
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row => row.map(val => `"${val}"`).join(","))
+    ].join("\n");
+  
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "products.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <SidebarProvider>
@@ -512,7 +560,8 @@ export default function ProductsPage() {
           <div className="flex items-center justify-between mb-4 bg-white p-2 rounded-lg">
             <div className="flex items-center space-x-2">
               <div className="relative w-80">
-                <input
+                {/* Search */}
+                <Input
                   type="text"
                   placeholder="Search product, category, item code"
                   className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -645,9 +694,6 @@ export default function ProductsPage() {
                     <SheetTitle className="text-blue-400 text-xl font-bold">Add New Product</SheetTitle>
                   </SheetHeader>
                   <div className="overflow-y-auto flex flex-col space-y-4">
-                    <Label className>Product Code</Label>
-                    <Input placeholder="Enter product code" type="number" required onChange={(e) => setValues({...values, [config.product.codeField]: e.target.value})} />
-
                     <Label>Category</Label>
                     <Select onValueChange={(value) => setValues({ ...values, [config.product.categoryField]: value })}>
                       <SelectTrigger>
@@ -663,9 +709,6 @@ export default function ProductsPage() {
                         ))}
                       </SelectContent>
                     </Select>
-                    
-                    <Label>SKU</Label>
-                    <Input placeholder="Enter stock keeping unit" required onChange={(e) => setValues({ ...values, [config.product.skuField]: e.target.value })}/>
 
                     <Label>Product Name</Label>
                     <Input placeholder="Enter product name" required onChange={(e) => setValues({ ...values, [config.product.nameField]: e.target.value })}/>
@@ -712,9 +755,9 @@ export default function ProductsPage() {
                     <Input placeholder="Enter selling price"  type="number" required onChange={(e) => setValues({...values, [config.product.sellingpriceField]: e.target.value,})}/>
 
                     <Label>Product Status</Label>
-                    <Select onValueChange={(value) => setValues({ ...values, [config.product.statusID]: value })}>
+                    <Select disabled value="1">
                       <SelectTrigger>
-                        <SelectValue placeholder="Select Status"/>
+                        <SelectValue/>
                       </SelectTrigger>
                       <SelectContent>
                         {pStatus.map((pstatus) => (
@@ -726,9 +769,6 @@ export default function ProductsPage() {
                         ))}
                       </SelectContent>
                     </Select>
-
-                    <Label>Date Added</Label>
-                    <Input type="date" name="Pdateadded"  required onChange={(e) => setValues({ ...values, [config.product.dateField]: e.target.value })}/>
                     <Button className="bg-blue-400 text-white w-full mt-4" onClick={handleSubmit}>Add Product</Button>
                   </div>
                 </SheetContent>
@@ -746,47 +786,38 @@ export default function ProductsPage() {
                   <div className="flex flex-col gap-4 mt-4 text-gray-700">
                     <Label>Product Code</Label>
                     <Input disabled placeholder="Auto-filled" className="bg-gray-300" value={values[config.product.codeField] ?? ""}/>
-                    
-                    <Label>Product Name</Label>
+
+                    <Label>Product </Label>
                     <Select onValueChange={(value) => {
                       const selected = data.find(p => p.productCode === value);
                       if (selected) {
                         setValues({
                           ...values,
                           [config.product.codeField]: selected.productCode,
-                          [config.product.nameField]: selected.productName,
-                          [config.product.supplierField]: selected.supplierID.toString(),
                           [config.product.sellingpriceField]: selected.sellingPrice,
                         });
                       }
                     }}>
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select Product" />
                       </SelectTrigger>
                       <SelectContent>
-                        {data.map((product) => (
-                          <SelectItem
-                            key={product.productCode}
-                            value={product.productCode}>
-                            {product.productName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>  
-                    </Select>
-
-                    <Label>Supplier</Label>
-                    <Select value = {values[config.product.supplierField] ?? ""}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select Supplier" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {suppliers.map((supplier) => (
-                          <SelectItem
-                            key={supplier.S_supplierID}
-                            value={supplier.S_supplierID.toString()}>
-                            {supplier.S_supplierName}
-                          </SelectItem>
-                        ))}
+                        {data
+                          .filter(product =>
+                            product.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            product.supplier.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            product.brand.toLowerCase().includes(searchTerm.toLowerCase())
+                          )
+                          .map((product) => (
+                            <SelectItem
+                              key={product.productCode}
+                              value={product.productCode}
+                            >
+                              <div className="flex flex-col">
+                                <span>{product.productName}-S{product.supplier}-B{product.brand}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
                       </SelectContent>  
                     </Select>
 
@@ -803,7 +834,11 @@ export default function ProductsPage() {
                 </DialogContent>
               </Dialog>
 
-              <Button className="bg-blue-400 text-white">
+              {/* DOWNLOAD */}
+              <Button
+                onClick={() => handleDownloadCSV(data)}
+                className="bg-blue-400 text-white"
+              >
                 <Download className="w-4 h-4" />
               </Button>
 
@@ -867,11 +902,11 @@ export default function ProductsPage() {
                   </TableHead>
                   <TableHead>Product Code</TableHead>
                   <TableHead>Category</TableHead>
-                  <TableHead>SKU (Stock Keeping Unit)</TableHead>
                   <TableHead>Product</TableHead>
                   <TableHead>Brand</TableHead>
                   <TableHead>Supplier</TableHead>
                   <TableHead>Stock amount</TableHead>
+                  <TableHead>Last Restock Date and Time</TableHead>
                   <TableHead>Price</TableHead>
                   <TableHead>Selling Price</TableHead>
                   <TableHead>Status</TableHead>
@@ -882,7 +917,6 @@ export default function ProductsPage() {
               <TableBody>
               {getFilteredTransactions().filter(item =>
                 (item.productName?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
-                (item.productCode?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
                 (item.category?.toLowerCase() || "").includes(searchTerm.toLowerCase())                
               ).map((item) => (
                   <TableRow key={item.productCode} className={getStatusColor(item.status)}>
@@ -895,61 +929,31 @@ export default function ProductsPage() {
                     </TableCell>
                     <TableCell>{item.productCode}</TableCell>
                     <TableCell>{item.category}</TableCell>
-                    <TableCell>{item.SKU}</TableCell>
                     <TableCell>{item.productName}</TableCell>
                     <TableCell>{item.brand}</TableCell>
                     <TableCell>{item.supplier}</TableCell>
                     <TableCell>{item.stockNumber} pcs</TableCell>
+                    <TableCell>{item.lastRestock}</TableCell>
                     <TableCell>{item.price}</TableCell>
                     <TableCell>{item.sellingPrice}</TableCell>
                     <TableCell className={`font-semibold ${getStatusTextColor(item.status)}`}>{item.status}</TableCell>
-                    <TableCell>{new Date(item.dateAdded).toLocaleDateString()}</TableCell>
+                    <TableCell>{item.dateAdded}</TableCell>
                     <TableCell className="flex space-x-2">
                       <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600" onClick={() => openEditSheet(item)}>
                         <FilePen size={16} />
                       </Button>
                       {/* For deleting transactions */}
-                      <Dialog open={isDDOpen} onOpenChange={(open) => {
-                        setDDOpen(open);
-                        if (!open) setAdminPW("");
-                      }}>
-                          <DialogTrigger asChild>
-                        <Button variant="ghost" size="sm" className="text-gray-500 hover:text-red-600">
-                          <Trash2 size={16} />
-                        </Button>
-                          </DialogTrigger>
-                          <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
-                          <DialogHeader>
-                              <DialogTitle>
-                                <span className="text-lg text-red-900">Delete Transaction</span>{" "}
-                                <span className="text-lg text-gray-400 font-normal italic">{item.productCode}</span></DialogTitle>
-                              <DialogClose />
-                            </DialogHeader>
-                            <p className='text-sm text-gray-800 mt-2 pl-4'> Deleting this transaction will reflect on Void Transactions. Enter the admin password to delete this transaction. </p>
-                            <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">         
-                              <div className="flex-1">
-                                <label htmlFor={`password-${item.productCode}`} className="text-base font-medium text-gray-700 block mb-2">
-                                  Admin Password
-                                </label>
-                                <Input type="password" required placeholder="Enter valid password" className="w-full" value={adminPW}
-                                    onChange={(e) =>
-                                      setAdminPW(e.target.value)
-                                    }
-                                />
-                              </div>
-            
-                              <Button 
-                                className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
-                                onClick={() => handleDelete(
-                                  item.productCode,
-                                  adminPW
-                                )}
-                              >
-                                DELETE TRANSACTION
-                              </Button>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-gray-500 hover:text-red-600"
+                        onClick={() => {
+                          setSelectedProduct(item);
+                          setDDOpen(true);
+                        }}
+                      >
+                        <Trash2 size={16} />
+                      </Button>
                     </TableCell>
                 </TableRow>
               ))}
@@ -980,9 +984,6 @@ export default function ProductsPage() {
                   ))}
                 </SelectContent>
               </Select>
-
-              <label className="text-black font-semibold text-sm">SKU</label>
-              <Input value={values[config.product.skuField] ?? ""} onChange={(e) => setValues({ ...values, [config.product.skuField]: e.target.value })}/>
 
               <label className="text-black font-semibold text-sm">Product Name</label>
               <Input value={values[config.product.nameField]  ?? ""} onChange={(e) => setValues({ ...values, [config.product.nameField]: e.target.value })}/>
@@ -1020,7 +1021,7 @@ export default function ProductsPage() {
               </Select>
 
               <label className="text-black font-semibold text-sm">Stock amount</label>
-              <Input type="number" value={values[config.product.stockField]  ?? ""} /*defaultValue={selectedProduct.quantity}*/ onChange={(e) => setValues({ ...values, [config.product.stockField]: e.target.value })}/>
+              <Input type="number" value={values[config.product.stockField]  ?? ""} onChange={(e) => setValues({ ...values, [config.product.stockField]: e.target.value })}/>
 
               <label className="text-black font-semibold text-sm">Price</label>
               <Input type="text" value={values[config.product.unitpriceField]  ?? ""} /*defaultValue={selectedProduct.price}*/ onChange={(e) => setValues({ ...values, [config.product.unitpriceField]: e.target.value })}/>
@@ -1052,6 +1053,55 @@ export default function ProductsPage() {
           )}
         </SheetContent>
       </Sheet>
+
+      <Dialog open={isDDOpen} onOpenChange={(open) => {
+        setDDOpen(open);
+        if (!open) {
+          setAdminPW("");
+        }
+      }}>
+        <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
+          <DialogHeader>
+            <DialogTitle>
+              <span className="text-lg text-red-900">Delete Transaction</span>{" "}
+              <span className="text-lg text-gray-400 font-normal italic">
+                {selectedProduct?.productCode}
+              </span>
+            </DialogTitle>
+            <DialogClose />
+          </DialogHeader>
+          <p className="text-sm text-gray-800 mt-2 pl-4">
+            Deleting this transaction will reflect on Void Transactions. Enter the admin password to delete this transaction.
+          </p>
+          <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">
+            <div className="flex-1">
+              <label className="text-base font-medium text-gray-700 block mb-2">
+                Admin Password
+              </label>
+              <Input
+                type="password"
+                required
+                placeholder="Enter valid password"
+                className="w-full"
+                value={adminPW}
+                onChange={(e) => setAdminPW(e.target.value)}
+              />
+            </div>
+
+            <Button
+              className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
+              onClick={() => {
+                handleDelete(selectedProduct?.productCode);
+                setDDOpen(false);
+                setAdminPW("");
+              }}
+            >
+              DELETE TRANSACTION
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
         </div>
       </div>
     </div>
@@ -1083,5 +1133,34 @@ function getStatusTextColor(status) {
       return "text-orange-600";
     case "Discontinued":
       return "text-gray-500";
+  }
+}
+
+function formatDateTime(dateTimeString) {
+  try {
+    const date = new Date(dateTimeString);
+    return date.toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+  } catch (e) {
+    return "N/A";
+  }
+}
+
+function formatDate(dateString) {
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  } catch (e) {
+    return "N/A";
   }
 }

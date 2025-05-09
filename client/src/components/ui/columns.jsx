@@ -38,6 +38,14 @@ const getColumns = (handleDelete, handleEdit) => [
     },
   },
   {
+    accessorKey: "Discount Type",
+    header: "Discount Type",
+    cell: ({ row }) => {
+      const value = row.getValue("Discount Type");
+      return <div className="font-medium">{value || "—"}</div>;
+    },
+  },
+  {
     accessorKey: "Discount",
     header: "Discount",
     cell: ({ row }) => {

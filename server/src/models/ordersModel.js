@@ -8,18 +8,21 @@ const getAllOrders = (callback) => {
       o.O_receiptNumber,
       o.T_totalAmount,
       o.D_wholeOrderDiscount,
-      SUM(od.OD_discountAmount) AS D_totalProductDiscount FROM ORDER DETAILS,
       o.T_transactionDate,
-      o.isTemporarilyDeleted
+      o.isTemporarilyDeleted,
+      o.O_orderPayment,
+      SUM(od.OD_discountAmount) AS D_totalProductDiscount
     FROM Orders o
     LEFT JOIN OrderDetails od ON o.O_orderID = od.O_orderID
+    WHERE o.isTemporarilyDeleted = 0
     GROUP BY 
       o.O_orderID,
       o.O_receiptNumber,
       o.T_totalAmount,
       o.D_wholeOrderDiscount,
       o.T_transactionDate,
-      o.isTemporarilyDeleted
+      o.isTemporarilyDeleted,
+      o.O_orderPayment
     ORDER BY o.O_orderID;
 `;
 
@@ -40,7 +43,8 @@ const addOrder = (data, callback) => {
     D_wholeOrderDiscount,
     D_totalProductDiscount,
     T_transactionDate,
-    isTemporarilyDeleted
+    isTemporarilyDeleted,
+    O_orderPayment
   } = data;
 
   // Step 1: Check if the receipt number already exists
@@ -54,8 +58,8 @@ const addOrder = (data, callback) => {
     // Step 2: Insert new order
     const insertOrderQuery = `
       INSERT INTO Orders 
-      (O_receiptNumber, T_totalAmount, D_wholeOrderDiscount, D_totalProductDiscount, T_transactionDate, isTemporarilyDeleted)
-      VALUES (?, ?, ?, ?, ?, ?)`;
+      (O_receiptNumber, T_totalAmount, D_wholeOrderDiscount, D_totalProductDiscount, T_transactionDate, isTemporarilyDeleted, O_orderPayment)
+      VALUES (?, ?, ?, ?, ?, ?, ?)`;
 
     db.query(
       insertOrderQuery,
@@ -65,7 +69,8 @@ const addOrder = (data, callback) => {
         D_wholeOrderDiscount,
         D_totalProductDiscount,
         T_transactionDate,
-        isTemporarilyDeleted
+        isTemporarilyDeleted,
+        O_orderPayment
       ],
       (err, results) => {
         if (err) return callback(err, null);
@@ -91,18 +96,30 @@ const updateOrder = (id, data, callback) => {
   });
 };
 
-// Delete an order
-const deleteOrder = (id, callback) => {
-  const query = `DELETE FROM Orders WHERE O_orderID = ?`;
-  db.query(query, [id], (err, results) => {
+// // Delete an order
+// const deleteOrder = (id, callback) => {
+//   const query = `DELETE FROM Orders WHERE O_orderID = ?`;
+//   db.query(query, [id], (err, results) => {
+//     if (err) {
+//       callback(err, null);
+//     } else {
+//       callback(null, results);
+//     }
+//   });
+// };
+
+// Delete a Product
+const softDeleteOrder = (orderId, callback) => {
+  const query = `UPDATE Orders SET isTemporarilyDeleted = 1 WHERE O_orderID = ? AND isTemporarilyDeleted = 0`;
+  db.query(query, [String(orderId)], (err, results) => {
     if (err) {
       callback(err, null);
+      console.log("Soft Delete: ", results)
     } else {
       callback(null, results);
     }
   });
-};
-
+}
 // Check if the receipt number already exists
 const checkReceiptNumber = (O_receiptNumber, callback) => {
   const query = `SELECT * FROM Orders WHERE O_receiptNumber = ?`;
@@ -115,10 +132,13 @@ const checkReceiptNumber = (O_receiptNumber, callback) => {
   });
 };
 
+
+
 module.exports = {
   getAllOrders,
   addOrder,
   updateOrder,
-  deleteOrder,
+  // deleteOrder,
+  softDeleteOrder,
   checkReceiptNumber,
 };

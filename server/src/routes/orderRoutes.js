@@ -4,13 +4,15 @@ const {
     getAllOrders,
     addOrder,
     updateOrder,
-    deleteOrder,
+    // deleteOrder,
+    softDeleteOrder
 } = require('../controllers/orderController');
 
 // Map endpoints to controller logic
 router.get('/', getAllOrders);
 router.post('/', addOrder);
 router.put('/:id', updateOrder);
-router.delete('/:id', deleteOrder);
+// router.delete('/:id', deleteOrder);
+router.delete('/:id', softDeleteOrder);
 
 module.exports = router;

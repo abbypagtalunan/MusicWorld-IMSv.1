@@ -1,188 +1,212 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, act } from "react";
 import axios from "axios";
 import { AppSidebar } from "@/components/admin-sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast, Toaster } from "react-hot-toast";
-import { Search, ListFilter, Download, Trash2, Ellipsis, RotateCcw } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Search, Ellipsis, X } from "lucide-react";
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogDescription } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
+import RDaction from "@/components/deleted-actions";
 
 export default function DeletedPage() {
-  const config = {
-    deleted: {
-      label: "Deleted",
-      deletedID: "DT_deletedID",
+  const [activeTab, setActiveTab] = useState("order");
+  const [deletedOrders, setDeletedOrders] = useState([]);
+  const [deletedReturns, setDeletedReturns] = useState([]);
+  const [deletedDeliveries, setDeletedDeliveries] = useState([]);
+  const [deletedProducts, setDeletedProducts] = useState([]);  
+
+  const configMap = {
+    order: {
+      label: "Orders",
+      idField: "O_orderID",
+      idDetail: "OD_detailID",
       codeField: "P_productCode",
       receiptField: "O_receiptNumber",
       nameField: "P_productName",
-      sellingpriceField: "P_sellingPrice",
-      TdateField: "T_transactionDate",
-      supplierField: "P_supplier",
-      supplierID: "P_supplierID",
-      brandField: "P_brand",
-      brandID: "P_brandID",
-      categoryField: "P_category",
-      categoryID: "P_categoryID",
-      unitpriceField: "OD_unitPrice",
+      totalamtField: "T_totalAmount",
+      paymentField: "O_orderPayment",
+      dateField: "T_transactionDate",
+      supplierField: "supplier",
+      brandField: "brand",
+      categoryField: "category",
       quantityField: "OD_quantity",
+      sellingpriceField: "OD_unitPrice",
+      itemtotalField: "OD_netSale",
+      discAmtField: "OD_discountAmount",
+      setter: setDeletedOrders,
       api: {
-        fetch: "http://localhost:8080/deleted", 
-        add: "http://localhost:8080/deleted",  
-        update: "http://localhost:8080/deleted", 
-        delete: "http://localhost:8080/deleted",
+        fetch: "http://localhost:8080/deletedOrders", 
+        retrieve: "http://localhost:8080/deletedOrders", 
+        delete: "http://localhost:8080/deletedOrders",
       },
     },
-    
+
+    return: {
+      label: "Returns",
+      idField: "R_returnID",
+      codeField: "P_productCode",
+      typeField: "RT_returnTypeDescription",
+      nameField: "P_productName",
+      totalamtField: "R_TotalPrice",
+      dateField: "R_dateOfReturn",
+      supplierField: "supplier",
+      brandField: "brand",
+      categoryField: "category",
+      quantityField: "R_returnQuantity",
+      discountField: "R_discountAmount",
+      setter: setDeletedReturns,
+      api: {
+        fetch: "http://localhost:8080/deletedReturns",
+        retrieve: "http://localhost:8080/deletedReturns",
+        delete: "http://localhost:8080/deletedReturns",
+      },
+    },
+
+    delivery: {
+      label: "Deliveries",
+      idField: "D_deliveryNumber",
+      codeField: "P_productCode",
+      nameField: "P_productName",
+      dateField: "D_deliveryDate",
+      supplierField: "supplier",
+      brandField: "brand",
+      categoryField: "category",
+      quantityField: "DPD_quantity",
+      setter: setDeletedDeliveries,
+      api: {
+        fetch: "http://localhost:8080/deletedDeliveries", 
+        retrieve: "http://localhost:8080/deletedDeliveries", 
+        delete: "http://localhost:8080/deletedDeliveries",
+      },
+    },
+
     product: {
-      label: "Product",
-      idField: "ProductID",
-      nameField: "ProductName",
-      isAutoInc: false,
+      label: "Products",
+      idField: "P_productCode",
+      codeField: "P_productCode",
+      categoryField: "category",
+      skuField: "P_SKU",
+      nameField: "P_productName",
+      brandField: "brand",
+      supplierField: "supplier",
+      stockField: "stockAmt",
+      stockID: "P_StockDetailsID",
+      unitpriceField: "P_unitPrice",
+      sellingpriceField: "P_sellingPrice",
+      statusField: "P_productStatusName",
+      statusId: "P_productStatusID",
+      dateField: "P_dateAdded",
+      setter: setDeletedProducts,
       api: {
-        fetch: "http://localhost:8080/products",
-      },
-    },
-
-    supplier: {
-      label: "Supplier",
-      idField: "SupplierID",
-      nameField: "SupplierName",
-      isAutoInc: false,
-      api: {
-        fetch: "http://localhost:8080/suppliers",
-      },
-    },
-
-    brand: {
-      label: "Brand",
-      idField: "BrandID",
-      nameField: "BrandName",
-      isAutoInc: false,
-      api: {
-        fetch: "http://localhost:8080/brands",
-      },
-    },
-    
-    category: {
-      label: "Category",
-      idField: "CategoryID",
-      nameField: "CategoryName",
-      isAutoInc: false,
-      api: {
-        fetch: "http://localhost:8080/categories",
+        fetch: "http://localhost:8080/deletedProducts", 
+        retrieve: "http://localhost:8080/deletedProducts", 
+        delete: "http://localhost:8080/deletedProducts",
       },
     },
   };
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [data, setData] = useState([]);
-  const [values, setValues] = useState({
-    [config.deleted.codeField]: "",
-    [config.deleted.receiptField]: "",    
-    [config.deleted.nameField]: "",
-    [config.deleted.sellingpriceField]: "",
-    [config.deleted.TdateField]: "",
-    [config.deleted.supplierField]: "",
-    [config.deleted.brandField]: "",
-    [config.deleted.categoryField]: "",
-    [config.deleted.quantityField]: "",
-  });
+    
+  const config = configMap[activeTab] || {};  
 
-  const normalizedData = (deleted) => deleted.data.map((item) => ({
-    productCode: item.P_productCode,
-    receiptNum: item.O_receiptNumber,
-    productName: item.P_productName,
-    sellingPrice: item.P_sellingPrice,
-    Tdate: item.T_transactionDate,
-    supplier: item.supplier || "",
-    supplierID: item.S_supplierID,
-    brand: item.brand || "",
-    brandID: item.B_brandID,
-    category: item.category || "",
-    categoryID: item.C_categoryID,
-    price: item.P_unitPrice,
-    quantity: item.OD_quantity,
-    uniqueKey: `${item.O_orderID}-${item.P_productCode}`
-  }));
+  const getCurrentTabData = () => {
+    switch(activeTab) {
+      case "order":
+        return deletedOrders;
+      case "return":
+        return deletedReturns;
+      case "delivery":
+        return deletedDeliveries;
+      case "product":
+        return deletedProducts;
+      default:
+        return [];
+    }
+  };
 
   // Fetch
   useEffect(() => {
-    axios
-      .get(config.deleted.api.fetch)
-      .then((res) => setData(normalizedData(res)))
-      .catch((error) => console.error("Error fetching data:", error));
-      
-      setValues({
-        [config.deleted.DdateField]: "",
-        [config.deleted.transactionField]: "",
-        [config.deleted.codeField]: "",
-        [config.deleted.receiptField]: "",    
-        [config.deleted.nameField]: "",
-        [config.deleted.sellingpriceField]: "",
-        [config.deleted.TdateField]: "",
-        [config.deleted.supplierField]: "",
-        [config.deleted.brandField]: "",
-        [config.deleted.categoryField]: "",
-        [config.deleted.quantityField]: "",
-      });
-  
+    const fetchData = async () => {
+      try {
+        const currentConfig = configMap[activeTab]
+        const res = await axios.get(currentConfig.api.fetch);
+        config.setter(res.data);
+      } catch (err) {
+        console.error("Failed to fetch deleted data:", err);
+      }
+    }
+
+    fetchData();
+  }, [activeTab]);
+
+  useEffect(() => {
     setSearchTerm("");
-  }, []);
+  }, [activeTab]);
 
   const refreshTable = () => {
     axios
-      .get(config.deleted.api.fetch)
-      .then((res) => setData(normalizedData(res)))
+      .get(config.api.fetch)
+      .then((res) => config.setter(res.data))
       .catch((error) => console.error("Error fetching data:", error));
-  };
+  };  
+
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Search
-  const [selectedFilter, setSelectedFilter] = useState(null);
-  const [selectedSubFilter, setSelectedSubFilter] = useState(null);
-
-  const handleFilterSelect = (filter, subFilter = null) => {
-    setSelectedFilter(filter);
-    setSelectedSubFilter(subFilter);
-  };
-
+  const [selectedFilter] = useState(null);
+  const [selectedSubFilter] = useState(null);
+  
   const getFilteredTransactions = () => {
-    let sortedTransactions = [...data];
-    if (!selectedFilter || !selectedSubFilter) return sortedTransactions;
-  
-    if (selectedFilter === "Receipt Number") {
-      sortedTransactions.sort((a, b) =>
-        selectedSubFilter === "Ascending"
-          ? String(a.receiptNum || "").localeCompare(String(b.receiptNum || ""))
-          : String(b.receiptNum || "").localeCompare(String(a.receiptNum || ""))
-      );
-    }
+    let sortedTransactions = [...getCurrentTabData()];
+    
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase();
+      sortedTransactions = sortedTransactions.filter(item => {
 
-    if (selectedFilter === "Product Name") {
-      sortedTransactions.sort((a, b) =>
-        selectedSubFilter === "Ascending"
-          ? a.productName.localeCompare(b.productName)
-          : b.productName.localeCompare(a.productName)
-      );
-    }
-  
-    if (selectedFilter === "Price") {
-      const getPrice = (price) => parseFloat(price.replace(/[^\d.]/g, ""));
-      sortedTransactions.sort((a, b) =>
-        selectedSubFilter === "Low to High"
-          ? getPrice(a.sellingPrice) - getPrice(b.sellingPrice)
-          : getPrice(b.sellingPrice) - getPrice(a.sellingPrice)
-      );
-    }
+        const matches = [];
 
+        switch(activeTab) {
+          case "order":
+            matches.push(
+              String(item[config.idField] || '').toLowerCase().includes(search),
+              String(item[config.nameField] || '').toLowerCase().includes(search)
+            );
+            break;
+          case "return":
+            matches.push(
+              String(item[config.idField] || '').toLowerCase().includes(search),
+              String(item[config.nameField] || '').toLowerCase().includes(search),
+              String(item[config.typeField] || '').toLowerCase().includes(search)
+            );
+            break;
+          case "delivery":
+            matches.push(
+              String(item[config.codeField] || '').toLowerCase().includes(search),
+              String(item[config.nameField] || '').toLowerCase().includes(search),
+              String(item[config.supplierField] || '').toLowerCase().includes(search)
+            );
+            break;
+          case "product":
+            matches.push(
+              String(item[config.codeField] || '').toLowerCase().includes(search),
+              String(item[config.nameField] || '').toLowerCase().includes(search),
+              String(item[config.categoryField] || '').toLowerCase().includes(search),
+              String(item[config.brandField] || '').toLowerCase().includes(search),
+              String(item[config.supplierField] || '').toLowerCase().includes(search)
+            );
+            break;
+        }
+        return matches.some(match => match);
+      });
+    }
     return sortedTransactions;
   };  
 
-  // Multiple Delete
   const [selectedTransactions, setSelectedTransactions] = useState([]);
 
   const handleSelectTransaction = (uniqueKey) => {
@@ -194,70 +218,117 @@ export default function DeletedPage() {
   };
   
   const handleSelectAll = (e) => {
+    const filteredData = getFilteredTransactions();
     if (e.target.checked) {
-      const allKeys = getFilteredTransactions().map((item) => item.uniqueKey);
+      const allKeys = filteredData.map((item) => `${item[config.idField]}-${item[config.codeField]}`);
       setSelectedTransactions(allKeys);
     } else {
       setSelectedTransactions([]);
     }
   };
 
-  // Delete
-    const [adminPW, setAdminPW] = useState("");
-    const [isDDOpen, setDDOpen] = useState("");
-    const [isMDDOpen, setMDDOpen] = useState("");
-    const handleDelete = (uniqueKey, adminPWInput) => {
-      if (typeof uniqueKey !== 'string' || !uniqueKey.includes('-')) {
-        console.error('Invalid unique key:', uniqueKey);
-        toast.error('Invalid item selected for deleting');
-        return;
-      }
-      
-      const [transactionID] = uniqueKey.split("-");
+  // Retrieve
+  const handleRetrieve = (uniqueKey) => {
+    const [id] = uniqueKey.split('-');
 
-      axios({
-        method: 'delete',
-        url: `http://localhost:8080/deleted/${transactionID}`,
-        data: { transactionID, adminPW: adminPWInput }, 
-        headers: {
-          'Content-Type': 'application/json',
-        }
+    axios.post(`${config.api.retrieve}/${id}`)
+      .then(() => {
+        toast.success("Item restored");
+        refreshTable();
+        setRDDOpen(false);
+        setSelectedTransactions([]);
       })
-        .then(() => {
-          toast.success("Product deleted successfully");
-          refreshTable();
-          setAdminPW("");
-          setDDOpen(false);
-        })
-        .catch(err => {
-          console.error("Delete error:", {
-            message: err.message,
-            response: err.response,
-            data: err.response?.data,
-            status: err.response?.status
-          });
-        
-          const msg =
-            err.response?.data?.message ||
-            err.response?.statusText ||
-            err.message ||
-            "Unknown error deleting product";
-        
-          toast.error(msg);
+      .catch(() => {
+        toast.error("Restore failed");
+        setRDDOpen(false);
+        setSelectedTransactions([]);
+      });
+  };  
+
+  useEffect(() => {
+    setSelectedTransactions([]);
+  }, [selectedFilter, selectedSubFilter]);
+
+// Multiple Retrieve
+const [isRDDOpen, setRDDOpen] = useState("");
+const handleMultiRetrieve = () => {
+  Promise.all(
+    selectedTransactions.map((uniqueKey) => {
+      const [id] = uniqueKey.split("-");
+      return axios.post(`${config.api.retrieve}/${id}`)
+    })
+  )
+    .then(() => {
+      toast.success("Selected items restored.");
+      refreshTable();
+      setRDDOpen(false);
+      setSelectedTransactions([]);
+    })
+    .catch(() => {
+      toast.error("Error restoring selected items.");
+      setRDDOpen(false);
+      setSelectedTransactions([]);
+    });
+}
+
+  // Delete
+  const [adminPW, setAdminPW] = useState("");
+  const [isMDDOpen, setMDDOpen] = useState("");
+  const handleDelete = (uniqueKey, adminPWInput) => {
+    if (typeof uniqueKey !== 'string' || !uniqueKey.includes('-')) {
+      console.error('Invalid unique key:', uniqueKey);
+      toast.error('Invalid item selected for deleting');
+      return;
+  }
+      
+  const [id] = uniqueKey.split("-");
+
+    axios({
+      method: 'delete',
+      url: `${config.api.delete}/${id}`,
+      data: { id, adminPW: adminPWInput, type:activeTab }, 
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    })
+      .then(() => {
+        toast.success("Transaction deleted successfully");
+        refreshTable();
+        setMDDOpen(false);
+        setAdminPW("");
+        setSelectedTransactions([]);
+      })
+      .catch(err => {
+        console.error("Delete error:", {
+          message: err.message,
+          response: err.response,
+          data: err.response?.data,
+          status: err.response?.status
         });
+        
+        const msg =
+          err.response?.data?.message ||
+          err.response?.statusText ||
+          err.message ||
+          "Unknown error deleting transaction";
+        
+        toast.error(msg);
+        setMDDOpen(false);
+        setAdminPW("");
+        setSelectedTransactions([]);
+      });
     };
  
-  // Multiple delete
+  // Multiple delete 
   const handleMultiDelete = (password) => {
     if (!password) return toast.error("Password is required.");
     Promise.all(
       selectedTransactions.map((uniqueKey) => {
-        const [transactionID] = uniqueKey.split("-");
-
+        const [id] = uniqueKey.split("-");
         return axios({
           method: 'delete',
-          url: `${config.deleted.api.delete}/${transactionID}`,
-          data: { transactionID, adminPW: password /*adminPWInput */ }, 
+          url: `${config.api.delete}/${id}`,
+          data: { id, adminPW: password, type:activeTab }, 
           headers: {
             'Content-Type': 'application/json',
           }
@@ -269,290 +340,486 @@ export default function DeletedPage() {
         refreshTable();
         setAdminPW("");
         setMDDOpen(false);
-      })
-      .catch(() => toast.error("Error deleting selected products."));
-
-      useEffect(() => {
         setSelectedTransactions([]);
-      }, [selectedFilter, selectedSubFilter]);
+      })
+      .catch(() => { 
+        toast.error("Error deleting selected products.");
+        setMDDOpen(false);
+        setSelectedTransactions([]);
+      });
   };  
+
 
   return (
     <SidebarProvider>
       <div className="flex h-screen w-screen">
         <AppSidebar />
         <div className="flex-1 p-4 flex flex-col w-full">
-          <div className="flex items-center justify-between mb-4 bg-white p-2 rounded-lg">
-            <div className="flex items-center space-x-2">
-              <div className="relative w-80">
-                <input
-                  type="text"
-                  placeholder="Search transaction, id, product"
-                  className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                <div className="absolute left-3 top-2.5 text-gray-500">
-                  <Search className="w-5 h-5" />
-                </div>
-              </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="flex items-center space-x-2">
-                    <ListFilter className="w-4 h-4" />
-                    <span>Filter</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
-                  <DropdownMenuSub>
-                    <DropdownMenuSubTrigger>Receipt Number</DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent>
-                      <DropdownMenuItem onClick={() => handleFilterSelect("Receipt Number", "Ascending")}>
-                        Ascending
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleFilterSelect("Receipt Number", "Descending")}>
-                        Descending
-                      </DropdownMenuItem>
-                    </DropdownMenuSubContent>
-                  </DropdownMenuSub>
-
-                  <DropdownMenuSub>
-                    <DropdownMenuSubTrigger>Product Name</DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent>
-                      <DropdownMenuItem onClick={() => handleFilterSelect("Product Name", "Ascending")}>
-                        Ascending
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleFilterSelect("Product Name", "Descending")}>
-                        Descending
-                      </DropdownMenuItem>
-                    </DropdownMenuSubContent>
-                  </DropdownMenuSub>
-
-                  <DropdownMenuSub>
-                    <DropdownMenuSubTrigger>Price</DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent>
-                      <DropdownMenuItem onClick={() => handleFilterSelect("Price", "Low to High")}>
-                        Low to High
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleFilterSelect("Price", "High to Low")}>
-                        High to Low
-                      </DropdownMenuItem>
-                    </DropdownMenuSubContent>
-                  </DropdownMenuSub>
-
-                  <DropdownMenuItem 
-                    onClick={() => handleFilterSelect(null, null)} 
-                    className="text-red-500 font-medium"
-                    >
-                    Reset Filters
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-            <div className="flex space-x-2">
-              <Button className="bg-blue-400 text-white">
-                <Download className="w-4 h-4" />
-              </Button>
-
-              <Dialog open={isMDDOpen} onOpenChange={(open) => {
-                setMDDOpen(open);
-                if (!open) {
-                  setSelectedTransactions([]);
-                  setAdminPW("");
-                }
-              }}>
-                <DialogTrigger asChild>
-                  <Button className="bg-red-500 text-white" disabled={selectedTransactions.length === 0}>
-                    Delete Selected
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
-                  <DialogHeader>
-                    <DialogTitle>
-                      <span className="text-lg text-red-900">Delete Multiple Transactions</span>
-                      <span className="text-lg text-gray-400 font-normal italic ml-2">({selectedTransactions.length} items)</span>
-                    </DialogTitle>
-                    <DialogClose />
-                  </DialogHeader>
-                  <p className="text-sm text-gray-800 mt-2 pl-4">
-                    Deleting these transactions will reflect on Void Transactions. Enter the admin password to delete the selected products.
-                  </p>
-                  <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">
-                    <div className="flex-1">
-                      <label htmlFor="password" className="text-base font-medium text-gray-700 block mb-2">
-                        Admin Password
-                      </label>
-                      <Input
-                        type="password"
-                        required
-                        placeholder="Enter admin password"
-                        className="w-full"
-                        value={adminPW}
-                        onChange={(e) => setAdminPW(e.target.value)}
-                      />
-                    </div>
-                    <Button
-                      className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
-                      onClick={() =>
-                        handleMultiDelete(adminPW)
-                      }
-                    >
-                      DELETE TRANSACTIONS
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </div>
+          <div className="z-10 sticky top-0 mb-4 bg-white p-4 rounded-lg">
+            <h1 className="text-gray-600 font-bold">Deleted Transactions</h1>
           </div>
 
-          <div className="p-4 bg-white shadow-md rounded-lg flex flex-col overflow-auto w-full">
-            <h1 className="text-gray-600 font-bold">Deleted Transactions</h1>
-            <Table>
-              <TableHeader className="sticky top-0 bg-white z-10">
-                <TableRow>
-                  <TableHead>
-                    <input type="checkbox" onChange={handleSelectAll} checked={selectedTransactions.length === getFilteredTransactions().length && selectedTransactions.length > 0} />
-                  </TableHead>
-                  <TableHead>Product Code</TableHead>
-                  <TableHead>Receipt Number</TableHead>
-                  <TableHead>Product</TableHead>
-                  <TableHead>Price</TableHead>
-                  <TableHead>Details</TableHead>
-                  <TableHead>Retrieve/Delete</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-              {getFilteredTransactions().filter(item =>
-                (String(item.productName || "").toLowerCase()).includes(searchTerm.toLowerCase()) ||
-                (String(item.transactionID || "").toLowerCase()).includes(searchTerm.toLowerCase()) ||
-                (String(item.receiptNum || "").toLowerCase()).includes(searchTerm.toLowerCase())                
-              ).map((item) => (
-                    <TableRow key={item.uniqueKey}>                   
-                      <TableCell>
-                      <input
-                        type="checkbox"
-                        checked={selectedTransactions.includes(item.uniqueKey)}
-                        onChange={() => handleSelectTransaction(item.uniqueKey)}
-                      />
-                      </TableCell>
-                      <TableCell>{item.productCode}</TableCell>
-                      <TableCell>{item.receiptNum}</TableCell>
-                      <TableCell>{item.productName}</TableCell>
-                      <TableCell>{item.sellingPrice}</TableCell>
-                      <TableCell>
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600">
-                              <Ellipsis size={16} />
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="w-[90vw] max-w-3xl sm:max-w-lg md:max-w-3xl max-h-[90vh] overflow-y-auto p-6">
-                            <DialogHeader>
-                              <DialogTitle>Transaction Details</DialogTitle>
-                              <DialogClose />
-                            </DialogHeader>
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
+          <Tabs defaultValue="order" onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+            <div className="w-full z-10 sticky">
+              <TabsList className="w-full flex justify-start bg-white rounded-md shadow-md px-6 py-6 space-x-4">
+                {Object.entries(configMap).map(([key, cfg]) => (
+                  <TabsTrigger
+                    key={key}
+                    value={key}
+                    className="data-[state=active]:text-indigo-600"
+                  >
+                    {`${cfg.label.toUpperCase()}`}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
+            <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-4">
+              {Object.entries(configMap).map(([key, cfg]) => (
+                <TabsContent key={key} value={key}>
+                  {/* Table */}
+                    <Card className="overflow-hidden">
+                    <div className="max-h-[600px] overflow-y-auto relative">
+                      <CardContent className="p-0">
+                        {/* Search */}
+                        <div className=" bg-white p-4 flex justify-between items-center">
+                            <div className="relative w-80">
+                              <Input
+                                type="text"
+                                placeholder={`Search ${config.label}...`}
+                                className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                value={searchTerm}
+                                onChange={(e) => {
+                                  setSearchTerm(e.target.value);
+                                  setSelectedTransactions([]);
+                                }}
+                              />
+                              <div className="absolute left-3 top-2.5 text-gray-500">
+                                <Search className="w-5 h-5" variant="outline"/>
+                              </div>
+                              {searchTerm && (
+                                <div
+                                  className="absolute right-3 top-2.5 text-gray-500 cursor-pointer"
+                                  onClick={() => {
+                                    setSearchTerm("");
+                                    setSelectedTransactions([]);
+                                  }}
+                                >
+                                  <X className="w-5 h-5" />
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex gap-2">
+                              <Dialog open={isRDDOpen} onOpenChange={(open) => {
+                                setRDDOpen(open);
+                                if (!open) {
+                                  setSelectedTransactions([]);
+                                }
+                              }}>
+                                <DialogTrigger asChild>
+                                  <Button className="bg-blue-500 text-white" disabled={selectedTransactions.length === 0}>
+                                    Retrieve Selected
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
+                                  <DialogHeader>
+                                      <DialogTitle>Are you sure you want to retrieve these transactions?</DialogTitle>
+                                      <DialogDescription>This action will restore the transactions and update the sales report.</DialogDescription>
+                                  </DialogHeader>
+                                  <div className="flex justify-end gap-4 mt-4">
+                                    <Button
+                                      className="bg-blue-400 text-white hover:bg-blue-700"
+                                      onClick={() => handleMultiRetrieve()}
+                                    >
+                                    Confirm
+                                    </Button>
+                                    <DialogClose asChild>
+                                    <Button variant="outline">Cancel</Button>
+                                    </DialogClose>
+                                </div>  
+                                </DialogContent>
+                              </Dialog>
+                                
+                              <Dialog open={isMDDOpen} onOpenChange={(open) => {
+                                setMDDOpen(open);
+                                if (!open) {
+                                  setSelectedTransactions([]);
+                                  setAdminPW("");
+                                }
+                              }}>
+                                <DialogTrigger asChild>
+                                  <Button className="bg-red-500 text-white" disabled={selectedTransactions.length === 0}>
+                                    Delete Selected
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
+                                  <DialogHeader>
+                                    <DialogTitle>
+                                      <span className="text-lg text-red-900">Delete Multiple Transactions</span>
+                                      <span className="text-lg text-gray-400 font-normal italic ml-2">({selectedTransactions.length} items)</span>
+                                    </DialogTitle>
+                                    <DialogClose />
+                                  </DialogHeader>
+                                  <p className="text-sm text-gray-800 mt-2 pl-4">
+                                    Deleting these transactions will reflect on Void Transactions. Enter the admin password to delete the selected products.
+                                  </p>
+                                  <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">
+                                    <div className="flex-1">
+                                      <label htmlFor="password" className="text-base font-medium text-gray-700 block mb-2">Admin Password</label>
+                                        <Input
+                                          type="password"
+                                          required
+                                          placeholder="Enter admin password"
+                                          className="w-full"
+                                          value={adminPW}
+                                          onChange={(e) => setAdminPW(e.target.value)}
+                                        />
+                                    </div>
+                                    <Button
+                                      className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
+                                      onClick={() =>
+                                        handleMultiDelete(adminPW)
+                                        
+                                      }
+                                    >
+                                      DELETE TRANSACTIONS
+                                    </Button>
+                                  </div>
+                                </DialogContent>
+                              </Dialog>
+                            </div>
+                          </div>
+
+                      <div className="sticky top-[72px] z-10 bg-white">
+                          <Table className="min-w-full">
+                          <TableHeader className="sticky top-[72px] z-10 bg-white shadow-sm">
+                              <TableRow>
+                              {activeTab === "order" && (
+                                <>
+                                  <TableHead className="px-4 py-2">
+                                    <input type="checkbox" onChange={handleSelectAll} checked={selectedTransactions.length === getFilteredTransactions().length && selectedTransactions.length > 0} />
+                                  </TableHead>
                                   <TableHead>Date</TableHead>
+                                  <TableHead>Order ID</TableHead>
+                                  <TableHead>Receipt Number</TableHead>
                                   <TableHead>Product Code</TableHead>
-                                  <TableHead>Supplier</TableHead>
-                                  <TableHead>Brand</TableHead>
-                                  <TableHead>Category</TableHead>
                                   <TableHead>Product</TableHead>
                                   <TableHead>Quantity</TableHead>
-                                  <TableHead>Total</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                <TableRow>
-                                  <TableCell>{new Date(item.Tdate).toLocaleDateString()}</TableCell>
-                                  <TableCell>{item.productCode}</TableCell>
-                                  <TableCell>{item.supplier}</TableCell>
-                                  <TableCell>{item.brand}</TableCell>
-                                  <TableCell>{item.category}</TableCell>
-                                  <TableCell>{item.productName}</TableCell>
-                                  <TableCell>{item.quantity}</TableCell>
-                                  <TableCell>{item.price}</TableCell>
-                                </TableRow>
-                              </TableBody>
-                            </Table>
-                          </DialogContent>
-                        </Dialog>
-                      </TableCell>
-                      <TableCell className="flex items-center">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <span className="cursor-pointer text-gray-500 hover:text-blue-600">
-                              <RotateCcw size={16} />
-                            </span>
-                          </DialogTrigger>
-                          <DialogContent className="w-[30vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
-                            <DialogHeader>
-                              <DialogTitle>Are you sure you want to retrieve this transaction?</DialogTitle>
-                              <DialogDescription>
-                                This action will restore the transaction and update the sales report.
-                              </DialogDescription>
-                            </DialogHeader>
-                            <div className="flex justify-end gap-4 mt-4">
-                              <Button
-                                className="bg-blue-400 text-white hover:bg-blue-700"
-                                onClick={() => handleRetrieve(item.uniqueKey)}
-                              >
-                                Confirm
-                              </Button>
-                              <DialogClose asChild>
-                                <Button variant="outline">Cancel</Button>
-                              </DialogClose>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                        <Dialog open={isDDOpen} onOpenChange={(open) => {
-                          setDDOpen(open);
-                          if (!open) setAdminPW("");
-                        }}>
-                          <DialogTrigger asChild>
-                            <Button variant="ghost" size="sm" className="text-gray-500 hover:text-red-600">
-                              <Trash2 size={16} />
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
-                            <DialogHeader>
-                              <DialogTitle>
-                                <span className="text-lg text-red-900">Delete Transaction</span>{" "}
-                                <span className="text-lg text-gray-400 font-normal italic">{item.transactionID}</span>
-                              </DialogTitle>
-                              <DialogClose />
-                            </DialogHeader>
-                            <p className='text-sm text-gray-800 mt-2 pl-4'>
-                              Warning: This action will permanently remove the transaction from your records. Enter the admin password to continue.
-                            </p>
-                            <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">
-                              <div className="flex-1">
-                                <label htmlFor={`password-${item.transactionID}`} className="text-base font-medium text-gray-700 block mb-2">
-                                  Admin Password
-                                </label>
-                                <Input
-                                  type="password" value={adminPW} required placeholder="Enter valid password" className="w-full"
-                                  onChange={(e) =>
-                                    setAdminPW(e.target.value)
-                                  }/>
-                              </div>
-                              <Button
-                                className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
-                                onClick={() => handleDelete(item.uniqueKey, adminPW)}
-                              >
-                                DELETE TRANSACTION
-                              </Button>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                      </TableCell>
-                    </TableRow>
+                                  <TableHead>Item Total</TableHead>
+                                  <TableHead>Retrieve/Delete</TableHead>
+                                </>
+                              )}
+                              {activeTab === "return" && (
+                                <>
+                                  <TableHead>
+                                    <input type="checkbox" onChange={handleSelectAll} checked={selectedTransactions.length === getFilteredTransactions().length && selectedTransactions.length > 0} />
+                                  </TableHead>
+                                  <TableHead>Return ID</TableHead>
+                                  <TableHead>Product Code</TableHead>
+                                  <TableHead>Reason of Return</TableHead>
+                                  <TableHead>Product</TableHead>
+                                  <TableHead>Return Total Amount</TableHead>
+                                  <TableHead>Return Date</TableHead>
+                                  <TableHead>Details</TableHead>
+                                  <TableHead>Retrieve/Delete</TableHead>
+                                </>
+                              )}
+                              {activeTab === "delivery" && (
+                                <>
+                                  <TableHead>
+                                    <input type="checkbox" onChange={handleSelectAll} checked={selectedTransactions.length === getFilteredTransactions().length && selectedTransactions.length > 0} />
+                                  </TableHead>
+                                  <TableHead>Delivery ID</TableHead>
+                                  <TableHead>Product Code</TableHead>
+                                  <TableHead>Product</TableHead>
+                                  <TableHead>Supplier</TableHead>
+                                  <TableHead>Quantity</TableHead>
+                                  <TableHead>Delivery date</TableHead>
+                                  <TableHead>Details</TableHead>
+                                  <TableHead>Retrieve/Delete</TableHead>
+                                </>
+                              )}
+                              {activeTab === "product" && (
+                                <>
+                                  <TableHead>
+                                    <input type="checkbox" onChange={handleSelectAll} checked={selectedTransactions.length === getFilteredTransactions().length && selectedTransactions.length > 0} />
+                                  </TableHead>
+                                  <TableHead>Product Code</TableHead>
+                                  <TableHead>Category</TableHead>
+                                  <TableHead>SKU</TableHead>
+                                  <TableHead>Name</TableHead>
+                                  <TableHead>Brand</TableHead>
+                                  <TableHead>Supplier</TableHead>
+                                  <TableHead>Stock amount</TableHead>
+                                  <TableHead>Unit Price</TableHead>
+                                  <TableHead>Selling Price</TableHead>
+                                  <TableHead>Status</TableHead>
+                                  <TableHead>Date added</TableHead>
+                                  <TableHead>Retrieve/Delete</TableHead>
+                                </>
+                              )}
+                            </TableRow>
+                          </TableHeader>
+                          </Table>
+                          </div>
+
+                        <div className="overflow-y-auto max-h-[450px]">
+                      <Table className="min-w-full">
+                          <TableBody>
+                          {getCurrentTabData().length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={8} className="text-center">
+                                No deleted transactions found.
+                              </TableCell>
+                            </TableRow>
+                          ):(
+                            getFilteredTransactions().map((item, index) => (
+                              <TableRow key={index}>
+                                {activeTab === "order" && (
+                                  <>
+                                    <TableCell>
+                                      <input
+                                        type="checkbox"
+                                        checked={selectedTransactions.includes(`${item[config.idField]}-${item[config.codeField]}`)}
+                                        onChange={() => handleSelectTransaction(`${item[config.idField]}-${item[config.codeField]}`)}
+                                      />
+                                    </TableCell> 
+                                    <TableCell>{new Date(item[config.dateField]).toLocaleDateString()}</TableCell>
+                                    <TableCell>{item[config.idField]}</TableCell>
+                                    <TableCell>{item[config.receiptField]}</TableCell>
+                                    <TableCell>{item[config.codeField]}</TableCell>
+                                    <TableCell>{item[config.nameField] + " " + item[config.supplierField] + " " + item[config.brandField]}</TableCell>
+                                    <TableCell>{item[config.quantityField]}</TableCell>
+                                    <TableCell>{item[config.itemtotalField]}</TableCell>
+                                    <TableCell>
+                                      <Dialog>
+                                        <DialogTrigger asChild>
+                                          <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600">
+                                            <Ellipsis size={16} />
+                                          </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="w-[90vw] max-w-3xl sm:max-w-lg md:max-w-3xl max-h-[90vh] overflow-y-auto p-6">
+                                          <DialogHeader>
+                                            <DialogTitle>Transaction Details</DialogTitle>
+                                            <DialogClose />
+                                          </DialogHeader>
+                                          <Table>
+                                            <TableHeader>
+                                              <TableRow>
+                                                <TableHead>Order Detail ID</TableHead>
+                                                <TableHead>Product Code</TableHead>
+                                                <TableHead>Supplier</TableHead>
+                                                <TableHead>Brand</TableHead>
+                                                <TableHead>Category</TableHead>
+                                                <TableHead>Product</TableHead>
+                                                <TableHead>Selling Price</TableHead>
+                                                <TableHead>Discount Amount</TableHead>
+                                                <TableHead>Quantity</TableHead>
+                                                <TableHead>Item total</TableHead>
+                                              </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                              <TableRow>
+                                              <TableCell>{item[config.idDetail]}</TableCell>
+                                                <TableCell>{item[config.codeField]}</TableCell>
+                                                <TableCell>{item[config.supplierField]}</TableCell>
+                                                <TableCell>{item[config.brandField]}</TableCell>
+                                                <TableCell>{item[config.brandField]}</TableCell>
+                                                <TableCell>{item[config.nameField]}</TableCell>
+                                                <TableCell>{item[config.sellingpriceField]}</TableCell>
+                                                <TableCell>{item[config.discAmtField]}</TableCell>
+                                                
+                                                <TableCell>{item[config.quantityField]}</TableCell>
+                                                <TableCell>{item[config.itemtotalField]}</TableCell>
+                                              </TableRow>
+                                            </TableBody>
+                                          </Table>
+                                        </DialogContent>
+                                      </Dialog>
+                                    </TableCell>
+                                    <TableCell className="flex items-center">
+                                      <RDaction
+                                        item={item}
+                                        handleRetrieve={handleRetrieve}
+                                        handleDelete={handleDelete}           
+                                        idField={config.idField}
+                                        codeField={config.codeField}
+                                      />
+                                    </TableCell>
+                                  </>
+                                )}
+                                {activeTab === "return" && (
+                                  <>
+                                    <TableCell>
+                                      <input
+                                        type="checkbox"
+                                        checked={selectedTransactions.includes(`${item[config.idField]}-${item[config.codeField]}`)}
+                                        onChange={() => handleSelectTransaction(`${item[config.idField]}-${item[config.codeField]}`)}
+                                      />
+                                    </TableCell>
+                                    <TableCell>{item[config.idField]}</TableCell>
+                                    <TableCell>{item[config.codeField]}</TableCell>
+                                    <TableCell>{item[config.typeField]}</TableCell>
+                                    <TableCell>{item[config.nameField]}</TableCell>
+                                    <TableCell>{item[config.totalamtField]}</TableCell>
+                                    <TableCell>{new Date(item[config.dateField]).toLocaleDateString()}</TableCell>
+                                    <TableCell>
+                                      <Dialog>
+                                        <DialogTrigger asChild>
+                                          <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600">
+                                            <Ellipsis size={16} />
+                                          </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="max-w-3xl p-6">
+                                          <DialogHeader>
+                                            <DialogTitle>Transaction Details</DialogTitle>
+                                            <DialogClose />
+                                          </DialogHeader>
+                                          <Table>
+                                            <TableHeader>
+                                              <TableRow>
+                                                <TableHead>Product Code</TableHead>
+                                                <TableHead>Supplier</TableHead>
+                                                <TableHead>Brand</TableHead>
+                                                <TableHead>Category</TableHead>
+                                                <TableHead>Product</TableHead>
+                                                <TableHead>Quantity</TableHead>
+                                                <TableHead>Discount amount</TableHead>
+                                              </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                              <TableRow>
+                                                <TableCell>{item[config.codeField]}</TableCell>
+                                                <TableCell>{item[config.supplierField]}</TableCell>
+                                                <TableCell>{item[config.brandField]}</TableCell>
+                                                <TableCell>{item[config.brandField]}</TableCell>
+                                                <TableCell>{item[config.nameField]}</TableCell>
+                                                <TableCell>{item[config.quantityField]}</TableCell>
+                                                <TableCell>{item[config.discountField]}</TableCell>
+                                              </TableRow>
+                                            </TableBody>
+                                          </Table>
+                                        </DialogContent>
+                                      </Dialog>
+                                    </TableCell>
+                                    <TableCell>
+                                      <RDaction
+                                        item={item}
+                                        handleRetrieve={handleRetrieve}
+                                        handleDelete={handleDelete}           
+                                        idField={config.idField}
+                                        codeField={config.codeField}
+                                      />
+                                    </TableCell>
+                                  </>
+                                )}
+                                {activeTab === "delivery" && (
+                                  <>
+                                    <TableCell>
+                                      <input
+                                        type="checkbox"
+                                        checked={selectedTransactions.includes(`${item[config.idField]}-${item[config.codeField]}`)}
+                                        onChange={() => handleSelectTransaction(`${item[config.idField]}-${item[config.codeField]}`)}
+                                      />
+                                    </TableCell>
+                                    <TableCell>{item[config.idField]}</TableCell>
+                                    <TableCell>{item[config.codeField]}</TableCell>
+                                    <TableCell>{item[config.nameField]}</TableCell>
+                                    <TableCell>{item[config.supplierField]}</TableCell>
+                                    <TableCell>{item[config.quantityField]}</TableCell>
+                                    <TableCell>{new Date(item[config.dateField]).toLocaleDateString()}</TableCell>
+                                    <TableCell>
+                                      <Dialog>
+                                        <DialogTrigger asChild>
+                                          <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600">
+                                            <Ellipsis size={16} />
+                                          </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="max-w-3xl p-6">
+                                          <DialogHeader>
+                                            <DialogTitle>Transaction Details</DialogTitle>
+                                            <DialogClose />
+                                          </DialogHeader>
+                                          <Table>
+                                            <TableHeader>
+                                              <TableRow>
+                                                <TableHead>Product Code</TableHead>
+                                                <TableHead>Supplier</TableHead>
+                                                <TableHead>Brand</TableHead>
+                                                <TableHead>Category</TableHead>
+                                                <TableHead>Product</TableHead>
+                                                <TableHead>Quantity</TableHead>
+                                              </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                              <TableRow>
+                                                <TableCell>{item[config.codeField]}</TableCell>
+                                                <TableCell>{item[config.supplierField]}</TableCell>
+                                                <TableCell>{item[config.brandField]}</TableCell>
+                                                <TableCell>{item[config.brandField]}</TableCell>
+                                                <TableCell>{item[config.nameField]}</TableCell>
+                                                <TableCell>{item[config.quantityField]}</TableCell>
+                                              </TableRow>
+                                            </TableBody>
+                                          </Table>
+                                        </DialogContent>
+                                      </Dialog>
+                                    </TableCell>
+                                    <TableCell>
+                                      <RDaction
+                                        item={item}
+                                        handleRetrieve={handleRetrieve}
+                                        handleDelete={handleDelete}           
+                                        idField={config.idField}
+                                        codeField={config.codeField}
+                                      />
+                                    </TableCell>
+                                  </>
+                                )}
+                                {activeTab === "product" && (
+                                    <>
+                                    <TableCell>
+                                      <input
+                                        type="checkbox"
+                                        checked={selectedTransactions.includes(`${item[config.idField]}-${item[config.codeField]}`)}
+                                        onChange={() => handleSelectTransaction(`${item[config.idField]}-${item[config.codeField]}`)}
+                                      />
+                                    </TableCell>
+                                    <TableCell>{item[config.codeField]}</TableCell>
+                                    <TableCell>{item[config.categoryField]}</TableCell>
+                                    <TableCell>{item[config.skuField]}</TableCell>
+                                    <TableCell>{item[config.nameField]}</TableCell>
+                                    <TableCell>{item[config.brandField]}</TableCell>
+                                    <TableCell>{item[config.supplierField]}</TableCell>
+                                    <TableCell>{item[config.stockField]}</TableCell>
+                                    <TableCell>{item[config.unitpriceField]}</TableCell>
+                                    <TableCell>{item[config.sellingpriceField]}</TableCell>
+                                    <TableCell>{item[config.statusField]}</TableCell>
+                                    <TableCell>{new Date(item[config.dateField]).toLocaleDateString()}</TableCell>
+                                    <TableCell>
+                                      <RDaction
+                                        item={item}
+                                        handleRetrieve={handleRetrieve}
+                                        handleDelete={handleDelete}           
+                                        idField={config.idField}
+                                        codeField={config.codeField}
+                                      />
+                                    </TableCell>
+                                  </>
+                                )}
+                            </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                      </div>
+                    </CardContent>
+                    </div>
+                  </Card>
+                </TabsContent>                            
               ))}
-              </TableBody>
-            </Table>
-          </div>
+            </div>
+          </Tabs>
         </div>
       </div>
     <Toaster position="top-center"/>

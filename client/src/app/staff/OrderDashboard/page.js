@@ -37,19 +37,26 @@ const OrderDashboard = () => {
 
   // Whole order variables
   const [hasInteractedWithPayModal, setHasInteractedWithPayModal] = useState(false);
+ 
   const [payment, setPayment] = useState(0); 
+  const [selectedDiscountType, setSelectedDiscountType] = useState("");
+  const [wholeOrderDiscountInput, setWholeOrderDiscountInput] = useState("");
   const [wholeOrderDiscount, setWholeOrderDiscount] = useState(0);
   const [receiptNumber, setReceiptNumber] = useState("");
   const [receiptNumberError, setReceiptNumberError] = useState("");
-  const totalAmount = data.reduce((sum, item) => sum + parseFloat(item.Total), 0);
-  const discountedTotal = Math.max(totalAmount - wholeOrderDiscount, 0);
+  const [totalProductDiscounted, setTotalProductDiscounted] = useState(0);
+  const [netItemSale, setNetItemSale] = useState(0);
+  const [unitPrice, setUnitPrice] = useState(0);
+
+  const totalAmount = data.reduce((sum, item) => sum + parseFloat(item.Total), 0); //Total after discount
+  const discountedTotal = Math.max(totalAmount - wholeOrderDiscount, 0); //Total after whole order discount and product discount
   const parsedPayment = parseFloat(payment.toString().replace(/,/g, "")) || 0;
   const change = Math.max(parsedPayment - discountedTotal, 0);
   const isInvalidDiscount = wholeOrderDiscount > totalAmount;
   const totalWithWholeDiscount = totalAmount - wholeOrderDiscount;
 
   // Add order and order details
-  const handlePaymentConfirmation = (e) => {
+  const handlePaymentConfirmation = async (e) => {
     if (payment === 0) {
       toast.error("Enter payment.");
       return;
@@ -58,13 +65,7 @@ const OrderDashboard = () => {
       toast.error("Enter receipt number.");
       return;
     }
-
-    const totalProductDiscount = data.reduce((sum, item) => {
-      const totalItemDiscount = parseFloat(item["Discount Value"]);
-      return sum + totalItemDiscount;
-    }, 0);
-
-    console.log(totalProductDiscount)
+  
     const transactionDate = new Date(Date.now() + 8 * 60 * 60 * 1000)
       .toISOString()
       .slice(0, 19)
@@ -75,80 +76,76 @@ const OrderDashboard = () => {
       O_receiptNumber: receiptNumber,
       T_totalAmount: discountedTotal,
       D_wholeOrderDiscount: wholeOrderDiscount || 0,
-      D_totalProductDiscount: totalProductDiscount,
+      D_totalProductDiscount: totalProductDiscounted,
       T_transactionDate: transactionDate,
       isTemporarilyDeleted: false,
+      O_orderPayment: payment
     };
+  
+    console.log("PAYMENT ORDERLOAD: ", orderPayload.O_orderPayment);
     console.log("Order Payload:", orderPayload);
   
-    axios.post("http://localhost:8080/orders", orderPayload)
-      .then((response) => {
-        data.forEach((item) => {
-          const isFreebie = item.Product?.includes('(Freebie)');
-          const price = parseFloat(item["Price"]) || 0;
-          const discount = parseFloat(item["Discount"]) || 0;
-          const quantity = parseInt(item["Quantity"]) || 0;
+    try {
+      // Create order
+      const response = await axios.post("http://localhost:8080/orders", orderPayload);
+      
+      if (!data || data.length === 0) {
+        toast.error("No products or freebies to save. Please add items to the order.");
+        return;
+      }
   
-          const detailPayload = {
-            O_orderID: response.data.id.orderId,
-            P_productCode: item["Product Code"],
-            D_productDiscountID: isFreebie ? null : item["Discount ID"] || null,
-            OD_quantity: quantity,
-            OD_unitPrice: isFreebie ? 0.00 : price,
-            OD_discountAmount: isFreebie ? 0.00 : discount,
-          };
-          console.log("Order Detail Payload:", detailPayload);
+      // Loop through the data and create order details and update stock
+      for (let item of data) {
+        const isFreebie = item.Product?.includes('(Freebie)');
+        const price = parseFloat(item["Price"]) || 0;
+        const discount = parseFloat(item["Discount"]) || 0;
+        const quantity = parseInt(item["Quantity"]) || 0;
   
-          // Create order detail
-          axios.post("http://localhost:8080/orderDetails", detailPayload)
+        const detailPayload = {
+          O_orderID: response.data.id.orderId,
+          P_productCode: item["Product Code"],
+          D_discountType: isFreebie ? "Freebie" : selectedDiscountType,
+          OD_quantity: quantity,
+          OD_sellingPrice: isFreebie ? 0.00 : price,
+          OD_unitPrice: isFreebie ? 0.00 : unitPrice,
+          OD_discountAmount: isFreebie ? 0.00 : discount,
+        };
+  
+        console.log("Order Detail Payload:", detailPayload);
+  
+        // Create order detail
+        await axios.post("http://localhost:8080/orderDetails", detailPayload)
           .catch(err => {
             console.error("Failed to save order detail:", detailPayload, err.response?.data || err.message);
           });
-        });
-      })
-      .then(() => {
-        toast.success("Payment confirmed and order successfully added!");
-        setIsModalOpen(false);
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
-       })
-      .catch((err) => {
-        console.error("Error processing payment:", err);
-        if (
-          err.response?.status === 409 ||
-          err.response?.data?.message?.includes('Orders.O_receiptNumber')
-        ) {
-          toast.error(`Receipt Number already exists. Enter a different receipt`);
-        } else {
-          toast.error(`An error occurred while saving the order.`);
-        }
-      });
-  };
   
-  // Fetch data for product list
-  useEffect(() => {
-    axios
-      .get("http://localhost:8080/products")
-      .then((res) => {
-        const mappedProducts = res.data.map((p) => ({
-          code: p.P_productCode,
-          name: p.P_productName,
-          brand: p.brand,
-          supplier: p.supplier,
-          price: p.P_sellingPrice,
-          stock: p.stock,
-          label: `${p.P_productName} - B${p.brand} - S${p.supplier}`,
-        }));
-        setProducts(mappedProducts);
-      })
-      .catch((err) => console.error("Failed to fetch products:", err));
-  }, []);  
-
-  const handleProductSelect = (product) => {
-    console.log("Selected Product:", product);
-    setSelectedProduct(product);  
-    setOpenProduct(false); 
+        // Update the stock number for the product 
+        try {
+          await axios.patch(`http://localhost:8080/products/${item["Product Code"]}/deductStock`, {
+            quantityOrdered: quantity,
+          });
+          console.log(`Stock updated for product ${item["Product Code"]} with Quantity:`, quantity);
+        } catch (err) {
+          console.error("Failed to update stock:", err.response ? err.response.data : err.message);
+          console.log(`Stock did not update for product ${item["Product Code"]} with Quantity:`, quantity);
+        }
+      }
+  
+      toast.success("Payment confirmed and order successfully added!");
+      setIsModalOpen(false);
+  
+    } catch (err) {
+      console.error("Error processing payment:", err);
+      if (
+        err.response?.status === 409 ||
+        err.response?.data?.message?.includes('Orders.O_receiptNumber')
+      ) {
+        toast.error(`Receipt Number already exists. Enter a different receipt`);
+      } else {
+        toast.error(`An error occurred while saving the order.`);
+      }
+    }
+    refreshAll();
   };
 
   const handleAddOrderItem = () => {
@@ -156,42 +153,52 @@ const OrderDashboard = () => {
       return; 
     }
   
-    const price = parseFloat(selectedProduct.price) || 0;
+    const sellingPrice = parseFloat(selectedProduct.price) || 0;
+    const unitPrice = parseFloat(selectedProduct.unitPrice) || 0;
     const quantity = parseInt(orderQuantity) || 1;
     const discountAmount = parseFloat(orderDiscount) || 0;
-    const total = (price * quantity) - discountAmount;
-    console.log('Discount Amount: ', discountAmount)
+    const netSales = (sellingPrice * quantity) - discountAmount;
   
+    const newItem = {
+      "Product Code": selectedProduct.code,
+      "Supplier": selectedProduct.supplier,
+      "Brand": selectedProduct.brand,
+      "Product": selectedProduct.name,
+      "Price": sellingPrice,
+      "Quantity": quantity,
+      "Discount Type": selectedProductDiscount?.D_discountType || "",
+      "Discount": discountAmount,
+      "Discount Value": discountAmount,
+      "Total": netSales,
+    };
+  
+    let updatedData = [];
     if (isEditMode) {
-      // Update the existing item
-      setData((prevData) => {
-        return prevData.map((item) =>
-          item["Product Code"] === selectedProduct.code
-            ? {
-                ...item,
-                "Quantity": quantity,
-                "Discount": discountAmount,
-                "Discount Value": discountAmount,
-                "Total": total,
-              }
-            : item
-        );
-      });
+      updatedData = data.map((item) =>
+        item["Product Code"] === selectedProduct.code
+          ? { ...item, ...newItem }
+          : item
+      );
     } else {
-      // Add a new item
-      const newItem = {
-        "Product Code": selectedProduct.code,
-        "Supplier": selectedProduct.supplier,
-        "Brand": selectedProduct.brand,
-        "Product": selectedProduct.name,
-        "Price": price,
-        "Quantity": quantity,
-        "Discount": discountAmount,
-        "Discount Value": discountAmount,
-        "Total": total,
-      };
-      setData((prevData) => [...prevData, newItem]);
+      updatedData = [...data, newItem];
     }
+  
+    // Calculate total product discount including the new/updated item
+    const totalProductDiscount = updatedData.reduce((sum, item) => {
+      return sum + (parseFloat(item["Discount Value"]) || 0);
+    }, 0);
+  
+    setData(updatedData);
+    setTotalProductDiscounted(totalProductDiscount);
+    setNetItemSale(netSales);
+    setUnitPrice(unitPrice);
+    setSelectedDiscountType(selectedDiscountType);
+    console.log("<Discount Type>: ", selectedDiscountType);
+  
+    console.log('[Total ProductDiscount Amount]: ', totalProductDiscount);
+    console.log('Discount Amount: ', discountAmount);
+    console.log('Net Sales (Selling price): ', netSales);
+    console.log('<Unit Price>: ', unitPrice);
   
     // Reset form
     setSelectedProduct(null);
@@ -204,33 +211,57 @@ const OrderDashboard = () => {
   const handleEdit = (row) => {
     const {
       "Product Code": code,
-      "Product": name,
-      "Price": price,
-      "Quantity": quantity,
-      "Discount": discount,
-      "Total": total,
+      Quantity: quantity,
+      Discount: discount,
+      "Discount Type": discountType, 
     } = row;
   
-    const selectedProduct = products.find(product => product.code === code);
-    if (selectedProduct) {
-      setSelectedProduct(selectedProduct);
-      setOrderQuantity(quantity);
+    const matchedProduct = products.find((p) => p.code === code);
+    if (!matchedProduct) return;
   
-      // Find the matching discount object from productDiscounts
-      const matchedDiscount = productDiscounts.find(d =>
-        d.D_discountType === discount.toString() || parseFloat(discount).toFixed(2) === d.D_discountType.replace("%", "")
-      );
-       console.log("Discount: ", selectedProductDiscount)
+    setSelectedProduct(matchedProduct);
+    setOrderQuantity(quantity);
+    setOrderDiscount(parseFloat(discount));
   
-      if (matchedDiscount) {
-        setSelectedProductDiscount(matchedDiscount);
-      } else {
-        setSelectedProductDiscount(null); 
-      }
-      setOrderDiscount(parseFloat(discount));
-      setIsEditMode(true);
-    }
+    const matchedDiscount = productDiscounts.find(
+      (d) => d.D_discountType === discountType
+    );
+  
+    setSelectedProductDiscount(matchedDiscount);
+    setIsEditMode(true);
   };
+
+    // Fetch data for product list
+    useEffect(() => {
+      fetchProductsCombobox();
+    }, []);  
+  
+    const fetchProductsCombobox = async () => {
+      try {
+        const res = await axios.get("http://localhost:8080/products");
+        const mappedProducts = res.data.map((p) => ({
+          code: p.P_productCode,
+          name: p.P_productName,
+          brand: p.brand,
+          supplier: p.supplier,
+          price: p.P_sellingPrice,
+          unitPrice: p.P_unitPrice,
+          stock: p.stock,
+          label: `${p.P_productName} - B${p.brand} - S${p.supplier}`,
+        }));
+        setProducts(mappedProducts);
+        console.log("Products fetched and mapped.");
+      } catch (err) {
+        console.error("Failed to fetch products:", err);
+      }
+    };
+    
+  
+    const handleProductSelect = (product) => {
+      console.log("Selected Product:", product);
+      setSelectedProduct(product);  
+      setOpenProduct(false); 
+    };
   
   const handleAddFreebie = () => {
   if (!selectedFreebie || freebieQuantity <= 0) return;
@@ -280,6 +311,40 @@ const OrderDashboard = () => {
     };
     fetchProductDiscounts();
   }, []);
+
+  const refreshAll = async () => {
+    fetchProductsCombobox();
+    // Reset all states
+    setData([]);
+    setIsModalOpen(false);
+  
+    // Order-related
+    setSelectedProduct(null);
+    setOpenProduct(false);
+    setIsEditMode(false);
+    setOrderQuantity(1);
+    setOrderDiscount(0);
+    setProductDiscounts([]);
+    setSelectedProductDiscount(null);
+  
+    // Freebies
+    setOpenFreebie(false);
+    setSelectedFreebie(null);
+    setFreebieQuantity(0);
+  
+    // Whole order and payment
+    setHasInteractedWithPayModal(false);
+    setPayment(0);
+    setSelectedDiscountType("");
+    setWholeOrderDiscountInput("");
+    setWholeOrderDiscount(0);
+    setReceiptNumber("");
+    setReceiptNumberError("");
+    setTotalProductDiscounted(0);
+    setNetItemSale(0);
+    setUnitPrice(0);
+    console.log("Form reset complete.");
+  };
   
   return (
     <SidebarProvider>
@@ -290,11 +355,8 @@ const OrderDashboard = () => {
           <div className="rounded-lg shadow-sm border-b sticky top-0 z-20 bg-white px-8 py-8">
             <h1 className="text-3xl text-black font-bold">Summary of Order/s</h1>
           </div>
-
-
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-4 w-full p-4">
             
-            {/* Left Section */}
             {/* TABLE */}
             <div className="lg:col-span-2 space-y-4 min-w-0">
               <div className="h-[50%] text-xl bg-white shadow-md p-4 rounded-xl">
@@ -318,16 +380,35 @@ const OrderDashboard = () => {
                     </label>
                     <input
                       type="text"
-                      value={wholeOrderDiscount === 0 ? "" : formatNumberWithCommas(wholeOrderDiscount.toString())}
+                      value={wholeOrderDiscountInput}
                       onChange={(e) => {
-                        const rawValue = e.target.value.replace(/[^0-9.]/g, ""); 
-                        setWholeOrderDiscount(rawValue === "" ? "" : parseFloat(rawValue) || 0); 
+                        const rawValue = e.target.value;
+                        const sanitized = rawValue.replace(/[^0-9.]/g, "").replace(/(\..*?)\..*/g, "$1");
+                        setWholeOrderDiscountInput(sanitized);
+                        const numeric = parseFloat(sanitized);
+                        setWholeOrderDiscount(!isNaN(numeric) ? numeric : 0);
                       }}
-                      className={`px-2 py-1 w-full border rounded-md text-[13px] text-center focus:outline-none ${isInvalidDiscount ? "border-red-600 text-red-600" : "border-blue-600 text-black"}`}
+                      inputMode="decimal"
+                      className={`px-2 py-1 w-full border rounded-md text-[13px] text-center focus:outline-none ${
+                        isInvalidDiscount ? "border-red-600 text-red-600" : "border-blue-600 text-black"
+                      }`}
                     />
                   </div>
 
-                  <button onClick={() => setIsModalOpen(true)} className="px-4 py-1 mt-5 bg-blue-600 text-white rounded-md text-[13px]">
+                  <button
+                    onClick={() => {
+                      if (data.length === 0) {
+                        toast.error("Please add at least one product or freebie before proceeding to payment.");
+                        return;
+                      }
+                      setIsModalOpen(true);
+                    }}
+                    className={`px-4 py-1 mt-5 rounded-md text-[13px] transition-colors ${
+                      data.length === 0
+                        ? "bg-gray-400 text-white cursor-not-allowed"
+                        : "bg-blue-600 text-white hover:bg-blue-700"
+                    }`}
+                  >
                     INPUT PAYMENT
                   </button>
 
@@ -362,16 +443,22 @@ const OrderDashboard = () => {
                             const rawValue = e.target.value.replace(/[^0-9.]/g, ""); 
                             const updatedPayment = rawValue === "" ? 0 : parseFloat(rawValue);
                             setPayment(updatedPayment);
+                            console.log("Payment: ", payment)
+                            console.log("!!!!!discountedTotal: ", discountedTotal)
                           }}
                           onBlur={() => {
                             if (!payment || parseFloat(payment.toString().replace(/,/g, "")) < discountedTotal) {
                               setHasInteractedWithPayModal(true);
                             }
                           }}
-                          onMouseLeave={() => {
+                          onMouseLeave={(e) => {
                             if (!payment || parseFloat(payment.toString().replace(/,/g, "")) < discountedTotal) {
                               setHasInteractedWithPayModal(true);
                             }
+                            const rawValue = e.target.value.replace(/[^0-9.]/g, ""); 
+                            const updatedPayment = rawValue === "" ? 0 : parseFloat(rawValue);
+                            setPayment(updatedPayment);
+                            console.log("Payment: ", payment)
                           }}
                           className={`w-[80%] px-2 py-1 border rounded-md text-center focus:outline-none ${
                             hasInteractedWithPayModal && !payment 
@@ -540,7 +627,12 @@ const OrderDashboard = () => {
               <DropdownMenu>
                 <label className="block text-sm mb-1">With Product Discount?</label>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start text-sm">
+                  <Button
+                    variant="outline"
+                    className={`w-full justify-start text-sm ${
+                      isEditMode ? "pointer-events-none opacity-50 text-gray" : ""
+                    }`}
+                  >
                     {selectedProductDiscount?.D_discountType || " "}
                   </Button>
                 </DropdownMenuTrigger>
@@ -549,22 +641,25 @@ const OrderDashboard = () => {
                   {productDiscounts.map((itemDiscount) => (
                     <DropdownMenuItem
                       key={itemDiscount.D_productDiscountID}
+                      disabled={isEditMode}
                       onClick={() => {
                         const discountType = itemDiscount.D_discountType;
-                        const currentPrice = parseFloat(selectedProduct?.price);
-                        const currentQuantity = parseInt(orderQuantity);
-                      
+                        setSelectedDiscountType(discountType);
+                        console.log("Discount Type: ", discountType);
+                        const currentPrice = parseFloat(selectedProduct?.price || "0");
+                        const currentQuantity = parseInt(orderQuantity || "1");
+
                         setSelectedProductDiscount(itemDiscount);
                         if (discountType.includes("%")) {
-                          const percent = parseFloat(discountType); // e.g. "10%" becomes 10
+                          const percent = parseFloat(discountType);
                           const computed = currentPrice * currentQuantity * (percent / 100);
                           setOrderDiscount(computed.toFixed(2));
                         } else if (discountType.toLowerCase().includes("specific")) {
-                          setOrderDiscount(""); // User will type manually
+                          setOrderDiscount("");
                         } else {
                           setOrderDiscount("0");
                         }
-                      }}  
+                      }}
                     >
                       {itemDiscount.D_discountType}
                     </DropdownMenuItem>

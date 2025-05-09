@@ -60,12 +60,12 @@ const data = {
       icon: Undo2Icon,
       path: "returns"
     },
-    {
-      title: "Discounts",
-      url: "./discounts",
-      icon: TicketPercentIcon,
-      path: "discounts"
-    },
+    // {
+    //   title: "Discounts",
+    //   url: "./discounts",
+    //   icon: TicketPercentIcon,
+    //   path: "discounts"
+    // },
     {
       title: "Deleted Transactions",
       url: "./deleted",
@@ -78,12 +78,12 @@ const data = {
       icon: ChartNoAxesCombinedIcon,
       path: "reports"
     },
-    {
-      title: "Configurations",
-      url: "./configurations",
-      icon: SettingsIcon,
-      path: "configurations"
-    },
+    // {
+    //   title: "Configurations",
+    //   url: "./configurations",
+    //   icon: SettingsIcon,
+    //   path: "configurations"
+    // },
     {
       title: "Manage Accounts",
       url: "./accounts",
