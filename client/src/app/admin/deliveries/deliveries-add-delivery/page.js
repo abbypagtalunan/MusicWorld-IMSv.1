@@ -73,7 +73,8 @@ export default function BatchDeliveriesPage() {
     paymentTypes: "http://localhost:8080/deliveries/payment-types",
     paymentModes: "http://localhost:8080/deliveries/mode-of-payment",
     paymentStatuses: "http://localhost:8080/deliveries/payment-status",
-    paymentDetails: "http://localhost:8080/deliveries/payment-details"
+    paymentDetails: "http://localhost:8080/deliveries/payment-details",
+    completeDelivery: "http://localhost:8080/deliveries/complete"
   };
 
   useEffect(() => {
@@ -112,6 +113,17 @@ export default function BatchDeliveriesPage() {
       // Set today's date as default delivery date
       const today = new Date().toISOString().split('T')[0];
       setDeliveryDate(today);
+      
+      // Also set the default due date to 30 days from today
+      const dueDate = new Date();
+      dueDate.setDate(dueDate.getDate() + 30);
+      const formattedDueDate = dueDate.toISOString().split('T')[0];
+
+      // Initialize payment details with due date
+      setPaymentDetails(prev => ({
+        ...prev,
+        dateDue: formattedDueDate
+      }));
       
     } catch (error) {
       console.error("Error loading data:", error);
@@ -283,62 +295,73 @@ export default function BatchDeliveriesPage() {
         return;
       }
       
-      // Validate required fields for delivery
-      if (!deliveryNumber || !deliveryDate) {
-        toast.error("Please fill in all required delivery information");
+      // Error if no delivery number
+      if (!deliveryNumber) {
+        toast.error("Delivery number required.");
         return;
       }
       
       // Validate required fields for payment details
       if (!paymentDetails.paymentType || !paymentDetails.paymentMode || 
-          !paymentDetails.paymentStatus || !paymentDetails.dateDue || !paymentDetails.datePayment1) {
+          !paymentDetails.paymentStatus || !paymentDetails.dateDue) {
         toast.error("Please fill in all required payment details");
         return;
       }
-      
-      // Create delivery object
-      const deliveryPayload = {
-        D_deliveryNumber: deliveryNumber,
-        D_deliveryDate: new Date(deliveryDate).toISOString(),
-        S_supplierID: selectedSupplier
-      };
-      
-      // Step 1: Create/update the delivery
-      await axios.post(API_CONFIG.deliveries, deliveryPayload);
-      
-      // Step 2: Save product details for this delivery
-      const productPromises = productItems.map(item => {
-        // Extract numeric quantity value
-        const quantityValue = parseInt(item.quantity.split(' ')[0]);
-        
-        const productDetailPayload = {
-          D_deliveryNumber: deliveryNumber,
-          P_productCode: item.productCode,
-          DPD_quantity: quantityValue
-        };
-        
-        return axios.post(API_CONFIG.deliveryProducts, productDetailPayload);
-      });
 
-      await Promise.all(productPromises);
+      setLoading(true);
       
-      // Step 3: Save payment details - removed conditional since we validated above
-      const paymentPayload = {
-        D_deliveryNumber: deliveryNumber,
-        D_paymentTypeID: parseInt(paymentDetails.paymentType),
-        D_modeOfPaymentID: parseInt(paymentDetails.paymentMode),
-        D_paymentStatusID: parseInt(paymentDetails.paymentStatus),
-        DPD_dateOfPaymentDue: paymentDetails.dateDue,
-        DPD_dateOfPayment1: paymentDetails.datePayment1,
-        DPD_dateOfPayment2: paymentDetails.datePayment2 || null
+      const supplierForDelivery = selectedSupplier || (productItems.length > 0 ? productItems[0].supplierID : null);
+      if (!supplierForDelivery) {
+        toast.error("Missing supplier information");
+        return;
+      }
+
+      // Create comprehensive delivery payload using the format expected by addCompleteDelivery
+      const deliveryPayload = {
+        D_deliveryNumber: deliveryNumber.trim(),
+        D_deliveryDate: deliveryDate,
+        S_supplierID: supplierForDelivery,
+        products: productItems.map(item => {
+          // Handle quantity that might be just a number or "X units"
+          let quantityValue;
+          if (typeof item.quantity === 'string' && item.quantity.includes(' ')) {
+            quantityValue = parseInt(item.quantity.split(' ')[0]);
+          } else {
+            quantityValue = parseInt(item.quantity);
+          }
+          
+          // Make sure we have a valid number
+          if (isNaN(quantityValue)) {
+            console.error("Invalid quantity for product:", item);
+            throw new Error(`Invalid quantity for ${item.productCode}`);
+          }
+          
+          return {
+            P_productCode: item.productCode,
+            DPD_quantity: quantityValue
+          };
+        }),
+        payment: {
+          D_paymentTypeID: paymentDetails.paymentType,
+          D_modeOfPaymentID: paymentDetails.paymentMode,
+          D_paymentStatusID: paymentDetails.paymentStatus,
+          DPD_dateOfPaymentDue: paymentDetails.dateDue,
+          DPD_dateOfPayment1: paymentDetails.datePayment1 || null,
+          DPD_dateOfPayment2: paymentDetails.datePayment2 || null
+        }
       };
-      
-      await axios.post(API_CONFIG.paymentDetails, paymentPayload);
+
+      console.log("Sending comprehensive delivery payload:", deliveryPayload);
+
+      // Send all delivery data in a single request to the complete delivery endpoint
+      const deliveryResponse = await axios.post(API_CONFIG.deliveries + '/complete', deliveryPayload);
+      console.log("Delivery created:", deliveryResponse.data);
       
       toast.success("Delivery and payment details successfully saved!");
       
-      // Generate a new delivery number for next entry
+      // Reset the form for next entry
       setDeliveryNumber("");
+      setSelectedSupplier("");
       setProductItems([]);
       setPaymentDetails({
         paymentType: "",
@@ -347,48 +370,24 @@ export default function BatchDeliveriesPage() {
         dateDue: "",
         datePayment1: "",
         datePayment2: ""
+      });
+      setNewProduct({
+        product: "",
+        supplier: "",
+        brand: "",
+        unitPrice: "",
+        quantity: ""
       });
       
     } catch (error) {
       console.error("Error saving delivery:", error);
-      toast.error(error.response?.data?.message || "Failed to save delivery");
-    }
-  };
-
-  // Handle delivery deletion
-  const handleDeleteDelivery = async (password) => {
-    try {
-      if (!password) {
-        toast.error("Admin password is required");
-        return;
-      }
-      
-      await axios({
-        method: 'delete',
-        url: `${API_CONFIG.deliveries}/${deliveryNumber}`,
-        data: { adminPW: password },
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-      
-      toast.success("Delivery deleted successfully");
-      
-      // Reset form
-      setDeliveryNumber("");
-      setProductItems([]);
-      setPaymentDetails({
-        paymentType: "",
-        paymentMode: "",
-        paymentStatus: "",
-        dateDue: "",
-        datePayment1: "",
-        datePayment2: ""
-      });
-      
-    } catch (error) {
-      console.error("Error deleting delivery:", error);
-      toast.error(error.response?.data?.message || "Failed to delete delivery");
+      const errorMessage = error.response?.data?.message || 
+                           error.response?.data?.error || 
+                           error.message || 
+                           "Failed to save delivery";
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -403,7 +402,6 @@ export default function BatchDeliveriesPage() {
       }
       
       const paymentPayload = {
-        D_deliveryNumber: deliveryNumber,
         D_paymentTypeID: parseInt(paymentDetails.paymentType),
         D_modeOfPaymentID: parseInt(paymentDetails.paymentMode),
         D_paymentStatusID: parseInt(paymentDetails.paymentStatus),
@@ -412,12 +410,49 @@ export default function BatchDeliveriesPage() {
         DPD_dateOfPayment2: paymentDetails.datePayment2 || null
       };
       
-      await axios.post(API_CONFIG.paymentDetails, paymentPayload);
+      await axios.put(`${API_CONFIG.deliveries}/payment-details/${deliveryNumber}`, paymentPayload);
       toast.success("Payment details saved successfully");
       
     } catch (error) {
       console.error("Error saving payment details:", error);
       toast.error(error.response?.data?.message || "Failed to save payment details");
+    }
+  };
+  
+  // Handle delivery deletion
+  const handleDeleteDelivery = async (password) => {
+    try {
+      if (!password) {
+        toast.error("Admin password is required");
+        return;
+      }
+      
+      await axios({
+        method: 'put', // Change from 'delete' to 'put'
+        url: `${API_CONFIG.deliveries}/mark-deleted/${deliveryNumber}`, // Update endpoint
+        data: { adminPW: password },
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      toast.success("Delivery marked as deleted");
+      
+      // Reset form
+      setDeliveryNumber("");
+      setProductItems([]);
+      setPaymentDetails({
+        paymentType: "",
+        paymentMode: "",
+        paymentStatus: "",
+        dateDue: "",
+        datePayment1: "",
+        datePayment2: ""
+      });
+      
+    } catch (error) {
+      console.error("Error marking delivery as deleted:", error);
+      toast.error(error.response?.data?.message || "Failed to delete delivery");
     }
   };
   
