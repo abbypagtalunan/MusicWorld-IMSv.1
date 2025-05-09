@@ -46,6 +46,13 @@ const addDelivery = (req, res) => {
     
     console.log("Received delivery payload:", JSON.stringify(req.body, null, 2));
     
+    const deliveryNumberInt = parseInt(D_deliveryNumber, 10);
+    const supplierIDInt = parseInt(S_supplierID, 10);
+
+    if (isNaN(deliveryNumberInt) || isNaN(supplierIDInt)) {
+      return res.status(400).json({ message: 'Invalid data types for deliveryNumber or supplierID' });
+    }
+
     if (!D_deliveryNumber || !D_deliveryDate || !S_supplierID) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
@@ -100,28 +107,67 @@ const addDelivery = (req, res) => {
       S_supplierID 
     };
 
-    // Use the comprehensive transaction-based approach
-    deliveryModel.addCompleteDelivery(deliveryData, products, payment, (err, results) => {
+    // Insert delivery data
+    deliveryModel.addDelivery(deliveryData, (err, deliveryResult) => {
       if (err) {
         console.error('Error inserting delivery:', err);
-        // Include more details in the error response
-        res.status(500).json({ 
-          message: 'Error inserting delivery', 
-          error: err.message || err.toString(),
-          details: err.stack // This will help with debugging
+        return res.status(500).json({ message: 'Error inserting delivery', error: err.message });
+      }
+
+      const insertedDeliveryNumber = deliveryResult.insertId;
+
+      // Insert products data
+      const productPromises = products.map(product => {
+        const productData = {
+          D_deliveryNumber: insertedDeliveryNumber,
+          P_productCode: product.P_productCode,
+          DPD_quantity: product.DPD_quantity,
+        };
+        return new Promise((resolve, reject) => {
+          deliveryModel.addDeliveryProducts([productData], (err, productResult) => {
+            if (err) reject(err);
+            else resolve(productResult);
+          });
         });
-      } else {
-        res.status(201).json({ 
-          message: 'Delivery and all associated details added successfully', 
-          results 
+      });
+
+      // If payment data is provided, insert it
+      let paymentPromise = Promise.resolve();
+      if (payment) {
+        const paymentData = {
+          D_deliveryNumber: insertedDeliveryNumber,
+          D_paymentTypeID: payment.D_paymentTypeID,
+          D_modeOfPaymentID: payment.D_modeOfPaymentID,
+          D_paymentStatusID: payment.D_paymentStatusID,
+          DPD_dateOfPaymentDue: payment.DPD_dateOfPaymentDue,
+          DPD_dateOfPayment1: payment.DPD_dateOfPayment1,
+          DPD_dateOfPayment2: payment.DPD_dateOfPayment2,
+        };
+        paymentPromise = new Promise((resolve, reject) => {
+          deliveryModel.addPayment(paymentData, (err, paymentResult) => {
+            if (err) reject(err);
+            else resolve(paymentResult);
+          });
         });
       }
+
+      // Execute all product insertions and payment insertion
+      Promise.all([...productPromises, paymentPromise])
+        .then(() => {
+          res.status(201).json({ message: 'Delivery, products, and payment (if any) added successfully' });
+        })
+        .catch((err) => {
+          console.error('Error processing delivery details:', err);
+          res.status(500).json({ message: 'Error processing delivery details', error: err.message });
+        });
     });
+
   } catch (error) {
     console.error('Unexpected error in addDelivery:', error);
     res.status(500).json({
       message: 'Unexpected error processing delivery',
-      error: error.message || error.toString()
+      error: error.message || error.toString(),
+      stack: error.stack // Include stack trace for debugging
     });
   }
 };
@@ -132,7 +178,7 @@ const deleteDelivery = (req, res) => {
   const { adminPW } = req.body;
 
   if (adminPW !== "2095") {
-    return res.status(403).json({ message: "Invalid admin password" });
+    return res.status(403).json({ message: "Authentication failed: Invalid admin password provided" });
   }
 
   deliveryModel.deleteDelivery(deliveryNumber, (err, results) => {
@@ -151,7 +197,7 @@ const markDeliveryAsDeleted = (req, res) => {
   const { adminPW } = req.body;
 
   if (adminPW !== "2095") {
-    return res.status(403).json({ message: "Invalid admin password" });
+    return res.status(403).json({ message: "Authentication failed: Invalid admin password provided" });
   }
 
   deliveryModel.markDeliveryAsDeleted(deliveryNumber, (err, results) => {

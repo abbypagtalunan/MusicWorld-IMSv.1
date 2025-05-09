@@ -74,7 +74,6 @@ export default function BatchDeliveriesPage() {
     paymentModes: "http://localhost:8080/deliveries/mode-of-payment",
     paymentStatuses: "http://localhost:8080/deliveries/payment-status",
     paymentDetails: "http://localhost:8080/deliveries/payment-details",
-    completeDelivery: "http://localhost:8080/deliveries/complete"
   };
 
   useEffect(() => {
@@ -318,33 +317,31 @@ export default function BatchDeliveriesPage() {
 
       // Create comprehensive delivery payload using the format expected by addCompleteDelivery
       const deliveryPayload = {
-        D_deliveryNumber: deliveryNumber.trim(),
+        D_deliveryNumber: parseInt(deliveryNumber.trim(), 10),
         D_deliveryDate: deliveryDate,
-        S_supplierID: supplierForDelivery,
+        S_supplierID: parseInt(supplierForDelivery, 10),
         products: productItems.map(item => {
-          // Handle quantity that might be just a number or "X units"
           let quantityValue;
           if (typeof item.quantity === 'string' && item.quantity.includes(' ')) {
-            quantityValue = parseInt(item.quantity.split(' ')[0]);
+            quantityValue = parseInt(item.quantity.split(' ')[0], 10);
           } else {
-            quantityValue = parseInt(item.quantity);
+            quantityValue = parseInt(item.quantity, 10);
           }
-          
-          // Make sure we have a valid number
+
           if (isNaN(quantityValue)) {
             console.error("Invalid quantity for product:", item);
             throw new Error(`Invalid quantity for ${item.productCode}`);
           }
-          
+
           return {
-            P_productCode: item.productCode,
+            P_productCode: String(item.productCode),
             DPD_quantity: quantityValue
           };
         }),
         payment: {
-          D_paymentTypeID: paymentDetails.paymentType,
-          D_modeOfPaymentID: paymentDetails.paymentMode,
-          D_paymentStatusID: paymentDetails.paymentStatus,
+          D_paymentTypeID: parseInt(paymentDetails.paymentType, 10),
+          D_modeOfPaymentID: parseInt(paymentDetails.paymentMode, 10),
+          D_paymentStatusID: parseInt(paymentDetails.paymentStatus, 10),
           DPD_dateOfPaymentDue: paymentDetails.dateDue,
           DPD_dateOfPayment1: paymentDetails.datePayment1 || null,
           DPD_dateOfPayment2: paymentDetails.datePayment2 || null
@@ -354,7 +351,7 @@ export default function BatchDeliveriesPage() {
       console.log("Sending comprehensive delivery payload:", deliveryPayload);
 
       // Send all delivery data in a single request to the complete delivery endpoint
-      const deliveryResponse = await axios.post(API_CONFIG.deliveries + '/complete', deliveryPayload);
+      const deliveryResponse = await axios.post(API_CONFIG.deliveries, deliveryPayload);
       console.log("Delivery created:", deliveryResponse.data);
       
       toast.success("Delivery and payment details successfully saved!");

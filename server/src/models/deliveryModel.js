@@ -86,23 +86,98 @@ const searchDeliveries = (deliveryNumber, callback) => {
 };
 
 // Add a new Delivery
-const addDelivery = (deliveryData, callback) => {
+const addDelivery = (deliveryData, products, payment, callback) => {
   const { D_deliveryNumber, D_deliveryDate, S_supplierID } = deliveryData;
 
-  // First insert the delivery header
-  const insertDeliveryQuery = `
+  console.log('Adding delivery with products and payment:', { deliveryData, products, payment });
+
+  if (!D_deliveryNumber || !D_deliveryDate || !S_supplierID) {
+    return callback(new Error("Missing required delivery fields"));
+  }
+
+  // Validate products array
+  if (!Array.isArray(products) || products.length === 0) {
+    return callback(new Error("Products array is required and cannot be empty"));
+  }
+
+  // Validate payment details
+  if (payment && (!payment.D_paymentTypeID || !payment.D_modeOfPaymentID || !payment.D_paymentStatusID || !payment.DPD_dateOfPaymentDue)) {
+    return callback(new Error("Missing required payment fields"));
+  }
+
+  // Start transaction
+  db.beginTransaction(err => {
+    if (err) return callback(err);
+
+    // Step 1: Insert Delivery
+    const insertDeliveryQuery = `
       INSERT INTO Deliveries (D_deliveryNumber, D_deliveryDate, S_supplierID, isTemporarilyDeleted) 
       VALUES (?, ?, ?, 0)
-  `;
+    `;
 
-  db.query(
-    insertDeliveryQuery,
-    [D_deliveryNumber, D_deliveryDate, S_supplierID],
-    (err, results) => {
-      if (err) return callback(err);
-      callback(null, results.insertId);
-    }
-  );
+    db.query(insertDeliveryQuery, [D_deliveryNumber, D_deliveryDate, S_supplierID], (err, deliveryResult) => {
+      if (err) return db.rollback(() => callback(err));
+
+      // Step 2: Insert Products
+      const productValues = products.map(product => [
+        D_deliveryNumber,
+        product.P_productCode,
+        parseInt(product.DPD_quantity, 10)
+      ]);
+
+      const insertProductsQuery = `
+        INSERT INTO DeliveryProductDetails (D_deliveryNumber, P_productCode, DPD_quantity) 
+        VALUES ?
+      `;
+
+      db.query(insertProductsQuery, [productValues], (err, productResults) => {
+        if (err) return db.rollback(() => callback(err));
+
+        // Step 3: Insert Payment (if provided)
+        if (payment) {
+          const insertPaymentQuery = `
+            INSERT INTO DeliveryPaymentDetails 
+            (D_deliveryNumber, D_paymentTypeID, D_modeOfPaymentID, D_paymentStatusID, 
+            DPD_dateOfPaymentDue, DPD_dateOfPayment1, DPD_dateOfPayment2)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+          `;
+
+          db.query(insertPaymentQuery, [
+            D_deliveryNumber,
+            payment.D_paymentTypeID,
+            payment.D_modeOfPaymentID,
+            payment.D_paymentStatusID,
+            payment.DPD_dateOfPaymentDue,
+            payment.DPD_dateOfPayment1,
+            payment.DPD_dateOfPayment2 || null
+          ], (err, paymentResult) => {
+            if (err) return db.rollback(() => callback(err));
+
+            // Commit transaction
+            db.commit(err => {
+              if (err) return db.rollback(() => callback(err));
+
+              callback(null, {
+                delivery: deliveryResult,
+                products: productResults,
+                payment: paymentResult
+              });
+            });
+          });
+        } else {
+          // No payment, commit transaction
+          db.commit(err => {
+            if (err) return db.rollback(() => callback(err));
+
+            callback(null, {
+              delivery: deliveryResult,
+              products: productResults
+            });
+          });
+        }
+      });
+    });
+  });
 };
 
 // Add products to an existing delivery
@@ -114,26 +189,35 @@ const addDeliveryProducts = (deliveryProductsData, callback) => {
     return callback(null, { message: "No products to add" });
   }
 
-  // Prepare batch insert of products
-  const insertProductsQuery = `
-    INSERT INTO DeliveryProductDetails (D_deliveryNumber, P_productCode, DPD_quantity) 
-    VALUES ?
-  `;
-
-  const values = deliveryProducts.map(product => [
-    product.D_deliveryNumber,
-    product.P_productCode,
-    product.DPD_quantity,
-  ]);
-
-  db.query(
-    insertProductsQuery,
-    [values],
-    (err, results) => {
-      if (err) return callback(err);
-      callback(null, results);
+  // Add this check for delivery existence
+  const checkDeliveryQuery = "SELECT D_deliveryNumber FROM Deliveries WHERE D_deliveryNumber = ?";
+  db.query(checkDeliveryQuery, [deliveryProducts[0].D_deliveryNumber], (err, results) => {
+    if (err) return callback(err);
+    if (results.length === 0) {
+      return callback(new Error(`Delivery with number ${deliveryProducts[0].D_deliveryNumber} does not exist`));
     }
-  );
+    
+    // Prepare batch insert of products
+    const insertProductsQuery = `
+      INSERT INTO DeliveryProductDetails (D_deliveryNumber, P_productCode, DPD_quantity) 
+      VALUES ?
+    `;
+
+    const values = deliveryProducts.map(product => [
+      product.D_deliveryNumber,
+      product.P_productCode,
+      product.DPD_quantity,
+    ]);
+
+    db.query(
+      insertProductsQuery,
+      [values],
+      (err, results) => {
+        if (err) return callback(err);
+        callback(null, results);
+      }
+    );
+  });
 };
 
 // Get all product details for a delivery
@@ -193,7 +277,9 @@ const updatePaymentDetails = (deliveryNumber, paymentData, callback) => {
   const checkQuery = `SELECT D_deliveryNumber FROM DeliveryPaymentDetails WHERE D_deliveryNumber = ?`;
 
   db.query(checkQuery, [deliveryNumber], (err, results) => {
-    if (err) return callback(err);
+    if (err) {
+      return callback(err);
+    }
 
     let query;
     let params;
@@ -438,10 +524,37 @@ const deleteDeliveryPaymentStatus = (id, callback) => {
 const addCompleteDelivery = (deliveryData, products, payment, callback) => {
   const { D_deliveryNumber, D_deliveryDate, S_supplierID } = deliveryData;
   
+    // Log the incoming payload for debugging
+    console.log("addCompleteDelivery payload:", { deliveryData, products, payment });
+
+    // Validate delivery data
+    if (!D_deliveryNumber || !D_deliveryDate || !S_supplierID) {
+        return callback(new Error("Missing required delivery fields"));
+    }
+
+    // Validate products array
+    if (!Array.isArray(products) || products.length === 0) {
+        return callback(new Error("Products array is required and cannot be empty"));
+    }
+
+    // Validate payment details
+    if (!payment.D_paymentTypeID || !payment.D_modeOfPaymentID || !payment.D_paymentStatusID || !payment.DPD_dateOfPaymentDue) {
+        return callback(new Error("Missing required payment fields"));
+    }
+  
   // Format dates properly for MySQL if they're provided as strings
   const deliveryDateFormatted = D_deliveryDate instanceof Date ? 
     D_deliveryDate.toISOString().slice(0, 19).replace('T', ' ') : 
     D_deliveryDate;
+
+  if (products && products.length > 0) {
+    for (const product of products) {
+      const quantity = parseInt(product.DPD_quantity, 10);
+      if (isNaN(quantity) || quantity <= 0) {
+        return callback(new Error(`Invalid quantity for product ${product.P_productCode}: ${product.DPD_quantity}`));
+      }
+    }
+  }
 
   // Start a transaction to ensure all or nothing is committed
   db.beginTransaction(err => {
@@ -468,21 +581,11 @@ const addCompleteDelivery = (deliveryData, products, payment, callback) => {
             VALUES ?
           `;
 
-          const productValues = products.map(product => {
-            // Ensure P_productCode is a string and DPD_quantity is a number
-            const productCode = String(product.P_productCode);
-            const quantity = parseInt(product.DPD_quantity, 10);
-            
-            if (isNaN(quantity)) {
-              throw new Error(`Invalid quantity for product ${productCode}: ${product.DPD_quantity}`);
-            }
-            
-            return [
-              D_deliveryNumber,
-              productCode,
-              quantity
-            ];
-          });
+        const productValues = products.map(product => [
+          String(D_deliveryNumber),
+          String(product.P_productCode),
+          parseInt(product.DPD_quantity, 10)
+        ]);
 
           db.query(insertProductsQuery, [productValues], (err, productResults) => {
             if (err) {
@@ -509,6 +612,10 @@ const addCompleteDelivery = (deliveryData, products, payment, callback) => {
               if (isNaN(paymentTypeID) || isNaN(modeOfPaymentID) || isNaN(paymentStatusID)) {
                 return db.rollback(() => callback(new Error('Invalid payment type, mode, or status ID')));
               }
+              
+              if (!DPD_dateOfPaymentDue || !DPD_dateOfPayment1) {
+                return db.rollback(() => callback(new Error('Payment due date and first payment date are required')));
+              }
 
               const insertPaymentQuery = `
                 INSERT INTO DeliveryPaymentDetails 
@@ -520,7 +627,9 @@ const addCompleteDelivery = (deliveryData, products, payment, callback) => {
               db.query(
                 insertPaymentQuery, 
                 [D_deliveryNumber, paymentTypeID, modeOfPaymentID, paymentStatusID, 
-                DPD_dateOfPaymentDue, DPD_dateOfPayment1, DPD_dateOfPayment2 || null], 
+                DPD_dateOfPaymentDue instanceof Date ? DPD_dateOfPaymentDue.toISOString().slice(0, 10) : DPD_dateOfPaymentDue, 
+                DPD_dateOfPayment1 instanceof Date ? DPD_dateOfPayment1.toISOString().slice(0, 10) : DPD_dateOfPayment1, 
+                DPD_dateOfPayment2 ? (DPD_dateOfPayment2 instanceof Date ? DPD_dateOfPayment2.toISOString().slice(0, 10) : DPD_dateOfPayment2) : null], 
                 (err, paymentResults) => {
                   if (err) {
                     return db.rollback(() => callback(err));
@@ -597,7 +706,5 @@ module.exports = {
   getAllDeliveryPaymentStatuses,
   addDeliveryPaymentStatus,
   updateDeliveryPaymentStatus,
-  deleteDeliveryPaymentStatus,
-  
-  addCompleteDelivery
+  deleteDeliveryPaymentStatus
 };
