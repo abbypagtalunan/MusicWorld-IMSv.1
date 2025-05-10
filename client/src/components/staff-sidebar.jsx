@@ -109,7 +109,7 @@ export function AppSidebar({ ...props }) {
           <NavMain items={navMainWithActive} collapsed={collapsed} />
         </SidebarContent>
 
-        <SidebarFooter className="bg-white">
+        {/* <SidebarFooter className="bg-white">
           <SidebarMenu className="bg-white items-left justify-center">
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" tooltip="Log Out">
@@ -119,7 +119,7 @@ export function AppSidebar({ ...props }) {
             </SidebarMenuItem>
           </SidebarMenu>
           <NavUser user={data.user} />
-        </SidebarFooter>
+        </SidebarFooter> */}
       </Sidebar>
     </>
   );

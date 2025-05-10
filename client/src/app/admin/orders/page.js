@@ -6,7 +6,7 @@ import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
-import { Search, ListFilter, Trash2, Ellipsis, CalendarDays } from "lucide-react";
+import { Search, ListFilter, Trash2, Ellipsis, CalendarDays, Download } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -300,6 +300,90 @@ export default function OrdersPage() {
       .catch((err) => console.error("Failed to fetch order details:", err));
   };
 
+
+  const handleDownloadCSV = () => {
+    const headers = [
+      "Receipt Number",
+      "Order ID",
+      "Transaction Date",
+      "Order Payment",
+      "Total Amount",
+      "Whole Order Discount",
+      "Total Product Discount",
+      "Product Name",
+      "Product Code",
+      "Brand",
+      "Supplier",
+      "Quantity",
+      "Unit Price",
+      "Selling Price",
+      "Discount Type",
+      "Discount Amount",
+      "Item Gross Sale",
+      "Item Net Sale",
+      "Item Gross Profit"
+    ];
+  
+    const rows = [];
+  
+    orders.forEach((order) => {
+      const detailsForOrder = orderDetails.filter(detail => detail.orderID === order.orderID);
+  
+      if (detailsForOrder.length === 0) {
+        rows.push([
+          order.receiptNo,
+          order.orderID,
+          order.transacDate,
+          order.orderPayment,
+          order.totalAmount,
+          order.wholeOrderDiscount,
+          order.totalProductDiscount,
+          "", "", "", "", "", "", "", "", "", "", "", ""
+        ]);
+      } else {
+        detailsForOrder.forEach(detail => {
+          rows.push([
+            order.receiptNo,
+            order.orderID,
+            order.transacDate,
+            order.orderPayment,
+            order.totalAmount,
+            order.wholeOrderDiscount,
+            order.totalProductDiscount,
+            detail.productName,
+            detail.productCode,
+            detail.brandName,
+            detail.supplierName,
+            detail.quantity,
+            detail.unitPrice,
+            detail.sellingPrice,
+            detail.discountType,
+            detail.discountAmount,
+            detail.itemGross,
+            detail.itemTotal,
+            detail.itemGrossProfit
+          ]);
+        });
+      }
+    });
+  
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row => row.map(val => `"${val}"`).join(","))
+    ].join("\n");
+  
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "Orders.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+    
+
   return (
     <SidebarProvider>
       <div className="flex h-screen w-screen">
@@ -396,7 +480,9 @@ export default function OrdersPage() {
                         Reset Filters
                     </DropdownMenuItem>
                   </DropdownMenuContent>
-                </DropdownMenu>   
+                </DropdownMenu>  
+                
+                 
 
                 {/* Date Range Filters - From and To */}
                 <Popover>
@@ -468,6 +554,14 @@ export default function OrdersPage() {
                     )}
                   </PopoverContent>
                 </Popover>
+
+              {/* DOWNLOAD */}
+              <Button
+                onClick={() => handleDownloadCSV()}
+                className="bg-blue-400 text-white"
+              >
+                <Download className="w-4 h-4" />
+              </Button>
               </div>
             </div>
           </div>
