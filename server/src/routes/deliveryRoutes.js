@@ -17,6 +17,7 @@ router.get('/search', deliveryController.searchDeliveries);
 router.post('/', deliveryController.addDelivery);
 router.delete('/:deliveryNumber', deliveryController.deleteDelivery);
 router.put('/:deliveryNumber', deliveryController.updatePaymentDetails);
+router.put('/:deliveryNumber/mark-deleted', deliveryController.markDeliveryAsDeleted);
 
 // Product-specific routes
 productsRouter.get('/', deliveryController.getDeliveryProducts);

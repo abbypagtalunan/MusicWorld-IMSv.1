@@ -35,19 +35,95 @@ const searchDeliveries = (req, res) => {
 
 // Add a new delivery
 const addDelivery = (req, res) => {
-  const { D_deliveryNumber, D_deliveryDate, S_supplierID } = req.body;
-  if (!D_deliveryNumber || !D_deliveryDate || !S_supplierID) {
-    return res.status(400).json({ message: 'Missing required fields' });
-  }
-
-  deliveryModel.addDelivery({ D_deliveryNumber, D_deliveryDate, S_supplierID }, (err, deliveryId) => {
-    if (err) {
-      console.error('Error inserting delivery:', err);
-      res.status(500).json({ message: 'Error inserting delivery' });
-    } else {
-      res.status(201).json({ message: 'Delivery added successfully', id: deliveryId });
+  try {
+    const { 
+      D_deliveryNumber, 
+      D_deliveryDate, 
+      S_supplierID,
+      products,
+      payment
+    } = req.body;
+    
+    console.log("Received delivery payload:", JSON.stringify(req.body, null, 2));
+    
+    if (!D_deliveryNumber || !D_deliveryDate || !S_supplierID) {
+      return res.status(400).json({ message: 'Missing required fields' });
     }
-  });
+
+    // Validate products array
+    if (!products || !Array.isArray(products) || products.length === 0) {
+      return res.status(400).json({ message: 'Products array is required and cannot be empty' });
+    }
+
+    // Validate each product
+    for (const product of products) {
+      if (!product.P_productCode || product.DPD_quantity === undefined) {
+        return res.status(400).json({ 
+          message: 'Each product must have a product code and quantity',
+          invalidProduct: product
+        });
+      }
+      
+      // Add this validation for product code format
+      if (typeof product.P_productCode !== 'string' || product.P_productCode.length > 10) {
+        return res.status(400).json({
+          message: `Invalid product code format: ${product.P_productCode}. Must be a string up to 10 characters.`
+        });
+      }
+      
+      // Make sure quantity is a number
+      const quantity = parseInt(product.DPD_quantity, 10);
+      if (isNaN(quantity)) {
+        return res.status(400).json({
+          message: `Invalid quantity for product ${product.P_productCode}: ${product.DPD_quantity}`
+        });
+      }
+    }
+
+    // Validate payment details if present
+    if (payment) {
+      const requiredPaymentFields = ['D_paymentTypeID', 'D_modeOfPaymentID', 'D_paymentStatusID', 'DPD_dateOfPaymentDue'];
+      
+      for (const field of requiredPaymentFields) {
+        if (!payment[field]) {
+          return res.status(400).json({
+            message: `Missing required payment field: ${field}`
+          });
+        }
+      }
+    }
+
+    // Create the delivery data object
+    const deliveryData = { 
+      D_deliveryNumber, 
+      D_deliveryDate, 
+      S_supplierID 
+    };
+
+    // Use the comprehensive transaction-based approach
+    deliveryModel.addCompleteDelivery(deliveryData, products, payment, (err, results) => {
+      if (err) {
+        console.error('Error inserting delivery:', err);
+        // Include more details in the error response
+        res.status(500).json({ 
+          message: 'Error inserting delivery', 
+          error: err.message || err.toString(),
+          details: err.stack // This will help with debugging
+        });
+      } else {
+        res.status(201).json({ 
+          message: 'Delivery and all associated details added successfully', 
+          results 
+        });
+      }
+    });
+  } catch (error) {
+    console.error('Unexpected error in addDelivery:', error);
+    res.status(500).json({
+      message: 'Unexpected error processing delivery',
+      error: error.message || error.toString()
+    });
+  }
 };
 
 // Delete a delivery
@@ -69,24 +145,50 @@ const deleteDelivery = (req, res) => {
   });
 };
 
+// Mark a delivery as temporarily deleted
+const markDeliveryAsDeleted = (req, res) => {
+  const deliveryNumber = req.params.deliveryNumber;
+  const { adminPW } = req.body;
+
+  if (adminPW !== "2095") {
+    return res.status(403).json({ message: "Invalid admin password" });
+  }
+
+  deliveryModel.markDeliveryAsDeleted(deliveryNumber, (err, results) => {
+    if (err) {
+      console.error('Error marking delivery as deleted:', err);
+      res.status(500).json({ message: 'Error marking delivery as deleted' });
+    } else {
+      res.status(200).json({ message: 'Delivery marked as deleted successfully', results });
+    }
+  });
+};
+
 //=============================================================================
 // DELIVERY PRODUCTS
 //=============================================================================
 
-// Add products to a delivery
+// Add product to a delivery
 const addDeliveryProducts = (req, res) => {
-  const { products } = req.body;
+  const { D_deliveryNumber, P_productCode, DPD_quantity } = req.body;
   
-  if (!products || !Array.isArray(products) || products.length === 0) {
-    return res.status(400).json({ message: 'Products array is required' });
+  if (!D_deliveryNumber || !P_productCode || !DPD_quantity) {
+    return res.status(400).json({ message: 'Missing required fields' });
   }
 
-  deliveryModel.addDeliveryProducts(products, (err, results) => {
+  // Create a single product object
+  const productDetail = {
+    D_deliveryNumber, 
+    P_productCode, 
+    DPD_quantity
+  };
+
+  deliveryModel.addDeliveryProducts([productDetail], (err, results) => {
     if (err) {
-      console.error('Error adding delivery products:', err);
-      res.status(500).json({ message: 'Error adding delivery products' });
+      console.error('Error adding delivery product:', err);
+      res.status(500).json({ message: 'Error adding delivery product' });
     } else {
-      res.status(201).json({ message: 'Delivery products added successfully', results });
+      res.status(201).json({ message: 'Delivery product added successfully', results });
     }
   });
 };
@@ -140,6 +242,11 @@ const updatePaymentDetails = (req, res) => {
 
   if (!deliveryNumber || !D_paymentTypeID || !D_modeOfPaymentID || !D_paymentStatusID) {
     return res.status(400).json({ message: 'Missing required fields' });
+  }
+  
+    // Add after checking other required fields
+  if (!DPD_dateOfPaymentDue || !DPD_dateOfPayment1) {
+    return res.status(400).json({ message: 'Payment due date and first payment date are required' });
   }
 
   deliveryModel.updatePaymentDetails(
@@ -369,6 +476,7 @@ module.exports = {
   searchDeliveries,
   addDelivery,
   deleteDelivery,
+  markDeliveryAsDeleted,
   
   // Delivery Products
   addDeliveryProducts,

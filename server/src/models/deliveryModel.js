@@ -17,6 +17,7 @@ const getAllDeliveries = (callback) => {
     LEFT JOIN Suppliers s ON d.S_supplierID = s.S_supplierID
     LEFT JOIN DeliveryProductDetails dp ON d.D_deliveryNumber = dp.D_deliveryNumber
     LEFT JOIN Products p ON dp.P_productCode = p.P_productCode
+    WHERE d.isTemporarilyDeleted = 0
     GROUP BY d.D_deliveryNumber, d.D_deliveryDate, d.S_supplierID, s.S_supplierName
     ORDER BY d.D_deliveryDate DESC;
   `;
@@ -90,8 +91,8 @@ const addDelivery = (deliveryData, callback) => {
 
   // First insert the delivery header
   const insertDeliveryQuery = `
-    INSERT INTO Deliveries (D_deliveryNumber, D_deliveryDate, S_supplierID) 
-    VALUES (?, ?, ?)
+      INSERT INTO Deliveries (D_deliveryNumber, D_deliveryDate, S_supplierID, isTemporarilyDeleted) 
+      VALUES (?, ?, ?, 0)
   `;
 
   db.query(
@@ -105,7 +106,10 @@ const addDelivery = (deliveryData, callback) => {
 };
 
 // Add products to an existing delivery
-const addDeliveryProducts = (deliveryProducts, callback) => {
+const addDeliveryProducts = (deliveryProductsData, callback) => {
+  // Check if we have a products array from the frontend
+  const deliveryProducts = deliveryProductsData.products || deliveryProductsData;
+  
   if (!deliveryProducts || !deliveryProducts.length) {
     return callback(null, { message: "No products to add" });
   }
@@ -178,13 +182,17 @@ const getPaymentDetails = (callback) => {
 };
 
 // Update payment details for a delivery
-const updatePaymentDetails = (deliveryNum, paymentData, callback) => {
+const updatePaymentDetails = (deliveryNumber, paymentData, callback) => {
   const { D_paymentTypeID, D_modeOfPaymentID, D_paymentStatusID, DPD_dateOfPaymentDue, DPD_dateOfPayment1, DPD_dateOfPayment2 } = paymentData;
+
+  if (!DPD_dateOfPaymentDue || !DPD_dateOfPayment1) {
+    return callback(new Error('Payment due date and first payment date are required'));
+  }
 
   // Check if payment details exist
   const checkQuery = `SELECT D_deliveryNumber FROM DeliveryPaymentDetails WHERE D_deliveryNumber = ?`;
 
-  db.query(checkQuery, [deliveryNum], (err, results) => {
+  db.query(checkQuery, [deliveryNumber], (err, results) => {
     if (err) return callback(err);
 
     let query;
@@ -198,7 +206,7 @@ const updatePaymentDetails = (deliveryNum, paymentData, callback) => {
             DPD_dateOfPaymentDue = ?, DPD_dateOfPayment1 = ?, DPD_dateOfPayment2 = ?
         WHERE D_deliveryNumber = ?
       `;
-      params = [D_paymentTypeID, D_modeOfPaymentID, D_paymentStatusID, DPD_dateOfPaymentDue, DPD_dateOfPayment1, DPD_dateOfPayment2, deliveryNum];
+      params = [D_paymentTypeID, D_modeOfPaymentID, D_paymentStatusID, DPD_dateOfPaymentDue, DPD_dateOfPayment1, DPD_dateOfPayment2, deliveryNumber];
     } else {
       // Insert new payment details
       query = `
@@ -206,7 +214,7 @@ const updatePaymentDetails = (deliveryNum, paymentData, callback) => {
         (D_deliveryNumber, D_paymentTypeID, D_modeOfPaymentID, D_paymentStatusID, DPD_dateOfPaymentDue, DPD_dateOfPayment1, DPD_dateOfPayment2)
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `;
-      params = [deliveryNum, D_paymentTypeID, D_modeOfPaymentID, D_paymentStatusID, DPD_dateOfPaymentDue, DPD_dateOfPayment1, DPD_dateOfPayment2];
+      params = [deliveryNumber, D_paymentTypeID, D_modeOfPaymentID, D_paymentStatusID, DPD_dateOfPaymentDue, DPD_dateOfPayment1, DPD_dateOfPayment2];
     }
 
     db.query(query, params, (err, results) => {
@@ -216,29 +224,38 @@ const updatePaymentDetails = (deliveryNum, paymentData, callback) => {
   });
 };
 
+// Add this new function above the existing deleteDelivery function
+const markDeliveryAsDeleted = (deliveryNumber, callback) => {
+  const query = `UPDATE Deliveries SET isTemporarilyDeleted = 1 WHERE D_deliveryNumber = ?`;
+  db.query(query, [deliveryNumber], (err, results) => {
+    if (err) return callback(err);
+    callback(null, results);
+  });
+};
+
 // Delete a Delivery
-const deleteDelivery = (deliveryNum, callback) => {
+const deleteDelivery = (deliveryNumber, callback) => {
   // Start a transaction to ensure data integrity when deleting related records
   db.beginTransaction(err => {
     if (err) return callback(err);
 
     // First delete the payment details
     const deletePaymentDetailsQuery = `DELETE FROM DeliveryPaymentDetails WHERE D_deliveryNumber = ?`;
-    db.query(deletePaymentDetailsQuery, [deliveryNum], (err) => {
+    db.query(deletePaymentDetailsQuery, [deliveryNumber], (err) => {
       if (err) {
         return db.rollback(() => callback(err));
       }
 
       // Then delete the product details
       const deleteProductDetailsQuery = `DELETE FROM DeliveryProductDetails WHERE D_deliveryNumber = ?`;
-      db.query(deleteProductDetailsQuery, [deliveryNum], (err) => {
+      db.query(deleteProductDetailsQuery, [deliveryNumber], (err) => {
         if (err) {
           return db.rollback(() => callback(err));
         }
 
         // Finally, delete the delivery record
         const deleteDeliveryQuery = `DELETE FROM Deliveries WHERE D_deliveryNumber = ?`;
-        db.query(deleteDeliveryQuery, [deliveryNum], (err, results) => {
+        db.query(deleteDeliveryQuery, [deliveryNumber], (err, results) => {
           if (err) {
             return db.rollback(() => callback(err));
           }
@@ -418,6 +435,139 @@ const deleteDeliveryPaymentStatus = (id, callback) => {
   });
 };
 
+const addCompleteDelivery = (deliveryData, products, payment, callback) => {
+  const { D_deliveryNumber, D_deliveryDate, S_supplierID } = deliveryData;
+  
+  // Format dates properly for MySQL if they're provided as strings
+  const deliveryDateFormatted = D_deliveryDate instanceof Date ? 
+    D_deliveryDate.toISOString().slice(0, 19).replace('T', ' ') : 
+    D_deliveryDate;
+
+  // Start a transaction to ensure all or nothing is committed
+  db.beginTransaction(err => {
+    if (err) return callback(err);
+
+    // Step 1: Insert the delivery header
+    const insertDeliveryQuery = `
+      INSERT INTO Deliveries (D_deliveryNumber, D_deliveryDate, S_supplierID) 
+      VALUES (?, ?, ?)
+    `;
+
+    db.query(
+      insertDeliveryQuery,
+      [D_deliveryNumber, deliveryDateFormatted, S_supplierID],
+      (err, deliveryResult) => {
+        if (err) {
+          return db.rollback(() => callback(err));
+        }
+
+        // Step 2: Insert product details if they exist
+        if (products && products.length > 0) {
+          const insertProductsQuery = `
+            INSERT INTO DeliveryProductDetails (D_deliveryNumber, P_productCode, DPD_quantity) 
+            VALUES ?
+          `;
+
+          const productValues = products.map(product => {
+            // Ensure P_productCode is a string and DPD_quantity is a number
+            const productCode = String(product.P_productCode);
+            const quantity = parseInt(product.DPD_quantity, 10);
+            
+            if (isNaN(quantity)) {
+              throw new Error(`Invalid quantity for product ${productCode}: ${product.DPD_quantity}`);
+            }
+            
+            return [
+              D_deliveryNumber,
+              productCode,
+              quantity
+            ];
+          });
+
+          db.query(insertProductsQuery, [productValues], (err, productResults) => {
+            if (err) {
+              return db.rollback(() => callback(err));
+            }
+
+            // Step 3: Insert payment details if they exist
+            if (payment) {
+              const { 
+                D_paymentTypeID, 
+                D_modeOfPaymentID, 
+                D_paymentStatusID, 
+                DPD_dateOfPaymentDue, 
+                DPD_dateOfPayment1, 
+                DPD_dateOfPayment2 
+              } = payment;
+
+              // Safely convert payment IDs to integers, default to null if invalid
+              const paymentTypeID = D_paymentTypeID ? parseInt(D_paymentTypeID, 10) : null;
+              const modeOfPaymentID = D_modeOfPaymentID ? parseInt(D_modeOfPaymentID, 10) : null;
+              const paymentStatusID = D_paymentStatusID ? parseInt(D_paymentStatusID, 10) : null;
+
+              // Check if any required payment ID is invalid
+              if (isNaN(paymentTypeID) || isNaN(modeOfPaymentID) || isNaN(paymentStatusID)) {
+                return db.rollback(() => callback(new Error('Invalid payment type, mode, or status ID')));
+              }
+
+              const insertPaymentQuery = `
+                INSERT INTO DeliveryPaymentDetails 
+                (D_deliveryNumber, D_paymentTypeID, D_modeOfPaymentID, D_paymentStatusID, 
+                DPD_dateOfPaymentDue, DPD_dateOfPayment1, DPD_dateOfPayment2)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+              `;
+
+              db.query(
+                insertPaymentQuery, 
+                [D_deliveryNumber, paymentTypeID, modeOfPaymentID, paymentStatusID, 
+                DPD_dateOfPaymentDue, DPD_dateOfPayment1, DPD_dateOfPayment2 || null], 
+                (err, paymentResults) => {
+                  if (err) {
+                    return db.rollback(() => callback(err));
+                  }
+
+                  // Commit the transaction if everything succeeded
+                  db.commit(err => {
+                    if (err) {
+                      return db.rollback(() => callback(err));
+                    }
+                    callback(null, {
+                      delivery: deliveryResult,
+                      products: productResults,
+                      payment: paymentResults
+                    });
+                  });
+                }
+              );
+            } else {
+              // No payment details, just commit the transaction
+              db.commit(err => {
+                if (err) {
+                  return db.rollback(() => callback(err));
+                }
+                callback(null, {
+                  delivery: deliveryResult,
+                  products: productResults
+                });
+              });
+            }
+          });
+        } else {
+          // No products, commit just the delivery
+          db.commit(err => {
+            if (err) {
+              return db.rollback(() => callback(err));
+            }
+            callback(null, {
+              delivery: deliveryResult
+            });
+          });
+        }
+      }
+    );
+  });
+};
+
 module.exports = {
   // Delivery Core Functions
   getAllDeliveries,
@@ -429,6 +579,7 @@ module.exports = {
   getPaymentDetails,
   updatePaymentDetails,
   deleteDelivery,
+  markDeliveryAsDeleted,
   
   // Delivery Payment Types
   getAllDeliveryPaymentTypes,
@@ -446,5 +597,7 @@ module.exports = {
   getAllDeliveryPaymentStatuses,
   addDeliveryPaymentStatus,
   updateDeliveryPaymentStatus,
-  deleteDeliveryPaymentStatus
+  deleteDeliveryPaymentStatus,
+  
+  addCompleteDelivery
 };
