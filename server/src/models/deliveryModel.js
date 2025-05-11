@@ -10,15 +10,12 @@ const getAllDeliveries = (callback) => {
     SELECT 
       d.D_deliveryNumber,
       d.D_deliveryDate,
-      d.S_supplierID,
-      s.S_supplierName as supplierName,
       SUM(dp.DPD_quantity * p.P_unitPrice) as totalCost
     FROM Deliveries d
-    LEFT JOIN Suppliers s ON d.S_supplierID = s.S_supplierID
     LEFT JOIN DeliveryProductDetails dp ON d.D_deliveryNumber = dp.D_deliveryNumber
     LEFT JOIN Products p ON dp.P_productCode = p.P_productCode
     WHERE d.isTemporarilyDeleted = 0
-    GROUP BY d.D_deliveryNumber, d.D_deliveryDate, d.S_supplierID, s.S_supplierName
+    GROUP BY d.D_deliveryNumber, d.D_deliveryDate
     ORDER BY d.D_deliveryDate DESC;
   `;
   
@@ -65,15 +62,12 @@ const searchDeliveries = (deliveryNumber, callback) => {
     SELECT 
       d.D_deliveryNumber,
       d.D_deliveryDate,
-      d.S_supplierID,
-      s.S_supplierName as supplierName,
       SUM(dp.DPD_quantity * p.P_unitPrice) as totalCost
     FROM Deliveries d
-    LEFT JOIN Suppliers s ON d.S_supplierID = s.S_supplierID
     LEFT JOIN DeliveryProductDetails dp ON d.D_deliveryNumber = dp.D_deliveryNumber
     LEFT JOIN Products p ON dp.P_productCode = p.P_productCode
     WHERE d.D_deliveryNumber = ?
-    GROUP BY d.D_deliveryNumber, d.D_deliveryDate, d.S_supplierID, s.S_supplierName;
+    GROUP BY d.D_deliveryNumber, d.D_deliveryDate;
   `;
   
   db.query(query, [deliveryNumber], (err, results) => {

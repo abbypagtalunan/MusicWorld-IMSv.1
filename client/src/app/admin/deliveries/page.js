@@ -86,23 +86,8 @@ export default function DeliveriesPage() {
       // Fetch delivery products 
       axios.get(config.deliveryProducts.fetch)
         .then(res => {
-          if (Array.isArray(res.data) && res.data.length > 0) {
-            const grouped = groupDeliveryProducts(res.data);
-            setDeliveryProducts(grouped);
-            
-            setDeliveries(prev =>
-              prev.map(d => {
-                const firstProd = grouped[d.deliveryNum]?.[0];
-                return {
-                  ...d,
-                  supplier: firstProd ? firstProd.supplier : d.supplier || "Unknown"
-                };
-              })
-            );
-            
-          } else {
-            setDeliveryProducts({});
-          }
+          const grouped = groupDeliveryProducts(res.data || []);
+          setDeliveryProducts(grouped);
         })
         .catch(error => {
           console.error("Error fetching delivery products:", error);
