@@ -100,9 +100,9 @@ export default function DeliveriesPage() {
           const detailsMap = {};
           res.data.forEach(item => {
             detailsMap[item.D_deliveryNumber] = {
-              paymentType: item.D_paymentTypeID,
-              paymentMode: item.D_modeOfPaymentID,
-              paymentStatus: item.D_paymentStatusID,
+              paymentType: item.D_paymentTypeID.toString(),
+              paymentMode: item.D_modeOfPaymentID.toString(),
+              paymentStatus: item.D_paymentStatusID.toString(),
               dateDue: formatDateForInput(item.DPD_dateOfPaymentDue),
               datePayment1: formatDateForInput(item.DPD_dateOfPayment1),
               datePayment2: formatDateForInput(item.DPD_dateOfPayment2) || "",
@@ -665,6 +665,7 @@ export default function DeliveriesPage() {
                                     value={paymentDetails[d.deliveryNum]?.paymentMode || ""}
                                     onValueChange={(value) => updatePaymentDetail(d.deliveryNum, 'paymentMode', value)}
                                     name="paymentMode"
+                                    disabled={true}
                                   >
                                     <SelectTrigger id="paymentMode">
                                       <SelectValue placeholder="Select payment mode" />
@@ -685,6 +686,7 @@ export default function DeliveriesPage() {
                                     value={paymentDetails[d.deliveryNum]?.paymentStatus || ""}
                                     onValueChange={(value) => updatePaymentDetail(d.deliveryNum, 'paymentStatus', value)}
                                     name="paymentStatus"
+                                    disabled={true}
                                   >
                                     <SelectTrigger id="paymentStatus">
                                       <SelectValue placeholder="Select status" />

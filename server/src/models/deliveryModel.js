@@ -145,19 +145,36 @@ const addDelivery = (deliveryData, products, payment, callback) => {
               callback(err);
             });
           }
+          
+          // Step 3: update Products stock numbers
+          const updateStockQuery = `
+            UPDATE Products
+            SET P_stockNum = P_stockNum + ?
+            WHERE P_productCode = ?
+          `;
+          // for each delivered product, bump its stock
+          products.forEach(({ P_productCode, DPD_quantity }) => {
+            conn.query(updateStockQuery, [DPD_quantity, P_productCode], (err) => {
+              if (err) {
+                return conn.rollback(() => {
+                  conn.release();
+                  callback(err);
+                });
+              }
+            });
+          });
 
-          // Step 3: insert into DeliveryPaymentDetails (if any)
+          // Step 4: insert into DeliveryPaymentDetails (if any)
           if (payment) {
-            
             const insertPaymentQuery = `
               INSERT INTO DeliveryPaymentDetails
                 (D_deliveryNumber,
-                 D_paymentTypeID,
-                 D_modeOfPaymentID,
-                 D_paymentStatusID,
-                 DPD_dateOfPaymentDue,
-                 DPD_dateOfPayment1,
-                 DPD_dateOfPayment2)
+                D_paymentTypeID,
+                D_modeOfPaymentID,
+                D_paymentStatusID,
+                DPD_dateOfPaymentDue,
+                DPD_dateOfPayment1,
+                DPD_dateOfPayment2)
               VALUES (?, ?, ?, ?, ?, ?, ?)
             `;
             

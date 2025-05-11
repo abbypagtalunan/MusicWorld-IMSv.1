@@ -39,7 +39,7 @@ const addDelivery = (req, res) => {
 
   try {
     const { D_deliveryNumber, D_deliveryDate, products, payment } = req.body;
-    console.log("Received delivery payload:", JSON.stringify(req.body, null, 2));
+    // console.log("Received delivery payload:", JSON.stringify(req.body, null, 2));
 
     // 1. Required fields
     if (!D_deliveryNumber || !D_deliveryDate) {
