@@ -507,6 +507,8 @@ export default function ProductsPage() {
       })
   };
 
+  // Download
+  const [isDownloadConfirmOpen, setDownloadConfirmOpen] = useState(false);
   const handleDownloadCSV = (data) => {
     const headers = [
       "Product Code",
@@ -551,6 +553,7 @@ export default function ProductsPage() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
+  
 
   return (
     <SidebarProvider>
@@ -835,12 +838,61 @@ export default function ProductsPage() {
               </Dialog>
 
               {/* DOWNLOAD */}
-              <Button
-                onClick={() => handleDownloadCSV(data)}
-                className="bg-blue-400 text-white"
-              >
-                <Download className="w-4 h-4" />
-              </Button>
+              <Dialog open={isDownloadConfirmOpen} onOpenChange={(open) => {
+                setDownloadConfirmOpen(open);
+                if (!open) {
+                  setAdminPW("");
+                }
+              }}>
+                <DialogTrigger asChild>
+                  <Button className="bg-blue-400 text-white">
+                    <Download className="w-4 h-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
+                  <DialogHeader>
+                    <DialogTitle>
+                      <span className="text-lg text-blue-900">Confirm Download?</span>
+                      <span className="text-lg text-gray-400 font-normal italic ml-2">
+                        (Products.csv)
+                      </span>
+                    </DialogTitle>
+                    <DialogClose />
+                  </DialogHeader>
+                  <p className="text-sm text-gray-800 mt-2 pl-4">
+                    Downloading the CSV file requires admin authorization. Please enter the admin password below to proceed.
+                  </p>
+                  <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">
+                    <div className="flex-1">
+                      <label htmlFor="password" className="text-base font-medium text-gray-700 block mb-2">
+                        Admin Password
+                      </label>
+                      <Input
+                        type="password"
+                        required
+                        placeholder="Enter admin password"
+                        className="w-full"
+                        value={adminPW}
+                        onChange={(e) => setAdminPW(e.target.value)}
+                      />
+                    </div>
+                    <Button
+                      className="bg-emerald-500 hover:bg-emerald-700 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
+                      onClick={() => {
+                        if (adminPW === setAdminPW("")) { // need to fix for backend 
+                          handleDownloadCSV(data);
+                          toast.success("Download started");
+                          setDownloadConfirmOpen(false);
+                        } else {
+                          toast.error("Invalid admin password");
+                        }
+                      }}
+                    >
+                      DOWNLOAD FILE
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
 
               <Dialog open={isMDDOpen} onOpenChange={(open) => {
                 setMDDOpen(open);
