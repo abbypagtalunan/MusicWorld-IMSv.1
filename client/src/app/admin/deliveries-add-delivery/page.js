@@ -482,7 +482,7 @@ export default function BatchDeliveriesPage() {
               <h1 className="text-xl text-gray-600 font-medium">Batching of Deliveries</h1>
             </div>
             <div>
-              <Button className="bg-blue-400 text-white" onClick={() => router.push("./")}>
+              <Button className="bg-blue-400 text-white" onClick={() => router.push("./deliveries")}>
                 <Undo2 size={16} className="mr-2" />
                 <span>Return to Deliveries</span>
               </Button>

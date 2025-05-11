@@ -521,7 +521,7 @@ export default function DeliveriesPage() {
             
             {/* Button to navigate to Add Delivery form page */}
             <div className="flex space-x-2">
-              <Button className="bg-blue-400 text-white" onClick={() => router.push("./deliveries/deliveries-add-delivery")}>
+              <Button className="bg-blue-400 text-white" onClick={() => router.push("./deliveries-add-delivery")}>
                 <PackagePlus size={16} className="mr-2" />
                 Add Delivery
               </Button>
