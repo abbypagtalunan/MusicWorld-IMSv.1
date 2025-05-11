@@ -66,7 +66,7 @@ const searchDeliveries = (deliveryNumber, callback) => {
     FROM Deliveries d
     LEFT JOIN DeliveryProductDetails dp ON d.D_deliveryNumber = dp.D_deliveryNumber
     LEFT JOIN Products p ON dp.P_productCode = p.P_productCode
-    WHERE d.D_deliveryNumber = ?
+    WHERE d.D_deliveryNumber = ? AND d.isTemporarilyDeleted = 0
     GROUP BY d.D_deliveryNumber, d.D_deliveryDate;
   `;
   

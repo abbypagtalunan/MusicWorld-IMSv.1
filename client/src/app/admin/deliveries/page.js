@@ -39,6 +39,7 @@ export default function DeliveriesPage() {
     deliveries: {
       fetch: "http://localhost:8080/deliveries",
       delete: "http://localhost:8080/deliveries",
+      markDeleted: "http://localhost:8080/deliveries",
     },
     deliveryProducts: {
       fetch: "http://localhost:8080/deliveries/products",
@@ -387,26 +388,25 @@ export default function DeliveriesPage() {
   const handleDelete = (deliveryNumber, adminPWInput) => {
     setIsLoading(true); // Show spinner
     
-    axios({
-      method: 'delete',
-      url: `${config.deliveries.delete}/${deliveryNumber}`,
-      data: { adminPW: adminPWInput }, 
-      headers: {
-        'Content-Type': 'application/json',
-      }
-    })
+    axios.put(
+      `${config.deliveries.markDeleted}/${deliveryNumber}/mark-deleted`,
+      { adminPW: adminPWInput },
+      { headers: { 'Content-Type': 'application/json' } }
+    )
       .then(() => {
-        toast.success("Product deleted successfully");
-        refreshTable();
+        toast.success("Delivery marked as deleted");
+        return loadAllData();
+      })
+      .then(() => {
         setAdminPW("");
         setDDOpen(false);
       })
       .catch(err => {
         console.error("Delete error:", err.response?.data || err);
-        toast.error(err.response?.data?.message || "Error deleting product");
+        toast.error(err.response?.data?.message || "Error marking delivery");
       })
       .finally(() => {
-        setIsLoading(false); // Hide spinner
+        setIsLoading(false); // hide spinner
       });
   };
 

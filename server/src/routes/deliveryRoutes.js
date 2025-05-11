@@ -14,7 +14,7 @@ const paymentTypesRouter = express.Router();
 router.post(
   '/',
   (req, res, next) => {
-    console.log('↪️  Received POST /deliveries:', JSON.stringify(req.body));
+    // console.log('↪️  Received POST /deliveries:', JSON.stringify(req.body));
     next();
   },
   deliveryController.addDelivery
@@ -23,7 +23,6 @@ router.post(
 // Main delivery routes
 router.get('/', deliveryController.getAllDeliveries);
 router.get('/search', deliveryController.searchDeliveries);
-router.delete('/:deliveryNumber', deliveryController.deleteDelivery);
 router.put('/:deliveryNumber/payment-details', deliveryController.updatePaymentDetails);
 router.put('/:deliveryNumber/mark-deleted', deliveryController.markDeliveryAsDeleted);
 
