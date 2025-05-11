@@ -119,10 +119,10 @@ const addDelivery = (deliveryData, products, payment, callback) => {
       if (err) return db.rollback(() => callback(err));
 
       // Step 2: Insert Products
-      const productValues = products.map(product => [
+      const productValues = products.map(p => [
         D_deliveryNumber,
-        product.P_productCode,
-        parseInt(product.DPD_quantity, 10)
+        Number(p.P_productCode),                // send as INT
+        Number(p.DPD_quantity)
       ]);
 
       const insertProductsQuery = `
@@ -518,162 +518,6 @@ const deleteDeliveryPaymentStatus = (id, callback) => {
     } else {
       callback(null, results);
     }
-  });
-};
-
-const addCompleteDelivery = (deliveryData, products, payment, callback) => {
-  const { D_deliveryNumber, D_deliveryDate, S_supplierID } = deliveryData;
-  
-    // Log the incoming payload for debugging
-    console.log("addCompleteDelivery payload:", { deliveryData, products, payment });
-
-    // Validate delivery data
-    if (!D_deliveryNumber || !D_deliveryDate || !S_supplierID) {
-        return callback(new Error("Missing required delivery fields"));
-    }
-
-    // Validate products array
-    if (!Array.isArray(products) || products.length === 0) {
-        return callback(new Error("Products array is required and cannot be empty"));
-    }
-
-    // Validate payment details
-    if (!payment.D_paymentTypeID || !payment.D_modeOfPaymentID || !payment.D_paymentStatusID || !payment.DPD_dateOfPaymentDue) {
-        return callback(new Error("Missing required payment fields"));
-    }
-  
-  // Format dates properly for MySQL if they're provided as strings
-  const deliveryDateFormatted = D_deliveryDate instanceof Date ? 
-    D_deliveryDate.toISOString().slice(0, 19).replace('T', ' ') : 
-    D_deliveryDate;
-
-  if (products && products.length > 0) {
-    for (const product of products) {
-      const quantity = parseInt(product.DPD_quantity, 10);
-      if (isNaN(quantity) || quantity <= 0) {
-        return callback(new Error(`Invalid quantity for product ${product.P_productCode}: ${product.DPD_quantity}`));
-      }
-    }
-  }
-
-  // Start a transaction to ensure all or nothing is committed
-  db.beginTransaction(err => {
-    if (err) return callback(err);
-
-    // Step 1: Insert the delivery header
-    const insertDeliveryQuery = `
-      INSERT INTO Deliveries (D_deliveryNumber, D_deliveryDate, S_supplierID) 
-      VALUES (?, ?, ?)
-    `;
-
-    db.query(
-      insertDeliveryQuery,
-      [D_deliveryNumber, deliveryDateFormatted, S_supplierID],
-      (err, deliveryResult) => {
-        if (err) {
-          return db.rollback(() => callback(err));
-        }
-
-        // Step 2: Insert product details if they exist
-        if (products && products.length > 0) {
-          const insertProductsQuery = `
-            INSERT INTO DeliveryProductDetails (D_deliveryNumber, P_productCode, DPD_quantity) 
-            VALUES ?
-          `;
-
-        const productValues = products.map(product => [
-          String(D_deliveryNumber),
-          String(product.P_productCode),
-          parseInt(product.DPD_quantity, 10)
-        ]);
-
-          db.query(insertProductsQuery, [productValues], (err, productResults) => {
-            if (err) {
-              return db.rollback(() => callback(err));
-            }
-
-            // Step 3: Insert payment details if they exist
-            if (payment) {
-              const { 
-                D_paymentTypeID, 
-                D_modeOfPaymentID, 
-                D_paymentStatusID, 
-                DPD_dateOfPaymentDue, 
-                DPD_dateOfPayment1, 
-                DPD_dateOfPayment2 
-              } = payment;
-
-              // Safely convert payment IDs to integers, default to null if invalid
-              const paymentTypeID = D_paymentTypeID ? parseInt(D_paymentTypeID, 10) : null;
-              const modeOfPaymentID = D_modeOfPaymentID ? parseInt(D_modeOfPaymentID, 10) : null;
-              const paymentStatusID = D_paymentStatusID ? parseInt(D_paymentStatusID, 10) : null;
-
-              // Check if any required payment ID is invalid
-              if (isNaN(paymentTypeID) || isNaN(modeOfPaymentID) || isNaN(paymentStatusID)) {
-                return db.rollback(() => callback(new Error('Invalid payment type, mode, or status ID')));
-              }
-              
-              if (!DPD_dateOfPaymentDue || !DPD_dateOfPayment1) {
-                return db.rollback(() => callback(new Error('Payment due date and first payment date are required')));
-              }
-
-              const insertPaymentQuery = `
-                INSERT INTO DeliveryPaymentDetails 
-                (D_deliveryNumber, D_paymentTypeID, D_modeOfPaymentID, D_paymentStatusID, 
-                DPD_dateOfPaymentDue, DPD_dateOfPayment1, DPD_dateOfPayment2)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-              `;
-
-              db.query(
-                insertPaymentQuery, 
-                [D_deliveryNumber, paymentTypeID, modeOfPaymentID, paymentStatusID, 
-                DPD_dateOfPaymentDue instanceof Date ? DPD_dateOfPaymentDue.toISOString().slice(0, 10) : DPD_dateOfPaymentDue, 
-                DPD_dateOfPayment1 instanceof Date ? DPD_dateOfPayment1.toISOString().slice(0, 10) : DPD_dateOfPayment1, 
-                DPD_dateOfPayment2 ? (DPD_dateOfPayment2 instanceof Date ? DPD_dateOfPayment2.toISOString().slice(0, 10) : DPD_dateOfPayment2) : null], 
-                (err, paymentResults) => {
-                  if (err) {
-                    return db.rollback(() => callback(err));
-                  }
-
-                  // Commit the transaction if everything succeeded
-                  db.commit(err => {
-                    if (err) {
-                      return db.rollback(() => callback(err));
-                    }
-                    callback(null, {
-                      delivery: deliveryResult,
-                      products: productResults,
-                      payment: paymentResults
-                    });
-                  });
-                }
-              );
-            } else {
-              // No payment details, just commit the transaction
-              db.commit(err => {
-                if (err) {
-                  return db.rollback(() => callback(err));
-                }
-                callback(null, {
-                  delivery: deliveryResult,
-                  products: productResults
-                });
-              });
-            }
-          });
-        } else {
-          // No products, commit just the delivery
-          db.commit(err => {
-            if (err) {
-              return db.rollback(() => callback(err));
-            }
-            callback(null, {
-              delivery: deliveryResult
-            });
-          });
-        }
-      }
-    );
   });
 };
 

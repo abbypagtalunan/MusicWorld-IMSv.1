@@ -11,6 +11,15 @@ const modeOfPaymentRouter = express.Router();
 const paymentStatusRouter = express.Router();
 const paymentTypesRouter = express.Router();
 
+router.post(
+  '/',
+  (req, res, next) => {
+    console.log('↪️  Received POST /deliveries:', JSON.stringify(req.body));
+    next();
+  },
+  deliveryController.addDelivery
+);
+
 // Main delivery routes
 router.get('/', deliveryController.getAllDeliveries);
 router.get('/search', deliveryController.searchDeliveries);

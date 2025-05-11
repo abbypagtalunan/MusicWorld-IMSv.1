@@ -36,7 +36,7 @@ export default function BatchDeliveriesPage() {
   const [products, setProducts] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [brands, setBrands] = useState([]);
-  const [deliveryNumber, setDeliveryNumber] = useState("");
+  const [deliveryNumber, setDeliveryNumber] = useState("10001"); // init
   const [deliveryDate, setDeliveryDate] = useState("");
   const [loading, setLoading] = useState(true);
   const [selectedSupplier, setSelectedSupplier] = useState("");
@@ -46,21 +46,21 @@ export default function BatchDeliveriesPage() {
   const [paymentModes, setPaymentModes] = useState([]);
   const [paymentStatuses, setPaymentStatuses] = useState([]);
   const [paymentDetails, setPaymentDetails] = useState({
-    paymentType: "",
-    paymentMode: "",
-    paymentStatus: "",
+    paymentType: "1",
+    paymentMode: "1",
+    paymentStatus: "2",
     dateDue: "",
-    datePayment1: "",
-    datePayment2: ""
+    datePayment1: "2025-05-21",
+    datePayment2: "2025-05-27"
   });
   
   // State for new product form
   const [newProduct, setNewProduct] = useState({
     product: "",
-    supplier: "",
+    supplier: "2",
     brand: "",
     unitPrice: "",
-    quantity: ""
+    quantity: "4"
   });
 
   // API endpoints
@@ -69,7 +69,7 @@ export default function BatchDeliveriesPage() {
     suppliers: "http://localhost:8080/suppliers",
     brands: "http://localhost:8080/brands",
     deliveries: "http://localhost:8080/deliveries",
-    deliveryProducts: "http://localhost:8080/deliveryProductDetails",
+    deliveryProducts: "http://localhost:8080/deliveries/products",
     paymentTypes: "http://localhost:8080/deliveries/payment-types",
     paymentModes: "http://localhost:8080/deliveries/mode-of-payment",
     paymentStatuses: "http://localhost:8080/deliveries/payment-status",
@@ -288,6 +288,8 @@ export default function BatchDeliveriesPage() {
 
   // Save the delivery to the database
   const handleSaveDelivery = async () => {
+    console.log("handleSaveDelivery() from page.js called.");
+    
     try {
       if (productItems.length === 0) {
         toast.error("Cannot save empty delivery. Please add products first.");
@@ -309,7 +311,9 @@ export default function BatchDeliveriesPage() {
 
       setLoading(true);
       
-      const supplierForDelivery = selectedSupplier || (productItems.length > 0 ? productItems[0].supplierID : null);
+      const supplierForDelivery = String(
+        selectedSupplier || (productItems.length > 0 ? productItems[0].supplierID : null)
+      );    
       if (!supplierForDelivery) {
         toast.error("Missing supplier information");
         return;
@@ -319,18 +323,12 @@ export default function BatchDeliveriesPage() {
       const deliveryPayload = {
         D_deliveryNumber: parseInt(deliveryNumber.trim(), 10),
         D_deliveryDate: deliveryDate,
-        S_supplierID: parseInt(supplierForDelivery, 10),
+        S_supplierID: String(supplierForDelivery).trim(),
+        // S_supplierID: parseInt(supplierForDelivery, 10),
         products: productItems.map(item => {
-          let quantityValue;
-          if (typeof item.quantity === 'string' && item.quantity.includes(' ')) {
-            quantityValue = parseInt(item.quantity.split(' ')[0], 10);
-          } else {
-            quantityValue = parseInt(item.quantity, 10);
-          }
-
+          let quantityValue = parseInt(item.quantity.split(' ')[0], 10);
           if (isNaN(quantityValue)) {
-            console.error("Invalid quantity for product:", item);
-            throw new Error(`Invalid quantity for ${item.productCode}`);
+            throw new Error(`Invalid quantity for product ${item.productCode}`);
           }
 
           return {
@@ -338,14 +336,14 @@ export default function BatchDeliveriesPage() {
             DPD_quantity: quantityValue
           };
         }),
-        payment: {
+        payment: paymentDetails.paymentType && paymentDetails.paymentMode && paymentDetails.paymentStatus ? {
           D_paymentTypeID: parseInt(paymentDetails.paymentType, 10),
           D_modeOfPaymentID: parseInt(paymentDetails.paymentMode, 10),
           D_paymentStatusID: parseInt(paymentDetails.paymentStatus, 10),
           DPD_dateOfPaymentDue: paymentDetails.dateDue,
           DPD_dateOfPayment1: paymentDetails.datePayment1 || null,
           DPD_dateOfPayment2: paymentDetails.datePayment2 || null
-        }
+        } : null
       };
 
       console.log("Sending comprehensive delivery payload:", deliveryPayload);
@@ -407,7 +405,7 @@ export default function BatchDeliveriesPage() {
         DPD_dateOfPayment2: paymentDetails.datePayment2 || null
       };
       
-      await axios.put(`${API_CONFIG.deliveries}/payment-details/${deliveryNumber}`, paymentPayload);
+      await axios.put(`${API_CONFIG.deliveries}/${deliveryNumber}/payment-details`, paymentPayload);
       toast.success("Payment details saved successfully");
       
     } catch (error) {
@@ -426,7 +424,7 @@ export default function BatchDeliveriesPage() {
       
       await axios({
         method: 'put', // Change from 'delete' to 'put'
-        url: `${API_CONFIG.deliveries}/mark-deleted/${deliveryNumber}`, // Update endpoint
+        url: `${API_CONFIG.deliveries}/${deliveryNumber}/mark-deleted`, // Update endpoint
         data: { adminPW: password },
         headers: {
           'Content-Type': 'application/json',

@@ -89,6 +89,17 @@ export default function DeliveriesPage() {
           if (Array.isArray(res.data) && res.data.length > 0) {
             const grouped = groupDeliveryProducts(res.data);
             setDeliveryProducts(grouped);
+            
+            setDeliveries(prev =>
+              prev.map(d => {
+                const firstProd = grouped[d.deliveryNum]?.[0];
+                return {
+                  ...d,
+                  supplier: firstProd ? firstProd.supplier : d.supplier || "Unknown"
+                };
+              })
+            );
+            
           } else {
             setDeliveryProducts({});
           }
@@ -167,7 +178,7 @@ export default function DeliveriesPage() {
     return data.map(item => ({
       deliveryNum: item.D_deliveryNumber.toString(),
       dateAdded: formatDateForDisplay(item.D_deliveryDate),
-      supplier: item.supplierName || item.S_supplierID,
+      supplier: "",
       supplierID: item.S_supplierID,
       totalCost: item.totalCost ? `₱${parseFloat(item.totalCost).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}` : "₱0.00"
     }));
@@ -550,7 +561,9 @@ export default function DeliveriesPage() {
                   <TableRow key={d.deliveryNum}>
                     <TableCell>{d.dateAdded}</TableCell>
                     <TableCell>{`DR-${d.deliveryNum}`}</TableCell>
-                    <TableCell>{d.supplier}</TableCell>
+                    <TableCell>
+                      {deliveryProducts[d.deliveryNum]?.[0]?.supplier || "Unknown"}
+                    </TableCell>
                     <TableCell>{d.totalCost}</TableCell>
                     {/* Delivery Details dialog */}
                     <TableCell className="flex space-x-2">

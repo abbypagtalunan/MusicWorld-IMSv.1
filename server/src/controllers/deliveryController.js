@@ -35,139 +35,75 @@ const searchDeliveries = (req, res) => {
 
 // Add a new delivery
 const addDelivery = (req, res) => {
+  console.log("addDelivery() from controller called.");
+
   try {
-    const { 
-      D_deliveryNumber, 
-      D_deliveryDate, 
-      S_supplierID,
-      products,
-      payment
-    } = req.body;
-    
+    const { D_deliveryNumber, D_deliveryDate, S_supplierID, products, payment } = req.body;
     console.log("Received delivery payload:", JSON.stringify(req.body, null, 2));
-    
-    const deliveryNumberInt = parseInt(D_deliveryNumber, 10);
-    const supplierIDInt = parseInt(S_supplierID, 10);
 
-    if (isNaN(deliveryNumberInt) || isNaN(supplierIDInt)) {
-      return res.status(400).json({ message: 'Invalid data types for deliveryNumber or supplierID' });
-    }
-
+    // 1. Required fields
     if (!D_deliveryNumber || !D_deliveryDate || !S_supplierID) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
+    if (typeof S_supplierID !== "string" || S_supplierID.length > 10) {
+      return res.status(400).json({ message: "Supplier ID must be ≤ 10 chars" });
+    }
 
-    // Validate products array
-    if (!products || !Array.isArray(products) || products.length === 0) {
+    // 2. Validate products array
+    if (!Array.isArray(products) || products.length === 0) {
       return res.status(400).json({ message: 'Products array is required and cannot be empty' });
     }
 
-    // Validate each product
-    for (const product of products) {
-      if (!product.P_productCode || product.DPD_quantity === undefined) {
-        return res.status(400).json({ 
+    // 3. Validate each product
+    for (const prod of products) {
+      const { P_productCode, DPD_quantity } = prod;
+      if (!P_productCode || DPD_quantity === undefined) {
+        return res.status(400).json({
           message: 'Each product must have a product code and quantity',
-          invalidProduct: product
+          invalidProduct: prod
         });
       }
-      
-      // Add this validation for product code format
-      if (typeof product.P_productCode !== 'string' || product.P_productCode.length > 10) {
-        return res.status(400).json({
-          message: `Invalid product code format: ${product.P_productCode}. Must be a string up to 10 characters.`
-        });
+      const codeInt = parseInt(P_productCode, 10);
+      if (Number.isNaN(codeInt)) {
+        return res.status(400).json({ message: `Invalid numeric product code: ${P_productCode}` });
       }
-      
-      // Make sure quantity is a number
-      const quantity = parseInt(product.DPD_quantity, 10);
-      if (isNaN(quantity)) {
-        return res.status(400).json({
-          message: `Invalid quantity for product ${product.P_productCode}: ${product.DPD_quantity}`
-        });
+      const qtyInt = parseInt(DPD_quantity, 10);
+      if (Number.isNaN(qtyInt)) {
+        return res.status(400).json({ message: `Invalid quantity for product ${codeInt}: ${DPD_quantity}` });
       }
+      prod.P_productCode = codeInt;
+      prod.DPD_quantity    = qtyInt;
     }
 
-    // Validate payment details if present
+    // 4. Validate payment if provided
     if (payment) {
-      const requiredPaymentFields = ['D_paymentTypeID', 'D_modeOfPaymentID', 'D_paymentStatusID', 'DPD_dateOfPaymentDue'];
-      
-      for (const field of requiredPaymentFields) {
+      const required = ['D_paymentTypeID', 'D_modeOfPaymentID', 'D_paymentStatusID', 'DPD_dateOfPaymentDue'];
+      for (const field of required) {
         if (!payment[field]) {
-          return res.status(400).json({
-            message: `Missing required payment field: ${field}`
-          });
+          return res.status(400).json({ message: `Missing required payment field: ${field}` });
         }
       }
     }
 
-    // Create the delivery data object
-    const deliveryData = { 
-      D_deliveryNumber, 
-      D_deliveryDate, 
-      S_supplierID 
-    };
-
-    // Insert delivery data
-    deliveryModel.addDelivery(deliveryData, (err, deliveryResult) => {
+    // 5. Delegate all inserts to the model
+    const deliveryData = { D_deliveryNumber, D_deliveryDate, S_supplierID };
+    deliveryModel.addDelivery(deliveryData, products, payment, (err, result) => {
       if (err) {
         console.error('Error inserting delivery:', err);
         return res.status(500).json({ message: 'Error inserting delivery', error: err.message });
       }
-
-      const insertedDeliveryNumber = deliveryResult.insertId;
-
-      // Insert products data
-      const productPromises = products.map(product => {
-        const productData = {
-          D_deliveryNumber: insertedDeliveryNumber,
-          P_productCode: product.P_productCode,
-          DPD_quantity: product.DPD_quantity,
-        };
-        return new Promise((resolve, reject) => {
-          deliveryModel.addDeliveryProducts([productData], (err, productResult) => {
-            if (err) reject(err);
-            else resolve(productResult);
-          });
-        });
+      res.status(201).json({
+        message: 'Delivery, products, and payment added successfully',
+        result
       });
-
-      // If payment data is provided, insert it
-      let paymentPromise = Promise.resolve();
-      if (payment) {
-        const paymentData = {
-          D_deliveryNumber: insertedDeliveryNumber,
-          D_paymentTypeID: payment.D_paymentTypeID,
-          D_modeOfPaymentID: payment.D_modeOfPaymentID,
-          D_paymentStatusID: payment.D_paymentStatusID,
-          DPD_dateOfPaymentDue: payment.DPD_dateOfPaymentDue,
-          DPD_dateOfPayment1: payment.DPD_dateOfPayment1,
-          DPD_dateOfPayment2: payment.DPD_dateOfPayment2,
-        };
-        paymentPromise = new Promise((resolve, reject) => {
-          deliveryModel.addPayment(paymentData, (err, paymentResult) => {
-            if (err) reject(err);
-            else resolve(paymentResult);
-          });
-        });
-      }
-
-      // Execute all product insertions and payment insertion
-      Promise.all([...productPromises, paymentPromise])
-        .then(() => {
-          res.status(201).json({ message: 'Delivery, products, and payment (if any) added successfully' });
-        })
-        .catch((err) => {
-          console.error('Error processing delivery details:', err);
-          res.status(500).json({ message: 'Error processing delivery details', error: err.message });
-        });
     });
 
   } catch (error) {
     console.error('Unexpected error in addDelivery:', error);
     res.status(500).json({
       message: 'Unexpected error processing delivery',
-      error: error.message || error.toString(),
-      stack: error.stack // Include stack trace for debugging
+      error:   error.message,
+      stack:   error.stack
     });
   }
 };
