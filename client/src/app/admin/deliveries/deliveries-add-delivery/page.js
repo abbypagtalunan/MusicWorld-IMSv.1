@@ -319,31 +319,22 @@ export default function BatchDeliveriesPage() {
         return;
       }
 
-      // Create comprehensive delivery payload using the format expected by addCompleteDelivery
+      // Create comprehensive delivery payload using the format expected
       const deliveryPayload = {
         D_deliveryNumber: parseInt(deliveryNumber.trim(), 10),
         D_deliveryDate: deliveryDate,
-        S_supplierID: String(supplierForDelivery).trim(),
-        // S_supplierID: parseInt(supplierForDelivery, 10),
-        products: productItems.map(item => {
-          let quantityValue = parseInt(item.quantity.split(' ')[0], 10);
-          if (isNaN(quantityValue)) {
-            throw new Error(`Invalid quantity for product ${item.productCode}`);
-          }
-
-          return {
-            P_productCode: String(item.productCode),
-            DPD_quantity: quantityValue
-          };
-        }),
-        payment: paymentDetails.paymentType && paymentDetails.paymentMode && paymentDetails.paymentStatus ? {
+        products: productItems.map(item => ({
+          P_productCode: String(item.productCode),
+          DPD_quantity: parseInt(item.quantity, 10)
+        })),
+        payment: {
           D_paymentTypeID: parseInt(paymentDetails.paymentType, 10),
           D_modeOfPaymentID: parseInt(paymentDetails.paymentMode, 10),
           D_paymentStatusID: parseInt(paymentDetails.paymentStatus, 10),
           DPD_dateOfPaymentDue: paymentDetails.dateDue,
-          DPD_dateOfPayment1: paymentDetails.datePayment1 || null,
+          DPD_dateOfPayment1: paymentDetails.datePayment1,
           DPD_dateOfPayment2: paymentDetails.datePayment2 || null
-        } : null
+        }
       };
 
       console.log("Sending comprehensive delivery payload:", deliveryPayload);

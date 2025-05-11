@@ -38,15 +38,12 @@ const addDelivery = (req, res) => {
   console.log("addDelivery() from controller called.");
 
   try {
-    const { D_deliveryNumber, D_deliveryDate, S_supplierID, products, payment } = req.body;
+    const { D_deliveryNumber, D_deliveryDate, products, payment } = req.body;
     console.log("Received delivery payload:", JSON.stringify(req.body, null, 2));
 
     // 1. Required fields
-    if (!D_deliveryNumber || !D_deliveryDate || !S_supplierID) {
+    if (!D_deliveryNumber || !D_deliveryDate) {
       return res.status(400).json({ message: 'Missing required fields' });
-    }
-    if (typeof S_supplierID !== "string" || S_supplierID.length > 10) {
-      return res.status(400).json({ message: "Supplier ID must be ≤ 10 chars" });
     }
 
     // 2. Validate products array
@@ -86,7 +83,7 @@ const addDelivery = (req, res) => {
     }
 
     // 5. Delegate all inserts to the model
-    const deliveryData = { D_deliveryNumber, D_deliveryDate, S_supplierID };
+    const deliveryData = { D_deliveryNumber, D_deliveryDate };
     deliveryModel.addDelivery(deliveryData, products, payment, (err, result) => {
       if (err) {
         console.error('Error inserting delivery:', err);

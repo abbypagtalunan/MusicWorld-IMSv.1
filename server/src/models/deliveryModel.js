@@ -81,11 +81,11 @@ const searchDeliveries = (deliveryNumber, callback) => {
 
 // Add a new Delivery
 const addDelivery = (deliveryData, products, payment, callback) => {
-  const { D_deliveryNumber, D_deliveryDate, S_supplierID } = deliveryData;
+  const { D_deliveryNumber, D_deliveryDate } = deliveryData;
 
   console.log('Adding delivery with products and payment:', { deliveryData, products, payment });
 
-  if (!D_deliveryNumber || !D_deliveryDate || !S_supplierID) {
+  if (!D_deliveryNumber || !D_deliveryDate) {
     return callback(new Error("Missing required delivery fields"));
   }
 
@@ -99,76 +99,116 @@ const addDelivery = (deliveryData, products, payment, callback) => {
     return callback(new Error("Missing required payment fields"));
   }
 
-  // Start transaction
-  db.beginTransaction(err => {
+  // Start transaction on a dedicated connection
+  db.getConnection((err, conn) => {
     if (err) return callback(err);
 
-    // Step 1: Insert Delivery
-    const insertDeliveryQuery = `
-      INSERT INTO Deliveries (D_deliveryNumber, D_deliveryDate, S_supplierID, isTemporarilyDeleted) 
-      VALUES (?, ?, ?, 0)
-    `;
-
-    db.query(insertDeliveryQuery, [D_deliveryNumber, D_deliveryDate, S_supplierID], (err, deliveryResult) => {
-      if (err) return db.rollback(() => callback(err));
-
-      // Step 2: Insert Products
-      const productValues = products.map(p => [
-        D_deliveryNumber,
-        Number(p.P_productCode),                // send as INT
-        Number(p.DPD_quantity)
-      ]);
+    conn.beginTransaction(err => {
+      if (err) {
+        conn.release();
+        return callback(err);
+      }
+        
+      // ← Define the SQL **before** you use it
+      const insertDeliveryQuery = `
+        INSERT INTO Deliveries (D_deliveryNumber, D_deliveryDate, isTemporarilyDeleted)
+        VALUES (?, ?, 0)
+      `;
 
       const insertProductsQuery = `
-        INSERT INTO DeliveryProductDetails (D_deliveryNumber, P_productCode, DPD_quantity) 
+        INSERT INTO DeliveryProductDetails
+          (DPD_quantity, D_deliveryNumber, P_productCode)
         VALUES ?
       `;
 
-      db.query(insertProductsQuery, [productValues], (err, productResults) => {
-        if (err) return db.rollback(() => callback(err));
+      // e.g. [[qty1, deliveryNumber, code1], [qty2, deliveryNumber, code2], …]
+      const productValues = products.map(p => [
+        p.DPD_quantity,
+        D_deliveryNumber,
+        p.P_productCode
+      ]);
 
-        // Step 3: Insert Payment (if provided)
-        if (payment) {
-          const insertPaymentQuery = `
-            INSERT INTO DeliveryPaymentDetails 
-            (D_deliveryNumber, D_paymentTypeID, D_modeOfPaymentID, D_paymentStatusID, 
-            DPD_dateOfPaymentDue, DPD_dateOfPayment1, DPD_dateOfPayment2)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-          `;
-
-          db.query(insertPaymentQuery, [
-            D_deliveryNumber,
-            payment.D_paymentTypeID,
-            payment.D_modeOfPaymentID,
-            payment.D_paymentStatusID,
-            payment.DPD_dateOfPaymentDue,
-            payment.DPD_dateOfPayment1,
-            payment.DPD_dateOfPayment2 || null
-          ], (err, paymentResult) => {
-            if (err) return db.rollback(() => callback(err));
-
-            // Commit transaction
-            db.commit(err => {
-              if (err) return db.rollback(() => callback(err));
-
-              callback(null, {
-                delivery: deliveryResult,
-                products: productResults,
-                payment: paymentResult
-              });
-            });
-          });
-        } else {
-          // No payment, commit transaction
-          db.commit(err => {
-            if (err) return db.rollback(() => callback(err));
-
-            callback(null, {
-              delivery: deliveryResult,
-              products: productResults
-            });
+      // Step 1: insert into Deliveries
+      conn.query(insertDeliveryQuery, [D_deliveryNumber, D_deliveryDate], (err, deliveryResult) => {
+        if (err) {
+          return conn.rollback(() => {
+            conn.release();
+            callback(err);
           });
         }
+
+        // Step 2: insert into DeliveryProductDetails
+        conn.query(insertProductsQuery, [productValues], (err, productResults) => {
+          if (err) {
+            return conn.rollback(() => {
+              conn.release();
+              callback(err);
+            });
+          }
+
+          // Step 3: insert into DeliveryPaymentDetails (if any)
+          if (payment) {
+            
+            const insertPaymentQuery = `
+              INSERT INTO DeliveryPaymentDetails
+                (D_deliveryNumber,
+                 D_paymentTypeID,
+                 D_modeOfPaymentID,
+                 D_paymentStatusID,
+                 DPD_dateOfPaymentDue,
+                 DPD_dateOfPayment1,
+                 DPD_dateOfPayment2)
+              VALUES (?, ?, ?, ?, ?, ?, ?)
+            `;
+            
+            conn.query(insertPaymentQuery, [
+              D_deliveryNumber,
+              payment.D_paymentTypeID,
+              payment.D_modeOfPaymentID,
+              payment.D_paymentStatusID,
+              payment.DPD_dateOfPaymentDue,
+              payment.DPD_dateOfPayment1,
+              payment.DPD_dateOfPayment2 || null
+            ], (err, paymentResult) => {
+              if (err) {
+                return conn.rollback(() => {
+                  conn.release();
+                  callback(err);
+                });
+              }
+              // finally commit
+              conn.commit(err => {
+                if (err) {
+                  return conn.rollback(() => {
+                    conn.release();
+                    callback(err);
+                  });
+                }
+                conn.release();
+                callback(null, {
+                  delivery: deliveryResult,
+                  products: productResults,
+                  payment: paymentResult
+                });
+              });
+            });
+          } else {
+            // no payment, just commit
+            conn.commit(err => {
+              if (err) {
+                return conn.rollback(() => {
+                  conn.release();
+                  callback(err);
+                });
+              }
+              conn.release();
+              callback(null, {
+                delivery: deliveryResult,
+                products: productResults
+              });
+            });
+          }
+        });
       });
     });
   });
