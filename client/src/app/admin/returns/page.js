@@ -44,7 +44,7 @@ import {
   TabsTrigger,
   TabsContent,
 } from "@/components/ui/tabs";
-import { Trash2, Ellipsis } from "lucide-react";
+import { Trash2, Eye } from "lucide-react";
 
 // Helper function to format PHP currency
 const formatToPHP = (amount) => {
@@ -371,7 +371,7 @@ export default function ReturnsPage() {
                                   <Dialog>
                                     <DialogTrigger asChild>
                                       <Button variant="ghost" size="sm" className="text-gray-500 hover:text-black">
-                                        <Ellipsis size={16} />
+                                        <Eye size={16} />
                                       </Button>
                                     </DialogTrigger>
                                     <DialogContent className="w-[90vw] max-w-4xl sm:max-w-lg md:max-w-4xl max-h-[90vh] overflow-y-auto p-6">

@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast, Toaster } from "react-hot-toast";
-import { Search, ListFilter, Trash2, Ellipsis, PackagePlus, Save } from "lucide-react";
+import { Search, ListFilter, Trash2, Eye, PackagePlus, Save } from "lucide-react";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogDescription } from "@/components/ui/dialog";
@@ -560,7 +560,7 @@ export default function DeliveriesPage() {
                             className="text-gray-500 hover:text-blue-600"
                             onClick={() => loadDeliveryProducts(d.deliveryNum)}
                           >
-                            <Ellipsis size={16} />
+                            <Eye size={16} />
                           </Button>
                         </DialogTrigger>
                         <DialogContent className="w-[90vw] sm:w-[600px] md:w-[750px] lg:w-[900px] xl:w-[1100px] max-w-[95vw] p-4 sm:p-6 overflow-y-auto max-h-[90vh]">
