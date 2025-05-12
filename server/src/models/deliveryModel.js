@@ -83,7 +83,7 @@ const searchDeliveries = (deliveryNumber, callback) => {
 const addDelivery = (deliveryData, products, payment, callback) => {
   const { D_deliveryNumber, D_deliveryDate } = deliveryData;
 
-  console.log('Adding delivery with products and payment:', { deliveryData, products, payment });
+  // console.log('Adding delivery with products and payment:', { deliveryData, products, payment });
 
   if (!D_deliveryNumber || !D_deliveryDate) {
     return callback(new Error("Missing required delivery fields"));

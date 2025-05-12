@@ -288,8 +288,17 @@ export default function BatchDeliveriesPage() {
 
   // Save the delivery to the database
   const handleSaveDelivery = async () => {
-    console.log("handleSaveDelivery() from page.js called.");
+    // console.log("handleSaveDelivery() from page.js called.");
     
+    const raw = deliveryNumber.trim();
+
+    // ensure every character is a digit:
+    if (!/^\d+$/.test(raw)) {
+      toast.error("Delivery number not an integer");
+      return;
+    }
+    const dnInt = Number(raw); // now we know raw is all digits; parse it safely
+
     try {
       if (productItems.length === 0) {
         toast.error("Cannot save empty delivery. Please add products first.");
@@ -337,11 +346,11 @@ export default function BatchDeliveriesPage() {
         }
       };
 
-      console.log("Sending comprehensive delivery payload:", deliveryPayload);
+      // console.log("Sending comprehensive delivery payload:", deliveryPayload);
 
       // Send all delivery data in a single request to the complete delivery endpoint
       const deliveryResponse = await axios.post(API_CONFIG.deliveries, deliveryPayload);
-      console.log("Delivery created:", deliveryResponse.data);
+      // console.log("Delivery created:", deliveryResponse.data);
       
       toast.success("Delivery and payment details successfully saved!");
       

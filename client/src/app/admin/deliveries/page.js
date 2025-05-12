@@ -293,7 +293,17 @@ export default function DeliveriesPage() {
           : getPrice(b.totalCost) - getPrice(a.totalCost);
       });
     }
-  
+      
+    if (selectedFilter === "Date") {
+      sortedTransactions.sort((a, b) => {
+        // parse the displayed date back into an actual Date object
+        const dateA = new Date(a.dateAdded);
+        const dateB = new Date(b.dateAdded);
+        return selectedSubFilter === "Oldest"
+          ? dateA - dateB
+          : dateB - dateA;
+      });
+    }
     return sortedTransactions;
   };  
 
@@ -504,6 +514,19 @@ export default function DeliveriesPage() {
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleFilterSelect("Price", "High to Low")}>
                           High to Low
+                        </DropdownMenuItem>
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+
+                    {/* Filter by Date */}
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>Date</DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent>
+                        <DropdownMenuItem onClick={() => handleFilterSelect("Date", "Oldest")}>
+                          Oldest first
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleFilterSelect("Date", "Newest")}>
+                          Newest first
                         </DropdownMenuItem>
                       </DropdownMenuSubContent>
                     </DropdownMenuSub>

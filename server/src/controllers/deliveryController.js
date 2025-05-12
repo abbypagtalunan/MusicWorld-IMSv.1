@@ -35,11 +35,18 @@ const searchDeliveries = (req, res) => {
 
 // Add a new delivery
 const addDelivery = (req, res) => {
-  console.log("addDelivery() from controller called.");
+  // console.log("addDelivery() from controller called.");
 
   try {
     const { D_deliveryNumber, D_deliveryDate, products, payment } = req.body;
     // console.log("Received delivery payload:", JSON.stringify(req.body, null, 2));
+    
+    // ensure that delivery number is integer
+    const raw = String(D_deliveryNumber).trim();
+    if (!/^\d+$/.test(raw)) {
+      return res.status(400).json({ message: 'Delivery number not an integer' });
+    }
+    const dnInt = Number(raw);
 
     // 1. Required fields
     if (!D_deliveryNumber || !D_deliveryDate) {
@@ -87,12 +94,13 @@ const addDelivery = (req, res) => {
     deliveryModel.addDelivery(deliveryData, products, payment, (err, result) => {
       if (err) {
         console.error('Error inserting delivery:', err);
+        // Duplicate‐entry: MySQL error code ER_DUP_ENTRY
+        if (err.code === 'ER_DUP_ENTRY') {
+          return res.status(400).json({ message: 'The indicated delivery number was already used' });
+        }
         return res.status(500).json({ message: 'Error inserting delivery', error: err.message });
       }
-      res.status(201).json({
-        message: 'Delivery, products, and payment added successfully',
-        result
-      });
+      res.status(201).json({ message: 'Delivery, products, and payment added successfully', result });
     });
 
   } catch (error) {
