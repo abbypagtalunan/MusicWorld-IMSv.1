@@ -603,26 +603,34 @@ const OrderDashboard = () => {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm">Quantity</label>
-                <input
-                  type="number"
-                  value={orderQuantity}
-                  onChange={(e) => {
-                    let quantity = e.target.value;
-                    quantity = quantity.replace(/\+/g, '');
-                    if (quantity >= 1 && quantity <= selectedProduct?.stock) {
-                      setOrderQuantity(quantity);
-                    }
-                  }}
-                  className={`w-full border rounded-md px-5 py-2 text-sm ${orderQuantity <= 0 || orderQuantity > selectedProduct?.stock ? 'border-red-500' : 'border-gray-300'}`}
-                />
-                {(orderQuantity <= 0 || orderQuantity > selectedProduct?.stock) && (
-                  <p className="text-red-500 text-xs">
-                    Quantity must be greater than 0 and cannot exceed the available stock.
-                  </p>
-                )}
-              </div>
+            <div>
+              <label className="block text-sm">Quantity</label>
+              <input
+                type="number"
+                value={orderQuantity}
+                min={1}
+                max={selectedProduct?.stock ?? Infinity}
+                onChange={(e) => {
+                  const value = e.target.valueAsNumber;
+                  if (!isNaN(value)) {
+                    setOrderQuantity(value);
+                  } else {
+                    setOrderQuantity(''); // or keep it unchanged
+                  }
+                }}
+                className={`w-full border rounded-md px-5 py-2 text-sm ${
+                  orderQuantity <= 0 || orderQuantity > selectedProduct?.stock
+                    ? 'border-red-500'
+                    : 'border-gray-300'
+                }`}
+              />
+              {(orderQuantity <= 0 || orderQuantity > selectedProduct?.stock) && (
+                <p className="text-red-500 text-xs">
+                  Quantity must be greater than 0 and cannot exceed the available stock.
+                </p>
+              )}
+            </div>
+
 
               <DropdownMenu>
                 <label className="block text-sm mb-1">With Product Discount?</label>
