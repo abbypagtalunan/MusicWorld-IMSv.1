@@ -110,6 +110,21 @@ const searchDeliveriesByID = (req, res) => {
   });
 };
 
+// Search deliveries by date
+const searchDeliveriesByDate = (req, res) => {
+  const { date } = req.query;
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return res.status(400).json({ message: 'A valid date query (YYYY-MM-DD) is required' });
+  }
+  deliveryModel.searchDeliveriesByDate(date, (err, results) => {
+    if (err) {
+      console.error('Error searching deliveries by date:', err);
+      return res.status(500).json({ error: 'Error searching deliveries' });
+    }
+    res.json(results);
+  });
+};
+
 // Mark a delivery as temporarily deleted
 const markDeliveryAsDeleted = (req, res) => {
   const deliveryNumber = req.params.deliveryNumber;
@@ -133,8 +148,8 @@ const markDeliveryAsDeleted = (req, res) => {
 // Delivery products functions
 
 // Get all delivery products
-const getDeliveryProducts = (req, res) => {
-  deliveryModel.getDeliveryProducts((err, results) => {
+const getDeliveryProductsOfAllDeliveries = (req, res) => {
+  deliveryModel.getDeliveryProductsOfAllDeliveries((err, results) => {
     if (err) {
       console.error('Error fetching delivery products:', err);
       res.status(500).json({ error: 'Error fetching delivery products' });
@@ -170,10 +185,10 @@ const addDeliveryProducts = (req, res) => {
 };
 
 // Get delivery products by ID (delivery number)
-const getDeliveryProductsByID = (req, res) => {
+const getDeliveryProductsOfDelivery = (req, res) => {
   const deliveryNumber = req.params.deliveryNumber;
   
-  deliveryModel.getDeliveryProductsByID(deliveryNumber, (err, results) => {
+  deliveryModel.getDeliveryProductsOfDelivery(deliveryNumber, (err, results) => {
     if (err) {
       console.error('Error fetching delivery products:', err);
       res.status(500).json({ error: 'Error fetching delivery products' });
@@ -269,11 +284,12 @@ module.exports = {
   getAllDeliveries,
   addDelivery,
   searchDeliveriesByID,
+  searchDeliveriesByDate,
   markDeliveryAsDeleted,
   
   // delivery products functions
-  getDeliveryProducts,
-  getDeliveryProductsByID,
+  getDeliveryProductsOfDelivery,
+  getDeliveryProductsOfAllDeliveries,
   addDeliveryProducts,
   
   // payment details functions

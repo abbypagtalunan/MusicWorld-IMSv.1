@@ -15,11 +15,12 @@ const paymentTypesRouter = express.Router();
 router.get('/', deliveryController.getAllDeliveries);
 router.post('/', (req, res, next) => { next(); }, deliveryController.addDelivery);
 router.get('/search', deliveryController.searchDeliveriesByID);
+router.get('/search-by-date', deliveryController.searchDeliveriesByDate);
 router.put('/:deliveryNumber/mark-deleted', deliveryController.markDeliveryAsDeleted);
 
 // Delivery products routes
-productsRouter.get('/', deliveryController.getDeliveryProducts);
-productsRouter.get('/:deliveryNumber', deliveryController.getDeliveryProductsByID);
+productsRouter.get('/:deliveryNumber', deliveryController.getDeliveryProductsOfDelivery);
+productsRouter.get('/', deliveryController.getDeliveryProductsOfAllDeliveries);
 productsRouter.post('/', deliveryController.addDeliveryProducts);
 
 // Payment details routes

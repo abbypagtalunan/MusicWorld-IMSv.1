@@ -39,7 +39,7 @@ export default function DeliveriesPage() {
   const config = {
     deliveries: {
       fetch: "http://localhost:8080/deliveries",
-      delete: "http://localhost:8080/deliveries",
+      searchByDate: "http://localhost:8080/deliveries/search-by-date",
       markDeleted: "http://localhost:8080/deliveries",
     },
     deliveryProducts: {
@@ -165,6 +165,7 @@ export default function DeliveriesPage() {
     return data.map(item => ({
       deliveryNum: item.D_deliveryNumber.toString(),
       dateAdded: formatDateForDisplay(item.D_deliveryDate),
+      rawDate:    formatDateForInput(item.D_deliveryDate),
       supplier: "",
       supplierID: item.S_supplierID,
       totalCost: item.totalCost ? `₱${parseFloat(item.totalCost).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}` : "₱0.00"
@@ -381,13 +382,23 @@ export default function DeliveriesPage() {
   };
   
   // when user clicks the date-search button
-  const handleSearchDate = () => {
-    // assuming dateAdded is stored as ISO (yyyy-mm-dd) or can be parsed:
-    const filtered = allDeliveries.filter(d => {
-      const dISO = new Date(d.dateAdded).toISOString().slice(0,10);
-      return dISO === searchDate;
-    });
-    setDisplayedDeliveries(filtered);
+  const handleSearchDate = async () => {
+    if (!searchDate) {
+      setSearchResult(null);
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const res = await axios.get(
+        `${config.deliveries.searchByDate}?date=${searchDate}`
+      );
+      setSearchResult(normalizeDeliveryData(res.data));
+    } catch (err) {
+      console.error('Date search error:', err);
+      toast.error('Error searching by date');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Handle payment detail changes
@@ -438,7 +449,7 @@ export default function DeliveriesPage() {
         <div className="flex-1 p-4 flex flex-col w-full">
           <div className="flex items-center justify-between mb-4 bg-white p-2 rounded-lg">
             <div className="flex items-center space-x-2">
-              <div className="relative flex items-center space-x-2 w-96">
+              <div className="relative flex items-center space-x-2 w-64">
                 <div className="relative flex-1">
                   {/* Search */}
                   <Input
@@ -454,7 +465,7 @@ export default function DeliveriesPage() {
                     }}
                     autoComplete="off"
                     placeholder="Search by delivery number"
-                    className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-64 pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <div className="absolute left-3 top-2.5 text-gray-500">
                     <Search className="w-5 h-5" />
@@ -479,10 +490,45 @@ export default function DeliveriesPage() {
                   </div>
                 )}
               </div>
+              <span className="pr-5"></span>
+              
+              {/* ——— Date Search ——— */}
+              <div className="relative flex items-center space-x-2 ml-4">
+                <Input
+                  type="date"
+                  id="deliveryDateSearch"
+                  value={searchDate}
+                  onChange={e => setSearchDate(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-100 text-gray-500"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSearchDate}
+                  className="flex items-center space-x-1 bg-blue-100"
+                >
+                  <Search className="w-4 h-4" />
+                  <span>Go</span>
+                </Button>
+                {searchDate && searchResult && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-gray-500 hover:text-blue-600"
+                    onClick={() => {
+                      setSearchResult(null);
+                      setSearchDate("");
+                    }}
+                  >
+                    Exit Search
+                  </Button>
+                )}
+              </div>
+              <span className="pr-5"></span>
               <div className="flex items-center space-x-2">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="flex items-center space-x-2">
+                    <Button variant="outline" className="flex items-center space-x-2 bg-green-500 text-white">
                       <ListFilter className="w-4 h-4" />
                       <span>Filter</span>
                     </Button>

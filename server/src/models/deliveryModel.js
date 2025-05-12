@@ -201,6 +201,29 @@ const searchDeliveriesByID = (deliveryNumber, callback) => {
   });
 };
 
+// search deliveries by date
+const searchDeliveriesByDate = (date, callback) => {
+  const query = `
+    SELECT 
+      d.D_deliveryNumber,
+      d.D_deliveryDate,
+      SUM(dp.DPD_quantity * p.P_unitPrice) AS totalCost
+    FROM Deliveries d
+    LEFT JOIN DeliveryProductDetails dp 
+      ON d.D_deliveryNumber = dp.D_deliveryNumber
+    LEFT JOIN Products p 
+      ON dp.P_productCode = p.P_productCode
+    WHERE d.isTemporarilyDeleted = 0
+      AND DATE(d.D_deliveryDate) = ?
+    GROUP BY d.D_deliveryNumber, d.D_deliveryDate
+    ORDER BY d.D_deliveryDate DESC
+  `;
+  db.query(query, [date], (err, results) => {
+    if (err) return callback(err);
+    callback(null, results);
+  });
+};
+
 // Mark delivery as deleted (isTemporarilyDeleted => 1)
 const markDeliveryAsDeleted = (deliveryNumber, callback) => {
   const query = `UPDATE Deliveries SET isTemporarilyDeleted = 1 WHERE D_deliveryNumber = ?`;
@@ -214,7 +237,7 @@ const markDeliveryAsDeleted = (deliveryNumber, callback) => {
 // Delivery products functions
 
 // Get delivery products by ID (delivery number)
-const getDeliveryProductsByID = (deliveryNumber, callback) => {
+const getDeliveryProductsOfDelivery = (deliveryNumber, callback) => {
   const query = `
     SELECT 
       dpd.D_deliveryNumber,
@@ -241,8 +264,8 @@ const getDeliveryProductsByID = (deliveryNumber, callback) => {
   });
 };
 
-// Get product details of a delivery
-const getDeliveryProducts = (callback) => {
+// Get delivery products of all deliveries
+const getDeliveryProductsOfAllDeliveries = (callback) => {
   const query = `
     SELECT 
       dpd.D_deliveryNumber,
@@ -418,11 +441,12 @@ module.exports = {
   getAllDeliveries,
   addDelivery,
   searchDeliveriesByID,
+  searchDeliveriesByDate,
   markDeliveryAsDeleted,
   
   // delivery products functions
-  getDeliveryProductsByID,
-  getDeliveryProducts,
+  getDeliveryProductsOfDelivery,
+  getDeliveryProductsOfAllDeliveries,
   addDeliveryProducts,
   
   // payment details functions
