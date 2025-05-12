@@ -1,10 +1,9 @@
 const db = require('../../db');
 
-// =========================
-// DELIVERY CORE FUNCTIONS
-// =========================
+// ==============================================
+// Deliveries functions
 
-// Get all Deliveries
+// Get all deliveries
 const getAllDeliveries = (callback) => {
   const query = `
     SELECT 
@@ -28,61 +27,9 @@ const getAllDeliveries = (callback) => {
   });
 };
 
-// Get products for a specific delivery number
-const getDeliveryProductsByDeliveryNumber = (deliveryNumber, callback) => {
-  const query = `
-    SELECT 
-      dpd.D_deliveryNumber,
-      dpd.P_productCode,
-      p.P_productName as productName,
-      b.B_brandName as brandName,
-      s.S_supplierName as supplierName,
-      dpd.DPD_quantity,
-      p.P_unitPrice
-    FROM DeliveryProductDetails dpd
-    LEFT JOIN Products p ON dpd.P_productCode = p.P_productCode
-    LEFT JOIN Brands b ON p.B_brandID = b.B_brandID
-    LEFT JOIN Suppliers s ON p.S_supplierID = s.S_supplierID
-    WHERE dpd.D_deliveryNumber = ?
-    ORDER BY dpd.P_productCode;
-  `;
-  
-  db.query(query, [deliveryNumber], (err, results) => {
-    if (err) {
-      callback(err, null);
-    } else {
-      callback(null, results);
-    }
-  });
-};
-
-// Search Deliveries by delivery number
-const searchDeliveries = (deliveryNumber, callback) => {
-  const query = `
-    SELECT 
-      d.D_deliveryNumber,
-      d.D_deliveryDate,
-      SUM(dp.DPD_quantity * p.P_unitPrice) as totalCost
-    FROM Deliveries d
-    LEFT JOIN DeliveryProductDetails dp ON d.D_deliveryNumber = dp.D_deliveryNumber
-    LEFT JOIN Products p ON dp.P_productCode = p.P_productCode
-    WHERE d.D_deliveryNumber = ? AND d.isTemporarilyDeleted = 0
-    GROUP BY d.D_deliveryNumber, d.D_deliveryDate;
-  `;
-  
-  db.query(query, [deliveryNumber], (err, results) => {
-    if (err) {
-      callback(err, null);
-    } else {
-      callback(null, results);
-    }
-  });
-};
-
-// Add a new Delivery
+// Add a new delivery
 const addDelivery = (deliveryData, products, payment, callback) => {
   const { D_deliveryNumber, D_deliveryDate } = deliveryData;
-
   // console.log('Adding delivery with products and payment:', { deliveryData, products, payment });
 
   if (!D_deliveryNumber || !D_deliveryDate) {
@@ -231,7 +178,97 @@ const addDelivery = (deliveryData, products, payment, callback) => {
   });
 };
 
-// Add products to an existing delivery
+// Search deliveries by ID (delivery number)
+const searchDeliveriesByID = (deliveryNumber, callback) => {
+  const query = `
+    SELECT 
+      d.D_deliveryNumber,
+      d.D_deliveryDate,
+      SUM(dp.DPD_quantity * p.P_unitPrice) as totalCost
+    FROM Deliveries d
+    LEFT JOIN DeliveryProductDetails dp ON d.D_deliveryNumber = dp.D_deliveryNumber
+    LEFT JOIN Products p ON dp.P_productCode = p.P_productCode
+    WHERE d.D_deliveryNumber = ? AND d.isTemporarilyDeleted = 0
+    GROUP BY d.D_deliveryNumber, d.D_deliveryDate;
+  `;
+  
+  db.query(query, [deliveryNumber], (err, results) => {
+    if (err) {
+      callback(err, null);
+    } else {
+      callback(null, results);
+    }
+  });
+};
+
+// Mark delivery as deleted (isTemporarilyDeleted => 1)
+const markDeliveryAsDeleted = (deliveryNumber, callback) => {
+  const query = `UPDATE Deliveries SET isTemporarilyDeleted = 1 WHERE D_deliveryNumber = ?`;
+  db.query(query, [deliveryNumber], (err, results) => {
+    if (err) return callback(err);
+    callback(null, results);
+  });
+};
+
+// ==============================================
+// Delivery products functions
+
+// Get delivery products by ID (delivery number)
+const getDeliveryProductsByID = (deliveryNumber, callback) => {
+  const query = `
+    SELECT 
+      dpd.D_deliveryNumber,
+      dpd.P_productCode,
+      p.P_productName as productName,
+      b.B_brandName as brandName,
+      s.S_supplierName as supplierName,
+      dpd.DPD_quantity,
+      p.P_unitPrice
+    FROM DeliveryProductDetails dpd
+    LEFT JOIN Products p ON dpd.P_productCode = p.P_productCode
+    LEFT JOIN Brands b ON p.B_brandID = b.B_brandID
+    LEFT JOIN Suppliers s ON p.S_supplierID = s.S_supplierID
+    WHERE dpd.D_deliveryNumber = ?
+    ORDER BY dpd.P_productCode;
+  `;
+  
+  db.query(query, [deliveryNumber], (err, results) => {
+    if (err) {
+      callback(err, null);
+    } else {
+      callback(null, results);
+    }
+  });
+};
+
+// Get product details of a delivery
+const getDeliveryProducts = (callback) => {
+  const query = `
+    SELECT 
+      dpd.D_deliveryNumber,
+      dpd.P_productCode,
+      p.P_productName as productName,
+      b.B_brandName as brandName,
+      s.S_supplierName as supplierName,
+      dpd.DPD_quantity,
+      p.P_unitPrice
+    FROM DeliveryProductDetails dpd
+    LEFT JOIN Products p ON dpd.P_productCode = p.P_productCode
+    LEFT JOIN Brands b ON p.B_brandID = b.B_brandID
+    LEFT JOIN Suppliers s ON p.S_supplierID = s.S_supplierID
+    ORDER BY dpd.D_deliveryNumber;
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) {
+      callback(err, null);
+    } else {
+      callback(null, results);
+    }
+  });
+};
+
+// Add products to the current delivery batch
 const addDeliveryProducts = (deliveryProductsData, callback) => {
   // Check if we have a products array from the frontend
   const deliveryProducts = deliveryProductsData.products || deliveryProductsData;
@@ -240,7 +277,7 @@ const addDeliveryProducts = (deliveryProductsData, callback) => {
     return callback(null, { message: "No products to add" });
   }
 
-  // Add this check for delivery existence
+  // check for delivery's existence
   const checkDeliveryQuery = "SELECT D_deliveryNumber FROM Deliveries WHERE D_deliveryNumber = ?";
   db.query(checkDeliveryQuery, [deliveryProducts[0].D_deliveryNumber], (err, results) => {
     if (err) return callback(err);
@@ -271,34 +308,10 @@ const addDeliveryProducts = (deliveryProductsData, callback) => {
   });
 };
 
-// Get all product details for a delivery
-const getDeliveryProducts = (callback) => {
-  const query = `
-    SELECT 
-      dpd.D_deliveryNumber,
-      dpd.P_productCode,
-      p.P_productName as productName,
-      b.B_brandName as brandName,
-      s.S_supplierName as supplierName,
-      dpd.DPD_quantity,
-      p.P_unitPrice
-    FROM DeliveryProductDetails dpd
-    LEFT JOIN Products p ON dpd.P_productCode = p.P_productCode
-    LEFT JOIN Brands b ON p.B_brandID = b.B_brandID
-    LEFT JOIN Suppliers s ON p.S_supplierID = s.S_supplierID
-    ORDER BY dpd.D_deliveryNumber;
-  `;
-  
-  db.query(query, (err, results) => {
-    if (err) {
-      callback(err, null);
-    } else {
-      callback(null, results);
-    }
-  });
-};
+// ==============================================
+// Payment details functions
 
-// Get payment details for all deliveries
+// Get payment details of all deliveries
 const getPaymentDetails = (callback) => {
   const query = `
     SELECT 
@@ -361,60 +374,10 @@ const updatePaymentDetails = (deliveryNumber, paymentData, callback) => {
   });
 };
 
-// Add this new function above the existing deleteDelivery function
-const markDeliveryAsDeleted = (deliveryNumber, callback) => {
-  const query = `UPDATE Deliveries SET isTemporarilyDeleted = 1 WHERE D_deliveryNumber = ?`;
-  db.query(query, [deliveryNumber], (err, results) => {
-    if (err) return callback(err);
-    callback(null, results);
-  });
-};
+// ==============================================
+// Types/modes/status functions
 
-// Delete a Delivery
-const deleteDelivery = (deliveryNumber, callback) => {
-  // Start a transaction to ensure data integrity when deleting related records
-  db.beginTransaction(err => {
-    if (err) return callback(err);
-
-    // First delete the payment details
-    const deletePaymentDetailsQuery = `DELETE FROM DeliveryPaymentDetails WHERE D_deliveryNumber = ?`;
-    db.query(deletePaymentDetailsQuery, [deliveryNumber], (err) => {
-      if (err) {
-        return db.rollback(() => callback(err));
-      }
-
-      // Then delete the product details
-      const deleteProductDetailsQuery = `DELETE FROM DeliveryProductDetails WHERE D_deliveryNumber = ?`;
-      db.query(deleteProductDetailsQuery, [deliveryNumber], (err) => {
-        if (err) {
-          return db.rollback(() => callback(err));
-        }
-
-        // Finally, delete the delivery record
-        const deleteDeliveryQuery = `DELETE FROM Deliveries WHERE D_deliveryNumber = ?`;
-        db.query(deleteDeliveryQuery, [deliveryNumber], (err, results) => {
-          if (err) {
-            return db.rollback(() => callback(err));
-          }
-
-          // Commit the transaction
-          db.commit(err => {
-            if (err) {
-              return db.rollback(() => callback(err));
-            }
-            callback(null, results);
-          });
-        });
-      });
-    });
-  });
-};
-
-// =========================
-// DELIVERY PAYMENT TYPES
-// =========================
-
-// Get all Delivery Payment Types
+// Get all delivery payment types
 const getAllDeliveryPaymentTypes = (callback) => {
   const query = `SELECT D_paymentTypeID, D_paymentName FROM DeliveryPaymentTypes ORDER BY D_paymentTypeID`;
   db.query(query, (err, results) => {
@@ -426,49 +389,7 @@ const getAllDeliveryPaymentTypes = (callback) => {
   });
 };
 
-// Add a new Delivery Payment Type
-const addDeliveryPaymentType = (statusData, callback) => {
-  const { D_paymentName } = statusData;
-  const query = `INSERT INTO DeliveryPaymentTypes (D_paymentName) VALUES (?)`;
-  db.query(query, [D_paymentName], (err, results) => {
-    if (err) {
-      callback(err, null);
-    } else {
-      callback(null, results.insertId);
-    }
-  });
-};
-
-// Update an existing Delivery Payment Type
-const updateDeliveryPaymentType = (statusId, statusData, callback) => {
-  const { D_paymentName } = statusData;
-  const query = `UPDATE DeliveryPaymentTypes SET D_paymentName = ? WHERE D_paymentTypeID = ?`;
-  db.query(query, [D_paymentName, statusId], (err, results) => {
-    if (err) {
-      callback(err, null);
-    } else {
-      callback(null, results);
-    }
-  });
-};
-
-// Delete a Delivery Payment Type
-const deleteDeliveryPaymentType = (statusId, callback) => {
-  const query = `DELETE FROM DeliveryPaymentTypes WHERE D_paymentTypeID = ?`;
-  db.query(query, [statusId], (err, results) => {
-    if (err) {
-      callback(err, null);
-    } else {
-      callback(null, results);
-    }
-  });
-};
-
-// =========================
-// DELIVERY MODE OF PAYMENT
-// =========================
-
-// Get all Delivery Mode of Payments
+// Get all delivery mode of payments
 const getAllDeliveryModeOfPayments = (callback) => {
   const query = `SELECT D_modeOfPaymentID, D_mopName FROM DeliveryModeOfPayment ORDER BY D_modeOfPaymentID`;
   db.query(query, (err, results) => {
@@ -480,49 +401,7 @@ const getAllDeliveryModeOfPayments = (callback) => {
   });
 };
 
-// Add a new Delivery Mode of Payment
-const addDeliveryModeOfPayment = (statusData, callback) => {
-  const { D_mopName } = statusData;
-  const query = `INSERT INTO DeliveryModeOfPayment (D_mopName) VALUES (?)`;
-  db.query(query, [D_mopName], (err, results) => {
-    if (err) {
-      callback(err, null);
-    } else {
-      callback(null, results.insertId);
-    }
-  });
-};
-
-// Update an existing Delivery Mode of Payment
-const updateDeliveryModeOfPayment = (statusId, statusData, callback) => {
-  const { D_mopName } = statusData;
-  const query = `UPDATE DeliveryModeOfPayment SET D_mopName = ? WHERE D_modeOfPaymentID = ?`;
-  db.query(query, [D_mopName, statusId], (err, results) => {
-    if (err) {
-      callback(err, null);
-    } else {
-      callback(null, results);
-    }
-  });
-};
-
-// Delete a Delivery Mode of Payment
-const deleteDeliveryModeOfPayment = (statusId, callback) => {
-  const query = `DELETE FROM DeliveryModeOfPayment WHERE D_modeOfPaymentID = ?`;
-  db.query(query, [statusId], (err, results) => {
-    if (err) {
-      callback(err, null);
-    } else {
-      callback(null, results);
-    }
-  });
-};
-
-// =========================
-// DELIVERY PAYMENT STATUS
-// =========================
-
-// Get all Delivery Payment Statuses
+// Get all delivery payment statuses
 const getAllDeliveryPaymentStatuses = (callback) => {
   const query = `SELECT D_paymentStatusID, D_statusName FROM DeliveryPaymentStatus ORDER BY D_paymentStatusID`;
   db.query(query, (err, results) => {
@@ -534,72 +413,24 @@ const getAllDeliveryPaymentStatuses = (callback) => {
   });
 };
 
-// Add a new Delivery Payment Status
-const addDeliveryPaymentStatus = (data, callback) => {
-  const { D_statusName } = data;
-  const query = `INSERT INTO DeliveryPaymentStatus (D_statusName) VALUES (?)`;
-  db.query(query, [D_statusName], (err, results) => {
-    if (err) {
-      callback(err, null);
-    } else {
-      callback(null, results.insertId);
-    }
-  });
-};
-
-// Update an existing Delivery Payment Status
-const updateDeliveryPaymentStatus = (id, data, callback) => {
-  const { D_statusName } = data;
-  const query = `UPDATE DeliveryPaymentStatus SET D_statusName = ? WHERE D_paymentStatusID = ?`;
-  db.query(query, [D_statusName, id], (err, results) => {
-    if (err) {
-      callback(err, null);
-    } else {
-      callback(null, results);
-    }
-  });
-};
-
-// Delete a Delivery Payment Status
-const deleteDeliveryPaymentStatus = (id, callback) => {
-  const query = `DELETE FROM DeliveryPaymentStatus WHERE D_paymentStatusID = ?`;
-  db.query(query, [id], (err, results) => {
-    if (err) {
-      callback(err, null);
-    } else {
-      callback(null, results);
-    }
-  });
-};
-
 module.exports = {
-  // Delivery Core Functions
+  // deliveries functions
   getAllDeliveries,
-  searchDeliveries,
   addDelivery,
-  addDeliveryProducts,
-  getDeliveryProducts,
-  getDeliveryProductsByDeliveryNumber,
-  getPaymentDetails,
-  updatePaymentDetails,
-  deleteDelivery,
+  searchDeliveriesByID,
   markDeliveryAsDeleted,
   
-  // Delivery Payment Types
+  // delivery products functions
+  getDeliveryProductsByID,
+  getDeliveryProducts,
+  addDeliveryProducts,
+  
+  // payment details functions
+  getPaymentDetails,
+  updatePaymentDetails,
+  
+  // types/modes/status functions
   getAllDeliveryPaymentTypes,
-  addDeliveryPaymentType,
-  updateDeliveryPaymentType,
-  deleteDeliveryPaymentType,
-  
-  // Delivery Mode of Payment
   getAllDeliveryModeOfPayments,
-  addDeliveryModeOfPayment,
-  updateDeliveryModeOfPayment,
-  deleteDeliveryModeOfPayment,
-  
-  // Delivery Payment Status
   getAllDeliveryPaymentStatuses,
-  addDeliveryPaymentStatus,
-  updateDeliveryPaymentStatus,
-  deleteDeliveryPaymentStatus
 };

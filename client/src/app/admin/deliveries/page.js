@@ -24,6 +24,7 @@ export default function DeliveriesPage() {
   
   const [searchValue, setSearchValue] = useState("");
   const [searchResult, setSearchResult] = useState(null);
+  const [searchDate, setSearchDate] = useState("");
   
   // State for all dynamic data
   const [deliveries, setDeliveries] = useState([]);
@@ -377,6 +378,16 @@ export default function DeliveriesPage() {
       .finally(() => {
         setIsLoading(false); // Hide spinner
       });
+  };
+  
+  // when user clicks the date-search button
+  const handleSearchDate = () => {
+    // assuming dateAdded is stored as ISO (yyyy-mm-dd) or can be parsed:
+    const filtered = allDeliveries.filter(d => {
+      const dISO = new Date(d.dateAdded).toISOString().slice(0,10);
+      return dISO === searchDate;
+    });
+    setDisplayedDeliveries(filtered);
   };
 
   // Handle payment detail changes

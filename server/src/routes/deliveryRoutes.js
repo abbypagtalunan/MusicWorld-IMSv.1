@@ -4,53 +4,32 @@ const router = express.Router();
 // Import all controllers
 const deliveryController = require('../controllers/deliveryController');
 
-// Create subrouters for organization
+// Create subrouters
 const productsRouter = express.Router();
 const paymentDetailsRouter = express.Router();
 const modeOfPaymentRouter = express.Router();
 const paymentStatusRouter = express.Router();
 const paymentTypesRouter = express.Router();
 
-router.post(
-  '/',
-  (req, res, next) => {
-    // console.log('↪️  Received POST /deliveries:', JSON.stringify(req.body));
-    next();
-  },
-  deliveryController.addDelivery
-);
-
-// Main delivery routes
+// Deliveries routes
 router.get('/', deliveryController.getAllDeliveries);
-router.get('/search', deliveryController.searchDeliveries);
-router.put('/:deliveryNumber/payment-details', deliveryController.updatePaymentDetails);
+router.post('/', (req, res, next) => { next(); }, deliveryController.addDelivery);
+router.get('/search', deliveryController.searchDeliveriesByID);
 router.put('/:deliveryNumber/mark-deleted', deliveryController.markDeliveryAsDeleted);
 
-// Product-specific routes
+// Delivery products routes
 productsRouter.get('/', deliveryController.getDeliveryProducts);
-productsRouter.get('/:deliveryNumber', deliveryController.getDeliveryProductsByDeliveryNumber);
+productsRouter.get('/:deliveryNumber', deliveryController.getDeliveryProductsByID);
 productsRouter.post('/', deliveryController.addDeliveryProducts);
 
 // Payment details routes
 paymentDetailsRouter.get('/', deliveryController.getPaymentDetails);
+router.put('/:deliveryNumber/payment-details', deliveryController.updatePaymentDetails);
 
-// Delivery Mode of Payment routes
+// Types/modes/status routes
 modeOfPaymentRouter.get('/', deliveryController.getAllDeliveryModeOfPayments);
-modeOfPaymentRouter.post('/', deliveryController.addDeliveryModeOfPayment);
-modeOfPaymentRouter.put('/:id', deliveryController.updateDeliveryModeOfPayment);
-modeOfPaymentRouter.delete('/:id', deliveryController.deleteDeliveryModeOfPayment);
-
-// Delivery Payment Status routes
 paymentStatusRouter.get('/', deliveryController.getAllDeliveryPaymentStatuses);
-paymentStatusRouter.post('/', deliveryController.addDeliveryPaymentStatus);
-paymentStatusRouter.put('/:id', deliveryController.updateDeliveryPaymentStatus);
-paymentStatusRouter.delete('/:id', deliveryController.deleteDeliveryPaymentStatus);
-
-// Delivery Payment Types routes
 paymentTypesRouter.get('/', deliveryController.getAllDeliveryPaymentTypes);
-paymentTypesRouter.post('/', deliveryController.addDeliveryPaymentType);
-paymentTypesRouter.put('/:id', deliveryController.updateDeliveryPaymentType);
-paymentTypesRouter.delete('/:id', deliveryController.deleteDeliveryPaymentType);
 
 // Attach subrouters to main router
 router.use('/products', productsRouter);
