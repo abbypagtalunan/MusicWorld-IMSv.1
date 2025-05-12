@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast, Toaster } from "react-hot-toast";
-import { Search, ListFilter, Trash2, Eye, PackagePlus, Save } from "lucide-react";
+import { Search, ListFilter, Trash2, Eye, FilePen, PackagePlus, Save } from "lucide-react";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogDescription } from "@/components/ui/dialog";
@@ -534,24 +534,26 @@ export default function DeliveriesPage() {
             <Table>
               <TableHeader className="sticky top-0 bg-white z-10">
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Delivery Number</TableHead>
-                  <TableHead>Supplier</TableHead>
-                  <TableHead>Total Cost</TableHead>
-                  <TableHead>Details</TableHead>
+                  <TableHead className="pl-10">Date</TableHead>
+                  <TableHead className="pl-6">Delivery Number</TableHead>
+                  <TableHead className="pl-0">Supplier</TableHead>
+                  <TableHead className="pl-10">Total Cost</TableHead>
+                  <TableHead className="pl-8">View/Edit</TableHead>
+                  <TableHead className="pl-6">Delete</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {getFilteredTransactions().map((d) => (
                   <TableRow key={d.deliveryNum}>
-                    <TableCell>{d.dateAdded}</TableCell>
-                    <TableCell>{`DR-${d.deliveryNum}`}</TableCell>
-                    <TableCell>
+                    <TableCell className="pl-10">{d.dateAdded}</TableCell>
+                    <TableCell className="pl-6">{`DR-${d.deliveryNum}`}</TableCell>
+                    <TableCell className="pl-0">
                       {deliveryProducts[d.deliveryNum]?.[0]?.supplier || "Unknown"}
                     </TableCell>
-                    <TableCell>{d.totalCost}</TableCell>
+                    <TableCell className="pl-10">{d.totalCost}</TableCell>
+                    
                     {/* Delivery Details dialog */}
-                    <TableCell className="flex space-x-2">
+                    <TableCell className="pl-6">
                       <Dialog>
                         <DialogTrigger asChild>
                           <Button 
@@ -734,7 +736,23 @@ export default function DeliveriesPage() {
                         </DialogContent>
                       </Dialog>
 
-                      {/* For deleting transactions */}
+                      {/* Edit button*/}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-gray-500 hover:text-blue-600"
+                        onClick={() => {
+                          // TODO: navigate to your “edit” page or open an edit dialog
+                          // e.g. router.push(`./deliveries-edit/${d.deliveryNum}`)
+                        }}
+                      >
+                        <FilePen size={16} />
+                      </Button>
+
+                    </TableCell>
+                    
+                    {/* For deleting transactions */}
+                    <TableCell className="p1-6">
                       <Dialog>
                         <DialogTrigger asChild>
                           <Button variant="ghost" size="sm" className="text-gray-500 hover:text-red-600">
@@ -770,6 +788,7 @@ export default function DeliveriesPage() {
                         </DialogContent>
                       </Dialog>
                     </TableCell>
+                    
                   </TableRow>
                 ))}
               </TableBody>
