@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { toast, Toaster } from "react-hot-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Search, Ellipsis, X } from "lucide-react";
+import { Search, Eye, X } from "lucide-react";
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogDescription } from "@/components/ui/dialog";
 
@@ -328,7 +328,7 @@ export default function DeletedPage() {
                                       <Dialog>
                                         <DialogTrigger asChild>
                                           <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600">
-                                            <Ellipsis size={16} />
+                                            <Eye size={16} />
                                           </Button>
                                         </DialogTrigger>
                                         <DialogContent className="w-[90vw] max-w-3xl sm:max-w-lg md:max-w-3xl max-h-[90vh] overflow-y-auto p-6">
@@ -379,7 +379,7 @@ export default function DeletedPage() {
                                       <Dialog>
                                         <DialogTrigger asChild>
                                           <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600">
-                                            <Ellipsis size={16} />
+                                            <Eye size={16} />
                                           </Button>
                                         </DialogTrigger>
                                         <DialogContent className="max-w-3xl p-6">
@@ -428,7 +428,7 @@ export default function DeletedPage() {
                                       <Dialog>
                                         <DialogTrigger asChild>
                                           <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600">
-                                            <Ellipsis size={16} />
+                                            <Eye size={16} />
                                           </Button>
                                         </DialogTrigger>
                                         <DialogContent className="max-w-3xl p-6">
