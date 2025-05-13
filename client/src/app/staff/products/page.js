@@ -5,7 +5,7 @@ import { AppSidebar } from "@/components/staff-sidebar"
 import { SidebarProvider } from "@/components/ui/sidebar"
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Search, ListFilter } from "lucide-react";
+import { Search, ListFilter, ChevronsUpDown, ChevronUp, ChevronDown } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
 
 export default function ProductsPage() {
@@ -139,6 +139,21 @@ export default function ProductsPage() {
   }, [selectedFilter, selectedSubFilter]); 
   
 
+  // Sort
+   const [sortConfig, setSortConfig] = useState({ key: null, direction: "ascending" });
+
+  const handleSort = (key) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        return {
+          key,
+          direction: prev.direction === "ascending" ? "descending" : "ascending",
+        };
+      }
+      return { key, direction: "ascending" };
+    });
+  };
+
   const getFilteredTransactions = () => {
     config?.nameField && config?.idField
       ? data.filter(
@@ -148,39 +163,48 @@ export default function ProductsPage() {
             ) || (item[config.idField] || "").includes(searchTerm)
         )
       : [];
+
     let sortedTransactions = [...data];
-    if (!selectedFilter || !selectedSubFilter) return sortedTransactions;
 
-    if (selectedFilter === "Supplier") {
-      sortedTransactions = sortedTransactions.filter((item) => item.supplier === selectedSubFilter);
-    }
-  
-    if (selectedFilter === "Brand") {
-      sortedTransactions = sortedTransactions.filter((item) => item.brand === selectedSubFilter);
-    }
-
-    if (selectedFilter === "Category") {
-      sortedTransactions = sortedTransactions.filter((item) => item.category === selectedSubFilter);
-    }
-
-    if (selectedFilter === "Product Status") {
-      sortedTransactions = sortedTransactions.filter((item) => item.status === selectedSubFilter);
-    }
-
-    if (selectedFilter === "Product Name") {
-      sortedTransactions.sort((a, b) =>
-        selectedSubFilter === "Ascending"
-          ? a.productName.localeCompare(b.productName)
-          : b.productName.localeCompare(a.productName)
+    // Search
+    if (searchTerm) {
+      sortedTransactions = sortedTransactions.filter(
+        (item) =>
+          (item.productName?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+          (item.category?.toLowerCase() || "").includes(searchTerm.toLowerCase())
       );
     }
 
-    if (selectedFilter === "Price") {
-      const getPrice = (price) => {
-        if (!price) return 0;
-        return parseFloat(price.toString().replace(/[^\d.]/g, ""));
+    // Dropdown Filters
+    if (selectedFilter && selectedSubFilter) {
+      if (selectedFilter === "Supplier") {
+        sortedTransactions = sortedTransactions.filter(item => item.supplier === selectedSubFilter);
       }
-      
+      if (selectedFilter === "Brand") {
+        sortedTransactions = sortedTransactions.filter(item => item.brand === selectedSubFilter);
+      }
+      if (selectedFilter === "Category") {
+        sortedTransactions = sortedTransactions.filter(item => item.category === selectedSubFilter);
+      }
+      if (selectedFilter === "Product Status") {
+        sortedTransactions = sortedTransactions.filter(item => item.status === selectedSubFilter);
+      }
+    }
+
+    if (selectedFilter === "Product Name" || selectedFilter === "Date added") {
+      sortedTransactions.sort((a, b) => {
+        const key = selectedFilter === "Product Name" ? "productName" : "dateAdded";
+        const valA = a[key] ?? "";
+        const valB = b[key] ?? "";
+
+        return selectedSubFilter === "Ascending"
+          ? valA.localeCompare(valB)
+          : valB.localeCompare(valA);
+      });
+    }
+
+    if (selectedFilter === "Price") {
+      const getPrice = (val) => parseFloat(val?.toString().replace(/[^\d.]/g, "") || 0);
       sortedTransactions.sort((a, b) =>
         selectedSubFilter === "Low to High"
           ? getPrice(a.price) - getPrice(b.price)
@@ -188,16 +212,40 @@ export default function ProductsPage() {
       );
     }
 
-    if (selectedFilter === "Date added") {
-      sortedTransactions.sort((a, b) =>
-        selectedSubFilter === "Ascending"
-          ? new Date(a.dateAdded) - new Date(b.dateAdded)
-          : new Date(b.dateAdded) - new Date(a.dateAdded)
-      );
+    // Table Header Sorting
+    if (sortConfig.key !== null) {
+      sortedTransactions.sort((a, b) => {
+        const valA = a[sortConfig.key] ?? "";
+        const valB = b[sortConfig.key] ?? "";
+
+        if (typeof valA === "string") {
+          return sortConfig.direction === "ascending"
+            ? valA.localeCompare(valB)
+            : valB.localeCompare(valA);
+        } else if (!isNaN(valA)) {
+          return sortConfig.direction === "ascending" ? valA - valB : valB - valA;
+        } else if (Date.parse(valA)) {
+          return sortConfig.direction === "ascending"
+            ? new Date(valA) - new Date(valB)
+            : new Date(valB) - new Date(valA);
+        }
+
+        return 0;
+      });
     }
 
     return sortedTransactions;
-  }; 
+  };
+
+
+  function SortIcon({ column }) {
+    if (sortConfig.key !== column) return <ChevronsUpDown className="inline ml-1 w-4 h-4 text-gray-400" />;
+    return sortConfig.direction === "ascending" ? (
+      <ChevronUp className="inline ml-1 w-4 h-4 text-blue-500" />
+    ) : (
+      <ChevronDown className="inline ml-1 w-4 h-4 text-blue-500" />
+    );
+  }
 
   const handleFilterSelect = (filter, subFilter = null) => {
     setSelectedFilter(filter);
@@ -278,18 +326,6 @@ export default function ProductsPage() {
                     </DropdownMenuSub>
                     
                     <DropdownMenuSub>
-                    <DropdownMenuSubTrigger>Product Name</DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Product Name", "Ascending")}>
-                          Ascending
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Product Name", "Descending")}>
-                          Descending
-                        </DropdownMenuItem>
-                      </DropdownMenuSubContent>
-                    </DropdownMenuSub>
-                    
-                    <DropdownMenuSub>
                       <DropdownMenuSubTrigger>Brand</DropdownMenuSubTrigger>
                       <DropdownMenuSubContent>
                         {brands.map((brand) => (
@@ -314,18 +350,6 @@ export default function ProductsPage() {
                         ))}
                       </DropdownMenuSubContent>
                     </DropdownMenuSub>
-
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>Price</DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Price", "Low to High")}>
-                          Low to High
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Price", "High to Low")}>
-                          High to Low
-                        </DropdownMenuItem>
-                      </DropdownMenuSubContent>
-                    </DropdownMenuSub>
                     
                     <DropdownMenuSub>
                       <DropdownMenuSubTrigger>Product Status</DropdownMenuSubTrigger>
@@ -341,18 +365,6 @@ export default function ProductsPage() {
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleFilterSelect("Product Status", "Discontinued")}>
                           Discontinued
-                        </DropdownMenuItem>
-                      </DropdownMenuSubContent>
-                    </DropdownMenuSub>
-
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>Date added</DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Date added", "Ascending")}>
-                          Ascending
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Date added", "Descending")}>
-                          Descending
                         </DropdownMenuItem>
                       </DropdownMenuSubContent>
                     </DropdownMenuSub>
@@ -373,17 +385,17 @@ export default function ProductsPage() {
             <Table>
               <TableHeader className="sticky top-0 bg-white z-10">
                 <TableRow>
-                  <TableHead>Product Code</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Product</TableHead>
-                  <TableHead>Brand</TableHead>
-                  <TableHead>Supplier</TableHead>
-                  <TableHead>Stock amount</TableHead>
-                  <TableHead>Last Restock Date and Time</TableHead>
-                  <TableHead>Price</TableHead>
-                  <TableHead>Selling Price</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Date Added</TableHead>
+                  <TableHead onClick={() => handleSort("productCode")} className="cursor-pointer select-none">Product Code <SortIcon column="productCode" /></TableHead>
+                  <TableHead onClick={() => handleSort("category")} className="cursor-pointer select-none">Category <SortIcon column="category" /></TableHead>
+                  <TableHead onClick={() => handleSort("productName")} className="cursor-pointer select-none">Product <SortIcon column="productName" /></TableHead>
+                  <TableHead onClick={() => handleSort("brand")} className="cursor-pointer select-none">Brand <SortIcon column="brand" /></TableHead>
+                  <TableHead onClick={() => handleSort("supplier")} className="cursor-pointer select-none">Supplier <SortIcon column="supplier" /></TableHead>
+                  <TableHead onClick={() => handleSort("stockNumber")} className="cursor-pointer select-none">Stock amount <SortIcon column="stockNumber" /></TableHead>
+                  <TableHead onClick={() => handleSort("lastRestock")} className="cursor-pointer select-none">Last Restock Date and Time <SortIcon column="lastRestock" /></TableHead>
+                  <TableHead onClick={() => handleSort("price")} className="cursor-pointer select-none">Price <SortIcon column="price" /></TableHead>
+                  <TableHead onClick={() => handleSort("sellingPrice")} className="cursor-pointer select-none">Selling Price <SortIcon column="sellingPrice" /></TableHead>
+                  <TableHead onClick={() => handleSort("status")} className="cursor-pointer select-none">Status <SortIcon column="status" /></TableHead>
+                  <TableHead onClick={() => handleSort("dateAdded")} className="cursor-pointer select-none">Date Added <SortIcon column="dateAdded" /></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
