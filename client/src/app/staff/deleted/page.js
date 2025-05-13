@@ -240,8 +240,6 @@ export default function DeletedPage() {
     );
   }
 
-
-
   return (
     <SidebarProvider>
       <div className="flex h-screen w-screen">
