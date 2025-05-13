@@ -24,7 +24,7 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
-import { Trash2, Undo2, Filter } from "lucide-react";
+import { X, Trash2, Undo2, Filter } from "lucide-react";
 import { toast, Toaster } from "react-hot-toast";
 
 export default function BatchDeliveriesPage() {
@@ -35,7 +35,7 @@ export default function BatchDeliveriesPage() {
   const [products, setProducts] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [brands, setBrands] = useState([]);
-  const [deliveryNumber, setDeliveryNumber] = useState("10001"); // init
+  const [deliveryNumber, setDeliveryNumber] = useState("");
   const [deliveryDate, setDeliveryDate] = useState("");
   const [loading, setLoading] = useState(true);
   const [selectedSupplier, setSelectedSupplier] = useState("");
@@ -45,21 +45,21 @@ export default function BatchDeliveriesPage() {
   const [paymentModes, setPaymentModes] = useState([]);
   const [paymentStatuses, setPaymentStatuses] = useState([]);
   const [paymentDetails, setPaymentDetails] = useState({
-    paymentType: "1",
-    paymentMode: "1",
-    paymentStatus: "2",
+    paymentType: "",
+    paymentMode: "",
+    paymentStatus: "",
     dateDue: "",
-    datePayment1: "2025-05-21",
-    datePayment2: "2025-05-27"
+    datePayment1: "",
+    datePayment2: ""
   });
   
   // State for new product form
   const [newProduct, setNewProduct] = useState({
     product: "",
-    supplier: "2",
+    supplier: "",
     brand: "",
     unitPrice: "",
-    quantity: "4"
+    quantity: ""
   });
 
   // API endpoints
@@ -271,7 +271,7 @@ export default function BatchDeliveriesPage() {
   };
 
   // Handle deleting a product from the list
-  const handleDeleteProduct = (index) => {
+  const handleCancelProduct = (index) => {
     const updatedItems = [...productItems];
     updatedItems.splice(index, 1);
     setProductItems(updatedItems);
@@ -559,14 +559,14 @@ export default function BatchDeliveriesPage() {
                           <TableCell>{item.unitPrice}</TableCell>
                           <TableCell>{item.total}</TableCell>
                           <TableCell>
-                            {/* For deleting transactions */}
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="text-gray-500 hover:text-red-600"
-                              onClick={() => handleDeleteProduct(index)}
+                            {/* For cancelling a product */}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-white bg-red-500 hover:text-red-800 hover:bg-red-300"
+                              onClick={() => handleCancelProduct(index)}
                             >
-                              <Trash2 size={16} />
+                              <X size={16} />
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -580,16 +580,6 @@ export default function BatchDeliveriesPage() {
                         </TableRow>
                     </TableBody>
                   </Table>
-                </div>
-                {/* Dialogue box for deleting transactions */}                
-                <div className="flex justify-end gap-2 mt-6">
-                  <Button 
-                    className="bg-green-600 text-white"
-                    onClick={handleSaveDelivery}
-                    disabled={loading}
-                  >
-                    SAVE ALL DETAILS
-                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -868,6 +858,18 @@ export default function BatchDeliveriesPage() {
                   />
                 </div>
               </div>
+              
+              {/* Save All Details button */}
+              <div className="flex justify-end gap-2 mt-6">
+                <Button 
+                  className="bg-green-600 text-white"
+                  onClick={handleSaveDelivery}
+                  disabled={loading}
+                >
+                  SAVE ALL DETAILS
+                </Button>
+              </div>
+              
             </CardContent>
           </Card>
           <Toaster position="top-right" />
