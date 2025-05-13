@@ -44,7 +44,7 @@ import {
   TabsTrigger,
   TabsContent,
 } from "@/components/ui/tabs";
-import { Trash2, Eye } from "lucide-react";
+import { Trash2, Eye, ChevronsUpDown, ChevronUp, ChevronDown } from "lucide-react";
 
 // Helper function to format PHP currency
 const formatToPHP = (amount) => {
@@ -144,6 +144,9 @@ export default function ReturnsPage() {
   // Search Terms for Supplier Dropdowns
   const [supplierSearchTerm, setSupplierSearchTerm] = useState("");
   const [supplierSearchTerm2, setSupplierSearchTerm2] = useState("");
+
+  // Sort 
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: "ascending" });
 
   // Fetch Data on Load
   useEffect(() => {
@@ -318,6 +321,73 @@ export default function ReturnsPage() {
     }
   };
 
+  // Handle sorting
+  const handleSort = (key) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        return {
+          key,
+          direction: prev.direction === "ascending" ? "descending" : "ascending",
+        };
+      }
+      return { key, direction: "ascending" };
+    });
+  };
+
+  function SortIcon({ column }) {
+    if (sortConfig.key !== column)
+      return <ChevronsUpDown className="inline ml-1 w-4 h-4 text-gray-400" />;
+    return sortConfig.direction === "ascending" ? (
+      <ChevronUp className="inline ml-1 w-4 h-4 text-blue-500" />
+    ) : (
+      <ChevronDown className="inline ml-1 w-4 h-4 text-blue-500" />
+    );
+  } 
+
+  const getSortedReturns = (data) => {
+  if (!sortConfig.key) return data;
+
+  return [...data].sort((a, b) => {
+    let valA = a[sortConfig.key];
+    let valB = b[sortConfig.key];
+
+    // 🟡 Handle derived supplier/product names
+    if (sortConfig.key === "supplierName") {
+      valA = suppliers.find(s => s.S_supplierID === a.S_supplierID)?.S_supplierName || "";
+      valB = suppliers.find(s => s.S_supplierID === b.S_supplierID)?.S_supplierName || "";
+    }
+
+    if (sortConfig.key === "productName") {
+      valA = products.find(p => p.P_productCode === a.P_productCode)?.P_productName || "";
+      valB = products.find(p => p.P_productCode === b.P_productCode)?.P_productName || "";
+    }
+
+    // Handle date
+    else if (sortConfig.key.toLowerCase().includes("date")) {
+      valA = new Date(valA).getTime();
+      valB = new Date(valB).getTime();
+    }
+
+    // Handle numbers
+    else if (!isNaN(parseFloat(valA)) && !isNaN(parseFloat(valB))) {
+      valA = parseFloat(valA);
+      valB = parseFloat(valB);
+    }
+
+    // Handle strings
+    else {
+      valA = valA?.toString().toLowerCase() || "";
+      valB = valB?.toString().toLowerCase() || "";
+    }
+
+    return sortConfig.direction === "ascending"
+      ? valA > valB ? 1 : valA < valB ? -1 : 0
+      : valA < valB ? 1 : valA > valB ? -1 : 0;
+  });
+};
+
+
+
   return (
     <SidebarProvider>
       <div className="flex h-screen w-screen">
@@ -346,18 +416,30 @@ export default function ReturnsPage() {
                       <Table>
                         <TableHeader className="sticky top-0 z-10 bg-white">
                           <TableRow>
-                            <TableHead className="text-center">Date</TableHead>
-                            <TableHead className="text-center">Return ID</TableHead>
-                            <TableHead className="text-center">Product</TableHead>
-                            <TableHead className="text-center">Quantity</TableHead>
-                            <TableHead className="text-center">Total</TableHead>
-                            <TableHead className="text-center">Return Type</TableHead>
+                            <TableHead onClick={() => handleSort("R_dateOfReturn")} className="text-center cursor-pointer">
+                              Date <SortIcon column="R_dateOfReturn" />
+                            </TableHead>
+                            <TableHead onClick={() => handleSort("R_returnID")} className="text-center cursor-pointer">
+                              Return ID <SortIcon column="R_returnID" />
+                            </TableHead>
+                            <TableHead onClick={() => handleSort("productName")} className="text-center cursor-pointer">
+                              Product <SortIcon column="productName" />
+                            </TableHead>
+                            <TableHead onClick={() => handleSort("R_returnQuantity")} className="text-center cursor-pointer">
+                              Quantity <SortIcon column="R_returnQuantity" />
+                            </TableHead>
+                            <TableHead onClick={() => handleSort("R_TotalPrice")} className="text-center cursor-pointer">
+                              Total <SortIcon column="R_TotalPrice" />
+                            </TableHead>
+                            <TableHead onClick={() => handleSort("R_reasonOfReturn")} className="text-center cursor-pointer">
+                              Return Type <SortIcon column="R_reasonOfReturn" />
+                            </TableHead>
                             <TableHead className="text-center">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {customerReturns.length > 0 ? (
-                            customerReturns.map((item) => (
+                            getSortedReturns(customerReturns).map((item) => (
                               <TableRow key={item.R_returnID}>
                                 <TableCell className="text-center">{new Date(item.R_dateOfReturn).toLocaleDateString()}</TableCell>
                                 <TableCell className="text-center">{item.R_returnID}</TableCell>
@@ -625,18 +707,30 @@ export default function ReturnsPage() {
                       <Table>
                         <TableHeader className="sticky top-0 z-10 bg-white">
                           <TableRow>
-                            <TableHead className="text-center">Date</TableHead>
-                            <TableHead className="text-center">Product Code</TableHead>
-                            <TableHead className="text-center">Supplier</TableHead>
-                            <TableHead className="text-center">Product</TableHead>
-                            <TableHead className="text-center">Quantity</TableHead>
-                            <TableHead className="text-center">Total</TableHead>
+                            <TableHead onClick={() => handleSort("R_dateOfReturn")} className="text-center cursor-pointer">
+                              Date <SortIcon column="R_dateOfReturn" />
+                            </TableHead>
+                            <TableHead onClick={() => handleSort("P_productCode")} className="text-center cursor-pointer">
+                              Product Code <SortIcon column="P_productCode" />
+                            </TableHead>
+                            <TableHead onClick={() => handleSort("supplierName")} className="text-center cursor-pointer">
+                              Supplier <SortIcon column="supplierName" />
+                            </TableHead>
+                            <TableHead onClick={() => handleSort("productName")} className="text-center cursor-pointer">
+                              Product <SortIcon column="productName" />
+                            </TableHead>
+                            <TableHead onClick={() => handleSort("R_returnQuantity")} className="text-center cursor-pointer">
+                              Quantity <SortIcon column="R_returnQuantity" />
+                            </TableHead>
+                            <TableHead onClick={() => handleSort("R_TotalPrice")} className="text-center cursor-pointer">
+                              Total <SortIcon column="R_TotalPrice" />
+                            </TableHead>
                             <TableHead className="text-center">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {supplierReturns.length > 0 ? (
-                            supplierReturns.map((item) => (
+                            getSortedReturns(supplierReturns).map((item) => (
                               <TableRow key={item.R_returnID}>
                                 <TableCell className="text-center">{new Date(item.R_dateOfReturn).toLocaleDateString()}</TableCell>
                                 <TableCell className="text-center">{item.P_productCode}</TableCell>

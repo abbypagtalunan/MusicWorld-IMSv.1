@@ -6,7 +6,7 @@ import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
-import { Search, ListFilter, Trash2, Eye, CalendarDays, Download } from "lucide-react";
+import { Search, ListFilter, Trash2, Eye, CalendarDays, Download, ChevronsUpDown, ChevronUp, ChevronDown } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -32,6 +32,9 @@ export default function OrdersPage() {
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [orderDetails, setOrderDetails] = useState([]);
   const [selectedOrderID, setSelectedOrderID] = useState(null);
+
+  // Sort state
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: "ascending" });
 
   // Add the missing handleFilterSelect function
   const handleFilterSelect = (filter, subFilter) => {
@@ -90,96 +93,79 @@ export default function OrdersPage() {
     let result = [...orders];
     
     // Apply search filter
-    if (searchQuery) {
+      if (searchQuery) {
       const query = searchQuery.toLowerCase();
       result = result.filter(order => 
         order.orderID.toString().toLowerCase().includes(query) || 
-        // Safe string conversion for receipt number
-        (order.receiptNo !== null && order.receiptNo !== undefined && 
-         order.receiptNo.toString().toLowerCase().includes(query))
+        (order.receiptNo !== null &&
+        order.receiptNo !== undefined &&
+        order.receiptNo.toString().toLowerCase().includes(query))
       );
     }
     
-    // Apply selected filter
-    if (selectedFilter && selectedSubFilter) {
-      switch(selectedFilter) {
-        case "Order ID":
-          result = result.sort((a, b) => {
-            return selectedSubFilter === "Ascending" 
-              ? a.orderID - b.orderID 
-              : b.orderID - a.orderID;
-          });
-          break;
-        case "Receipt Number":
-          result = result.sort((a, b) => {
-            // Handle null, undefined, or empty receipt numbers
-            if (!a.receiptNo && !b.receiptNo) return 0;
-            if (!a.receiptNo) return 1;
-            if (!b.receiptNo) return -1;
-            
-            // Convert both to strings for consistent comparison
-            const receiptA = a.receiptNo.toString();
-            const receiptB = b.receiptNo.toString();
-            
-            // Check if both are numeric strings
-            const numA = parseFloat(receiptA);
-            const numB = parseFloat(receiptB);
-            
-            if (!isNaN(numA) && !isNaN(numB)) {
-              //Does numeric comparison after validity check
-              return selectedSubFilter === "Ascending" 
-                ? numA - numB 
-                : numB - numA;
-            } else {
-              // String comparison
-              return selectedSubFilter === "Ascending" 
-                ? receiptA.localeCompare(receiptB) 
-                : receiptB.localeCompare(receiptA);
-            }
-          });
-          break;
-        case "Total Amount":
-          result = result.sort((a, b) => {
-            return selectedSubFilter === "Low to High" 
-              ? a.totalAmount - b.totalAmount 
-              : b.totalAmount - a.totalAmount;
-          });
-          break;
-        case "Payment":
-          result = result.sort((a, b) => {
-            return selectedSubFilter === "Low to High" 
-              ? a.orderPayment - b.orderPayment 
-              : b.orderPayment - a.orderPayment;
-          });
-          break;
-        case "Date added":
-          result = result.sort((a, b) => {
-            const dateA = new Date(a.transacDate);
-            const dateB = new Date(b.transacDate);
-            return selectedSubFilter === "Low to High" 
-              ? dateA - dateB 
-              : dateB - dateA;
-          });
-          break;
-      }
-    }
-    
-    // Apply date range filter - updated to use fromDate and toDate
-    if (fromDate || toDate) {
-      result = result.filter(order => {
-        const transactionTime = new Date(order.transacDate).getTime();
-        const from = fromDate ? new Date(fromDate).setHours(0, 0, 0, 0) : null;
-        const to = toDate ? new Date(toDate).setHours(23, 59, 59, 999) : null;
+    // Date range filter
+  if (fromDate || toDate) {
+    result = result.filter(order => {
+      const transactionTime = new Date(order.transacDate).getTime();
+      const from = fromDate ? new Date(fromDate).setHours(0, 0, 0, 0) : null;
+      const to = toDate ? new Date(toDate).setHours(23, 59, 59, 999) : null;
 
-        if (from && to) return transactionTime >= from && transactionTime <= to;
-        if (from) return transactionTime >= from;
-        if (to) return transactionTime <= to;
-        return true;
-      });
-    }
-    
-    setFilteredOrders(result);
-  }, [orders, searchQuery, selectedFilter, selectedSubFilter, fromDate, toDate]);
+      if (from && to) return transactionTime >= from && transactionTime <= to;
+      if (from) return transactionTime >= from;
+      if (to) return transactionTime <= to;
+      return true;
+    });
+  }
+
+  // Column header sort 
+  if (sortConfig.key) {
+    result.sort((a, b) => {
+      const valA = a[sortConfig.key] ?? "";
+      const valB = b[sortConfig.key] ?? "";
+
+      const dateA = new Date(valA);
+      const dateB = new Date(valB);
+
+      if (!isNaN(dateA) && !isNaN(dateB)) {
+        return sortConfig.direction === "ascending" ? dateA - dateB : dateB - dateA;
+      }
+
+      const numA = parseFloat(valA);
+      const numB = parseFloat(valB);
+      if (!isNaN(numA) && !isNaN(numB)) {
+        return sortConfig.direction === "ascending" ? numA - numB : numB - numA;
+      }
+
+      return sortConfig.direction === "ascending"
+        ? valA.toString().localeCompare(valB.toString())
+        : valB.toString().localeCompare(valA.toString());
+    });
+  }
+
+  setFilteredOrders(result);
+}, [orders, searchQuery, selectedFilter, selectedSubFilter, fromDate, toDate, sortConfig]);
+
+
+  const handleSort = (key) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        return {
+          key,
+          direction: prev.direction === "ascending" ? "descending" : "ascending",
+        };
+      }
+      return { key, direction: "ascending" };
+    });
+  };
+
+    function SortIcon({ column }) {
+    if (sortConfig.key !== column) return <ChevronsUpDown className="inline ml-1 w-4 h-4 text-gray-400" />;
+    return sortConfig.direction === "ascending" ? (
+      <ChevronUp className="inline ml-1 w-4 h-4 text-blue-500" />
+    ) : (
+      <ChevronDown className="inline ml-1 w-4 h-4 text-blue-500" />
+    );
+  }
   
   const formatDate = (isoString) => {
     const date = new Date(isoString);
@@ -572,14 +558,14 @@ export default function OrdersPage() {
             <Table>
               <TableHeader className="sticky top-0 bg-white z-10">
                 <TableRow>
-                  <TableHead>Order ID</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Time</TableHead>
-                  <TableHead>Receipt Number</TableHead>
-                  <TableHead>Total Amount</TableHead>
-                  <TableHead>Total Product Discount</TableHead>
-                  <TableHead>Whole Order Discount</TableHead>
-                  <TableHead>Payment</TableHead>
+                  <TableHead onClick={() => handleSort("orderID")} className="cursor-pointer select-none"> Order ID <SortIcon column="orderID" /></TableHead>
+                  <TableHead onClick={() => handleSort("transacDate")} className="cursor-pointer select-none"> Date <SortIcon column="transacDate" /></TableHead>
+                  <TableHead onClick={() => handleSort("transacDate")} className="cursor-pointer select-none"> Time <SortIcon column="transacDate" /></TableHead>
+                  <TableHead onClick={() => handleSort("receiptNo")} className="cursor-pointer select-none"> Receipt Number <SortIcon column="receiptNo" /></TableHead>
+                  <TableHead onClick={() => handleSort("totalAmount")} className="cursor-pointer select-none"> Total Amount <SortIcon column="totalAmount" /></TableHead>
+                  <TableHead onClick={() => handleSort("totalProductDiscount")} className="cursor-pointer select-none"> Total Product Discount <SortIcon column="totalProductDiscount" /></TableHead>
+                  <TableHead onClick={() => handleSort("wholeOrderDiscount")} className="cursor-pointer select-none"> Whole Order Discount <SortIcon column="wholeOrderDiscount" /></TableHead>
+                  <TableHead onClick={() => handleSort("orderPayment")} className="cursor-pointer select-none"> Payment <SortIcon column="orderPayment" /></TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>

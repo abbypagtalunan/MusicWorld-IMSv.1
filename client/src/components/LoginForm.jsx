@@ -15,12 +15,6 @@ import { Label } from "@/components/ui/label"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 
-// Mock credentials for demo purposes
-const validUsers = [
-  { username: 'admin', password: 'admin123', role: 'admin' },
-  { username: 'staff', password: 'staff123', role: 'staff' },
-];
-
 export default function LoginForm({
   className,
   ...props
@@ -29,12 +23,14 @@ export default function LoginForm({
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async (event) => {
     event.preventDefault();
-  
+    setIsLoading(true);
+
     try {
-      const response = await fetch("http://localhost:8080/login", {
+      const response = await fetch("http://localhost:8080/accounts/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -44,26 +40,27 @@ export default function LoginForm({
           password,
         }),
       });
-  
+
       const data = await response.json();
-  
+
       if (!response.ok) {
         setError(data.message || "Invalid credentials");
         return;
       }
-  
-      // Save user info to localStorage or context if needed
+
       const user = data.user;
-  
-      // Redirect based on roleID
+      localStorage.setItem("user", JSON.stringify(user));
+
       if (user.roleID === 1) {
-        router.push("./admin/products");
+        router.push("/admin/products"); // Admin dashboard
       } else if (user.roleID === 2) {
-        router.push("./staff/OrderDashboard");
+        router.push("/staff/OrderDashboard"); // Staff dashboard
       }
     } catch (err) {
       console.error("Login error:", err);
       setError("Something went wrong. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -90,7 +87,7 @@ export default function LoginForm({
                 <Input
                   id="username"
                   type="text"
-                  placeholder="Enter your username"
+                  placeholder="Enter your User Code"
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
@@ -111,8 +108,8 @@ export default function LoginForm({
               {/* Show error message */}
               {error && <p className="text-red-500 text-sm">{error}</p>}
 
-              <Button type="submit" className="w-full">
-                LOG IN TO SYSTEM
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? "Logging In..." : "LOG IN TO SYSTEM"}
               </Button>
             </div>
           </form>

@@ -12,12 +12,7 @@ import {
   TableFooter,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import {
-  Search,
-  CalendarDays,
-  Download,
-  Ellipsis,
-} from "lucide-react";
+import { CalendarDays, Download, ChevronsUpDown, ChevronUp, ChevronDown} from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
@@ -113,6 +108,65 @@ export default function ReportsPage() {
     }
   };
 
+  // Sort
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: "ascending" });
+
+  const handleSort = (key) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        return {
+          key,
+          direction: prev.direction === "ascending" ? "descending" : "ascending",
+        };
+      }
+      return { key, direction: "ascending" };
+    });
+  };
+
+  const getSortedData = () => {
+    if (!sortConfig.key) return filteredData;
+
+    return [...filteredData].sort((a, b) => {
+      let valA = a[sortConfig.key];
+      let valB = b[sortConfig.key];
+
+      // Handle date explicitly
+      if (sortConfig.key === "transactionDate") {
+        valA = new Date(valA).getTime();
+        valB = new Date(valB).getTime();
+      }
+
+      // Handle numeric values
+      else if (!isNaN(parseFloat(valA)) && !isNaN(parseFloat(valB))) {
+        valA = parseFloat(valA);
+        valB = parseFloat(valB);
+      }
+
+      // Default string comparison
+      else {
+        valA = (valA ?? "").toString().toLowerCase();
+        valB = (valB ?? "").toString().toLowerCase();
+      }
+
+      if (sortConfig.direction === "ascending") {
+        return valA > valB ? 1 : valA < valB ? -1 : 0;
+      } else {
+        return valA < valB ? 1 : valA > valB ? -1 : 0;
+      }
+    });
+  };
+
+
+  function SortIcon({ column }) {
+    if (sortConfig.key !== column)
+      return <ChevronsUpDown className="inline ml-1 w-4 h-4 text-gray-400" />;
+    return sortConfig.direction === "ascending" ? (
+      <ChevronUp className="inline ml-1 w-4 h-4 text-blue-500" />
+    ) : (
+      <ChevronDown className="inline ml-1 w-4 h-4 text-blue-500" />
+    );
+  } 
+
   return (
     <SidebarProvider>
       <div className="flex h-screen w-screen">
@@ -174,21 +228,41 @@ export default function ReportsPage() {
             <Table>
               <TableHeader className="sticky top-0 bg-white z-10">
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Order ID</TableHead>
-                  <TableHead>Order Detail ID</TableHead>
-                  <TableHead>Receipt Number</TableHead>
-                  <TableHead>Product Code</TableHead>
-                  <TableHead>Product</TableHead>
-                  <TableHead>Discount Given</TableHead>
-                  <TableHead>NET Sale</TableHead>
-                  <TableHead>Gross Sale</TableHead>
-                  <TableHead>Gross Profit</TableHead>
+                  <TableHead onClick={() => handleSort("transactionDate")} className="cursor-pointer">
+                    Date <SortIcon column="transactionDate" />
+                  </TableHead>
+                  <TableHead onClick={() => handleSort("orderID")} className="cursor-pointer">
+                    Order ID <SortIcon column="orderID" />
+                  </TableHead>
+                  <TableHead onClick={() => handleSort("detailID")} className="cursor-pointer">
+                    Order Detail ID <SortIcon column="detailID" />
+                  </TableHead>
+                  <TableHead onClick={() => handleSort("receiptNumber")} className="cursor-pointer">
+                    Receipt Number <SortIcon column="receiptNumber" />
+                  </TableHead>
+                  <TableHead onClick={() => handleSort("productCode")} className="cursor-pointer">
+                    Product Code <SortIcon column="productCode" />
+                  </TableHead>
+                  <TableHead onClick={() => handleSort("productName")} className="cursor-pointer">
+                    Product <SortIcon column="productName" />
+                  </TableHead>
+                  <TableHead onClick={() => handleSort("discountAmount")} className="cursor-pointer">
+                    Discount Given <SortIcon column="discountAmount" />
+                  </TableHead>
+                  <TableHead onClick={() => handleSort("netSale")} className="cursor-pointer">
+                    NET Sale <SortIcon column="netSale" />
+                  </TableHead>
+                  <TableHead onClick={() => handleSort("grossSale")} className="cursor-pointer">
+                    Gross Sale <SortIcon column="grossSale" />
+                  </TableHead>
+                  <TableHead onClick={() => handleSort("grossProfit")} className="cursor-pointer">
+                    Gross Profit <SortIcon column="grossProfit" />
+                  </TableHead>
                 </TableRow>
               </TableHeader>
 
               <TableBody>
-                {filteredData.map((order) => (
+                {getSortedData().map((order) => (
                   <TableRow key={`${order.orderID}-${order.productCode}`}>
                     <TableCell>{formatDate(order.transactionDate)}</TableCell>
                     <TableCell>{order.orderID}</TableCell>
