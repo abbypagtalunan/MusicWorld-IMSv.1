@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose, } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
-import { Search, ListFilter, Trash2, Eye, PackagePlus } from "lucide-react";
+import { Search, ListFilter, Trash2, Eye, PackagePlus, ChevronsUpDown, ChevronUp, ChevronDown} from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
 
@@ -34,9 +34,9 @@ const delivery = [
   { dateAdded: "11/12/22", deliveryNum: "12348", supplier: "Mirbros", totalCost: "₱29,995" },
   { dateAdded: "11/12/22", deliveryNum: "12349", supplier: "Mirbros", totalCost: "₱125" },
   { dateAdded: "11/12/22", deliveryNum: "12350", supplier: "Mirbros", totalCost: "₱2,595" },
-  { dateAdded: "11/12/22", deliveryNum: "12351", supplier: "Lazer", totalCost: "₱395" },
-  { dateAdded: "11/12/22", deliveryNum: "12352", supplier: "Lazer", totalCost: "₱295" },
-  { dateAdded: "11/12/22", deliveryNum: "12353", supplier: "Lazer", totalCost: "₱15,995" },
+  { dateAdded: "11/16/22", deliveryNum: "12351", supplier: "Lazer", totalCost: "₱395" },
+  { dateAdded: "11/15/22", deliveryNum: "12352", supplier: "Lazer", totalCost: "₱295" },
+  { dateAdded: "11/13/22", deliveryNum: "12353", supplier: "Lazer", totalCost: "₱15,995" },
 ];
 
 export default function DeliveriesPage() {
@@ -49,6 +49,52 @@ export default function DeliveriesPage() {
     setSelectedFilter(filter);
     setSelectedSubFilter(subFilter);
   };
+
+  // Sort
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: "ascending" });
+
+  const handleSort = (key) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        return {
+          key,
+          direction: prev.direction === "ascending" ? "descending" : "ascending",
+        };
+      }
+      return { key, direction: "ascending" };
+    });
+  };
+
+  function SortIcon({ column }) {
+      if (sortConfig.key !== column) return <ChevronsUpDown className="inline ml-1 w-4 h-4 text-gray-400" />;
+      return sortConfig.direction === "ascending" ? (
+        <ChevronUp className="inline ml-1 w-4 h-4 text-blue-500" />
+      ) : (
+        <ChevronDown className="inline ml-1 w-4 h-4 text-blue-500" />
+      );
+  }
+
+  function getSortedDeliveries() {
+  const key = sortConfig.key;
+  if (!key) return [...delivery]; // No sort applied
+
+  return [...delivery].sort((a, b) => {
+    let valA = a[key];
+    let valB = b[key];
+
+    // For totalCost: strip currency symbol and commas
+    if (key === "totalCost") {
+      valA = parseFloat(valA.replace(/[₱,]/g, ""));
+      valB = parseFloat(valB.replace(/[₱,]/g, ""));
+    }
+
+    if (sortConfig.direction === "ascending") {
+      return valA > valB ? 1 : valA < valB ? -1 : 0;
+    } else {
+      return valA < valB ? 1 : valA > valB ? -1 : 0;
+    }
+  });
+}
 
   return (
     <SidebarProvider>
@@ -128,15 +174,15 @@ export default function DeliveriesPage() {
             <Table>
               <TableHeader className="sticky top-0 bg-white z-10">
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Delivery Number</TableHead>
-                  <TableHead>Supplier</TableHead>
-                  <TableHead>Total Cost</TableHead>
+                  <TableHead onClick={() => handleSort("dateAdded")} className="cursor-pointer">Date <SortIcon column="dateAdded" /></TableHead>
+                  <TableHead onClick={() => handleSort("deliveryNum")} className="cursor-pointer">Delivery Number <SortIcon column="deliveryNum" /></TableHead>
+                  <TableHead onClick={() => handleSort("supplier")} className="cursor-pointer">Supplier <SortIcon column="supplier" /></TableHead>
+                  <TableHead onClick={() => handleSort("totalCost")} className="cursor-pointer">Total Cost <SortIcon column="totalCost" /></TableHead>
                   <TableHead>Details</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {delivery.map((d) => (
+                {getSortedDeliveries().map((d) => (
                   <TableRow key={d.deliveryNum}>
                     <TableCell>{d.dateAdded}</TableCell>
                     <TableCell>{d.deliveryNum}</TableCell>
