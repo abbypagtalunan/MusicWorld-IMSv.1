@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
@@ -60,20 +59,16 @@ export default function ManageAccountsPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [activeTab, setActiveTab] = useState("my-account");
-
   // Current user state
   const [currentUser, setCurrentUser] = useState(null);
-
   // Staff accounts and roles
   const [staffs, setStaffs] = useState([]);
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
-
   // Filter state
   const [selectedFilter, setSelectedFilter] = useState(null);
   const [selectedSubFilter, setSelectedSubFilter] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
-
   // Add staff modal
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newStaff, setNewStaff] = useState({
@@ -84,11 +79,9 @@ export default function ManageAccountsPage() {
     password: "",
     confirmPassword: "",
   });
-
   // Edit staff modal
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editedStaff, setEditedStaff] = useState({});
-
   // Reset password modal
   const [isResetOpen, setIsResetOpen] = useState(false);
   const [resetStaff, setResetStaff] = useState(null);
@@ -97,12 +90,10 @@ export default function ManageAccountsPage() {
     newPassword: "",
     confirmPassword: "",
   });
-
   // Delete modal
   const [isDeleteAccountDialogOpen, setIsDeleteAccountDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [adminPW, setAdminPW] = useState("");
-
   // Selected staff checkboxes
   const [selectedStaff, setSelectedStaff] = useState([]);
 
@@ -116,13 +107,16 @@ export default function ManageAccountsPage() {
           router.push("/login");
           return;
         }
+        console.log("Stored User:", storedUser); // Debug: Check storedUser
 
+        // Fetch current user details using accountID
         const [userData, staffRes, rolesRes] = await Promise.all([
           axios.get(`http://localhost:8080/accounts/${storedUser.accountID}`),
           axios.get("http://localhost:8080/accounts"),
           axios.get("http://localhost:8080/role"),
         ]);
 
+        console.log("Fetched User Data:", userData.data); // Debug: Check fetched user data
         setCurrentUser(userData.data);
         setStaffs(staffRes.data);
         setRoles(rolesRes.data);
@@ -134,7 +128,6 @@ export default function ManageAccountsPage() {
         setLoading(false);
       }
     };
-
     fetchData();
   }, []);
 
@@ -151,24 +144,39 @@ export default function ManageAccountsPage() {
       alert("Passwords do not match!");
       return;
     }
-
     axios
-      .put(`http://localhost:8080/accounts/${resetStaff.accountID}/reset-password`, {
-        newPassword: passwordData.newPassword,
-        confirmPassword: passwordData.confirmPassword,
-      })
+      .put(
+        `http://localhost:8080/accounts/${resetStaff.accountID}/reset-password`,
+        {
+          newPassword: passwordData.newPassword,
+          confirmPassword: passwordData.confirmPassword,
+        }
+      )
       .then(() => {
         alert("Password reset successfully");
         setIsResetOpen(false);
         setResetStaff(null);
-        setPasswordData({ oldPassword: "", newPassword: "", confirmPassword: "" });
+        setPasswordData({
+          oldPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        });
       })
       .catch((err) => {
-        console.error("Password reset error:", err.response?.data || err.message);
+        const errorMessage =
+          err.response?.data?.message ||
+          err.response?.data?.error ||
+          err.message ||
+          "Unknown error";
+        console.error("Password reset error:", errorMessage);
         alert("Failed to reset password");
         setIsResetOpen(false);
         setResetStaff(null);
-        setPasswordData({ oldPassword: "", newPassword: "", confirmPassword: "" });
+        setPasswordData({
+          oldPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        });
       });
   };
 
@@ -178,7 +186,6 @@ export default function ManageAccountsPage() {
       alert("Admin password is required.");
       return;
     }
-
     axios
       .delete(`http://localhost:8080/accounts/${accountID}`, {
         data: { adminPW },
@@ -212,27 +219,30 @@ export default function ManageAccountsPage() {
   // Get filtered/sorted/searched staff list
   const getFilteredStaffs = () => {
     let filtered = [...staffs];
-
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter((staff) =>
-        `${staff.firstName} ${staff.lastName} ${staff.accountID}`.toLowerCase().includes(query)
+        `${staff.firstName} ${staff.lastName} ${staff.accountID}`
+          .toLowerCase()
+          .includes(query)
       );
     }
-
     if (!selectedFilter || !selectedSubFilter) return filtered;
-
     switch (selectedFilter) {
       case "Name":
         return filtered.sort((a, b) =>
           selectedSubFilter === "Ascending"
-            ? `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`)
-            : `${b.firstName} ${b.lastName}`.localeCompare(`${a.firstName} ${a.lastName}`)
+            ? `${a.firstName} ${a.lastName}`.localeCompare(
+                `${b.firstName} ${b.lastName}`
+              )
+            : `${b.firstName} ${b.lastName}`.localeCompare(
+                `${a.firstName} ${a.lastName}`
+              )
         );
-
       case "Role":
         const selectedRole = roles.find(
-          (r) => r.roleName.toLowerCase() === selectedSubFilter.toLowerCase()
+          (r) =>
+            r.roleName.toLowerCase() === selectedSubFilter.toLowerCase()
         );
         if (selectedRole) {
           return filtered.filter((s) => s.roleID === selectedRole.roleID);
@@ -240,32 +250,42 @@ export default function ManageAccountsPage() {
           return [...filtered];
         }
         break;
-
       case "User Code":
         return filtered.sort((a, b) => {
           return selectedSubFilter === "Low to High"
             ? a.accountID - b.accountID
             : b.accountID - a.accountID;
         });
-
       case "Date Created":
         return filtered.sort((a, b) => {
           const dateA = new Date(a.dateCreated);
           const dateB = new Date(b.dateCreated);
           return selectedSubFilter === "Oldest" ? dateA - dateB : dateB - dateA;
         });
-
       default:
         return filtered;
     }
-
     return filtered;
   };
 
   // Submit add staff
   const handleAddStaff = async () => {
-    const { accountID, firstName, lastName, roleID, password, confirmPassword } = newStaff;
-    if (!accountID || !firstName || !lastName || !roleID || !password || !confirmPassword) {
+    const {
+      accountID,
+      firstName,
+      lastName,
+      roleID,
+      password,
+      confirmPassword,
+    } = newStaff;
+    if (
+      !accountID ||
+      !firstName ||
+      !lastName ||
+      !roleID ||
+      !password ||
+      !confirmPassword
+    ) {
       alert("Please fill in all fields.");
       return;
     }
@@ -273,7 +293,6 @@ export default function ManageAccountsPage() {
       alert("Passwords do not match!");
       return;
     }
-
     try {
       await axios.post("http://localhost:8080/accounts", {
         accountID,
@@ -311,7 +330,9 @@ export default function ManageAccountsPage() {
         }
       );
       setStaffs(
-        staffs.map((s) => (s.accountID === updatedStaff.accountID ? updatedStaff : s))
+        staffs.map((s) =>
+          s.accountID === updatedStaff.accountID ? updatedStaff : s
+        )
       );
       setIsEditOpen(false);
     } catch (err) {
@@ -330,54 +351,86 @@ export default function ManageAccountsPage() {
         <AppSidebar />
         <div className="flex-1 p-4 flex flex-col overflow-hidden">
           <div className="z-10 sticky top-0 mb-4 bg-white p-4 rounded-lg">
-            <h1 className="text-lg text-gray-600 font-medium">Manage Accounts</h1>
+            <h1 className="text-lg text-gray-600 font-medium">
+              Manage Accounts
+            </h1>
           </div>
-
-          <Tabs defaultValue="my-account" onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+          <Tabs
+            defaultValue="my-account"
+            onValueChange={setActiveTab}
+            className="flex-1 flex flex-col overflow-hidden"
+          >
             {/* TAB LIST */}
             <div className="w-full z-10 sticky">
               <TabsList className="w-full flex justify-start bg-white rounded-md shadow-md px-6 py-6 space-x-4">
-                <TabsTrigger value="my-account" className="data-[state=active]:text-indigo-600 hover:text-black">
+                <TabsTrigger
+                  value="my-account"
+                  className="data-[state=active]:text-indigo-600 hover:text-black"
+                >
                   MY ACCOUNT
                 </TabsTrigger>
-                <TabsTrigger value="staff" className="data-[state=active]:text-indigo-600 hover:text-black">
+                <TabsTrigger
+                  value="staff"
+                  className="data-[state=active]:text-indigo-600 hover:text-black"
+                >
                   STAFF
                 </TabsTrigger>
               </TabsList>
             </div>
-
             {/* MY ACCOUNT TAB */}
             <TabsContent value="my-account" className="mt-0">
               {currentUser ? (
                 <div className="flex flex-col lg:flex-row gap-4 items-stretch p-4">
                   <Card className="w-full lg:w-2/3 text-gray-700 content-center">
                     <CardHeader className="pb-0">
-                      <CardTitle className="text-xl text-center">Account Information</CardTitle>
+                      <CardTitle className="text-xl text-center">
+                        Account Information
+                      </CardTitle>
                     </CardHeader>
                     <CardContent className="p-10 space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                          <Label className="text-sm text-gray-500">First Name</Label>
-                          <p className="text-base font-medium text-gray-800">{currentUser.firstName}</p>
-                          <Label className="text-sm text-gray-500 mt-3 block">Role</Label>
+                          <Label className="text-sm text-gray-500">
+                            First Name
+                          </Label>
                           <p className="text-base font-medium text-gray-800">
-                            {roles.find(r => r.roleID === currentUser.roleID)?.roleName || "Loading..."}
+                            {currentUser.firstName}
+                          </p>
+                          <Label className="text-sm text-gray-500 mt-3 block">
+                            Role
+                          </Label>
+                          <p className="text-base font-medium text-gray-800">
+                            {roles.find(
+                              (r) => r.roleID === currentUser.roleID
+                            )?.roleName || "Loading..."}
                           </p>
                         </div>
                         <div>
-                          <Label className="text-sm text-gray-500">Last Name</Label>
-                          <p className="text-base font-medium text-gray-800">{currentUser.lastName}</p>
-                          <Label className="text-sm text-gray-500 mt-3 block">Date Created</Label>
-                          <p className="text-base font-medium text-gray-800">{currentUser.dateCreated}</p>
+                          <Label className="text-sm text-gray-500">
+                            Last Name
+                          </Label>
+                          <p className="text-base font-medium text-gray-800">
+                            {currentUser.lastName}
+                          </p>
+                          <Label className="text-sm text-gray-500 mt-3 block">
+                            Date Created
+                          </Label>
+                          <p className="text-base font-medium text-gray-800">
+                            {currentUser.dateCreated}
+                          </p>
                         </div>
                       </div>
                       <Dialog>
                         <DialogTrigger asChild>
-                          <Button className="bg-blue-400 text-white">Edit Account</Button>
+                          <Button className="bg-blue-400 text-white">
+                            Edit Account
+                          </Button>
                         </DialogTrigger>
                         <DialogContent className="w-[30vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
                           <DialogHeader>
-                            <DialogTitle className="text-blue-400 text-xl font-bold">Edit Account Information</DialogTitle>
+                            <DialogTitle className="text-blue-400 text-xl font-bold">
+                              Edit Account Information
+                            </DialogTitle>
                             <DialogClose />
                           </DialogHeader>
                           <div className="flex flex-col gap-4 mt-4 text-gray-700">
@@ -388,26 +441,44 @@ export default function ManageAccountsPage() {
                               type="text"
                               defaultValue={currentUser.firstName}
                               placeholder="Enter first name"
-                              onChange={(e) => setEditedStaff({ ...editedStaff, firstName: e.target.value })}
+                              onChange={(e) =>
+                                setEditedStaff({
+                                  ...editedStaff,
+                                  firstName: e.target.value,
+                                })
+                              }
                             />
                             <Label>Last Name</Label>
                             <Input
                               type="text"
                               defaultValue={currentUser.lastName}
                               placeholder="Enter last name"
-                              onChange={(e) => setEditedStaff({ ...editedStaff, lastName: e.target.value })}
+                              onChange={(e) =>
+                                setEditedStaff({
+                                  ...editedStaff,
+                                  lastName: e.target.value,
+                                })
+                              }
                             />
                             <Label>Role</Label>
                             <Select
                               value={currentUser.roleID?.toString()}
-                              onValueChange={(value) => setEditedStaff({ ...editedStaff, roleID: parseInt(value) })}
+                              onValueChange={(value) =>
+                                setEditedStaff({
+                                  ...editedStaff,
+                                  roleID: parseInt(value),
+                                })
+                              }
                             >
                               <SelectTrigger>
                                 <SelectValue placeholder="Select role" />
                               </SelectTrigger>
                               <SelectContent>
                                 {roles.map((role) => (
-                                  <SelectItem key={role.roleID} value={role.roleID.toString()}>
+                                  <SelectItem
+                                    key={role.roleID}
+                                    value={role.roleID.toString()}
+                                  >
                                     {role.roleName}
                                   </SelectItem>
                                 ))}
@@ -415,7 +486,10 @@ export default function ManageAccountsPage() {
                             </Select>
                           </div>
                           <DialogFooter className="mt-6">
-                            <Button className="w-full bg-blue-400 text-white" onClick={() => handleUpdateStaff(editedStaff)}>
+                            <Button
+                              className="w-full bg-blue-400 text-white"
+                              onClick={() => handleUpdateStaff(editedStaff)}
+                            >
                               Update Staff
                             </Button>
                           </DialogFooter>
@@ -425,14 +499,23 @@ export default function ManageAccountsPage() {
                   </Card>
                   <Card className="w-full lg:w-1/3 text-gray-700">
                     <CardHeader className="pb-0">
-                      <CardTitle className="text-xl text-center">Login Details</CardTitle>
+                      <CardTitle className="text-xl text-center">
+                        Login Details
+                      </CardTitle>
                     </CardHeader>
                     <CardContent className="p-4 space-y-4">
                       <div>
                         <Label>User Code</Label>
                         <div className="flex items-center gap-2">
-                          <Input value={currentUser.accountID || ""} disabled />
-                          <Button size="icon" variant="ghost" onClick={handleCopyCode}>
+                          <Input
+                            value={currentUser.accountID || ""}
+                            disabled
+                          />
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={handleCopyCode}
+                          >
                             <Copy size={16} />
                           </Button>
                         </div>
@@ -445,30 +528,69 @@ export default function ManageAccountsPage() {
                             value={currentUser.password}
                             disabled
                           />
-                          <Button size="icon" variant="ghost" onClick={() => setShowPassword(!showPassword)}>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() =>
+                              setShowPassword(!showPassword)
+                            }
+                          >
                             <Eye size={16} />
                           </Button>
                         </div>
                       </div>
                       <Dialog>
                         <DialogTrigger asChild>
-                          <Button className="bg-blue-400 text-white">Change Password</Button>
+                          <Button className="bg-blue-400 text-white">
+                            Change Password
+                          </Button>
                         </DialogTrigger>
                         <DialogContent className="w-[30vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
                           <DialogHeader>
-                            <DialogTitle className="text-blue-400 text-xl font-bold">Change Password</DialogTitle>
+                            <DialogTitle className="text-blue-400 text-xl font-bold">
+                              Change Password
+                            </DialogTitle>
                             <DialogClose />
                           </DialogHeader>
                           <div className="flex flex-col gap-4 mt-4 text-gray-700">
                             <Label>Old Password</Label>
-                            <Input type="password" placeholder="Enter old password" />
+                            <Input
+                              type="password"
+                              placeholder="Enter old password"
+                              onChange={(e) =>
+                                setPasswordData({
+                                  ...passwordData,
+                                  oldPassword: e.target.value,
+                                })
+                              }
+                            />
                             <Label>New Password</Label>
-                            <Input type="password" placeholder="Enter new password" />
+                            <Input
+                              type="password"
+                              placeholder="Enter new password"
+                              onChange={(e) =>
+                                setPasswordData({
+                                  ...passwordData,
+                                  newPassword: e.target.value,
+                                })
+                              }
+                            />
                             <Label>Confirm New Password</Label>
-                            <Input type="password" placeholder="Confirm new password" />
+                            <Input
+                              type="password"
+                              placeholder="Confirm new password"
+                              onChange={(e) =>
+                                setPasswordData({
+                                  ...passwordData,
+                                  confirmPassword: e.target.value,
+                                })
+                              }
+                            />
                           </div>
                           <DialogFooter>
-                            <Button className="bg-blue-400 text-white w-full">Update Password</Button>
+                            <Button className="bg-blue-400 text-white w-full">
+                              Update Password
+                            </Button>
                           </DialogFooter>
                         </DialogContent>
                       </Dialog>
@@ -476,16 +598,18 @@ export default function ManageAccountsPage() {
                   </Card>
                 </div>
               ) : (
-                <p className="text-red-500 text-center mt-4">No user found. Please log in again.</p>
+                <p className="text-red-500 text-center mt-4">
+                  No user found. Please log in again.
+                </p>
               )}
             </TabsContent>
-
             {/* STAFF TAB */}
             <TabsContent value="staff" className="mt-0">
               <div className="mb-4">
-                <h2 className="text-xl font-semibold text-gray-800">Staff ({staffs.length})</h2>
+                <h2 className="text-xl font-semibold text-gray-800">
+                  Staff ({staffs.length})
+                </h2>
               </div>
-
               {/* FILTERS & ACTIONS */}
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                 <div className="flex gap-2 flex-1">
@@ -642,7 +766,6 @@ export default function ManageAccountsPage() {
                   </Dialog>
                 </div>
               </div>
-
               <Card className="w-full">
                 <CardContent className="p-4 flex flex-col justify-between flex-grow">
                   <div className="flex flex-col overflow-auto max-h-[60vh] w-full">
@@ -712,7 +835,6 @@ export default function ManageAccountsPage() {
           </Tabs>
         </div>
       </div>
-
       {/* Edit Modal */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="w-[30vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
@@ -764,7 +886,6 @@ export default function ManageAccountsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
       {/* Reset Password Modal */}
       <Dialog open={isResetOpen} onOpenChange={setIsResetOpen}>
         <DialogContent className="w-[30vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
@@ -800,7 +921,6 @@ export default function ManageAccountsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
       {/* Delete Account Modal */}
       <Dialog open={isDeleteAccountDialogOpen} onOpenChange={setIsDeleteAccountDialogOpen}>
         <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">

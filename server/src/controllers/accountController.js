@@ -1,5 +1,3 @@
-// controllers/accountController.js
-
 const Account = require('../models/accountModel');
 
 // Get all accounts
@@ -15,7 +13,8 @@ exports.getAllAccounts = (req, res) => {
 
 // Get one account by ID
 exports.getAccountById = (req, res) => {
-  Account.getAccountById(req.params.id, (err, account) => {
+  const { id } = req.params;
+  Account.getAccountById(id, (err, account) => {
     if (err) {
       console.error("Error fetching account:", err);
       return res.status(500).json({ message: "Error fetching account" });

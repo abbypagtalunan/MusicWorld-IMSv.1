@@ -1,5 +1,3 @@
-// models/accountModel.js
-
 const pool = require('../../db');
 
 class Account {
@@ -12,7 +10,9 @@ class Account {
 
   static getAccountById(id, callback) {
     pool.query("SELECT * FROM UserAccounts WHERE accountID = ?", [id], (error, results) => {
-      if (error) return callback(error);
+      if (results.length === 0) {
+        return callback(new Error(`No user found with ID ${id}`));
+      }
       callback(null, results[0]);
     });
   }
