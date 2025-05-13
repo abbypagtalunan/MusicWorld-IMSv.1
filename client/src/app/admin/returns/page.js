@@ -4,7 +4,6 @@ import axios from "axios";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/admin-sidebar";
 import { format } from 'date-fns';
-
 // UI Components
 import {
   Table,
@@ -118,9 +117,10 @@ export default function ReturnsPage() {
   const [activeTab, setActiveTab] = useState("customer");
 
   // Customer Return Form
-  const [productName, setProductName] = useState("");
-  const [selectedSupplier, setSelectedSupplier] = useState("");
-  const [selectedBrand, setSelectedBrand] = useState("");
+  const [productName, setProductName] = useState(""); // Product Code
+  const [selectedSupplierName, setSelectedSupplierName] = useState(""); // Supplier Name (displayed)
+  const [selectedSupplierID, setSelectedSupplierID] = useState(""); // Supplier ID (sent to backend)
+  const [selectedBrand, setSelectedBrand] = useState(""); // Brand (autofilled)
   const [selectedQuantity, setSelectedQuantity] = useState("");
   const [returnType, setReturnType] = useState("");
   const [selectedDiscount, setSelectedDiscount] = useState("0");
@@ -128,9 +128,10 @@ export default function ReturnsPage() {
 
   // Supplier Return Form
   const [deliveryNumber, setDeliveryNumber] = useState("");
-  const [supplierName, setSupplierName] = useState("");
-  const [productItem, setProductItem] = useState("");
-  const [brand, setBrand] = useState("");
+  const [supplierName, setSupplierName] = useState(""); // Supplier Name (displayed)
+  const [supplierID, setSupplierID] = useState(""); // Supplier ID (sent to backend)
+  const [productItem, setProductItem] = useState(""); // Product Code
+  const [brand, setBrand] = useState(""); // Brand (autofilled)
   const [quantity, setQuantity] = useState("");
   const [amount, setAmount] = useState(""); // Total price for Supplier Returns
   const [selectedProductPrice, setSelectedProductPrice] = useState(0); // Price of the selected product for Supplier Returns
@@ -141,11 +142,11 @@ export default function ReturnsPage() {
   const [products, setProducts] = useState([]);
   const [deliveryNumbers, setDeliveryNumbers] = useState([]);
 
-  // Search Terms for Supplier Dropdowns
-  const [supplierSearchTerm, setSupplierSearchTerm] = useState("");
-  const [supplierSearchTerm2, setSupplierSearchTerm2] = useState("");
+  // Search Terms
+  const [productSearchTerm, setProductSearchTerm] = useState(""); // For customer return product search
+  const [productSearchTerm2, setProductSearchTerm2] = useState(""); // For supplier return product search
 
-  // Sort 
+  // Sort
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "ascending" });
 
   // Fetch Data on Load
@@ -178,7 +179,7 @@ export default function ReturnsPage() {
   const handleAddCustomerReturn = async () => {
     if (
       !productName ||
-      !selectedSupplier ||
+      !selectedSupplierID ||
       !selectedBrand ||
       !selectedQuantity ||
       !returnType
@@ -195,7 +196,7 @@ export default function ReturnsPage() {
       R_returnQuantity: parseInt(selectedQuantity),
       R_discountAmount: parseFloat(selectedDiscount),
       D_deliveryNumber: 1, // dummy value
-      S_supplierID: selectedSupplier
+      S_supplierID: selectedSupplierID,
     };
 
     try {
@@ -210,7 +211,8 @@ export default function ReturnsPage() {
 
   const resetCustomerForm = () => {
     setProductName("");
-    setSelectedSupplier("");
+    setSelectedSupplierName("");
+    setSelectedSupplierID("");
     setSelectedBrand("");
     setSelectedQuantity("");
     setReturnType("");
@@ -220,7 +222,7 @@ export default function ReturnsPage() {
 
   // Handle Add Supplier Return
   const handleAddSupplierReturn = async () => {
-    if (!deliveryNumber || !supplierName || !productItem || !brand || !quantity) {
+    if (!deliveryNumber || !supplierID || !productItem || !brand || !quantity) {
       alert("Please fill in all required fields.");
       return;
     }
@@ -233,8 +235,8 @@ export default function ReturnsPage() {
       R_returnQuantity: parseInt(quantity),
       R_discountAmount: 0,
       D_deliveryNumber: parseInt(deliveryNumber),
-      S_supplierID: supplierName,
-      R_TotalPrice: amount, // Include the calculated total price
+      S_supplierID: supplierID,
+      R_TotalPrice: amount,
     };
 
     try {
@@ -250,11 +252,12 @@ export default function ReturnsPage() {
   const resetSupplierForm = () => {
     setDeliveryNumber("");
     setSupplierName("");
+    setSupplierID("");
     setProductItem("");
     setBrand("");
     setQuantity("");
     setAmount("");
-    setSelectedProductPrice(0); // Reset product price
+    setSelectedProductPrice(0);
   };
 
   // Handle Delete
@@ -265,13 +268,11 @@ export default function ReturnsPage() {
     }
 
     try {
-      // Send DELETE request to backend
       const response = await axios.delete(`${config.returns.api.delete}/${id}`, {
-        data: { adminPW: password } // Send password in body
+        data: { adminPW: password },
       });
 
       if (response.status === 200) {
-        // Remove item from local state after successful deletion
         if (type === "customer") {
           setCustomerReturns((prev) =>
             prev.filter((item) => item.R_returnID !== id)
@@ -302,6 +303,16 @@ export default function ReturnsPage() {
     if (product) {
       setProductName(product[config.products.codeField]);
       setProductPrice(product[config.products.priceField] || 0);
+
+      // Get supplier by ID from product
+      const supplier = suppliers.find(s => s.S_supplierID === product.S_supplierID);
+      if (supplier) {
+        setSelectedSupplierName(supplier.S_supplierName);
+        setSelectedSupplierID(supplier.S_supplierID);
+      }
+
+      // Get brand directly from product
+      setSelectedBrand(product.brand || "N/A");
     }
   };
 
@@ -309,7 +320,7 @@ export default function ReturnsPage() {
   const calculateSupplierTotalPrice = (e) => {
     const quantity = parseInt(e.target.value);
     const total = quantity * selectedProductPrice;
-    setAmount(formatToPHP(total)); // Format and display the total price
+    setAmount(formatToPHP(total));
   };
 
   // Update product price when product is selected for Supplier Returns
@@ -317,7 +328,17 @@ export default function ReturnsPage() {
     const product = products.find(p => p.P_productName === selectedName);
     if (product) {
       setProductItem(product.P_productCode);
-      setSelectedProductPrice(product[config.products.priceField] || 0); // Set the product price
+      setSelectedProductPrice(product[config.products.priceField] || 0);
+
+      // Get supplier by ID from product
+      const supplier = suppliers.find(s => s.S_supplierID === product.S_supplierID);
+      if (supplier) {
+        setSupplierName(supplier.S_supplierName);
+        setSupplierID(supplier.S_supplierID);
+      }
+
+      // Get brand directly from product
+      setBrand(product.brand || "N/A");
     }
   };
 
@@ -342,51 +363,47 @@ export default function ReturnsPage() {
     ) : (
       <ChevronDown className="inline ml-1 w-4 h-4 text-blue-500" />
     );
-  } 
+  }
 
   const getSortedReturns = (data) => {
-  if (!sortConfig.key) return data;
+    if (!sortConfig.key) return data;
+    return [...data].sort((a, b) => {
+      let valA = a[sortConfig.key];
+      let valB = b[sortConfig.key];
 
-  return [...data].sort((a, b) => {
-    let valA = a[sortConfig.key];
-    let valB = b[sortConfig.key];
+      // Handle derived supplier/product names
+      if (sortConfig.key === "supplierName") {
+        valA = suppliers.find(s => s.S_supplierID === a.S_supplierID)?.S_supplierName || "";
+        valB = suppliers.find(s => s.S_supplierID === b.S_supplierID)?.S_supplierName || "";
+      }
+      if (sortConfig.key === "productName") {
+        valA = products.find(p => p.P_productCode === a.P_productCode)?.P_productName || "";
+        valB = products.find(p => p.P_productCode === b.P_productCode)?.P_productName || "";
+      }
 
-    // 🟡 Handle derived supplier/product names
-    if (sortConfig.key === "supplierName") {
-      valA = suppliers.find(s => s.S_supplierID === a.S_supplierID)?.S_supplierName || "";
-      valB = suppliers.find(s => s.S_supplierID === b.S_supplierID)?.S_supplierName || "";
-    }
+      // Handle date
+      else if (sortConfig.key.toLowerCase().includes("date")) {
+        valA = new Date(valA).getTime();
+        valB = new Date(valB).getTime();
+      }
 
-    if (sortConfig.key === "productName") {
-      valA = products.find(p => p.P_productCode === a.P_productCode)?.P_productName || "";
-      valB = products.find(p => p.P_productCode === b.P_productCode)?.P_productName || "";
-    }
+      // Handle numbers
+      else if (!isNaN(parseFloat(valA)) && !isNaN(parseFloat(valB))) {
+        valA = parseFloat(valA);
+        valB = parseFloat(valB);
+      }
 
-    // Handle date
-    else if (sortConfig.key.toLowerCase().includes("date")) {
-      valA = new Date(valA).getTime();
-      valB = new Date(valB).getTime();
-    }
+      // Handle strings
+      else {
+        valA = valA?.toString().toLowerCase() || "";
+        valB = valB?.toString().toLowerCase() || "";
+      }
 
-    // Handle numbers
-    else if (!isNaN(parseFloat(valA)) && !isNaN(parseFloat(valB))) {
-      valA = parseFloat(valA);
-      valB = parseFloat(valB);
-    }
-
-    // Handle strings
-    else {
-      valA = valA?.toString().toLowerCase() || "";
-      valB = valB?.toString().toLowerCase() || "";
-    }
-
-    return sortConfig.direction === "ascending"
-      ? valA > valB ? 1 : valA < valB ? -1 : 0
-      : valA < valB ? 1 : valA > valB ? -1 : 0;
-  });
-};
-
-
+      return sortConfig.direction === "ascending"
+        ? valA > valB ? 1 : valA < valB ? -1 : 0
+        : valA < valB ? 1 : valA > valB ? -1 : 0;
+    });
+  };
 
   return (
     <SidebarProvider>
@@ -396,7 +413,6 @@ export default function ReturnsPage() {
           <div className="flex items-center justify-between mb-4 bg-white p-2 rounded-lg">
             <h1 className="text-lg text-gray-600 font-medium">Processing of Returns</h1>
           </div>
-
           <Tabs defaultValue="customer" onValueChange={setActiveTab}>
             <TabsList className="w-full flex justify-start bg-white shadow-md rounded-md px-6 py-6 mb-4">
               <TabsTrigger value="customer" className="data-[state=active]:text-indigo-600 hover:text-black">
@@ -483,7 +499,7 @@ export default function ReturnsPage() {
                                               {suppliers.find(s => s.S_supplierID === item.S_supplierID)?.S_supplierName || "Unknown"}
                                             </TableCell>
                                             <TableCell>
-                                              {brands.find(b => b.B_brandID === products.find(p => p.P_productCode === item.P_productCode)?.B_brandID)?.B_brandName || "N/A"}
+                                              {products.find(p => p.P_productCode === item.P_productCode)?.brand || "N/A"}
                                             </TableCell>
                                             <TableCell>
                                               {products.find(p => p.P_productCode === item.P_productCode)?.category || "N/A"}
@@ -559,7 +575,6 @@ export default function ReturnsPage() {
                     </div>
                   </CardContent>
                 </Card>
-
                 <Card className="w-full lg:w-1/3 flex flex-col justify-between text-gray-700">
                   <CardHeader className="pb-0">
                     <CardTitle className="text-center text-xl">Add Customer Product Return</CardTitle>
@@ -573,77 +588,50 @@ export default function ReturnsPage() {
                             <SelectValue placeholder="Select product" />
                           </SelectTrigger>
                           <SelectContent>
-                            {products.map((product) => (
-                              <SelectItem 
-                                key={product[config.products.codeField]} 
-                                value={product[config.products.nameField]}
-                              >
-                                {`${product[config.products.nameField]} - ${product.brand} - ${product.supplier}`}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label htmlFor="supplier">Supplier</Label>
-                        <Select
-                          onValueChange={(selectedName) => {
-                            const selected = suppliers.find(
-                              (s) => s[config.suppliers.nameField] === selectedName
-                            );
-                            if (selected) {
-                              setSelectedSupplier(selected[config.suppliers.idField]);
-                            } else {
-                              setSelectedSupplier("");
-                            }
-                          }}
-                        >
-                          <SelectTrigger id="supplier" className="mt-1">
-                            <SelectValue placeholder="Select supplier" />
-                          </SelectTrigger>
-                          <SelectContent>
                             <div className="px-2 py-1 border-b">
                               <Input
-                                placeholder="Search supplier..."
-                                value={supplierSearchTerm}
-                                onChange={(e) => setSupplierSearchTerm(e.target.value)}
+                                placeholder="Search product..."
+                                value={productSearchTerm}
+                                onChange={(e) => setProductSearchTerm(e.target.value)}
                                 className="w-full text-sm"
                               />
                             </div>
-                            {suppliers
-                              .filter((supplier) =>
-                                supplier[config.suppliers.nameField]
+                            {products
+                              .filter((product) =>
+                                product[config.products.nameField]
                                   .toLowerCase()
-                                  .includes(supplierSearchTerm.toLowerCase())
+                                  .includes(productSearchTerm.toLowerCase())
                               )
-                              .map((supplier) => (
-                                <SelectItem
-                                  key={supplier[config.suppliers.idField]}
-                                  value={supplier[config.suppliers.nameField]}
+                              .map((product) => (
+                                <SelectItem 
+                                  key={product[config.products.codeField]} 
+                                  value={product[config.products.nameField]}
                                 >
-                                  {supplier[config.suppliers.nameField]}
+                                  {`${product[config.products.nameField]} - ${product.brand} - ${product.supplier}`}
                                 </SelectItem>
                               ))}
                           </SelectContent>
                         </Select>
                       </div>
                       <div>
+                        <Label htmlFor="supplier">Supplier</Label>
+                        <Input
+                          id="supplier"
+                          placeholder="Select supplier"
+                          value={selectedSupplierName}
+                          readOnly
+                          className="mt-1 bg-gray-100"
+                        />
+                      </div>
+                      <div>
                         <Label htmlFor="brand">Brand</Label>
-                        <Select onValueChange={(value) => setSelectedBrand(value)}>
-                          <SelectTrigger id="brand" className="mt-1">
-                            <SelectValue placeholder="Select brand" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {brands.map((brand) => (
-                              <SelectItem 
-                                key={brand[config.brands.idField]} 
-                                value={brand[config.brands.nameField]}
-                              >
-                                {brand[config.brands.nameField]}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <Input
+                          id="brand"
+                          placeholder="Select brand"
+                          value={selectedBrand}
+                          readOnly
+                          className="mt-1 bg-gray-100"
+                        />
                       </div>
                       <div>
                         <Label htmlFor="quantity">Quantity</Label>
@@ -804,7 +792,6 @@ export default function ReturnsPage() {
                     </div>
                   </CardContent>
                 </Card>
-
                 <Card className="w-full lg:w-1/3 flex flex-col justify-between text-gray-700">
                   <CardHeader className="pb-0">
                     <CardTitle className="text-center text-xl">Add Product Return to Supplier</CardTitle>
@@ -818,6 +805,7 @@ export default function ReturnsPage() {
                           if (selected) {
                             setDeliveryNumber(selected.D_deliveryNumber);
                             setSupplierName(selected.S_supplierID);
+                            setSupplierID(selected.S_supplierID);
                           }
                         }}>
                           <SelectTrigger id="deliveryNumber" className="mt-1">
@@ -837,46 +825,13 @@ export default function ReturnsPage() {
                       </div>
                       <div>
                         <Label htmlFor="supplier2">Supplier</Label>
-                        <Select
-                          onValueChange={(selectedName) => {
-                            const selected = suppliers.find(
-                              (s) => s.S_supplierName === selectedName
-                            );
-                            if (selected) {
-                              setSupplierName(selected.S_supplierID);
-                            } else {
-                              setSupplierName("");
-                            }
-                          }}
-                        >
-                          <SelectTrigger id="supplier2" className="mt-1">
-                            <SelectValue placeholder="Select supplier" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <div className="px-2 py-1 border-b">
-                              <Input
-                                placeholder="Search supplier..."
-                                value={supplierSearchTerm2}
-                                onChange={(e) => setSupplierSearchTerm2(e.target.value)}
-                                className="w-full text-sm"
-                              />
-                            </div>
-                            {suppliers
-                              .filter((supplier) =>
-                                supplier.S_supplierName
-                                  .toLowerCase()
-                                  .includes(supplierSearchTerm2.toLowerCase())
-                              )
-                              .map((supplier) => (
-                                <SelectItem
-                                  key={supplier.S_supplierID}
-                                  value={supplier.S_supplierName}
-                                >
-                                  {supplier.S_supplierName}
-                                </SelectItem>
-                              ))}
-                          </SelectContent>
-                        </Select>
+                        <Input
+                          id="supplier2"
+                          placeholder="Select supplier"
+                          value={supplierName}
+                          readOnly
+                          className="mt-1 bg-gray-100"
+                        />
                       </div>
                       <div>
                         <Label htmlFor="productName">Product Name</Label>
@@ -885,34 +840,40 @@ export default function ReturnsPage() {
                             <SelectValue placeholder="Select product" />
                           </SelectTrigger>
                           <SelectContent>
-                            {products.map((product) => (
-                              <SelectItem 
-                                key={product.P_productCode} 
-                                value={product.P_productName}
-                              >
-                                {`${product.P_productName} - ${product.brand} - ${product.supplier}`}
-                              </SelectItem>
-                            ))}
+                            <div className="px-2 py-1 border-b">
+                              <Input
+                                placeholder="Search product..."
+                                value={productSearchTerm2}
+                                onChange={(e) => setProductSearchTerm2(e.target.value)}
+                                className="w-full text-sm"
+                              />
+                            </div>
+                            {products
+                              .filter((product) =>
+                                product.P_productName
+                                  .toLowerCase()
+                                  .includes(productSearchTerm2.toLowerCase())
+                              )
+                              .map((product) => (
+                                <SelectItem 
+                                  key={product.P_productCode} 
+                                  value={product.P_productName}
+                                >
+                                  {`${product.P_productName} - ${product.brand} - ${product.supplier}`}
+                                </SelectItem>
+                              ))}
                           </SelectContent>
                         </Select>
                       </div>
                       <div>
                         <Label htmlFor="brand">Brand</Label>
-                        <Select onValueChange={(value) => setBrand(value)}>
-                          <SelectTrigger id="brand" className="mt-1">
-                            <SelectValue placeholder="Select brand" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {brands.map((brand) => (
-                              <SelectItem 
-                                key={brand.B_brandID} 
-                                value={brand.B_brandName}
-                              >
-                                {brand.B_brandName}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <Input
+                          id="brand"
+                          placeholder="Select brand"
+                          value={brand}
+                          readOnly
+                          className="mt-1 bg-gray-100"
+                        />
                       </div>
                       <div>
                         <Label htmlFor="quantity">Quantity</Label>
