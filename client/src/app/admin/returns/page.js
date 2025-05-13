@@ -122,7 +122,7 @@ export default function ReturnsPage() {
   const [selectedSupplierID, setSelectedSupplierID] = useState(""); // Supplier ID (sent to backend)
   const [selectedBrand, setSelectedBrand] = useState(""); // Brand (autofilled)
   const [selectedQuantity, setSelectedQuantity] = useState("");
-  const [returnType, setReturnType] = useState("");
+  const [returnType, setReturnType] = useState(""); // Return Type (string)
   const [selectedDiscount, setSelectedDiscount] = useState("0");
   const [productPrice, setProductPrice] = useState(0);
 
@@ -147,7 +147,8 @@ export default function ReturnsPage() {
   const [productSearchTerm2, setProductSearchTerm2] = useState(""); // For supplier return product search
 
   // Sort
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: "ascending" });
+  const [customerSortConfig, setCustomerSortConfig] = useState({ key: null, direction: "ascending" });
+  const [supplierSortConfig, setSupplierSortConfig] = useState({ key: null, direction: "ascending" });
 
   // Fetch Data on Load
   useEffect(() => {
@@ -158,6 +159,7 @@ export default function ReturnsPage() {
         setCustomerReturns(customerRes.data);
         const supplierRes = await axios.get(`${config.returns.api.fetch}?source=supplier`);
         setSupplierReturns(supplierRes.data);
+
         // Fetch dropdown options
         const suppliersRes = await axios.get(config.suppliers.api.fetch);
         setSuppliers(suppliersRes.data);
@@ -342,7 +344,7 @@ export default function ReturnsPage() {
   };
 
   // Handle sorting
-  const handleSort = (key) => {
+  const handleSort = (key, setSortConfig) => {
     setSortConfig((prev) => {
       if (prev.key === key) {
         return {
@@ -354,7 +356,7 @@ export default function ReturnsPage() {
     });
   };
 
-  function SortIcon({ column }) {
+  function SortIcon({ column, sortConfig }) {
     if (sortConfig.key !== column)
       return <ChevronsUpDown className="inline ml-1 w-4 h-4 text-gray-400" />;
     return sortConfig.direction === "ascending" ? (
@@ -364,24 +366,25 @@ export default function ReturnsPage() {
     );
   }
 
-  const getSortedReturns = (data) => {
-    if (!sortConfig.key) return data;
+  const getSortedReturns = (data, sortConfig) => {
+    if (!sortConfig || !sortConfig.key) return data;
+    const { key, direction } = sortConfig;
     return [...data].sort((a, b) => {
-      let valA = a[sortConfig.key];
-      let valB = b[sortConfig.key];
+      let valA = a[key];
+      let valB = b[key];
 
       // Handle derived supplier/product names
-      if (sortConfig.key === "supplierName") {
+      if (key === "supplierName") {
         valA = suppliers.find(s => s.S_supplierID === a.S_supplierID)?.S_supplierName || "";
         valB = suppliers.find(s => s.S_supplierID === b.S_supplierID)?.S_supplierName || "";
       }
-      if (sortConfig.key === "productName") {
+      if (key === "productName") {
         valA = products.find(p => p.P_productCode === a.P_productCode)?.P_productName || "";
         valB = products.find(p => p.P_productCode === b.P_productCode)?.P_productName || "";
       }
 
       // Handle date
-      else if (sortConfig.key.toLowerCase().includes("date")) {
+      else if (key.toLowerCase().includes("date")) {
         valA = new Date(valA).getTime();
         valB = new Date(valB).getTime();
       }
@@ -398,7 +401,7 @@ export default function ReturnsPage() {
         valB = valB?.toString().toLowerCase() || "";
       }
 
-      return sortConfig.direction === "ascending"
+      return direction === "ascending"
         ? valA > valB ? 1 : valA < valB ? -1 : 0
         : valA < valB ? 1 : valA > valB ? -1 : 0;
     });
@@ -412,6 +415,7 @@ export default function ReturnsPage() {
           <div className="flex items-center justify-between mb-4 bg-white p-2 rounded-lg">
             <h1 className="text-lg text-gray-600 font-medium">Processing of Returns</h1>
           </div>
+
           <Tabs defaultValue="customer" onValueChange={setActiveTab}>
             <TabsList className="w-full flex justify-start bg-white shadow-md rounded-md px-6 py-6 mb-4">
               <TabsTrigger value="customer" className="data-[state=active]:text-indigo-600 hover:text-black">
@@ -431,30 +435,36 @@ export default function ReturnsPage() {
                       <Table>
                         <TableHeader className="sticky top-0 z-10 bg-white">
                           <TableRow>
-                            <TableHead onClick={() => handleSort("R_dateOfReturn")} className="text-center cursor-pointer">
-                              Date <SortIcon column="R_dateOfReturn" />
+                            <TableHead onClick={() => handleSort("R_dateOfReturn", setCustomerSortConfig)} className="text-center cursor-pointer">
+                              Date <SortIcon column="R_dateOfReturn" sortConfig={customerSortConfig} />
                             </TableHead>
-                            <TableHead onClick={() => handleSort("R_returnID")} className="text-center cursor-pointer">
-                              Return ID <SortIcon column="R_returnID" />
+                            <TableHead onClick={() => handleSort("R_returnID", setCustomerSortConfig)} className="text-center cursor-pointer">
+                              Return ID <SortIcon column="R_returnID" sortConfig={customerSortConfig} />
                             </TableHead>
-                            <TableHead onClick={() => handleSort("productName")} className="text-center cursor-pointer">
-                              Product <SortIcon column="productName" />
+                            <TableHead onClick={() => handleSort("productName", setCustomerSortConfig)} className="text-center cursor-pointer">
+                              Product <SortIcon column="productName" sortConfig={customerSortConfig} />
                             </TableHead>
-                            <TableHead onClick={() => handleSort("R_returnQuantity")} className="text-center cursor-pointer">
-                              Quantity <SortIcon column="R_returnQuantity" />
+                            <TableHead onClick={() => handleSort("R_returnQuantity", setCustomerSortConfig)} className="text-center cursor-pointer">
+                              Quantity <SortIcon column="R_returnQuantity" sortConfig={customerSortConfig} />
                             </TableHead>
-                            <TableHead onClick={() => handleSort("R_TotalPrice")} className="text-center cursor-pointer">
-                              Total <SortIcon column="R_TotalPrice" />
+                            <TableHead onClick={() => handleSort("R_TotalPrice", setCustomerSortConfig)} className="text-center cursor-pointer">
+                              Total <SortIcon column="R_TotalPrice" sortConfig={customerSortConfig} />
                             </TableHead>
-                            <TableHead onClick={() => handleSort("R_reasonOfReturn")} className="text-center cursor-pointer">
-                              Return Type <SortIcon column="R_reasonOfReturn" />
+                            <TableHead onClick={() => handleSort("R_reasonOfReturn", setCustomerSortConfig)} className="text-center cursor-pointer">
+                              Return Type <SortIcon column="R_reasonOfReturn" sortConfig={customerSortConfig} />
                             </TableHead>
                             <TableHead className="text-center">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {customerReturns.length > 0 ? (
-                            getSortedReturns(customerReturns).map((item) => (
+                          {getSortedReturns(
+                            customerReturns.filter(item => item.R_returnTypeID === 6), // Filter for customer returns
+                            customerSortConfig
+                          ).length > 0 ? (
+                            getSortedReturns(
+                              customerReturns.filter(item => item.R_returnTypeID === 6), // Filter for customer returns
+                              customerSortConfig
+                            ).map((item) => (
                               <TableRow key={item.R_returnID}>
                                 <TableCell className="text-center">{new Date(item.R_dateOfReturn).toLocaleDateString()}</TableCell>
                                 <TableCell className="text-center">{item.R_returnID}</TableCell>
@@ -649,7 +659,13 @@ export default function ReturnsPage() {
                           type="text"
                           placeholder="Type return type"
                           value={returnType}
-                          onChange={(e) => setReturnType(e.target.value)}
+                          onChange={(e) => {
+                            const inputValue = e.target.value;
+                            // Restrict numeric input
+                            if (/^[a-zA-Z\s]+$/.test(inputValue)) {
+                              setReturnType(inputValue);
+                            }
+                          }}
                           className="mt-1"
                         />
                       </div>
@@ -675,7 +691,17 @@ export default function ReturnsPage() {
                         />
                       </div>
                       <div className="flex justify-center mt-6">
-                        <Button className="w-2/3 bg-blue-500 text-white" onClick={handleAddCustomerReturn}>
+                        <Button
+                          className="w-2/3 bg-blue-500 text-white"
+                          disabled={
+                            !productName ||
+                            !selectedSupplierID ||
+                            !selectedBrand ||
+                            !selectedQuantity ||
+                            !returnType
+                          }
+                          onClick={handleAddCustomerReturn}
+                        >
                           ADD RETURN
                         </Button>
                       </div>
@@ -694,30 +720,36 @@ export default function ReturnsPage() {
                       <Table>
                         <TableHeader className="sticky top-0 z-10 bg-white">
                           <TableRow>
-                            <TableHead onClick={() => handleSort("R_dateOfReturn")} className="text-center cursor-pointer">
-                              Date <SortIcon column="R_dateOfReturn" />
+                            <TableHead onClick={() => handleSort("R_dateOfReturn", setSupplierSortConfig)} className="text-center cursor-pointer">
+                              Date <SortIcon column="R_dateOfReturn" sortConfig={supplierSortConfig} />
                             </TableHead>
-                            <TableHead onClick={() => handleSort("P_productCode")} className="text-center cursor-pointer">
-                              Product Code <SortIcon column="P_productCode" />
+                            <TableHead onClick={() => handleSort("P_productCode", setSupplierSortConfig)} className="text-center cursor-pointer">
+                              Product Code <SortIcon column="P_productCode" sortConfig={supplierSortConfig} />
                             </TableHead>
-                            <TableHead onClick={() => handleSort("supplierName")} className="text-center cursor-pointer">
-                              Supplier <SortIcon column="supplierName" />
+                            <TableHead onClick={() => handleSort("supplierName", setSupplierSortConfig)} className="text-center cursor-pointer">
+                              Supplier <SortIcon column="supplierName" sortConfig={supplierSortConfig} />
                             </TableHead>
-                            <TableHead onClick={() => handleSort("productName")} className="text-center cursor-pointer">
-                              Product <SortIcon column="productName" />
+                            <TableHead onClick={() => handleSort("productName", setSupplierSortConfig)} className="text-center cursor-pointer">
+                              Product <SortIcon column="productName" sortConfig={supplierSortConfig} />
                             </TableHead>
-                            <TableHead onClick={() => handleSort("R_returnQuantity")} className="text-center cursor-pointer">
-                              Quantity <SortIcon column="R_returnQuantity" />
+                            <TableHead onClick={() => handleSort("R_returnQuantity", setSupplierSortConfig)} className="text-center cursor-pointer">
+                              Quantity <SortIcon column="R_returnQuantity" sortConfig={supplierSortConfig} />
                             </TableHead>
-                            <TableHead onClick={() => handleSort("R_TotalPrice")} className="text-center cursor-pointer">
-                              Total <SortIcon column="R_TotalPrice" />
+                            <TableHead onClick={() => handleSort("R_TotalPrice", setSupplierSortConfig)} className="text-center cursor-pointer">
+                              Total <SortIcon column="R_TotalPrice" sortConfig={supplierSortConfig} />
                             </TableHead>
                             <TableHead className="text-center">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {supplierReturns.length > 0 ? (
-                            getSortedReturns(supplierReturns).map((item) => (
+                          {getSortedReturns(
+                            supplierReturns.filter(item => item.R_returnTypeID === 7), // Filter for supplier returns
+                            supplierSortConfig
+                          ).length > 0 ? (
+                            getSortedReturns(
+                              supplierReturns.filter(item => item.R_returnTypeID === 7), // Filter for supplier returns
+                              supplierSortConfig
+                            ).map((item) => (
                               <TableRow key={item.R_returnID}>
                                 <TableCell className="text-center">{new Date(item.R_dateOfReturn).toLocaleDateString()}</TableCell>
                                 <TableCell className="text-center">{item.P_productCode}</TableCell>
@@ -900,7 +932,17 @@ export default function ReturnsPage() {
                         />
                       </div>
                       <div className="flex justify-center mt-6">
-                        <Button className="w-2/3 bg-blue-500 text-white" onClick={handleAddSupplierReturn}>
+                        <Button
+                          className="w-2/3 bg-blue-500 text-white"
+                          disabled={
+                            !deliveryNumber ||
+                            !supplierID ||
+                            !productItem ||
+                            !brand ||
+                            !quantity
+                          }
+                          onClick={handleAddSupplierReturn}
+                        >
                           ADD RETURN
                         </Button>
                       </div>
