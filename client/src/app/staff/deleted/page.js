@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { toast, Toaster } from "react-hot-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Search, Eye, X } from "lucide-react";
+import { Search, Eye, X, ChevronsUpDown, ChevronUp, ChevronDown } from "lucide-react";
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogDescription } from "@/components/ui/dialog";
 
@@ -140,14 +140,29 @@ export default function DeletedPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTransactions, setSelectedTransactions] = useState([]);
 
+  // Sort
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: "ascending" });
+
+  const handleSort = (key) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        return {
+          key,
+          direction: prev.direction === "ascending" ? "descending" : "ascending",
+        };
+      }
+      return { key, direction: "ascending" };
+    });
+  };
+
   // Search  
   const getFilteredTransactions = () => {
-    let sortedTransactions = [...getCurrentTabData()];
-    
+    let result = [...getCurrentTabData()];
+
+    // Filter logic
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
-      sortedTransactions = sortedTransactions.filter(item => {
-
+      result = result.filter(item => {
         const matches = [];
 
         switch(activeTab) {
@@ -184,8 +199,48 @@ export default function DeletedPage() {
         return matches.some(match => match);
       });
     }
-    return sortedTransactions;
-  };  
+
+  // Sort logic
+  const key = sortConfig.key;
+    if (key) {
+      result.sort((a, b) => {
+        let valA = a[key];
+        let valB = b[key];
+
+        // Handle numeric strings with ₱ or commas
+        if (typeof valA === "string" && valA.includes("₱")) {
+          valA = parseFloat(valA.replace(/[₱,]/g, ""));
+          valB = parseFloat(valB.replace(/[₱,]/g, ""));
+        }
+
+        // Handle dates
+        if (!isNaN(Date.parse(valA))) {
+          valA = new Date(valA);
+          valB = new Date(valB);
+        }
+
+        if (sortConfig.direction === "ascending") {
+          return valA > valB ? 1 : valA < valB ? -1 : 0;
+        } else {
+          return valA < valB ? 1 : valA > valB ? -1 : 0;
+        }
+      });
+    }
+
+    return result;
+  };
+  
+  function SortIcon({ column }) {
+    if (sortConfig.key !== column)
+      return <ChevronsUpDown className="inline ml-1 w-4 h-4 text-gray-400" />;
+    return sortConfig.direction === "ascending" ? (
+      <ChevronUp className="inline ml-1 w-4 h-4 text-blue-500" />
+    ) : (
+      <ChevronDown className="inline ml-1 w-4 h-4 text-blue-500" />
+    );
+  }
+
+
 
   return (
     <SidebarProvider>
@@ -253,50 +308,108 @@ export default function DeletedPage() {
                               <TableRow>
                               {activeTab === "order" && (
                                 <>
-                                  <TableHead>Order ID</TableHead>
-                                  <TableHead>Product Code</TableHead>
-                                  <TableHead>Receipt Number</TableHead>
-                                  <TableHead>Product</TableHead>
-                                  <TableHead>Order Total Amount</TableHead>
-                                  <TableHead>Order Date</TableHead>
+                                  <TableHead onClick={() => handleSort(config.idField)} className="cursor-pointer">
+                                    Order ID <SortIcon column={config.idField} />
+                                  </TableHead>
+                                  <TableHead onClick={() => handleSort(config.codeField)} className="cursor-pointer">
+                                    Product Code <SortIcon column={config.codeField} />
+                                  </TableHead>
+                                  <TableHead onClick={() => handleSort(config.receiptField)} className="cursor-pointer">
+                                    Receipt Number <SortIcon column={config.receiptField} />
+                                  </TableHead>
+                                  <TableHead onClick={() => handleSort(config.nameField)} className="cursor-pointer">
+                                    Product <SortIcon column={config.nameField} />
+                                  </TableHead>
+                                  <TableHead onClick={() => handleSort(config.totalamtField)} className="cursor-pointer">
+                                    Order Total Amount <SortIcon column={config.totalamtField} />
+                                  </TableHead>
+                                  <TableHead onClick={() => handleSort(config.dateField)} className="cursor-pointer">
+                                    Order Date <SortIcon column={config.dateField} />
+                                  </TableHead>
                                   <TableHead>Details</TableHead>
                                 </>
                               )}
                               {activeTab === "return" && (
                                 <>
-                                  <TableHead>Return ID</TableHead>
-                                  <TableHead>Product Code</TableHead>
-                                  <TableHead>Reason of Return</TableHead>
-                                  <TableHead>Product</TableHead>
-                                  <TableHead>Return Total Amount</TableHead>
-                                  <TableHead>Return Date</TableHead>
+                                  <TableHead onClick={() => handleSort(config.idField)} className="cursor-pointer">
+                                    Return ID <SortIcon column={config.idField} />
+                                  </TableHead>
+                                  <TableHead onClick={() => handleSort(config.codeField)} className="cursor-pointer">
+                                    Product Code <SortIcon column={config.codeField} />
+                                  </TableHead>
+                                  <TableHead onClick={() => handleSort(config.typeField)} className="cursor-pointer">
+                                    Reason of Return <SortIcon column={config.typeField} />
+                                  </TableHead>
+                                  <TableHead onClick={() => handleSort(config.nameField)} className="cursor-pointer">
+                                    Product <SortIcon column={config.nameField} />
+                                  </TableHead>
+                                  <TableHead onClick={() => handleSort(config.totalamtField)} className="cursor-pointer">
+                                    Return Total Amount <SortIcon column={config.totalamtField} />
+                                  </TableHead>
+                                  <TableHead onClick={() => handleSort(config.dateField)} className="cursor-pointer">
+                                    Return Date <SortIcon column={config.dateField} />
+                                  </TableHead>
                                   <TableHead>Details</TableHead>
                                 </>
                               )}
                               {activeTab === "delivery" && (
                                 <>
-                                  <TableHead>Delivery ID</TableHead>
-                                  <TableHead>Product Code</TableHead>
-                                  <TableHead>Product</TableHead>
-                                  <TableHead>Supplier</TableHead>
-                                  <TableHead>Quantity</TableHead>
-                                  <TableHead>Delivery date</TableHead>
+                                  <TableHead onClick={() => handleSort(config.idField)} className="cursor-pointer">
+                                    Delivery ID <SortIcon column={config.idField} />
+                                  </TableHead>
+                                  <TableHead onClick={() => handleSort(config.codeField)} className="cursor-pointer">
+                                    Product Code <SortIcon column={config.codeField} />
+                                  </TableHead>
+                                  <TableHead onClick={() => handleSort(config.nameField)} className="cursor-pointer">
+                                    Product <SortIcon column={config.nameField} />
+                                  </TableHead>
+                                  <TableHead onClick={() => handleSort(config.supplierField)} className="cursor-pointer">
+                                    Supplier <SortIcon column={config.supplierField} />
+                                  </TableHead>
+                                  <TableHead onClick={() => handleSort(config.quantityField)} className="cursor-pointer">
+                                    Quantity <SortIcon column={config.quantityField} />
+                                  </TableHead>
+                                  <TableHead onClick={() => handleSort(config.dateField)} className="cursor-pointer">
+                                    Delivery Date <SortIcon column={config.dateField} />
+                                  </TableHead>
                                   <TableHead>Details</TableHead>
                                 </>
                               )}
                               {activeTab === "product" && (
                                 <>
-                                  <TableHead>Product Code</TableHead>
-                                  <TableHead>Category</TableHead>
-                                  <TableHead>SKU</TableHead>
-                                  <TableHead>Name</TableHead>
-                                  <TableHead>Brand</TableHead>
-                                  <TableHead>Supplier</TableHead>
-                                  <TableHead>Stock amount</TableHead>
-                                  <TableHead>Unit Price</TableHead>
-                                  <TableHead>Selling Price</TableHead>
-                                  <TableHead>Status</TableHead>
-                                  <TableHead>Date added</TableHead>
+                                  <TableHead onClick={() => handleSort(config.codeField)} className="cursor-pointer">
+                                    Product Code <SortIcon column={config.codeField} />
+                                  </TableHead>
+                                  <TableHead onClick={() => handleSort(config.categoryField)} className="cursor-pointer">
+                                    Category <SortIcon column={config.categoryField} />
+                                  </TableHead>
+                                  <TableHead onClick={() => handleSort(config.skuField)} className="cursor-pointer">
+                                    SKU <SortIcon column={config.skuField} />
+                                  </TableHead>
+                                  <TableHead onClick={() => handleSort(config.nameField)} className="cursor-pointer">
+                                    Name <SortIcon column={config.nameField} />
+                                  </TableHead>
+                                  <TableHead onClick={() => handleSort(config.brandField)} className="cursor-pointer">
+                                    Brand <SortIcon column={config.brandField} />
+                                  </TableHead>
+                                  <TableHead onClick={() => handleSort(config.supplierField)} className="cursor-pointer">
+                                    Supplier <SortIcon column={config.supplierField} />
+                                  </TableHead>
+                                  <TableHead onClick={() => handleSort(config.stockField)} className="cursor-pointer">
+                                    Stock Amount <SortIcon column={config.stockField} />
+                                  </TableHead>
+                                  <TableHead onClick={() => handleSort(config.unitpriceField)} className="cursor-pointer">
+                                    Unit Price <SortIcon column={config.unitpriceField} />
+                                  </TableHead>
+                                  <TableHead onClick={() => handleSort(config.sellingpriceField)} className="cursor-pointer">
+                                    Selling Price <SortIcon column={config.sellingpriceField} />
+                                  </TableHead>
+                                  <TableHead onClick={() => handleSort(config.statusField)} className="cursor-pointer">
+                                    Status <SortIcon column={config.statusField} />
+                                  </TableHead>
+                                  <TableHead onClick={() => handleSort(config.dateField)} className="cursor-pointer">
+                                    Date Added <SortIcon column={config.dateField} />
+                                  </TableHead>
                                 </>
                               )}
                             </TableRow>
