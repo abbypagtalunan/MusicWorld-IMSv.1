@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast, Toaster } from "react-hot-toast";
-import { Search, ListFilter, Trash2, Eye, FilePen, PackagePlus, Save } from "lucide-react";
+import { Search, ListFilter, Trash2, Eye, FilePen, PackagePlus, Save, ChevronsUpDown, ChevronUp, ChevronDown } from "lucide-react";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogDescription } from "@/components/ui/dialog";
@@ -265,48 +265,98 @@ export default function DeliveriesPage() {
     setSelectedSubFilter(subFilter);
   };
 
+   // Sort
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: "ascending" });
+
+  const handleSort = (key) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        return {
+          key,
+          direction: prev.direction === "ascending" ? "descending" : "ascending",
+        };
+      }
+      return { key, direction: "ascending" };
+    });
+  };
+
+  function SortIcon({ column }) {
+      if (sortConfig.key !== column) return <ChevronsUpDown className="inline ml-1 w-4 h-4 text-gray-400" />;
+      return sortConfig.direction === "ascending" ? (
+        <ChevronUp className="inline ml-1 w-4 h-4 text-blue-500" />
+      ) : (
+        <ChevronDown className="inline ml-1 w-4 h-4 text-blue-500" />
+      );
+  }
+
   const getFilteredTransactions = () => {
-    if (searchResult !== null) {
-      return searchResult;
-    }
-    let sortedTransactions = [...deliveries];
-  
-    if (!selectedFilter || !selectedSubFilter) return sortedTransactions;
-  
-    if (selectedFilter === "Delivery Number") {
-      sortedTransactions.sort((a, b) => {
-        const numA = parseInt(a.deliveryNum);
-        const numB = parseInt(b.deliveryNum);
-        return selectedSubFilter === "Ascending" ? numA - numB : numB - numA;
-      });
-    }
-  
-    if (selectedFilter === "Supplier") {
-      sortedTransactions = sortedTransactions.filter((item) => 
-        item.supplier === selectedSubFilter);
-    }
-  
-    if (selectedFilter === "Price") {
-      sortedTransactions.sort((a, b) => {
-        const getPrice = (str) => parseFloat(str.replace(/[^\d.]/g, ""));
-        return selectedSubFilter === "Low to High"
-          ? getPrice(a.totalCost) - getPrice(b.totalCost)
-          : getPrice(b.totalCost) - getPrice(a.totalCost);
-      });
-    }
-      
-    if (selectedFilter === "Date") {
-      sortedTransactions.sort((a, b) => {
-        // parse the displayed date back into an actual Date object
-        const dateA = new Date(a.dateAdded);
-        const dateB = new Date(b.dateAdded);
-        return selectedSubFilter === "Oldest"
-          ? dateA - dateB
-          : dateB - dateA;
-      });
-    }
-    return sortedTransactions;
-  };  
+{      if (searchResult !== null) {
+        return searchResult;
+      }
+
+      let sortedTransactions = [...deliveries];
+
+      if (selectedFilter && selectedSubFilter) {
+        if (selectedFilter === "Delivery Number") {
+          sortedTransactions.sort((a, b) => {
+            const numA = parseInt(a.deliveryNum);
+            const numB = parseInt(b.deliveryNum);
+            return selectedSubFilter === "Ascending" ? numA - numB : numB - numA;
+          });
+        }
+
+        if (selectedFilter === "Supplier") {
+          sortedTransactions = sortedTransactions.filter((item) => 
+            item.supplier === selectedSubFilter
+          );
+        }
+
+        if (selectedFilter === "Price") {
+          sortedTransactions.sort((a, b) => {
+            const getPrice = (str) => parseFloat(str.replace(/[^\d.]/g, ""));
+            return selectedSubFilter === "Low to High"
+              ? getPrice(a.totalCost) - getPrice(b.totalCost)
+              : getPrice(b.totalCost) - getPrice(a.totalCost);
+          });
+        }
+
+        if (selectedFilter === "Date") {
+          sortedTransactions.sort((a, b) => {
+            const dateA = new Date(a.dateAdded);
+            const dateB = new Date(b.dateAdded);
+            return selectedSubFilter === "Oldest"
+              ? dateA - dateB
+              : dateB - dateA;
+          });
+        }
+      } else if (sortConfig.key) {
+        
+        sortedTransactions.sort((a, b) => {
+          const valA = a[sortConfig.key] ?? "";
+          const valB = b[sortConfig.key] ?? "";
+
+          const numA = parseFloat(valA.toString().replace(/[₱,]/g, ""));
+          const numB = parseFloat(valB.toString().replace(/[₱,]/g, ""));
+
+          if (!isNaN(numA) && !isNaN(numB)) {
+            return sortConfig.direction === "ascending" ? numA - numB : numB - numA;
+          }
+
+          if (!isNaN(Date.parse(valA)) && !isNaN(Date.parse(valB))) {
+            return sortConfig.direction === "ascending"
+              ? new Date(valA) - new Date(valB)
+              : new Date(valB) - new Date(valA);
+          }
+
+          return sortConfig.direction === "ascending"
+            ? valA.toString().localeCompare(valB.toString())
+            : valB.toString().localeCompare(valA.toString());
+        });
+      }
+
+      return sortedTransactions;
+    };
+}
 
   // Function to handle saving payment details
   const handleSavePaymentDetails = (deliveryNum) => {
@@ -568,10 +618,18 @@ export default function DeliveriesPage() {
             <Table>
               <TableHeader className="sticky top-0 bg-white z-10">
                 <TableRow>
-                  <TableHead className="pl-10">Date</TableHead>
-                  <TableHead className="pl-6">Delivery Number</TableHead>
-                  <TableHead className="pl-0">Supplier</TableHead>
-                  <TableHead className="pl-10">Total Cost</TableHead>
+                  <TableHead onClick={() => handleSort("dateAdded")} className="pl-10 cursor-pointer select-none">
+                    Date <SortIcon column="dateAdded" sortConfig={sortConfig} />
+                  </TableHead>
+                  <TableHead onClick={() => handleSort("deliveryNum")} className="pl-6 cursor-pointer select-none">
+                    Delivery Number <SortIcon column="deliveryNum" sortConfig={sortConfig} />
+                  </TableHead>
+                  <TableHead onClick={() => handleSort("supplier")} className="pl-0 cursor-pointer select-none">
+                    Supplier <SortIcon column="supplier" sortConfig={sortConfig} />
+                  </TableHead>
+                  <TableHead onClick={() => handleSort("totalCost")} className="pl-10 cursor-pointer select-none">
+                    Total Cost <SortIcon column="totalCost" sortConfig={sortConfig} />
+                  </TableHead>
                   <TableHead className="pl-8">View/Edit</TableHead>
                   <TableHead className="pl-6">Delete</TableHead>
                 </TableRow>
