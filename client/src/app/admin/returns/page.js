@@ -158,7 +158,6 @@ export default function ReturnsPage() {
         setCustomerReturns(customerRes.data);
         const supplierRes = await axios.get(`${config.returns.api.fetch}?source=supplier`);
         setSupplierReturns(supplierRes.data);
-
         // Fetch dropdown options
         const suppliersRes = await axios.get(config.suppliers.api.fetch);
         setSuppliers(suppliersRes.data);
@@ -824,16 +823,6 @@ export default function ReturnsPage() {
                         </Select>
                       </div>
                       <div>
-                        <Label htmlFor="supplier2">Supplier</Label>
-                        <Input
-                          id="supplier2"
-                          placeholder="Select supplier"
-                          value={supplierName}
-                          readOnly
-                          className="mt-1 bg-gray-100"
-                        />
-                      </div>
-                      <div>
                         <Label htmlFor="productName">Product Name</Label>
                         <Select onValueChange={handleSupplierProductSelect}>
                           <SelectTrigger id="productName">
@@ -864,6 +853,16 @@ export default function ReturnsPage() {
                               ))}
                           </SelectContent>
                         </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="supplier2">Supplier</Label>
+                        <Input
+                          id="supplier2"
+                          placeholder="Select supplier"
+                          value={supplierName}
+                          readOnly
+                          className="mt-1 bg-gray-100"
+                        />
                       </div>
                       <div>
                         <Label htmlFor="brand">Brand</Label>
