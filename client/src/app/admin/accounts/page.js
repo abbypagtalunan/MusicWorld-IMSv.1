@@ -59,17 +59,13 @@ export default function ManageAccountsPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [activeTab, setActiveTab] = useState("my-account");
-  // Current user state
   const [currentUser, setCurrentUser] = useState(null);
-  // Staff accounts and roles
   const [staffs, setStaffs] = useState([]);
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
-  // Filter state
   const [selectedFilter, setSelectedFilter] = useState(null);
   const [selectedSubFilter, setSelectedSubFilter] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
-  // Add staff modal
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newStaff, setNewStaff] = useState({
     accountID: "",
@@ -79,10 +75,8 @@ export default function ManageAccountsPage() {
     password: "",
     confirmPassword: "",
   });
-  // Edit staff modal
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editedStaff, setEditedStaff] = useState({});
-  // Reset password modal
   const [isResetOpen, setIsResetOpen] = useState(false);
   const [resetStaff, setResetStaff] = useState(null);
   const [passwordData, setPasswordData] = useState({
@@ -90,12 +84,9 @@ export default function ManageAccountsPage() {
     newPassword: "",
     confirmPassword: "",
   });
-  // Delete modal
   const [isDeleteAccountDialogOpen, setIsDeleteAccountDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [adminPW, setAdminPW] = useState("");
-  // Selected staff checkboxes
-  const [selectedStaff, setSelectedStaff] = useState([]);
 
   // Load current user + staff data
   useEffect(() => {
@@ -107,16 +98,13 @@ export default function ManageAccountsPage() {
           router.push("/login");
           return;
         }
-        console.log("Stored User:", storedUser); // Debug: Check storedUser
 
-        // Fetch current user details using accountID
         const [userData, staffRes, rolesRes] = await Promise.all([
           axios.get(`http://localhost:8080/accounts/${storedUser.accountID}`),
           axios.get("http://localhost:8080/accounts"),
           axios.get("http://localhost:8080/role"),
         ]);
 
-        console.log("Fetched User Data:", userData.data); // Debug: Check fetched user data
         setCurrentUser(userData.data);
         setStaffs(staffRes.data);
         setRoles(rolesRes.data);
@@ -128,22 +116,29 @@ export default function ManageAccountsPage() {
         setLoading(false);
       }
     };
+
     fetchData();
   }, []);
 
   // Handle copying user code
   const handleCopyCode = () => {
-    navigator.clipboard.writeText(currentUser?.accountID || "").catch((err) => {
-      console.error("Failed to copy:", err);
-    });
+    navigator.clipboard.writeText(currentUser?.accountID || "").catch((err) =>
+      console.error("Failed to copy:", err)
+    );
   };
 
   // Reset password handler
   const handleResetPassword = () => {
+    if (!resetStaff || !resetStaff.accountID) {
+      alert("Invalid user data. Please try again.");
+      return;
+    }
+
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       alert("Passwords do not match!");
       return;
     }
+
     axios
       .put(
         `http://localhost:8080/accounts/${resetStaff.accountID}/reset-password`,
@@ -186,6 +181,7 @@ export default function ManageAccountsPage() {
       alert("Admin password is required.");
       return;
     }
+
     axios
       .delete(`http://localhost:8080/accounts/${accountID}`, {
         data: { adminPW },
@@ -227,22 +223,19 @@ export default function ManageAccountsPage() {
           .includes(query)
       );
     }
+
     if (!selectedFilter || !selectedSubFilter) return filtered;
+
     switch (selectedFilter) {
       case "Name":
         return filtered.sort((a, b) =>
           selectedSubFilter === "Ascending"
-            ? `${a.firstName} ${a.lastName}`.localeCompare(
-                `${b.firstName} ${b.lastName}`
-              )
-            : `${b.firstName} ${b.lastName}`.localeCompare(
-                `${a.firstName} ${a.lastName}`
-              )
+            ? `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`)
+            : `${b.firstName} ${b.lastName}`.localeCompare(`${a.firstName} ${a.lastName}`)
         );
       case "Role":
         const selectedRole = roles.find(
-          (r) =>
-            r.roleName.toLowerCase() === selectedSubFilter.toLowerCase()
+          (r) => r.roleName.toLowerCase() === selectedSubFilter.toLowerCase()
         );
         if (selectedRole) {
           return filtered.filter((s) => s.roleID === selectedRole.roleID);
@@ -251,11 +244,9 @@ export default function ManageAccountsPage() {
         }
         break;
       case "User Code":
-        return filtered.sort((a, b) => {
-          return selectedSubFilter === "Low to High"
-            ? a.accountID - b.accountID
-            : b.accountID - a.accountID;
-        });
+        return filtered.sort((a, b) =>
+          selectedSubFilter === "Low to High" ? a.accountID - b.accountID : b.accountID - a.accountID
+        );
       case "Date Created":
         return filtered.sort((a, b) => {
           const dateA = new Date(a.dateCreated);
@@ -265,6 +256,7 @@ export default function ManageAccountsPage() {
       default:
         return filtered;
     }
+
     return filtered;
   };
 
@@ -278,6 +270,7 @@ export default function ManageAccountsPage() {
       password,
       confirmPassword,
     } = newStaff;
+
     if (
       !accountID ||
       !firstName ||
@@ -289,10 +282,12 @@ export default function ManageAccountsPage() {
       alert("Please fill in all fields.");
       return;
     }
+
     if (password !== confirmPassword) {
       alert("Passwords do not match!");
       return;
     }
+
     try {
       await axios.post("http://localhost:8080/accounts", {
         accountID,
@@ -301,6 +296,7 @@ export default function ManageAccountsPage() {
         roleID,
         password,
       });
+
       setIsAddOpen(false);
       setNewStaff({
         accountID: "",
@@ -310,6 +306,7 @@ export default function ManageAccountsPage() {
         password: "",
         confirmPassword: "",
       });
+
       const res = await axios.get("http://localhost:8080/accounts");
       setStaffs(res.data);
     } catch (err) {
@@ -320,6 +317,11 @@ export default function ManageAccountsPage() {
 
   // Submit edit staff
   const handleUpdateStaff = async (updatedStaff) => {
+    if (!updatedStaff.accountID || !updatedStaff.firstName || !updatedStaff.lastName || !updatedStaff.roleID) {
+      alert("Missing required fields.");
+      return;
+    }
+
     try {
       await axios.put(
         `http://localhost:8080/accounts/${updatedStaff.accountID}`,
@@ -329,6 +331,7 @@ export default function ManageAccountsPage() {
           roleID: updatedStaff.roleID,
         }
       );
+
       setStaffs(
         staffs.map((s) =>
           s.accountID === updatedStaff.accountID ? updatedStaff : s
@@ -351,9 +354,7 @@ export default function ManageAccountsPage() {
         <AppSidebar />
         <div className="flex-1 p-4 flex flex-col overflow-hidden">
           <div className="z-10 sticky top-0 mb-4 bg-white p-4 rounded-lg">
-            <h1 className="text-lg text-gray-600 font-medium">
-              Manage Accounts
-            </h1>
+            <h1 className="text-lg text-gray-600 font-medium">Manage Accounts</h1>
           </div>
           <Tabs
             defaultValue="my-account"
@@ -377,6 +378,7 @@ export default function ManageAccountsPage() {
                 </TabsTrigger>
               </TabsList>
             </div>
+
             {/* MY ACCOUNT TAB */}
             <TabsContent value="my-account" className="mt-0">
               {currentUser ? (
@@ -400,9 +402,7 @@ export default function ManageAccountsPage() {
                             Role
                           </Label>
                           <p className="text-base font-medium text-gray-800">
-                            {roles.find(
-                              (r) => r.roleID === currentUser.roleID
-                            )?.roleName || "Loading..."}
+                            {roles.find((r) => r.roleID === currentUser.roleID)?.roleName || "Loading..."}
                           </p>
                         </div>
                         <div>
@@ -422,11 +422,9 @@ export default function ManageAccountsPage() {
                       </div>
                       <Dialog>
                         <DialogTrigger asChild>
-                          <Button className="bg-blue-400 text-white">
-                            Edit Account
-                          </Button>
+                          <Button className="bg-blue-400 text-white">Edit Account</Button>
                         </DialogTrigger>
-                        <DialogContent className="w-[30vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
+                        <DialogContent aria-describedby="edit-account-dialog" className="w-[30vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
                           <DialogHeader>
                             <DialogTitle className="text-blue-400 text-xl font-bold">
                               Edit Account Information
@@ -511,11 +509,7 @@ export default function ManageAccountsPage() {
                             value={currentUser.accountID || ""}
                             disabled
                           />
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={handleCopyCode}
-                          >
+                          <Button size="icon" variant="ghost" onClick={handleCopyCode}>
                             <Copy size={16} />
                           </Button>
                         </div>
@@ -531,9 +525,7 @@ export default function ManageAccountsPage() {
                           <Button
                             size="icon"
                             variant="ghost"
-                            onClick={() =>
-                              setShowPassword(!showPassword)
-                            }
+                            onClick={() => setShowPassword(!showPassword)}
                           >
                             <Eye size={16} />
                           </Button>
@@ -541,11 +533,9 @@ export default function ManageAccountsPage() {
                       </div>
                       <Dialog>
                         <DialogTrigger asChild>
-                          <Button className="bg-blue-400 text-white">
-                            Change Password
-                          </Button>
+                          <Button className="bg-blue-400 text-white">Change Password</Button>
                         </DialogTrigger>
-                        <DialogContent className="w-[30vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
+                        <DialogContent aria-describedby="change-password-dialog" className="w-[30vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
                           <DialogHeader>
                             <DialogTitle className="text-blue-400 text-xl font-bold">
                               Change Password
@@ -588,7 +578,10 @@ export default function ManageAccountsPage() {
                             />
                           </div>
                           <DialogFooter>
-                            <Button className="bg-blue-400 text-white w-full">
+                            <Button
+                              className="w-full bg-blue-400 text-white"
+                              onClick={handleResetPassword}
+                            >
                               Update Password
                             </Button>
                           </DialogFooter>
@@ -603,6 +596,7 @@ export default function ManageAccountsPage() {
                 </p>
               )}
             </TabsContent>
+
             {/* STAFF TAB */}
             <TabsContent value="staff" className="mt-0">
               <div className="mb-4">
@@ -610,7 +604,6 @@ export default function ManageAccountsPage() {
                   Staff ({staffs.length})
                 </h2>
               </div>
-              {/* FILTERS & ACTIONS */}
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                 <div className="flex gap-2 flex-1">
                   <Input
@@ -835,6 +828,7 @@ export default function ManageAccountsPage() {
           </Tabs>
         </div>
       </div>
+
       {/* Edit Modal */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="w-[30vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
@@ -886,6 +880,7 @@ export default function ManageAccountsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
       {/* Reset Password Modal */}
       <Dialog open={isResetOpen} onOpenChange={setIsResetOpen}>
         <DialogContent className="w-[30vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
@@ -901,17 +896,21 @@ export default function ManageAccountsPage() {
               type="password"
               placeholder="Enter new password"
               value={passwordData.newPassword}
-              onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+              onChange={(e) =>
+                setPasswordData({ ...passwordData, newPassword: e.target.value })
+              }
             />
             <Label>Confirm New Password</Label>
             <Input
               type="password"
               placeholder="Confirm new password"
               value={passwordData.confirmPassword}
-              onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+              onChange={(e) =>
+                setPasswordData({ ...passwordData, confirmPassword: e.target.value })
+              }
             />
           </div>
-          <DialogFooter className="mt-6">
+          <DialogFooter>
             <Button
               className="w-full bg-blue-400 text-white"
               onClick={handleResetPassword}
@@ -921,6 +920,7 @@ export default function ManageAccountsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
       {/* Delete Account Modal */}
       <Dialog open={isDeleteAccountDialogOpen} onOpenChange={setIsDeleteAccountDialogOpen}>
         <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">

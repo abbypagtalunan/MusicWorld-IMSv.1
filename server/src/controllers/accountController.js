@@ -1,4 +1,4 @@
-const Account = require('../models/accountModel');
+const Account = require("../models/accountModel");
 
 // Get all accounts
 exports.getAllAccounts = (req, res) => {
@@ -32,47 +32,39 @@ exports.createAccount = (req, res) => {
     return res.status(400).json({ message: "All fields are required" });
   }
 
-  Account.createAccount({ accountID, firstName, lastName, roleID, password }, (err, result) => {
-    if (err) {
-      console.error("Error creating account:", err);
-      return res.status(500).json({ message: "Error creating account" });
+  Account.createAccount(
+    {
+      accountID,
+      firstName,
+      lastName,
+      roleID,
+      password,
+    },
+    (err, result) => {
+      if (err) {
+        console.error("Error creating account:", err);
+        return res.status(500).json({ message: "Error creating account" });
+      }
+      res.status(201).json({ message: "Account created successfully", data: result });
     }
-    res.status(201).json({ message: "Account created successfully" });
-  });
+  );
 };
 
-// Update an account
+// Update an account (only name and role)
 exports.updateAccount = (req, res) => {
+  const { id } = req.params;
   const { firstName, lastName, roleID } = req.body;
 
   if (!firstName || !lastName || !roleID) {
     return res.status(400).json({ message: "Missing required fields" });
   }
 
-  Account.updateAccount(req.params.id, { firstName, lastName, roleID }, (err, result) => {
+  Account.updateAccount(id, { firstName, lastName, roleID }, (err, result) => {
     if (err) {
       console.error("Error updating account:", err);
       return res.status(500).json({ message: "Error updating account" });
     }
-    res.json({ message: "Account updated successfully" });
-  });
-};
-
-// Delete an account
-exports.deleteAccount = (req, res) => {
-  const { id } = req.params;
-  const { adminPW } = req.body;
-
-  if (!id || !adminPW) {
-    return res.status(400).json({ message: "Admin password and staff ID are required." });
-  }
-
-  Account.deleteAccount(id, adminPW, (err, result) => {
-    if (err) {
-      console.error("Error deleting account:", err.message);
-      return res.status(403).json({ message: "Deletion failed", error: err.message });
-    }
-    res.json({ message: "Account deleted successfully" });
+    res.json({ message: "Account updated successfully", data: result });
   });
 };
 
@@ -94,11 +86,29 @@ exports.resetPassword = (req, res) => {
       console.error("Error resetting password:", err);
       return res.status(500).json({ message: "Failed to reset password" });
     }
-    res.json({ message: "Password reset successfully" });
+    res.json({ message: "Password reset successfully", data: result });
   });
 };
 
-// NEW: Login user
+// Delete an account
+exports.deleteAccount = (req, res) => {
+  const { id } = req.params;
+  const { adminPW } = req.body;
+
+  if (!id || !adminPW) {
+    return res.status(400).json({ message: "Admin password and staff ID are required." });
+  }
+
+  Account.deleteAccount(id, adminPW, (err, result) => {
+    if (err) {
+      console.error("Error deleting account:", err.message);
+      return res.status(403).json({ message: "Deletion failed", error: err.message });
+    }
+    res.json({ message: "Account deleted successfully", data: result });
+  });
+};
+
+// Login route
 exports.loginUser = (req, res) => {
   const { accountID, password } = req.body;
 
@@ -116,12 +126,10 @@ exports.loginUser = (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // Compare plain text password
     if (password !== user.password) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // Return basic user info
     res.json({
       message: "Login successful",
       user: {

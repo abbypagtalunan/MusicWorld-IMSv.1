@@ -1,14 +1,14 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const accountController = require('../controllers/accountController');
+const accountController = require("../controllers/accountController");
 
-router.post('/login', accountController.loginUser); // LOGIN ROUTE
+router.post("/login", accountController.loginUser);
 
-router.get('/', accountController.getAllAccounts);         // GET all staff
-router.get('/:id', accountController.getAccountById);       // GET one staff
-router.post('/', accountController.createAccount);          // POST create staff
-router.put('/:id', accountController.updateAccount);        // PUT update staff
-router.put('/:id/reset-password', accountController.resetPassword); // PUT reset password
-router.delete('/:id', accountController.deleteAccount);     // DELETE staff
+router.get("/", accountController.getAllAccounts);
+router.get("/:id", accountController.getAccountById);
+router.post("/", accountController.createAccount);
+router.put("/:id", accountController.updateAccount);
+router.put("/:id/reset-password", accountController.resetPassword);
+router.delete("/:id", accountController.deleteAccount);
 
 module.exports = router;

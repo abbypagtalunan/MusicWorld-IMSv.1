@@ -1,4 +1,4 @@
-const pool = require('../../db');
+const pool = require("../../db");
 
 class Account {
   static getAllAccounts(callback) {
@@ -46,7 +46,6 @@ class Account {
   }
 
   static deleteAccount(id, adminPassword, callback) {
-    // Step 1: Verify admin password
     pool.query(
       "SELECT * FROM UserAccounts WHERE accountID = ? AND password = ?",
       [id, adminPassword],
@@ -57,7 +56,6 @@ class Account {
           return callback(new Error("Invalid admin credentials"));
         }
 
-        // Step 2: Delete the target staff account
         pool.query("DELETE FROM UserAccounts WHERE accountID = ?", [id], (error, result) => {
           if (error) return callback(error);
           callback(null, result);
@@ -77,7 +75,6 @@ class Account {
     );
   }
 
-  // NEW: Fetch user by ID for login
   static getUserForLogin(accountID, callback) {
     pool.query("SELECT * FROM UserAccounts WHERE accountID = ?", [accountID], (error, results) => {
       if (error) return callback(error);
