@@ -176,7 +176,7 @@ export default function ReportsPage() {
         <div className="flex-1 p-4 flex flex-col w-full">
           <div className="flex items-center justify-between mb-4 bg-white p-2 rounded-lg">
             <div className="flex items-center space-x-2">
-<Popover>
+                <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
