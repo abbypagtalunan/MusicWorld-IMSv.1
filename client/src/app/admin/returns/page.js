@@ -413,7 +413,7 @@ export default function ReturnsPage() {
         <AppSidebar />
         <div className="flex-1 p-4 flex flex-col w-full">
           <div className="flex items-center justify-between mb-4 bg-white p-2 rounded-lg">
-            <h1 className="text-lg text-gray-600 font-medium">Processing of Returns</h1>
+            <h1 className="text-gray-600 font-bold">Processing of Returns</h1>
           </div>
 
           <Tabs defaultValue="customer" onValueChange={setActiveTab}>
