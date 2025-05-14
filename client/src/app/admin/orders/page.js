@@ -47,18 +47,24 @@ export default function OrdersPage() {
     totalAmount: { min: "", max: "" },
     totalProductDiscount: { min: "", max: "" },
     wholeOrderDiscount: { min: "", max: "" },
+    originalTotal: { min: "", max: "" },
+    payment: { min: "", max: "" },
   });
 
   const [amountErrors, setAmountErrors] = useState({
     totalAmount: false,
     totalProductDiscount: false,
     wholeOrderDiscount: false,
+    originalTotal: false,
+    payment: false,
   });
 
   const [aboveOnly, setAboveOnly] = useState({
     totalAmount: false,
     totalProductDiscount: false,
     wholeOrderDiscount: false,
+    originalTotal: false,
+    payment: false,
   });
 
   // Fetch Orders
@@ -469,6 +475,194 @@ Object.entries(amountRanges).forEach(([key, range]) => {
                   <DropdownMenuContent align="start">
                   
                     <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>Original Amount</DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent className="p-4 space-y-2">
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="Min ₱"
+                            type="number"
+                            value={amountRanges.originalTotal.min}
+                            onChange={(e) => {
+                              const newMin = e.target.value;
+                              const max = amountRanges.originalTotal.max;
+                              setAmountRanges(prev => ({
+                                ...prev,
+                                originalTotal: { ...prev.originalTotal, min: newMin }
+                              }));
+                              setAmountErrors(prev => ({
+                                ...prev,
+                                originalTotal: max && parseFloat(newMin) > parseFloat(max),
+                              }));
+                            }}
+                            className={amountErrors.originalTotal ? "border-red-500" : ""}
+                          />
+                          <Input
+                            placeholder="Max ₱"
+                            type="number"
+                            value={amountRanges.originalTotal.max}
+                            onChange={(e) => {
+                              const newMax = e.target.value;
+                              const min = amountRanges.originalTotal.min;
+                              setAmountRanges(prev => ({
+                                ...prev,
+                                originalTotal: { ...prev.originalTotal, max: newMax }
+                              }));
+                              setAmountErrors(prev => ({
+                                ...prev,
+                                originalTotal: min && parseFloat(min) > parseFloat(newMax),
+                              }));
+                            }}
+                            className={amountErrors.originalTotal ? "border-red-500" : ""}
+                          />
+                        </div>
+                        {amountErrors.originalTotal && (
+                          <p className="text-red-500 text-sm">Min cannot be greater than Max.</p>
+                        )}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>Total Product Discount</DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent className="p-4 space-y-2">
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="Min ₱"
+                            type="number"
+                            value={amountRanges.totalProductDiscount.min}
+                            onChange={(e) => {
+                              const newMin = e.target.value;
+                              const max = amountRanges.totalProductDiscount.max;
+                              setAmountRanges(prev => ({
+                                ...prev,
+                                totalProductDiscount: { ...prev.totalProductDiscount, min: newMin }
+                              }));
+                              setAmountErrors(prev => ({
+                                ...prev,
+                                totalProductDiscount: max && parseFloat(newMin) > parseFloat(max),
+                              }));
+                            }}
+                            className={amountErrors.totalProductDiscount ? "border-red-500" : ""}
+                          />
+                          <Input
+                            placeholder="Max ₱"
+                            type="number"
+                            value={amountRanges.totalProductDiscount.max}
+                            onChange={(e) => {
+                              const newMax = e.target.value;
+                              const min = amountRanges.totalProductDiscount.min;
+                              setAmountRanges(prev => ({
+                                ...prev,
+                                totalProductDiscount: { ...prev.totalProductDiscount, max: newMax }
+                              }));
+                              setAmountErrors(prev => ({
+                                ...prev,
+                                totalProductDiscount: min && parseFloat(min) > parseFloat(newMax),
+                              }));
+                            }}
+                            className={amountErrors.totalProductDiscount ? "border-red-500" : ""}
+                          />
+                        </div>
+                        {amountErrors.totalProductDiscount && (
+                          <p className="text-red-500 text-sm">Min cannot be greater than Max.</p>
+                        )}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>Whole Order Discount</DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent className="p-4 space-y-2">
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="Min ₱"
+                            type="number"
+                            value={amountRanges.wholeOrderDiscount.min}
+                            onChange={(e) => {
+                              const newMin = e.target.value;
+                              const max = amountRanges.wholeOrderDiscount.max;
+                              setAmountRanges(prev => ({
+                                ...prev,
+                                wholeOrderDiscount: { ...prev.wholeOrderDiscount, min: newMin }
+                              }));
+                              setAmountErrors(prev => ({
+                                ...prev,
+                                wholeOrderDiscount: max && parseFloat(newMin) > parseFloat(max),
+                              }));
+                            }}
+                            className={amountErrors.wholeOrderDiscount ? "border-red-500" : ""}
+                          />
+                          <Input
+                            placeholder="Max ₱"
+                            type="number"
+                            value={amountRanges.wholeOrderDiscount.max}
+                            onChange={(e) => {
+                              const newMax = e.target.value;
+                              const min = amountRanges.wholeOrderDiscount.min;
+                              setAmountRanges(prev => ({
+                                ...prev,
+                                wholeOrderDiscount: { ...prev.wholeOrderDiscount, max: newMax }
+                              }));
+                              setAmountErrors(prev => ({
+                                ...prev,
+                                wholeOrderDiscount: min && parseFloat(min) > parseFloat(newMax),
+                              }));
+                            }}
+                            className={amountErrors.wholeOrderDiscount ? "border-red-500" : ""}
+                          />
+                        </div>
+                        {amountErrors.wholeOrderDiscount && (
+                          <p className="text-red-500 text-sm">Min cannot be greater than Max.</p>
+                        )}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>Payment</DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent className="p-4 space-y-2">
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="Min ₱"
+                            type="number"
+                            value={amountRanges.payment.min}
+                            onChange={(e) => {
+                              const newMin = e.target.value;
+                              const max = amountRanges.payment.max;
+                              setAmountRanges(prev => ({
+                                ...prev,
+                                payment: { ...prev.payment, min: newMin }
+                              }));
+                              setAmountErrors(prev => ({
+                                ...prev,
+                                payment: max && parseFloat(newMin) > parseFloat(max),
+                              }));
+                            }}
+                            className={amountErrors.payment ? "border-red-500" : ""}
+                          />
+                          <Input
+                            placeholder="Max ₱"
+                            type="number"
+                            value={amountRanges.payment.max}
+                            onChange={(e) => {
+                              const newMax = e.target.value;
+                              const min = amountRanges.payment.min;
+                              setAmountRanges(prev => ({
+                                ...prev,
+                                payment: { ...prev.payment, max: newMax }
+                              }));
+                              setAmountErrors(prev => ({
+                                ...prev,
+                                payment: min && parseFloat(min) > parseFloat(newMax),
+                              }));
+                            }}
+                            className={amountErrors.payment ? "border-red-500" : ""}
+                          />
+                        </div>
+                        {amountErrors.payment && (
+                          <p className="text-red-500 text-sm">Min cannot be greater than Max.</p>
+                        )}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+
+                    <DropdownMenuSub>
                       <DropdownMenuSubTrigger>Total Amount</DropdownMenuSubTrigger>
                       <DropdownMenuSubContent className="p-4 space-y-2">
                         <div className="flex gap-2">
@@ -514,102 +708,8 @@ Object.entries(amountRanges).forEach(([key, range]) => {
                         )}
                       </DropdownMenuSubContent>
                     </DropdownMenuSub>
-
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>Total Product Discount</DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent className="p-4 space-y-2">
-                        <div className="flex gap-2">
-                          <Input
-                            placeholder="Min ₱"
-                            type="number"
-                            value={amountRanges.totalAmount.min}
-                            onChange={(e) => {
-                              const newMin = e.target.value;
-                              const max = amountRanges.totalAmount.max;
-                              setAmountRanges(prev => ({
-                                ...prev,
-                                totalAmount: { ...prev.totalAmount, min: newMin }
-                              }));
-                              setAmountErrors(prev => ({
-                                ...prev,
-                                totalAmount: max && parseFloat(newMin) > parseFloat(max),
-                              }));
-                            }}
-                            className={amountErrors.totalAmount ? "border-red-500" : ""}
-                          />
-                          <Input
-                            placeholder="Max ₱"
-                            type="number"
-                            value={amountRanges.totalAmount.max}
-                            onChange={(e) => {
-                              const newMax = e.target.value;
-                              const min = amountRanges.totalAmount.min;
-                              setAmountRanges(prev => ({
-                                ...prev,
-                                totalAmount: { ...prev.totalAmount, max: newMax }
-                              }));
-                              setAmountErrors(prev => ({
-                                ...prev,
-                                totalAmount: min && parseFloat(min) > parseFloat(newMax),
-                              }));
-                            }}
-                            className={amountErrors.totalAmount ? "border-red-500" : ""}
-                          />
-                        </div>
-                        {amountErrors.totalAmount && (
-                          <p className="text-red-500 text-sm">Min cannot be greater than Max.</p>
-                        )}
-                      </DropdownMenuSubContent>
-                    </DropdownMenuSub>
-
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>Whole Order Discount</DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent className="p-4 space-y-2">
-                        <div className="flex gap-2">
-                          <Input
-                            placeholder="Min ₱"
-                            type="number"
-                            value={amountRanges.totalAmount.min}
-                            onChange={(e) => {
-                              const newMin = e.target.value;
-                              const max = amountRanges.totalAmount.max;
-                              setAmountRanges(prev => ({
-                                ...prev,
-                                totalAmount: { ...prev.totalAmount, min: newMin }
-                              }));
-                              setAmountErrors(prev => ({
-                                ...prev,
-                                totalAmount: max && parseFloat(newMin) > parseFloat(max),
-                              }));
-                            }}
-                            className={amountErrors.totalAmount ? "border-red-500" : ""}
-                          />
-                          <Input
-                            placeholder="Max ₱"
-                            type="number"
-                            value={amountRanges.totalAmount.max}
-                            onChange={(e) => {
-                              const newMax = e.target.value;
-                              const min = amountRanges.totalAmount.min;
-                              setAmountRanges(prev => ({
-                                ...prev,
-                                totalAmount: { ...prev.totalAmount, max: newMax }
-                              }));
-                              setAmountErrors(prev => ({
-                                ...prev,
-                                totalAmount: min && parseFloat(min) > parseFloat(newMax),
-                              }));
-                            }}
-                            className={amountErrors.totalAmount ? "border-red-500" : ""}
-                          />
-                        </div>
-                        {amountErrors.totalAmount && (
-                          <p className="text-red-500 text-sm">Min cannot be greater than Max.</p>
-                        )}
-                      </DropdownMenuSubContent>
-                    </DropdownMenuSub>
                   </DropdownMenuContent>
-                </DropdownMenu>  
+                </DropdownMenu> 
 
                 {/* Date Range Filters - From and To */}
                 <Popover>
