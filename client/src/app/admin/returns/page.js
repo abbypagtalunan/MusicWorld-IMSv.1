@@ -115,7 +115,6 @@ export default function ReturnsPage() {
   const [customerReturns, setCustomerReturns] = useState([]);
   const [supplierReturns, setSupplierReturns] = useState([]);
   const [activeTab, setActiveTab] = useState("customer");
-
   // Customer Return Form
   const [productName, setProductName] = useState(""); // Product Code
   const [selectedSupplierName, setSelectedSupplierName] = useState(""); // Supplier Name (displayed)
@@ -125,7 +124,6 @@ export default function ReturnsPage() {
   const [returnType, setReturnType] = useState(""); // Return Type (string)
   const [selectedDiscount, setSelectedDiscount] = useState("0");
   const [productPrice, setProductPrice] = useState(0);
-
   // Supplier Return Form
   const [deliveryNumber, setDeliveryNumber] = useState("");
   const [supplierName, setSupplierName] = useState(""); // Supplier Name (displayed)
@@ -135,17 +133,14 @@ export default function ReturnsPage() {
   const [quantity, setQuantity] = useState("");
   const [amount, setAmount] = useState(""); // Total price for Supplier Returns
   const [selectedProductPrice, setSelectedProductPrice] = useState(0); // Price of the selected product for Supplier Returns
-
   // Dropdown Options
   const [suppliers, setSuppliers] = useState([]);
   const [brands, setBrands] = useState([]);
   const [products, setProducts] = useState([]);
   const [deliveryNumbers, setDeliveryNumbers] = useState([]);
-
   // Search Terms
   const [productSearchTerm, setProductSearchTerm] = useState(""); // For customer return product search
   const [productSearchTerm2, setProductSearchTerm2] = useState(""); // For supplier return product search
-
   // Sort
   const [customerSortConfig, setCustomerSortConfig] = useState({ key: null, direction: "ascending" });
   const [supplierSortConfig, setSupplierSortConfig] = useState({ key: null, direction: "ascending" });
@@ -159,7 +154,6 @@ export default function ReturnsPage() {
         setCustomerReturns(customerRes.data);
         const supplierRes = await axios.get(`${config.returns.api.fetch}?source=supplier`);
         setSupplierReturns(supplierRes.data);
-
         // Fetch dropdown options
         const suppliersRes = await axios.get(config.suppliers.api.fetch);
         setSuppliers(suppliersRes.data);
@@ -178,6 +172,12 @@ export default function ReturnsPage() {
 
   // Handle Add Customer Return
   const handleAddCustomerReturn = async () => {
+    // Validate Return Type before adding the return
+    if (!returnType.trim()) {
+      alert("Return Type cannot be empty.");
+      return;
+    }
+
     if (
       !productName ||
       !selectedSupplierID ||
@@ -267,12 +267,10 @@ export default function ReturnsPage() {
       alert("Incorrect password.");
       return;
     }
-
     try {
       const response = await axios.delete(`${config.returns.api.delete}/${id}`, {
         data: { adminPW: password },
       });
-
       if (response.status === 200) {
         if (type === "customer") {
           setCustomerReturns((prev) =>
@@ -304,14 +302,12 @@ export default function ReturnsPage() {
     if (product) {
       setProductName(product[config.products.codeField]);
       setProductPrice(product[config.products.priceField] || 0);
-
       // Get supplier by ID from product
       const supplier = suppliers.find(s => s.S_supplierID === product.S_supplierID);
       if (supplier) {
         setSelectedSupplierName(supplier.S_supplierName);
         setSelectedSupplierID(supplier.S_supplierID);
       }
-
       // Get brand directly from product
       setSelectedBrand(product.brand || "N/A");
     }
@@ -330,14 +326,12 @@ export default function ReturnsPage() {
     if (product) {
       setProductItem(product.P_productCode);
       setSelectedProductPrice(product[config.products.priceField] || 0);
-
       // Get supplier by ID from product
       const supplier = suppliers.find(s => s.S_supplierID === product.S_supplierID);
       if (supplier) {
         setSupplierName(supplier.S_supplierName);
         setSupplierID(supplier.S_supplierID);
       }
-
       // Get brand directly from product
       setBrand(product.brand || "N/A");
     }
@@ -372,7 +366,6 @@ export default function ReturnsPage() {
     return [...data].sort((a, b) => {
       let valA = a[key];
       let valB = b[key];
-
       // Handle derived supplier/product names
       if (key === "supplierName") {
         valA = suppliers.find(s => s.S_supplierID === a.S_supplierID)?.S_supplierName || "";
@@ -382,25 +375,21 @@ export default function ReturnsPage() {
         valA = products.find(p => p.P_productCode === a.P_productCode)?.P_productName || "";
         valB = products.find(p => p.P_productCode === b.P_productCode)?.P_productName || "";
       }
-
       // Handle date
       else if (key.toLowerCase().includes("date")) {
         valA = new Date(valA).getTime();
         valB = new Date(valB).getTime();
       }
-
       // Handle numbers
       else if (!isNaN(parseFloat(valA)) && !isNaN(parseFloat(valB))) {
         valA = parseFloat(valA);
         valB = parseFloat(valB);
       }
-
       // Handle strings
       else {
         valA = valA?.toString().toLowerCase() || "";
         valB = valB?.toString().toLowerCase() || "";
       }
-
       return direction === "ascending"
         ? valA > valB ? 1 : valA < valB ? -1 : 0
         : valA < valB ? 1 : valA > valB ? -1 : 0;
@@ -415,7 +404,6 @@ export default function ReturnsPage() {
           <div className="flex items-center justify-between mb-4 bg-white p-2 rounded-lg">
             <h1 className="text-gray-600 font-bold">Processing of Returns</h1>
           </div>
-
           <Tabs defaultValue="customer" onValueChange={setActiveTab}>
             <TabsList className="w-full flex justify-start bg-white shadow-md rounded-md px-6 py-6 mb-4">
               <TabsTrigger value="customer" className="data-[state=active]:text-indigo-600 hover:text-black">
@@ -425,7 +413,6 @@ export default function ReturnsPage() {
                 RETURN TO SUPPLIER
               </TabsTrigger>
             </TabsList>
-
             {/* Customer Returns Tab */}
             <TabsContent value="customer">
               <div className="flex flex-col lg:flex-row gap-4 items-stretch">
@@ -653,22 +640,33 @@ export default function ReturnsPage() {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="returnType">Return Type</Label>
-                        <Input
-                          id="returnType"
-                          type="text"
-                          placeholder="Type return type"
-                          value={returnType}
-                          onChange={(e) => {
-                            const inputValue = e.target.value;
-                            // Restrict numeric input
-                            if (/^[a-zA-Z\s]+$/.test(inputValue)) {
-                              setReturnType(inputValue);
-                            }
-                          }}
-                          className="mt-1"
-                        />
-                      </div>
+                      <Label htmlFor="returnType">Return Type</Label>
+                      <Input
+                        id="returnType"
+                        type="text"
+                        placeholder="Type return type"
+                        value={returnType}
+                        onChange={(e) => {
+                          // Filter out any numeric characters before updating state
+                          const filteredValue = e.target.value.replace(/[0-9]/g, "");
+                          setReturnType(filteredValue);
+                        }}
+                        onKeyDown={(e) => {
+                          // Prevent keyboard input of numeric characters
+                          if (!/[a-zA-Z\s]/.test(e.key)) {
+                            e.preventDefault();
+                          }
+                        }}
+                        onPaste={(e) => {
+                          // Prevent pasting of numeric characters
+                          const text = e.clipboardData.getData("text");
+                          if (/\d/.test(text)) {
+                            e.preventDefault();
+                          }
+                        }}
+                        className="mt-1"
+                      />
+                    </div>
                       <div>
                         <Label htmlFor="discount">Discount (%)</Label>
                         <Input
@@ -710,7 +708,6 @@ export default function ReturnsPage() {
                 </Card>
               </div>
             </TabsContent>
-
             {/* Supplier Returns Tab */}
             <TabsContent value="supplier">
               <div className="flex flex-col lg:flex-row gap-4 items-stretch">
