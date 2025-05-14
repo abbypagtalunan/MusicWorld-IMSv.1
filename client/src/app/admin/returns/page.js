@@ -44,7 +44,8 @@ import {
   TabsContent,
 } from "@/components/ui/tabs";
 import { Trash2, Eye, ChevronsUpDown, ChevronUp, ChevronDown } from "lucide-react";
-
+// Toast Notifications
+import { toast, Toaster } from "react-hot-toast";
 // Helper function to format PHP currency
 const formatToPHP = (amount) => {
   return `₱${Number(amount).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`;
@@ -144,7 +145,6 @@ export default function ReturnsPage() {
   // Sort
   const [customerSortConfig, setCustomerSortConfig] = useState({ key: null, direction: "ascending" });
   const [supplierSortConfig, setSupplierSortConfig] = useState({ key: null, direction: "ascending" });
-
   // Fetch Data on Load
   useEffect(() => {
     const fetchData = async () => {
@@ -165,6 +165,7 @@ export default function ReturnsPage() {
         setDeliveryNumbers(deliveriesRes.data);
       } catch (err) {
         console.error("Error fetching data:", err);
+        toast.error("Failed to load data.");
       }
     };
     fetchData();
@@ -172,12 +173,10 @@ export default function ReturnsPage() {
 
   // Handle Add Customer Return
   const handleAddCustomerReturn = async () => {
-    // Validate Return Type before adding the return
     if (!returnType.trim()) {
-      alert("Return Type cannot be empty.");
+      toast.error("Return Type cannot be empty.");
       return;
     }
-
     if (
       !productName ||
       !selectedSupplierID ||
@@ -185,10 +184,9 @@ export default function ReturnsPage() {
       !selectedQuantity ||
       !returnType
     ) {
-      alert("Please fill in all required fields.");
+      toast.error("Please fill in all required fields.");
       return;
     }
-
     const newReturn = {
       P_productCode: productName,
       returnTypeDescription: "Customer Return",
@@ -199,14 +197,13 @@ export default function ReturnsPage() {
       D_deliveryNumber: 1, // dummy value
       S_supplierID: selectedSupplierID,
     };
-
     try {
       await axios.post(config.returns.api.add, newReturn);
-      alert("Customer return added successfully!");
+      toast.success("Customer return added successfully!");
       resetCustomerForm();
     } catch (error) {
       console.error("Error adding customer return:", error);
-      alert("Failed to add customer return.");
+      toast.error("Failed to add customer return.");
     }
   };
 
@@ -224,10 +221,9 @@ export default function ReturnsPage() {
   // Handle Add Supplier Return
   const handleAddSupplierReturn = async () => {
     if (!deliveryNumber || !supplierID || !productItem || !brand || !quantity) {
-      alert("Please fill in all required fields.");
+      toast.error("Please fill in all required fields.");
       return;
     }
-
     const newReturn = {
       P_productCode: productItem,
       returnTypeDescription: "Supplier Return",
@@ -239,14 +235,13 @@ export default function ReturnsPage() {
       S_supplierID: supplierID,
       R_TotalPrice: amount,
     };
-
     try {
       await axios.post(config.returns.api.add, newReturn);
-      alert("Supplier return added successfully!");
+      toast.success("Supplier return added successfully!");
       resetSupplierForm();
     } catch (error) {
       console.error("Error adding supplier return:", error);
-      alert("Failed to add supplier return.");
+      toast.error("Failed to add supplier return.");
     }
   };
 
@@ -263,14 +258,16 @@ export default function ReturnsPage() {
 
   // Handle Delete
   const handleDelete = async (id, password, type) => {
-    if (password !== "2095") {
-      alert("Incorrect password.");
+    if (!password) {
+      toast.error("Password is required.");
       return;
     }
+
     try {
       const response = await axios.delete(`${config.returns.api.delete}/${id}`, {
         data: { adminPW: password },
       });
+
       if (response.status === 200) {
         if (type === "customer") {
           setCustomerReturns((prev) =>
@@ -281,11 +278,18 @@ export default function ReturnsPage() {
             prev.filter((item) => item.R_returnID !== id)
           );
         }
-        alert("Item deleted successfully.");
+        toast.success("Item deleted successfully.");
+      } else {
+        toast.error(response.data.message || "Failed to delete item.");
       }
     } catch (error) {
       console.error("Error deleting item:", error);
-      alert("Failed to delete item.");
+      toast.error(error.response?.data?.message || "Failed to delete item.");
+
+      // Handle invalid credentials
+      if (error.response?.status === 403) {
+        toast.error("Invalid admin password.");
+      }
     }
   };
 
@@ -302,13 +306,11 @@ export default function ReturnsPage() {
     if (product) {
       setProductName(product[config.products.codeField]);
       setProductPrice(product[config.products.priceField] || 0);
-      // Get supplier by ID from product
       const supplier = suppliers.find(s => s.S_supplierID === product.S_supplierID);
       if (supplier) {
         setSelectedSupplierName(supplier.S_supplierName);
         setSelectedSupplierID(supplier.S_supplierID);
       }
-      // Get brand directly from product
       setSelectedBrand(product.brand || "N/A");
     }
   };
@@ -326,13 +328,11 @@ export default function ReturnsPage() {
     if (product) {
       setProductItem(product.P_productCode);
       setSelectedProductPrice(product[config.products.priceField] || 0);
-      // Get supplier by ID from product
       const supplier = suppliers.find(s => s.S_supplierID === product.S_supplierID);
       if (supplier) {
         setSupplierName(supplier.S_supplierName);
         setSupplierID(supplier.S_supplierID);
       }
-      // Get brand directly from product
       setBrand(product.brand || "N/A");
     }
   };
@@ -366,7 +366,6 @@ export default function ReturnsPage() {
     return [...data].sort((a, b) => {
       let valA = a[key];
       let valB = b[key];
-      // Handle derived supplier/product names
       if (key === "supplierName") {
         valA = suppliers.find(s => s.S_supplierID === a.S_supplierID)?.S_supplierName || "";
         valB = suppliers.find(s => s.S_supplierID === b.S_supplierID)?.S_supplierName || "";
@@ -375,17 +374,14 @@ export default function ReturnsPage() {
         valA = products.find(p => p.P_productCode === a.P_productCode)?.P_productName || "";
         valB = products.find(p => p.P_productCode === b.P_productCode)?.P_productName || "";
       }
-      // Handle date
       else if (key.toLowerCase().includes("date")) {
         valA = new Date(valA).getTime();
         valB = new Date(valB).getTime();
       }
-      // Handle numbers
       else if (!isNaN(parseFloat(valA)) && !isNaN(parseFloat(valB))) {
         valA = parseFloat(valA);
         valB = parseFloat(valB);
       }
-      // Handle strings
       else {
         valA = valA?.toString().toLowerCase() || "";
         valB = valB?.toString().toLowerCase() || "";
@@ -640,33 +636,33 @@ export default function ReturnsPage() {
                         />
                       </div>
                       <div>
-                      <Label htmlFor="returnType">Return Type</Label>
-                      <Input
-                        id="returnType"
-                        type="text"
-                        placeholder="Type return type"
-                        value={returnType}
-                        onChange={(e) => {
-                          // Filter out any numeric characters before updating state
-                          const filteredValue = e.target.value.replace(/[0-9]/g, "");
-                          setReturnType(filteredValue);
-                        }}
-                        onKeyDown={(e) => {
-                          // Prevent keyboard input of numeric characters
-                          if (!/[a-zA-Z\s]/.test(e.key)) {
-                            e.preventDefault();
-                          }
-                        }}
-                        onPaste={(e) => {
-                          // Prevent pasting of numeric characters
-                          const text = e.clipboardData.getData("text");
-                          if (/\d/.test(text)) {
-                            e.preventDefault();
-                          }
-                        }}
-                        className="mt-1"
-                      />
-                    </div>
+                        <Label htmlFor="returnType">Return Type</Label>
+                        <Input
+                          id="returnType"
+                          type="text"
+                          placeholder="Type return type"
+                          value={returnType}
+                          onChange={(e) => {
+                            // Filter out any numeric characters before updating state
+                            const filteredValue = e.target.value.replace(/[0-9]/g, "");
+                            setReturnType(filteredValue);
+                          }}
+                          onKeyDown={(e) => {
+                            // Prevent keyboard input of numeric characters
+                            if (!/[a-zA-Z\s]/.test(e.key)) {
+                              e.preventDefault();
+                            }
+                          }}
+                          onPaste={(e) => {
+                            // Prevent pasting of numeric characters
+                            const text = e.clipboardData.getData("text");
+                            if (/\d/.test(text)) {
+                              e.preventDefault();
+                            }
+                          }}
+                          className="mt-1"
+                        />
+                      </div>
                       <div>
                         <Label htmlFor="discount">Discount (%)</Label>
                         <Input
@@ -951,6 +947,7 @@ export default function ReturnsPage() {
           </Tabs>
         </div>
       </div>
+      <Toaster />
     </SidebarProvider>
   );
 }

@@ -2,6 +2,7 @@
 
 const returnModel = require('../models/returnsModel');
 const { getOrCreateReturnTypeId } = require('./returnTypeController');
+const db = require('../../db'); // Import central DB connection
 
 // Route to fetch all active returns
 const getAllReturns = (req, res) => {
@@ -42,7 +43,6 @@ const addReturn = (req, res) => {
 
     // Fetch product price using existing model method
     const getProductPrice = (callback) => {
-      const db = require('../../db'); // Importing your central DB connection
       const query = 'SELECT P_sellingPrice FROM Products WHERE P_productCode = ?';
       db.query(query, [P_productCode], (err, results) => {
         if (err) return callback(err);
@@ -103,7 +103,6 @@ const updateReturn = (req, res) => {
   }
 
   const getProductPrice = (callback) => {
-    const db = require('../../db'); // Importing your central DB connection
     const query = 'SELECT P_sellingPrice FROM Products WHERE P_productCode = ?';
     db.query(query, [P_productCode], (err, results) => {
       if (err) return callback(err);
@@ -154,20 +153,39 @@ const deleteReturn = (req, res) => {
   const returnID = req.params.id;
   const { adminPW } = req.body;
 
-  if (adminPW !== "2095") {
-    return res.status(403).json({ message: "Invalid admin password" });
+  if (!adminPW) {
+    return res.status(400).json({ message: "Password is required" });
   }
 
-  returnModel.softDeleteReturn(returnID, (err, results) => {
+  // Check if an admin with that password exists
+  const query = `
+    SELECT * FROM UserAccounts 
+    WHERE roleID = 1 AND password = ?
+  `;
+
+  db.query(query, [adminPW], (err, results) => {
     if (err) {
-      console.error('Error soft-deleting return:', err);
-      res.status(500).json({ message: 'Error deleting return' });
-    } else {
+      console.error('Error checking admin credentials:', err);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+
+    if (results.length === 0) {
+      return res.status(403).json({ message: "Invalid admin credentials" });
+    }
+
+    // Admin validated — proceed to delete return
+    returnModel.softDeleteReturn(returnID, (err, results) => {
+      if (err) {
+        console.error('Error soft-deleting return:', err);
+        return res.status(500).json({ message: 'Error deleting return' });
+      }
+
       if (results.affectedRows === 0) {
         return res.status(404).json({ message: 'Return not found' });
       }
+
       res.status(200).json({ message: 'Return marked as deleted successfully' });
-    }
+    });
   });
 };
 
