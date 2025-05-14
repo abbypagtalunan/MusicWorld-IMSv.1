@@ -123,16 +123,10 @@ export default function BatchDeliveriesPage() {
       // Set today's date as default delivery date
       const today = new Date().toISOString().split('T')[0];
       setDeliveryDate(today);
-      
-      // Also set the default due date to 30 days from today
-      const dueDate = new Date();
-      dueDate.setDate(dueDate.getDate() + 30);
-      const formattedDueDate = dueDate.toISOString().split('T')[0];
 
       // Initialize payment details with due date
       setPaymentDetails(prev => ({
         ...prev,
-        dateDue: formattedDueDate
       }));
       
     } catch (error) {
@@ -189,40 +183,78 @@ export default function BatchDeliveriesPage() {
 
   // Handle payment details input changes
   const handlePaymentDetailChange = (field, value) => {
-    if (field === 'paymentType') {
-      // identify two-time payment by its primary key (ID = 3)
-      const isTwoTimePayment = parseInt(value, 10) === 3;
+    setPaymentDetails(prev => {
+      let next = { ...prev, [field]: value };
 
-      // show or hide the 2nd-payment card
-      setShowSecondPayment(isTwoTimePayment);
+      // 1) On Payment Type change
+      if (field === 'paymentType') {
+        const isTwoTimePayment = parseInt(value, 10) === 3;
+        setShowSecondPayment(isTwoTimePayment);
 
-      // update paymentType and either seed or clear the 2nd-payment fields
-      setPaymentDetails(prev => {
-        const next = { ...prev, paymentType: value };
+        // auto-fill/clear first payment date
+        if (value === '1') {
+          const today = new Date().toISOString().split('T')[0];
+          next.datePayment1 = today;
+        } else if (prev.paymentType === '1') {
+          next.datePayment1 = '';
+        }
 
+        // auto-set or clear first payment status & due date
+        if (value === '1') {
+          const paidStatus = paymentStatuses
+            .find(s => s.D_statusName.toLowerCase() === 'paid');
+          next.paymentStatus = paidStatus
+            ? paidStatus.D_paymentStatusID.toString()
+            : '';
+          // clear the "Date of Payment Due" so it shows blank/placeholder
+          next.dateDue = '';
+        } else if (value === '2') {
+          // set due date exactly 1 month after the delivery date
+          if (deliveryDate) {
+            const due = new Date(deliveryDate);
+            due.setMonth(due.getMonth() + 1);
+            next.dateDue = due.toISOString().split('T')[0];
+          }
+          next.paymentStatus = '';
+        } else if (prev.paymentType === '1') {
+          next.paymentStatus = '';
+          // restore original due-date if you need
+        }
+
+        // prepare or clear second-payment fields
         if (isTwoTimePayment) {
-          // calculate 30 days after the main due date
           const firstDue = new Date(next.dateDue);
           firstDue.setDate(firstDue.getDate() + 30);
           next.dateDue2 = firstDue.toISOString().split('T')[0];
         } else {
-          // clear any leftover 2nd-payment values
-          next.paymentMode2   = "";
-          next.paymentStatus2 = "";
-          next.dateDue2       = "";
-          next.datePayment2   = "";
+          next.paymentMode2   = '';
+          next.paymentStatus2 = '';
+          next.dateDue2       = '';
+          next.datePayment2   = '';
         }
+      }
+      
+      // 2) On Payment Status change
+      if (field === 'paymentStatus') {
+        const statusObj = paymentStatuses
+          .find(s => s.D_paymentStatusID.toString() === value);
+        const isUnpaid = statusObj?.D_statusName.toLowerCase() === 'unpaid';
 
-        return next;
-      });
+        // Allow editing when payment type is '1' (one-time payment) and status is 'unpaid'
+        const isOneTimePayment = paymentDetails.paymentType === '2';
 
-    } else {
-      // all other fields just overwrite their key in state
-      setPaymentDetails(prev => ({
-        ...prev,
-        [field]: value
-      }));
-    }
+        if (isUnpaid && !isOneTimePayment) {
+          next.datePayment1   = '';
+          next.paymentMode2   = '';
+          next.paymentStatus2 = '';
+          next.dateDue2       = '';
+          next.datePayment2   = '';
+          setShowSecondPayment(false);
+        }
+      }
+      
+      return next;
+    });
   };
 
   // Generate a unique product code
@@ -596,6 +628,12 @@ export default function BatchDeliveriesPage() {
       product.P_productName.toLowerCase().includes(searchTerm.toLowerCase())
     );
   };
+  
+  // disable logic when first-payment status is “Unpaid”
+  const isFirstUnpaid = paymentStatuses
+    .find(s => s.D_paymentStatusID.toString() === paymentDetails.paymentStatus)
+    ?.D_statusName
+    .toLowerCase() === 'unpaid';
 
   return (
     <SidebarProvider>
@@ -626,8 +664,9 @@ export default function BatchDeliveriesPage() {
                       id="deliveryDate" 
                       type="date" 
                       value={deliveryDate}
-                      onChange={(e) => setDeliveryDate(e.target.value)}
+                      readOnly
                     />
+                    {/* onChange={(e) => setDeliveryDate(e.target.value)} */}
                   </div>
                   <div className="w-1/3">
                     <Label htmlFor="deliveryNumber" className="mb-1 block">Delivery Number</Label>
@@ -945,27 +984,35 @@ export default function BatchDeliveriesPage() {
                   <Select 
                     value={paymentDetails.paymentStatus} 
                     onValueChange={(value) => handlePaymentDetailChange('paymentStatus', value)}
+                    disabled={paymentDetails.paymentType === '1'}
                   >
                     <SelectTrigger id="paymentStatus">
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
                       {paymentStatuses.map(status => (
-                        <SelectItem key={status.D_paymentStatusID} value={status.D_paymentStatusID.toString()}>
+                        <SelectItem 
+                          key={status.D_paymentStatusID}
+                          value={status.D_paymentStatusID.toString()}
+                        >
                           {status.D_statusName}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
+
                 <div className="col-span-3">
                   <Label htmlFor="paymentDateDue" className="mb-1 block">Date of Payment Due</Label>
                   <Input 
                     id="paymentDateDue" 
                     type="date" 
                     value={paymentDetails.dateDue}
-                    onChange={(e) => handlePaymentDetailChange('dateDue', e.target.value)}
+                    placeholder="N/A"
+                    className={paymentDetails.paymentType === '1' ? 'text-gray-400' : ''}
+                    readOnly
                   />
+                  {/* onChange={(e) => handlePaymentDetailChange('dateDue', e.target.value)} */}
                 </div>
                 <div className="col-span-3">
                   <Label htmlFor="paymentDate1" className="mb-1 block">Date of Payment</Label>
@@ -975,6 +1022,7 @@ export default function BatchDeliveriesPage() {
                     value={paymentDetails.datePayment1}
                     min={deliveryDate}
                     max={paymentDetails.dateDue}
+                    disabled={paymentDetails.paymentType === '1' || isFirstUnpaid}
                     onChange={(e) => handlePaymentDetailChange('datePayment1', e.target.value)}
                   />
                 </div>
@@ -1022,6 +1070,7 @@ export default function BatchDeliveriesPage() {
                     <Select
                       value={paymentDetails.paymentMode2}
                       onValueChange={v => handlePaymentDetailChange('paymentMode2', v)}
+                      disabled={isFirstUnpaid}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select mode" />
@@ -1041,6 +1090,7 @@ export default function BatchDeliveriesPage() {
                     <Select
                       value={paymentDetails.paymentStatus2}
                       onValueChange={v => handlePaymentDetailChange('paymentStatus2', v)}
+                      disabled={isFirstUnpaid}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select status" />
@@ -1060,8 +1110,9 @@ export default function BatchDeliveriesPage() {
                     <Input
                       type="date"
                       value={paymentDetails.dateDue2}
-                      onChange={e => handlePaymentDetailChange('dateDue2', e.target.value)}
+                      readOnly
                     />
+                    {/* onChange={e => handlePaymentDetailChange('dateDue2', e.target.value)} */}
                   </div>
                   {/* Date of Payment 2 */}
                   <div className="col-span-3">
@@ -1072,6 +1123,7 @@ export default function BatchDeliveriesPage() {
                       min={deliveryDate}
                       max={paymentDetails.dateDue2}
                       onChange={e => handlePaymentDetailChange('datePayment2', e.target.value)}
+                      disabled={isFirstUnpaid}
                     />
                   </div>
                 </div>
