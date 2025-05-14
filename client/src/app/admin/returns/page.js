@@ -948,7 +948,7 @@ export default function ReturnsPage() {
                       </div>
                     </div>
                   </CardContent>
-                </Card>
+                </Card>  
               </div>
             </TabsContent>
           </Tabs>
