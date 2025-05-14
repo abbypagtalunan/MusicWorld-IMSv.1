@@ -22,6 +22,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { toast, Toaster } from "react-hot-toast";
 import axios from "axios";
 
 export default function ReportsPage() {
