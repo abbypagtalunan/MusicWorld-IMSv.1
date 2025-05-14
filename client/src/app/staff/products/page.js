@@ -22,6 +22,7 @@ export default function ProductsPage() {
       supplierID: "P_supplierID",
       stockField: "P_stockNum",
       lastRestockField: "P_lastRestockDateTime",
+      lastUpdateField: "P_lastEditedDateTime",
       unitpriceField: "P_unitPrice",
       sellingpriceField: "P_sellingPrice",
       statusField: "P_productStatusName",
@@ -97,12 +98,13 @@ export default function ProductsPage() {
     brandID: item.B_brandID,
     supplier: item.supplier || "",
     supplierID: item.S_supplierID,
-    stockNumber: item.stock || 1,
-    lastRestock: item.P_lastRestockDateTime ? formatDateTime(item.P_lastRestockDateTime) : "N/A",
+    stockNumber: item.stock,
+    lastRestock: item.P_lastRestockDateTime ? formatDateTime(item.P_lastRestockDateTime) : "",
+    lastEdit: item.P_lastEditedDateTime ? formatDateTime(item.P_lastEditedDateTime) : "", 
     price: item.P_unitPrice,
     sellingPrice: item.P_sellingPrice,
     status: item.status,
-    dateAdded: item.P_dateAdded ? formatDate(item.P_dateAdded) : "N/A"
+    dateAdded: item.P_dateAdded ? formatDate(item.P_dateAdded) : ""
   }));
   
   // Fetch
@@ -120,6 +122,7 @@ export default function ProductsPage() {
         [config.product.supplierField]: "",
         [config.product.stockField]: "",
         [config.product.lastRestockField]: "",
+        [config.product.lastUpdateField]: "",
         [config.product.unitpriceField]: "",
         [config.product.sellingpriceField]: "",
         [config.product.statusField]: "",
@@ -396,6 +399,7 @@ export default function ProductsPage() {
                   <TableHead onClick={() => handleSort("sellingPrice")} className="cursor-pointer select-none">Selling Price <SortIcon column="sellingPrice" /></TableHead>
                   <TableHead onClick={() => handleSort("status")} className="cursor-pointer select-none">Status <SortIcon column="status" /></TableHead>
                   <TableHead onClick={() => handleSort("dateAdded")} className="cursor-pointer select-none">Date Added <SortIcon column="dateAdded" /></TableHead>
+                  <TableHead onClick={() => handleSort("lastEdit")} className="cursor-pointer select-none">Last Edited<SortIcon column="lastEdit" /></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -415,6 +419,7 @@ export default function ProductsPage() {
                     <TableCell>{item.sellingPrice}</TableCell>
                     <TableCell className={`font-semibold ${getStatusTextColor(item.status)}`}>{item.status}</TableCell>
                     <TableCell>{item.dateAdded}</TableCell>
+                    <TableCell>{item.lastEdit}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

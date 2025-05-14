@@ -111,12 +111,12 @@ export default function ProductsPage() {
     supplier: item.supplier || "",
     supplierID: item.S_supplierID,
     stockNumber: item.stock,
-    lastRestock: item.P_lastRestockDateTime ? formatDateTime(item.P_lastRestockDateTime) : "N/A",
-    lastEdit: item.P_lastEditedDateTime ? formatDateTime(item.P_lastEditedDateTime) : "N/A", 
+    lastRestock: item.P_lastRestockDateTime ? formatDateTime(item.P_lastRestockDateTime) : "",
+    lastEdit: item.P_lastEditedDateTime ? formatDateTime(item.P_lastEditedDateTime) : "", 
     price: item.P_unitPrice,
     sellingPrice: item.P_sellingPrice,
     status: item.status,
-    dateAdded: item.P_dateAdded ? formatDate(item.P_dateAdded) : "N/A"
+    dateAdded: item.P_dateAdded ? formatDate(item.P_dateAdded) : ""
   }));
 
   const isAddValid =
@@ -151,6 +151,7 @@ export default function ProductsPage() {
         [config.product.supplierField]: "",
         [config.product.stockField]: "",
         [config.product.lastRestockField]: "",
+        [config.product.lastUpdateField]: "",
         [config.product.unitpriceField]: "",
         [config.product.sellingpriceField]: "",
         [config.product.statusField]: "",
