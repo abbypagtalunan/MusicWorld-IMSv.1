@@ -814,7 +814,19 @@ export default function ProductsPage() {
               </Sheet>
 
               {/* Update Price  */}
-              <Dialog open={isPDOpen} onOpenChange={setPDopen}>
+              <Dialog 
+                open={isPDOpen} 
+                onOpenChange={(open) => {
+                  setPDopen(open);
+                  if(!open) {
+                    setPSearchTerm("");
+                    setValues({
+                      ...values,
+                      [config.product.codeField]: "",
+                      [config.product.sellingpriceField]: "",
+                    });
+                  }
+                }}>
                 <DialogTrigger asChild>
                   <Button className="bg-blue-400 text-white">Update Price</Button>
                 </DialogTrigger>
@@ -828,38 +840,69 @@ export default function ProductsPage() {
                     <Input disabled placeholder="Auto-filled" className="bg-gray-300" value={values[config.product.codeField] ?? ""}/>
 
                     <Label>Product </Label>
-                    <Select onValueChange={(value) => {
-                      const selected = data.find(p => p.productCode === value);
-                      if (selected) {
-                        setValues({
-                          ...values,
-                          [config.product.codeField]: selected.productCode,
-                          [config.product.sellingpriceField]: selected.sellingPrice,
-                        });
-                      }
-                    }}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select Product" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {data
-                          .filter(product =>
-                            product.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            product.supplier.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            product.brand.toLowerCase().includes(searchTerm.toLowerCase())
-                          )
-                          .map((product) => (
-                            <SelectItem
-                              key={product.productCode}
-                              value={product.productCode}
-                            >
-                              <div className="flex flex-col">
-                                <span>{product.productName}-S{product.supplier}-B{product.brand}</span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                      </SelectContent>  
-                    </Select>
+                    <div className="relative">
+                      <Input
+                        placeholder="Search product"
+                        value={PSearchTerm}
+                        onChange={(e) => {
+                          setPSearchTerm(e.target.value);
+                          if(e.target.value === "") {
+                            setValues({
+                              ...values,
+                              [config.product.codeField]: "",
+                              [config.product.sellingpriceField]: "",
+                            });
+                          }
+                        }}
+                        className="w-full pr-8"
+                      />
+                      <Search className="absolute right-3 top-3 w-4 h-4 text-gray-400"/>
+                    </div>
+                    <div className="border rounded-md max-h-60 overflow-y-auto">
+                      {data
+                        .filter(product => {
+                          if(!PSearchTerm) return true;
+                          const search = PSearchTerm.toLowerCase();
+
+                          const productName = String(product.productName || '').toLowerCase();
+                          const productCode = String(product.productCode || '').toLowerCase();
+                          const supplier = String(product.supplier || '').toLowerCase();
+                          const brand = String(product.brand || '').toLowerCase();
+                      
+                          return(
+                            productName.toLowerCase().includes(search) ||
+                            productCode.toLowerCase().includes(search) ||
+                            supplier.toLowerCase().includes(search) ||
+                            brand.toLowerCase().includes(search) 
+                          );
+                        })
+                        .map((product) => (
+                          <div
+                            key={product.productCode}
+                            className={`p-2 hover:bg-gray-100 cursor-pointer ${
+                              values[config.product.codeField] === product.productCode ? 'bg-blue-50' : ''
+                            }`}
+                            onClick={() => {
+                              setValues({
+                                ...values,
+                                [config.product.codeField]: product.productCode,
+                                [config.product.sellingpriceField]: product.sellingPrice,
+                              });
+                              setPSearchTerm(`${product.productName} (${product.productCode})`);
+                            }}
+                          >
+                            <div className="flex justify-between">
+                              <span className="font-medium">{product.productName}</span>
+                              <span className="text-gray-500">{product.productCode}</span>
+                            </div>
+                            <div className="flex justify-between text-sm text-gray-500">
+                              <span>Supplier: {product.supplier}</span>
+                              <span>Brand: {product.brand}</span>
+                              <span>Price: {product.sellingPrice}</span>
+                            </div>
+                          </div>
+                        ))}
+                    </div> 
 
                     <Label>Price</Label>
                     <Input disabled placeholder="Auto-filled" className="bg-gray-300" value={values[config.product.sellingpriceField] ?? ""}/>

@@ -6,7 +6,7 @@ import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
-import { Search, ListFilter, Trash2, Eye, CalendarDays, Download, ChevronsUpDown, ChevronUp, ChevronDown } from "lucide-react";
+import { Search, ListFilter, Trash2, Eye, CalendarDays, Download, ChevronsUpDown, ChevronUp, ChevronDown, RotateCcw } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -779,6 +779,17 @@ Object.entries(amountRanges).forEach(([key, range]) => {
                     )}
                   </PopoverContent>
                 </Popover>
+                <Button
+                      variant="outline"
+                      onClick={() => {
+                        setFromDate(null);
+                        setToDate(null);
+                      }}
+                      className="text-sm border-gray-300 hover:text-red-600"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                        <span>Reset Date</span>
+                  </Button>
                 </div>
                 </div>
 

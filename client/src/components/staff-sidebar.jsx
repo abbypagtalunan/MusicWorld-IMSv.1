@@ -22,19 +22,30 @@ import {
   SidebarMenuItem,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 // Import the logout function
 import { handleSignOut } from "@/utils/auth";
 
-const data = {
-  user: {
-    name: "Staff",
-    email: "staff@MW-IMS.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
-  navMain: [
+export function AppSidebar({ ...props }) {
+  const pathname = usePathname();
+  const [collapsed, setCollapsed] = React.useState(false);
+
+  // 🔄 Get real user data from localStorage
+  const userFromStorage = JSON.parse(localStorage.getItem("user")) || {};
+
+  // ✅ Format the user object for the sidebar
+  const user = {
+    name: userFromStorage.firstName && userFromStorage.lastName
+      ? `${userFromStorage.firstName} ${userFromStorage.lastName}`
+      : "Guest",
+    email: userFromStorage.accountID,
+    avatar: userFromStorage.avatar || "/avatars/guest.png", // fallback avatar
+  };
+
+  const role = userFromStorage.roleID === 1 ? "Admin" : "Staff"; // Optional role
+
+  const navMain = [
     {
       title: "Order Dashboard",
       url: "./OrderDashboard",
@@ -65,14 +76,9 @@ const data = {
       icon: CircleXIcon,
       path: "deleted",
     },
-  ],
-};
+  ];
 
-export function AppSidebar({ ...props }) {
-  const pathname = usePathname();
-  const [collapsed, setCollapsed] = React.useState(false);
-
-  const navMainWithActive = data.navMain.map((item) => ({
+  const navMainWithActive = navMain.map((item) => ({
     ...item,
     isActive: pathname.includes(item.path),
   }));
@@ -94,17 +100,15 @@ export function AppSidebar({ ...props }) {
         <SidebarHeader className="bg-white">
           <SidebarMenu>
             <SidebarMenuItem>
-              <Link href="/">
-                <SidebarMenuButton size="xl" tooltip="Home">
-                  <div className="flex justify-center items-center">
-                    <img
-                      src="/logo1.svg"
-                      alt="Music World IMS Logo"
-                      className="h-30 w-auto object-contain"
-                    />
-                  </div>
-                </SidebarMenuButton>
-              </Link>
+              <SidebarMenuButton size="xl" tooltip="Home">
+                <div className="flex justify-center items-center p-1 cursor-default">
+                  <img
+                    src="/logo1.svg"
+                    alt="Music World IMS Logo"
+                    className="h-30 w-auto object-contain"
+                  />
+                </div>
+              </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarHeader>
@@ -124,7 +128,7 @@ export function AppSidebar({ ...props }) {
               </button>
             </SidebarMenuItem>
           </SidebarMenu>
-          <NavUser user={data.user} />
+          <NavUser user={user} role={role} />
         </SidebarFooter>
       </Sidebar>
     </>

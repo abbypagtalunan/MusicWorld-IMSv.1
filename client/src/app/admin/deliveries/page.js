@@ -584,19 +584,6 @@ export default function DeliveriesPage() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start">
-                    {/* Filter by Delivery Number */}
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>Delivery Number</DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Delivery Number", "Ascending")}>
-                          Ascending
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Delivery Number", "Descending")}>
-                          Descending
-                        </DropdownMenuItem>
-                      </DropdownMenuSubContent>
-                    </DropdownMenuSub>
-
                     {/* Filter by Supplier */}
                     <DropdownMenuSub>
                       <DropdownMenuSubTrigger>Supplier</DropdownMenuSubTrigger>
@@ -609,32 +596,6 @@ export default function DeliveriesPage() {
                             {supplier.S_supplierName}
                           </DropdownMenuItem>
                         ))}
-                      </DropdownMenuSubContent>
-                    </DropdownMenuSub>
-
-                    {/* Filter by Total Cost */}
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>Total Cost</DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Price", "Low to High")}>
-                          Low to High
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Price", "High to Low")}>
-                          High to Low
-                        </DropdownMenuItem>
-                      </DropdownMenuSubContent>
-                    </DropdownMenuSub>
-
-                    {/* Filter by Date */}
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>Date</DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Date", "Oldest")}>
-                          Oldest first
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Date", "Newest")}>
-                          Newest first
-                        </DropdownMenuItem>
                       </DropdownMenuSubContent>
                     </DropdownMenuSub>
 

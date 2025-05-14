@@ -1,5 +1,7 @@
-"use client"
-import * as React from "react"
+// components/AppSidebar.tsx
+"use client";
+
+import * as React from "react";
 import {
   CircleXIcon,
   ShoppingCartIcon,
@@ -11,9 +13,9 @@ import {
   User,
   LogOutIcon,
   SettingsIcon,
-} from "lucide-react"
-import { NavMain } from "@/components/nav-main"
-import { NavUser } from "@/components/nav-user"
+} from "lucide-react";
+import { NavMain } from "@/components/nav-main";
+import { NavUser } from "@/components/nav-user";
 import {
   Sidebar,
   SidebarContent,
@@ -24,20 +26,28 @@ import {
   SidebarMenuItem,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 // Import the logout handler
 import { handleSignOut } from "@/utils/auth";
 
-const data = {
-  user: {
-    name: "Admin",
-    email: "admin@MW-IMS.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
+export function AppSidebar({ ...props }) {
+  const pathname = usePathname();
+  const [collapsed, setCollapsed] = React.useState(false);
 
-  navMain: [
+  // 🔄 Get real user data from localStorage
+  const userFromStorage = JSON.parse(localStorage.getItem("user")) || {};
+
+  // ✅ Format the user object for the sidebar
+  const user = {
+    name: userFromStorage.firstName && userFromStorage.lastName
+      ? `${userFromStorage.firstName} ${userFromStorage.lastName}`
+      : "Guest",
+    email: userFromStorage.accountID,
+    avatar: userFromStorage.avatar || "/avatars/guest.png", // fallback avatar
+  };
+
+  const navMain = [
     {
       title: "Products",
       url: "./products",
@@ -80,14 +90,9 @@ const data = {
       icon: User,
       path: "accounts"
     }
-  ]
-};
+  ];
 
-export function AppSidebar({ ...props }) {
-  const pathname = usePathname();
-  const [collapsed, setCollapsed] = React.useState(false);
-
-  const navMainWithActive = data.navMain.map((item) => ({
+  const navMainWithActive = navMain.map((item) => ({
     ...item,
     isActive: pathname.includes(item.path),
   }));
@@ -108,17 +113,16 @@ export function AppSidebar({ ...props }) {
         <SidebarHeader className="bg-white">
           <SidebarMenu>
             <SidebarMenuItem>
-              <Link href="/">
-                <SidebarMenuButton size="xl" tooltip="Home">
-                  <div className="flex justify-center items-center">
-                    <img
-                      src="/logo1.svg"
-                      alt="Music World IMS Logo"
-                      className="h-30 w-auto object-contain"
-                    />
-                  </div>
-                </SidebarMenuButton>
-              </Link>
+              {/* Removed Link component */}
+              <SidebarMenuButton size="xl" tooltip="Home">
+                <div className="flex justify-center items-center">
+                  <img
+                    src="/logo1.svg"
+                    alt="Music World IMS Logo"
+                    className="h-30 w-auto object-contain"
+                  />
+                </div>
+              </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarHeader>
@@ -138,8 +142,8 @@ export function AppSidebar({ ...props }) {
               </button>
             </SidebarMenuItem>
           </SidebarMenu>
-          <NavUser user={data.user} />
-        </SidebarFooter> 
+          <NavUser user={user} /> 
+        </SidebarFooter>
       </Sidebar>
     </>
   );
