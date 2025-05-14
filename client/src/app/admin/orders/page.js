@@ -146,26 +146,25 @@ Object.entries(amountRanges).forEach(([key, range]) => {
   result = result.filter(order => {
     const value = parseFloat(order[key]);
 
-    if (!isNaN(min) && !isNaN(max)) {
-      return value >= min && value <= max;
-    }
+      if (!isNaN(min) && !isNaN(max)) {
+        return value >= min && value <= max;
+      }
 
-    if (!isNaN(min) && aboveOnly[key]) {
-      return value >= min;
-    }
+      if (!isNaN(min) && aboveOnly[key]) {
+        return value >= min;
+      }
 
-    if (!isNaN(min)) {
-      return value >= min;
-    }
+      if (!isNaN(min)) {
+        return value >= min;
+      }
 
-    if (!isNaN(max)) {
-      return value <= max;
-    }
+      if (!isNaN(max)) {
+        return value <= max;
+      }
 
-    return true;
+      return true;
+    });
   });
-});
-
 
   // Column header sort 
   if (sortConfig.key) {
