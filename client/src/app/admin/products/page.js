@@ -557,50 +557,71 @@ export default function ProductsPage() {
   // Download
   const [isDownloadConfirmOpen, setDownloadConfirmOpen] = useState("");
   const handleDownloadCSV = (data) => {
-    const headers = [
-      "Product Code",
-      "Product Name",
-      "Category",
-      "Supplier",
-      "Brand",
-      "Stock Number",
-      "Last Restock",
-      "Unit Price",
-      "Selling Price",
-      "Status",
-      "Date Product Added"
-    ];
-  
-    const rows = data.map(item => [
-      item.productCode,
-      item.productName,
-      item.category,
-      item.supplier,
-      item.brand,
-      item.stockNumber,
-      item.lastRestock,
-      item.price,
-      item.sellingPrice,
-      item.status,
-      item.dateAdded
-    ]);
-  
-    const csvContent = [
-      headers.join(","),
-      ...rows.map(row => row.map(val => `"${val}"`).join(","))
-    ].join("\n");
-  
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", "Products.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-  
+  const headers = [
+    "Product Code",
+    "Product Name",
+    "Category",
+    "Supplier",
+    "Brand",
+    "Stock Number",
+    "Last Restock",
+    "Unit Price",
+    "Selling Price",
+    "Status",
+    "Date Product Added"
+  ];
+
+  const rows = data.map(item => [
+    item.productCode,
+    item.productName,
+    item.category,
+    item.supplier,
+    item.brand,
+    item.stockNumber,
+    item.lastRestock,
+    item.price,
+    item.sellingPrice,
+    item.status,
+    item.dateAdded
+  ]);
+
+  // Format Philippine Time
+  const now = new Date();
+  const phLocale = "en-PH";
+  const phTimeZone = "Asia/Manila";
+  const formattedPHDate = now.toLocaleString(phLocale, { timeZone: phTimeZone });
+
+  // Determine Filter Display
+  const filterLabel = selectedFilter && selectedSubFilter
+    ? `${selectedFilter} - ${selectedSubFilter}`
+    : "All";
+
+  const csvContent = [
+    `Products: ${filterLabel}`,
+    `Downloaded At:, "${formattedPHDate}"`,
+    selectedFilter && selectedSubFilter ? `Filter Applied:, "${filterLabel}"` : "Filter Applied:, None",
+    searchTerm ? `Search Term:, "${searchTerm}"` : "",
+    "",
+    headers.join(","),
+    ...rows.map(row => row.map(val => `"${val}"`).join(","))
+  ].join("\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  const safeFilter = selectedFilter && selectedSubFilter
+  ? `${selectedFilter}-${selectedSubFilter}`.replace(/\s+/g, "-")
+  : "All";
+
+  const fileName = `Products_${safeFilter}.csv`;
+  link.setAttribute("download", fileName);
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
 
   return (
     <SidebarProvider>
@@ -879,7 +900,7 @@ export default function ProductsPage() {
                     <Button
                       className="bg-emerald-500 hover:bg-emerald-700 text-white uppercase text-sm font-medium whitespace-nowrap"
                       onClick={() => {
-                        handleDownloadCSV(data);
+                        handleDownloadCSV(getFilteredTransactions());
                         toast.success("Downloaded successfully!");
                         setDownloadConfirmOpen(false);
                       }}
