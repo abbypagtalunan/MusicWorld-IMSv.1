@@ -28,6 +28,7 @@ export default function ProductsPage() {
       supplierID: "P_supplierID",
       stockField: "P_stockNum",
       lastRestockField: "P_lastRestockDateTime",
+      lastUpdateField: "P_lastEditedDateTime",
       unitpriceField: "P_unitPrice",
       sellingpriceField: "P_sellingPrice",
       statusField: "P_productStatusName",
@@ -109,8 +110,9 @@ export default function ProductsPage() {
     brandID: item.B_brandID,
     supplier: item.supplier || "",
     supplierID: item.S_supplierID,
-    stockNumber: item.stock || 1,
+    stockNumber: item.stock,
     lastRestock: item.P_lastRestockDateTime ? formatDateTime(item.P_lastRestockDateTime) : "N/A",
+    lastEdit: item.P_lastEditedDateTime ? formatDateTime(item.P_lastEditedDateTime) : "N/A", 
     price: item.P_unitPrice,
     sellingPrice: item.P_sellingPrice,
     status: item.status,
@@ -124,8 +126,14 @@ export default function ProductsPage() {
       values[config.product.supplierField] &&
       values[config.product.stockField] &&
       values[config.product.unitpriceField] &&
-      values[config.product.sellingpriceField] &&
-      values[config.product.statusField]
+      values[config.product.sellingpriceField];
+
+  const isUpdateValid =
+      values[config.product.codeField] &&
+      values[config.product.sellingpriceField] !== "" &&
+      !isNaN(parseFloat(values[config.product.sellingpriceField])) &&
+      parseFloat(values[config.product.sellingpriceField]) > 0;
+
   
 
   // Fetch
@@ -390,10 +398,9 @@ export default function ProductsPage() {
       P_productName: values[config.product.nameField] || selectedProduct.productName,
       B_brandID: values[config.product.brandField] || selectedProduct.brandID,
       S_supplierID: values[config.product.supplierField] || selectedProduct.supplierID,
-      P_stockNum: values[config.product.stockField] || selectedProduct.stockNumber,
+      P_stockNum: values[config.product.stockField] ?? selectedProduct.stockNumber,
       P_unitPrice: values[config.product.unitpriceField] || selectedProduct.unitPrice,
-      P_sellingPrice: values[config.product.sellingpriceField] || selectedProduct.sellingPrice,
-      P_productStatusID: values[config.product.statusID] || selectedProduct.statusID
+      P_sellingPrice: values[config.product.sellingpriceField] || selectedProduct.sellingPrice
     };
 
     axios
@@ -429,7 +436,7 @@ export default function ProductsPage() {
       return;
     }
 
-    if (!P_sellingPrice) {
+    if (!P_sellingPrice || P_sellingPrice <= 0) {
       toast.error("No price entered");
       return;
     }
@@ -472,16 +479,23 @@ export default function ProductsPage() {
       }
     })
     .catch(err => {
-      console.error("Delete error:", err.response?.data || err.message);
-      if (err.response?.status === 403) {
-        toast.error("Invalid admin password");
+      if(err.response) {
+        if (err.response.status === 403) {
+          toast.error("Invalid admin password");
+        } else if (err.response.status === 404) {
+          toast.error("Product not found");
+        } else {
+          toast.error("Deletion failed: " + (err.response?.data?.message || err.message));
+        }
       } else {
-        toast.error("Deletion failed: " + (err.response?.data?.message || err.message));
+        toast.error("Delete request error");
       }
-      setDDOpen(false);
-      setAdminPW("");
-      setSelectedProducts([]);
     })
+    .finally(() => {
+      setAdminPW("");
+      setMDDOpen(false);
+      setSelectedProducts([]);
+    });
   };  
  
   useEffect(() => {
@@ -520,13 +534,27 @@ export default function ProductsPage() {
   
     if (selectedProducts.length === 0) {
       toast.error("No products selected.");
+      setDDOpen(false);
+      setAdminPW("");
+      setSelectedProducts([]);
       return;
     }
+
+    let PWError = false;
   
     Promise.all(
       selectedProducts.map((productCode) =>
         axios.delete(`${config.product.api.delete}/${productCode}`, {
           data: { adminPW: password },
+        }).catch(err => {
+          if (err.response.status === 403 && !PWError) {
+            PWError = true;
+          } else if (err.response.status === 404) {
+            toast.error("Product not found");
+          } else {
+            toast.error("Deletion failed: " + (err.response?.data?.message || err.message));
+          }
+          return err;
         })
       )
     )
@@ -534,24 +562,18 @@ export default function ProductsPage() {
         const successCount = responses.filter(
           (res) => res.data?.affectedRows > 0
         ).length;
-        
         if (successCount > 0) {
           toast.success(`Deleted ${successCount} product(s) successfully`);
-            refreshTable();
-            setSelectedProducts([]); 
-            setAdminPW(""); 
-            setMDDOpen(false);
-        } else {
-          toast.error("No products were deleted (already deleted or not found)");
-        }
+        } 
       })
       .catch((err) => {
-        console.error("Multi-delete error:", err);
         toast.error("Error deleting selected products");
-        setDDOpen(false);
-        setAdminPW("");
-        setSelectedProducts([]);
       })
+      .finally(() => {
+        setAdminPW("");
+        setMDDOpen(false);
+        setSelectedProducts([]);
+      });
   };
 
   // Download
@@ -568,7 +590,8 @@ export default function ProductsPage() {
     "Unit Price",
     "Selling Price",
     "Status",
-    "Date Product Added"
+    "Date Product Added",
+    "Last Edited"
   ];
 
   const rows = data.map(item => [
@@ -582,7 +605,8 @@ export default function ProductsPage() {
     item.price,
     item.sellingPrice,
     item.status,
-    item.dateAdded
+    item.dateAdded,
+    item.lastEdit
   ]);
 
   // Format Philippine Time
@@ -785,30 +809,75 @@ export default function ProductsPage() {
                     </Select>
 
                     <Label>Stock amount</Label>
-                    <Input type="number" placeholder="Enter Stock amount" required onChange={(e) => setValues({ ...values, [config.product.stockField]: e.target.value })}/>
+                    <Input  
+                      type="number" 
+                      placeholder="Enter stock amount" 
+                      required
+                      min="0"
+                      onKeyDown={(e) => {
+                        if(e.key === 'e' || e.key === '-' || e.key === '+') {
+                          e.preventDefault();
+                        }
+                      }} 
+                      onChange={(e) => {
+                        const value = parseFloat(e.target.value);
+                        if(!isNaN(value) && value >= 0) {
+                          setValues({...values, [config.product.stockField]:value});
+                        } else if (e.target.value === '') {
+                          setValues({...values, [config.product.stockField]:''});    
+                        }
+                      }}
+                    />
 
                     <Label>Price</Label>
-                    <Input placeholder="Enter price"  type="number" required onChange={(e) => setValues({ ...values, [config.product.unitpriceField]: e.target.value })}/>
+                    <Input  
+                      type="number" 
+                      placeholder="Enter price" 
+                      required
+                      min="0.01"
+                      step="0.01"
+                      onKeyDown={(e) => {
+                        if(e.key === 'e' || e.key === '-' || e.key === '+') {
+                          e.preventDefault();
+                        }
+                      }} 
+                      onChange={(e) => {
+                        const value = parseFloat(e.target.value);
+                        if(!isNaN(value) && value > 0) {
+                          setValues({...values, [config.product.unitpriceField]:value});
+                        } else if (e.target.value === '') {
+                          setValues({...values, [config.product.unitpriceField]:''});    
+                        }
+                      }}
+                    />
 
                     <Label>Selling Price</Label>
-                    <Input placeholder="Enter selling price"  type="number" required onChange={(e) => setValues({...values, [config.product.sellingpriceField]: e.target.value,})}/>
+                    <Input  
+                      type="number" 
+                      placeholder="Enter selling price" 
+                      required
+                      min="0.01"
+                      step="0.01"
+                      onKeyDown={(e) => {
+                        if(e.key === 'e' || e.key === '-' || e.key === '+') {
+                          e.preventDefault();
+                        }
+                      }} 
+                      onChange={(e) => {
+                        const value = parseFloat(e.target.value);
+                        if(!isNaN(value) && value > 0) {
+                          setValues({...values, [config.product.sellingpriceField]:value});
+                        } else if (e.target.value === '') {
+                          setValues({...values, [config.product.sellingpriceField]:''});    
+                        }
+                      }}
+                    />
 
-                    <Label>Product Status</Label>
-                    <Select disabled value="1">
-                      <SelectTrigger>
-                        <SelectValue/>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {pStatus.map((pstatus) => (
-                          <SelectItem
-                            key={pstatus.P_productStatusID}
-                            value={pstatus.P_productStatusID.toString()}>
-                            {pstatus.P_productStatusName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button className="bg-blue-400 text-white w-full mt-4" onClick={handleSubmit}>Add Product</Button>
+                    <Button 
+                      className="bg-blue-400 text-white w-full mt-4" 
+                      onClick={handleSubmit}
+                      disabled={!isAddValid}
+                    >Add Product</Button>
                   </div>
                 </SheetContent>
               </Sheet>
@@ -905,14 +974,33 @@ export default function ProductsPage() {
                     </div> 
 
                     <Label>Price</Label>
-                    <Input disabled placeholder="Auto-filled" className="bg-gray-300" value={values[config.product.sellingpriceField] ?? ""}/>
+                    <Input disabled placeholder={values[config.product.sellingpriceField] ?? ""} className="bg-gray-300" />
 
                     <Label>Updated Price</Label>
-                    <Input type="number" placeholder="Enter new price" required onChange={(e) => setValues({...values, [config.product.sellingpriceField]: e.target.value,})}/>
+                    <Input  
+                      type="number" 
+                      placeholder="Enter selling price" 
+                      required
+                      min="0.01"
+                      step="0.01"
+                      onKeyDown={(e) => {
+                        if(e.key === 'e' || e.key === '-' || e.key === '+') {
+                          e.preventDefault();
+                        }
+                      }} 
+                      onChange={(e) => {
+                        const value = parseFloat(e.target.value);
+                        if(!isNaN(value) && value > 0) {
+                          setValues({...values, [config.product.sellingpriceField]:value});
+                        } else if (e.target.value === '') {
+                          setValues({...values, [config.product.sellingpriceField]:''});    
+                        }
+                      }}
+                    />
                   </div>
 
                   <DialogFooter className="mt-6">
-                    <Button className="bg-blue-500 text-white w-full" onClick={handlePriceUpdate}>Update Product Price </Button>
+                    <Button className="bg-blue-500 text-white w-full" onClick={handlePriceUpdate} disabled={!isUpdateValid}>Update Product Price </Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
@@ -1018,11 +1106,12 @@ export default function ProductsPage() {
                   <TableHead onClick={() => handleSort("brand")} className="cursor-pointer select-none">Brand <SortIcon column="brand" /></TableHead>
                   <TableHead onClick={() => handleSort("supplier")} className="cursor-pointer select-none">Supplier <SortIcon column="supplier" /></TableHead>
                   <TableHead onClick={() => handleSort("stockNumber")} className="cursor-pointer select-none">Stock amount <SortIcon column="stockNumber" /></TableHead>
-                  <TableHead onClick={() => handleSort("lastRestock")} className="cursor-pointer select-none">Last Restock Date and Time <SortIcon column="lastRestock" /></TableHead>
+                  <TableHead onClick={() => handleSort("lastRestock")} className="cursor-pointer select-none">Last Restock<SortIcon column="lastRestock" /></TableHead>
                   <TableHead onClick={() => handleSort("price")} className="cursor-pointer select-none">Price <SortIcon column="price" /></TableHead>
                   <TableHead onClick={() => handleSort("sellingPrice")} className="cursor-pointer select-none">Selling Price <SortIcon column="sellingPrice" /></TableHead>
                   <TableHead onClick={() => handleSort("status")} className="cursor-pointer select-none">Status <SortIcon column="status" /></TableHead>
                   <TableHead onClick={() => handleSort("dateAdded")} className="cursor-pointer select-none">Date Added <SortIcon column="dateAdded" /></TableHead>
+                  <TableHead onClick={() => handleSort("lastEdit")} className="cursor-pointer select-none">Last Edited<SortIcon column="lastEdit" /></TableHead>
                   <TableHead>View/Edit</TableHead>
                 </TableRow>
               </TableHeader>
@@ -1050,6 +1139,7 @@ export default function ProductsPage() {
                     <TableCell>{item.sellingPrice}</TableCell>
                     <TableCell className={`font-semibold ${getStatusTextColor(item.status)}`}>{item.status}</TableCell>
                     <TableCell>{item.dateAdded}</TableCell>
+                    <TableCell>{item.lastEdit}</TableCell>
                     <TableCell className="flex space-x-2">
                       <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600" onClick={() => openEditSheet(item)}>
                         <FilePen size={16} />
@@ -1133,29 +1223,69 @@ export default function ProductsPage() {
               </Select>
 
               <label className="text-black font-semibold text-sm">Stock amount</label>
-              <Input type="number" value={values[config.product.stockField]  ?? ""} onChange={(e) => setValues({ ...values, [config.product.stockField]: e.target.value })}/>
+              <Input 
+                type="number" 
+                value={values[config.product.stockField]  ?? ""} 
+                required
+                min="0"
+                onKeyDown={(e) => {
+                  if(e.key === 'e' || e.key === '-' || e.key === '+') {
+                    e.preventDefault();
+                  }
+                }} 
+                onChange={(e) => {
+                  const value = parseFloat(e.target.value);
+                  if(!isNaN(value) && value >= 0) {
+                    setValues({...values, [config.product.stockField]:value});
+                  } else if (e.target.value === '') {
+                    setValues({...values, [config.product.stockField]:''});    
+                  }
+                }}
+              />
 
               <label className="text-black font-semibold text-sm">Price</label>
-              <Input type="text" value={values[config.product.unitpriceField]  ?? ""} /*defaultValue={selectedProduct.price}*/ onChange={(e) => setValues({ ...values, [config.product.unitpriceField]: e.target.value })}/>
+              <Input 
+                type="number" 
+                value={values[config.product.unitpriceField]  ?? ""}
+                required
+                min="0.01"
+                step="0.01"
+                onKeyDown={(e) => {
+                  if(e.key === 'e' || e.key === '-' || e.key === '+') {
+                    e.preventDefault();
+                  }
+                }} 
+                onChange={(e) => {
+                  const value = parseFloat(e.target.value);
+                  if(!isNaN(value) && value > 0) {
+                    setValues({...values, [config.product.unitpriceField]:value});
+                  } else if (e.target.value === '') {
+                    setValues({...values, [config.product.unitpriceField]:''});    
+                  }
+                }}
+              />
 
               <label className="text-black font-semibold text-sm">Selling Price</label>
-              <Input type="text" value={values[config.product.sellingpriceField] ?? ""} /*defaultValue={selectedProduct.sellingPrice}*/ onChange={(e) => setValues({...values, [config.product.sellingpriceField]: e.target.value,})}/>
-
-              <label className="text-black font-semibold text-sm">Product Status</label>
-              <Select value={values[config.product.statusID]} onValueChange={(value) => setValues({ ...values, [config.product.statusID]: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Status"/>
-                </SelectTrigger>
-                <SelectContent>
-                  {pStatus.map((pstatus) => (
-                    <SelectItem
-                      key={pstatus.P_productStatusID}
-                      value={pstatus.P_productStatusID.toString()}>
-                      {pstatus.P_productStatusName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input 
+                type="number" 
+                value={values[config.product.sellingpriceField] ?? ""} 
+                required
+                min="0.01"
+                step="0.01"
+                onKeyDown={(e) => {
+                  if(e.key === 'e' || e.key === '-' || e.key === '+') {
+                    e.preventDefault();
+                  }
+                }} 
+                onChange={(e) => {
+                  const value = parseFloat(e.target.value);
+                  if(!isNaN(value) && value > 0) {
+                    setValues({...values, [config.product.sellingpriceField]:value});
+                  } else if (e.target.value === '') {
+                    setValues({...values, [config.product.sellingpriceField]:''});    
+                  }
+                }}
+              />
 
               <label className="text-black font-semibold text-sm">Date Added</label>
               <Input value={selectedProduct.dateAdded} disabled className="bg-gray-200" />

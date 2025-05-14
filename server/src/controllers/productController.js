@@ -1,4 +1,5 @@
 const productModel = require('../models/productModel'); // Import the product model
+const db = require('../../db');
 
 // Route to fetch all products
 const getAllProducts = (req, res) => {
@@ -34,9 +35,9 @@ const addProduct = (req, res) => {
 // Route to update product details
 const updateProduct = (req, res) => {
   const productCode = req.params.id;  // Extract product ID from the URL parameter
-  const { C_categoryID, P_productName, B_brandID, S_supplierID, P_stockNum, P_unitPrice, P_sellingPrice, P_productStatusID } = req.body; // Get the new data from the request body
+  const { C_categoryID, P_productName, B_brandID, S_supplierID, P_stockNum, P_unitPrice, P_sellingPrice } = req.body; // Get the new data from the request body
 
-  productModel.updateProduct(productCode, { C_categoryID, P_productName, B_brandID, S_supplierID, P_stockNum, P_unitPrice, P_sellingPrice, P_productStatusID }, (err, results) => {
+  productModel.updateProduct(productCode, { C_categoryID, P_productName, B_brandID, S_supplierID, P_stockNum, P_unitPrice, P_sellingPrice }, (err, results) => {
     if (err) {
       console.error('Error updating product:', err);
       return res.status(500).json({ message: 'Error updating product' });

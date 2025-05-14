@@ -17,6 +17,7 @@ const getAllProducts = (callback) => {
       ps.P_productStatusName as status,
       p.P_dateAdded,
       p.isDeleted,
+      p.P_lastEditedDateTime,
       'Products' as source
     FROM Products p
     LEFT JOIN Categories c ON p.C_categoryID = c.C_categoryID
@@ -68,13 +69,13 @@ const updateProduct = (productCode, productData, callback) => {
 
       const updateProductQuery = `
       UPDATE Products
-      SET  C_categoryID = ?, P_productName = ?, B_brandID = ?, S_supplierID = ?, P_stockNum = ?, P_unitPrice = ?, P_sellingPrice = ?, P_productStatusID = ? ${lastRestock} 
+      SET  C_categoryID = ?, P_productName = ?, B_brandID = ?, S_supplierID = ?, P_stockNum = ?, P_unitPrice = ?, P_sellingPrice = ?, P_lastEditedDateTime = CURRENT_TIMESTAMP ${lastRestock} 
       WHERE P_productCode = ?;
       `;
 
     db.query(
       updateProductQuery,
-      [ C_categoryID, P_productName, B_brandID, S_supplierID, P_stockNum, P_unitPrice, P_sellingPrice, P_productStatusID, productCode ],
+      [ C_categoryID, P_productName, B_brandID, S_supplierID, P_stockNum, P_unitPrice, P_sellingPrice, productCode ],
       (err, results) => {
         if (err) return callback(err);
         callback(null, results);
@@ -87,7 +88,8 @@ const updateProductPrice = (productData, callback) => {
 
   const updateProductQuery = `
     UPDATE Products
-    SET  P_sellingPrice = ?
+    SET P_sellingPrice = ?,
+        P_lastEditedDateTime = CURRENT_TIMESTAMP
     WHERE P_productCode = ?;
   `;
 
