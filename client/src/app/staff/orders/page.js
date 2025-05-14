@@ -55,6 +55,7 @@ export default function OrdersPage() {
           totalProductDiscount: o.D_totalProductDiscount,
           transacDate: o.T_transactionDate,
           orderPayment: o.O_orderPayment,
+          originalTotal: o.O_originalTotal,
           isDel: o.isTemporarilyDeleted,
         }));
         setOrders(mappedOrders);
@@ -257,6 +258,7 @@ export default function OrdersPage() {
           totalProductDiscount: o.D_totalProductDiscount,
           transacDate: o.T_transactionDate,
           orderPayment: o.O_orderPayment,
+          originalTotal: o.originalTotal,
           isDel: o.isTemporarilyDeleted,
         }));
         setOrders(mappedOrders);
@@ -391,10 +393,12 @@ export default function OrdersPage() {
                   <TableHead onClick={() => handleSort("transacDate")} className="cursor-pointer select-none"> Date <SortIcon column="transacDate" /></TableHead>
                   <TableHead onClick={() => handleSort("transacDate")} className="cursor-pointer select-none"> Time <SortIcon column="transacDate" /></TableHead>
                   <TableHead onClick={() => handleSort("receiptNo")} className="cursor-pointer select-none"> Receipt Number <SortIcon column="receiptNo" /></TableHead>
-                  <TableHead onClick={() => handleSort("totalAmount")} className="cursor-pointer select-none"> Total Amount <SortIcon column="totalAmount" /></TableHead>
+                  {/* ANJI ETO */}
+                  <TableHead onClick={() => handleSort("totalAmount")} className="cursor-pointer select-none"> Original Total <SortIcon column="originalTotal" /></TableHead>
                   <TableHead onClick={() => handleSort("totalProductDiscount")} className="cursor-pointer select-none"> Total Product Discount <SortIcon column="totalProductDiscount" /></TableHead>
                   <TableHead onClick={() => handleSort("wholeOrderDiscount")} className="cursor-pointer select-none"> Whole Order Discount <SortIcon column="wholeOrderDiscount" /></TableHead>
                   <TableHead onClick={() => handleSort("orderPayment")} className="cursor-pointer select-none"> Payment <SortIcon column="orderPayment" /></TableHead>
+                  <TableHead onClick={() => handleSort("totalAmount")} className="cursor-pointer select-none"> Total Amount <SortIcon column="totalAmount" /></TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -410,6 +414,7 @@ export default function OrdersPage() {
                     <TableCell>{formatPeso(order.totalProductDiscount)}</TableCell>
                     <TableCell>{formatPeso(order.wholeOrderDiscount)}</TableCell>
                     <TableCell>{formatPeso(order.orderPayment)}</TableCell>
+                    <TableCell>{formatPeso(order.originalTotal)}</TableCell>
 
                 {/*Details toggle button with modal pop-up */}              
                     <TableCell className="flex space-x-2">              

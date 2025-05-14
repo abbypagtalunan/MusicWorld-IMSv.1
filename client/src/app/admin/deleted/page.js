@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { toast, Toaster } from "react-hot-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Search, Eye, X, ChevronsUpDown, ChevronUp, ChevronDown  } from "lucide-react";
+import { Search, Download, Eye, X, ChevronsUpDown, ChevronUp, ChevronDown  } from "lucide-react";
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogDescription } from "@/components/ui/dialog";
 import RDaction from "@/components/deleted-actions";
@@ -51,7 +51,7 @@ export default function DeletedPage() {
       label: "Returns",
       idField: "R_returnID",
       codeField: "P_productCode",
-      typeField: "RT_returnTypeDescription",
+      typeField: "R_reasonOfReturn",
       nameField: "P_productName",
       totalamtField: "R_TotalPrice",
       dateField: "R_dateOfReturn",
@@ -91,7 +91,6 @@ export default function DeletedPage() {
       idField: "P_productCode",
       codeField: "P_productCode",
       categoryField: "category",
-      skuField: "P_SKU",
       nameField: "P_productName",
       brandField: "brand",
       supplierField: "supplier",
@@ -324,6 +323,145 @@ const handleMultiRetrieve = () => {
     });
 }
 
+// Download
+const [isDownloadConfirmOpen, setDownloadConfirmOpen] = useState(false);
+const handleDownloadCSV = (data) => {
+  const currentTabD = getFilteredTransactions();
+
+  let headers = [];
+  let rows = [];
+  
+  switch(activeTab) {
+    case "order":
+      headers = [
+        "Receipt Number",
+        "Order ID",
+        "Transaction Date",
+        "Product Name",
+        "Product Code",
+        "Quantity",
+        "Total Amount",
+        "Order Detail ID",
+        "Supplier",
+        "Brand",
+        "Category",
+        "Selling Price",
+        "Discount Amount"
+      ];
+      rows = currentTabD.map(item => [
+        item[config.receiptField],
+        item[config.idField],
+        new Date(item[config.dateField]).toLocaleDateString(),
+        item[config.nameField],
+        item[config.codeField],
+        item[config.quantityField],
+        item[config.idDetail],
+        item[config.supplierField],
+        item[config.brandField],
+        item[config.categoryField],
+        item[config.sellingpriceField],
+        item[config.discAmtField]
+      ]);
+      break;
+
+    case "return":
+      headers = [
+        "Return ID",
+        "Product Code",
+        "Reason of Return",
+        "Product Name",
+        "Return Total Amount",
+        "Return Date",
+        "Supplier",
+        "Brand",
+        "Category",
+        "Quantity",
+        "Discount Amount"
+      ];
+      rows = currentTabD.map(item => [
+        item[config.idField],
+        item[config.codeField],
+        item[config.typeField],
+        item[config.nameField],
+        item[config.totalamtField],
+        new Date(item[config.dateField]).toLocaleDateString(),
+        item[config.supplierField],
+        item[config.brandField],
+        item[config.categoryField],
+        item[config.quantityField],
+        item[config.discountField]
+      ]);
+      break;
+
+    case "delivery":
+      headers = [
+        "Delivery ID",
+        "Product Code",
+        "Product Name",
+        "Supplier",
+        "Quantity",
+        "Delivery Date",
+        "Brand",
+        "Category"
+      ];
+      rows = currentTabD.map(item => [
+        item[config.idField],
+        item[config.codeField],
+        item[config.nameField],
+        item[config.supplierField],
+        item[config.quantityField],
+        new Date(item[config.dateField]).toLocaleDateString(),
+        item[config.brandField],
+        item[config.categoryField]
+      ]);
+      break;
+
+    case "product":
+        headers = [
+          "Product Code",
+          "Product Name",
+          "Category",
+          "Supplier",
+          "Brand",
+          "Stock Number",
+          "Last Restock",
+          "Unit Price",
+          "Selling Price",
+          "Status",
+          "Date Product Added"
+        ];
+        rows = currentTabD.map(item => [
+          item.productCode,
+          item.productName,
+          item.category,
+          item.supplier,
+          item.brand,
+          item.stockNumber,
+          item.lastRestock,
+          item.price,
+          item.sellingPrice,
+          item.status,
+          new Date(item[config.dateField]).toLocaleDateString()
+        ]);
+        break;
+  }
+
+  const csvContent = [
+    headers.join(","),
+    ...rows.map(row => row.map(val => `"${val}"`).join(","))
+  ].join("\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.setAttribute("download", `${config.label}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+
   // Delete
   const [adminPW, setAdminPW] = useState("");
   const [isMDDOpen, setMDDOpen] = useState("");
@@ -492,6 +630,63 @@ const handleMultiRetrieve = () => {
                                 </div>  
                                 </DialogContent>
                               </Dialog>
+
+                                            {/* DOWNLOAD */}
+                              <Dialog open={isDownloadConfirmOpen} onOpenChange={(open) => {
+                                setDownloadConfirmOpen(open);
+                                if (!open) {
+                                  setAdminPW("");
+                                }
+                              }}>
+                                <DialogTrigger asChild>
+                                  <Button className="bg-blue-400 text-white">
+                                    <Download className="w-4 h-4" />
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
+                                  <DialogHeader>
+                                    <DialogTitle>
+                                      <span className="text-lg text-blue-900">Confirm Download?</span>
+                                      <span className="text-lg text-gray-400 font-normal italic ml-2">
+                                        (Products.csv)
+                                      </span>
+                                    </DialogTitle>
+                                    <DialogClose />
+                                  </DialogHeader>
+                                  <p className="text-sm text-gray-800 mt-2 pl-4">
+                                    Downloading the CSV file requires admin authorization. Please enter the admin password below to proceed.
+                                  </p>
+                                  <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">
+                                    <div className="flex-1">
+                                      <label htmlFor="password" className="text-base font-medium text-gray-700 block mb-2">
+                                        Admin Password
+                                      </label>
+                                      <Input
+                                        type="password"
+                                        required
+                                        placeholder="Enter admin password"
+                                        className="w-full"
+                                        value={adminPW}
+                                        onChange={(e) => setAdminPW(e.target.value)}
+                                      />
+                                    </div>
+                                    <Button
+                                      className="bg-emerald-500 hover:bg-emerald-700 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
+                                      onClick={() => {
+                                        if (adminPW === setAdminPW("")) { // need to fix for backend 
+                                          handleDownloadCSV(data);
+                                          toast.success("Download started");
+                                          setDownloadConfirmOpen(false);
+                                        } else {
+                                          toast.error("Invalid admin password");
+                                        }
+                                      }}
+                                    >
+                                      DOWNLOAD FILE
+                                    </Button>
+                                  </div>
+                                </DialogContent>
+                              </Dialog>
                                 
                               <Dialog open={isMDDOpen} onOpenChange={(open) => {
                                 setMDDOpen(open);
@@ -640,9 +835,6 @@ const handleMultiRetrieve = () => {
                                   <TableHead onClick={() => handleSort(config.categoryField)} className="cursor-pointer">
                                     Category <SortIcon column={config.categoryField} />
                                   </TableHead>
-                                  <TableHead onClick={() => handleSort(config.skuField)} className="cursor-pointer">
-                                    SKU <SortIcon column={config.skuField} />
-                                  </TableHead>
                                   <TableHead onClick={() => handleSort(config.nameField)} className="cursor-pointer">
                                     Name <SortIcon column={config.nameField} />
                                   </TableHead>
@@ -702,7 +894,7 @@ const handleMultiRetrieve = () => {
                                     <TableCell>{item[config.codeField]}</TableCell>
                                     <TableCell>{item[config.nameField] + " " + item[config.supplierField] + " " + item[config.brandField]}</TableCell>
                                     <TableCell>{item[config.quantityField]}</TableCell>
-                                    <TableCell>{item[config.itemtotalField]}</TableCell>
+                                    <TableCell>{item[config.totalamtField]}</TableCell>
                                     <TableCell>
                                       <Dialog>
                                         <DialogTrigger asChild>
@@ -742,7 +934,7 @@ const handleMultiRetrieve = () => {
                                                 <TableCell>{item[config.discAmtField]}</TableCell>
                                                 
                                                 <TableCell>{item[config.quantityField]}</TableCell>
-                                                <TableCell>{item[config.itemtotalField]}</TableCell>
+                                                <TableCell>{item[config.totalamtField]}</TableCell>
                                               </TableRow>
                                             </TableBody>
                                           </Table>
