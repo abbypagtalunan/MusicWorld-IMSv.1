@@ -35,26 +35,34 @@ class Account {
   static updateAccount(id, data, callback) {
     const { firstName, lastName, roleID } = data;
 
-    // Validate required fields (firstName and lastName)
-    if (!firstName || !lastName) {
-      return callback(new Error("Missing required fields"));
+    let query = "UPDATE UserAccounts SET ";
+    let values = [];
+
+    if (firstName !== undefined) {
+      query += "firstName = ?";
+      values.push(firstName);
     }
 
-    // Dynamically construct the SQL query based on the fields provided
-    let query = "UPDATE UserAccounts SET firstName = ?";
-    let values = [firstName];
+    if (lastName !== undefined) {
+      if (values.length > 0) {
+        query += ", ";
+      }
+      query += "lastName = ?";
+      values.push(lastName);
+    }
 
-    // Add lastName to the query
-    query += ", lastName = ?";
-    values.push(lastName);
-
-    // Add roleID to the query if it is provided
-    if (roleID) {
-      query += ", roleID = ?";
+    if (roleID !== undefined) {
+      if (values.length > 0) {
+        query += ", ";
+      }
+      query += "roleID = ?";
       values.push(roleID);
     }
 
-    // Add the WHERE clause
+    if (values.length === 0) {
+      return callback(new Error("No valid fields to update"));
+    }
+
     query += " WHERE accountID = ?";
     values.push(id);
 
@@ -65,7 +73,6 @@ class Account {
   }
 
   static deleteAccount(id, adminPassword, callback) {
-    // Query to find an admin with the provided password
     pool.query(
       "SELECT * FROM UserAccounts WHERE roleID = 1 AND password = ?",
       [adminPassword],
@@ -76,7 +83,6 @@ class Account {
           return callback(new Error("Invalid admin credentials"));
         }
 
-        // Admin verified — proceed to delete the target account
         pool.query("DELETE FROM UserAccounts WHERE accountID = ?", [id], (error, result) => {
           if (error) return callback(error);
           callback(null, result);

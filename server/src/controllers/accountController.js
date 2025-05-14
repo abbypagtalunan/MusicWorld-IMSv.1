@@ -50,14 +50,16 @@ exports.createAccount = (req, res) => {
   );
 };
 
-// Update an account (only name and optional role)
+// Update an account (partial update allowed)
 exports.updateAccount = (req, res) => {
   const { id } = req.params;
   const { firstName, lastName, roleID } = req.body;
 
-  // Validate required fields (firstName and lastName)
-  if (!firstName || !lastName) {
-    return res.status(400).json({ message: "Missing required fields" });
+  // Validate if at least one field is provided
+  if (!firstName && !lastName && roleID === undefined) {
+    return res.status(400).json({
+      message: "At least one field must be provided for update",
+    });
   }
 
   Account.updateAccount(id, { firstName, lastName, roleID }, (err, result) => {
