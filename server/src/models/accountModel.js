@@ -46,16 +46,18 @@ class Account {
   }
 
   static deleteAccount(id, adminPassword, callback) {
+    // Query to find an admin with the provided password
     pool.query(
-      "SELECT * FROM UserAccounts WHERE accountID = ? AND password = ?",
-      [id, adminPassword],
+      "SELECT * FROM UserAccounts WHERE roleID = 1 AND password = ?",
+      [adminPassword],
       (error, results) => {
         if (error) return callback(error);
-
-        if (!results.length) {
+  
+        if (results.length === 0) {
           return callback(new Error("Invalid admin credentials"));
         }
-
+  
+        // Admin verified — proceed to delete the target account
         pool.query("DELETE FROM UserAccounts WHERE accountID = ?", [id], (error, result) => {
           if (error) return callback(error);
           callback(null, result);

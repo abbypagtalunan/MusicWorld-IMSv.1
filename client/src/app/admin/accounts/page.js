@@ -54,6 +54,7 @@ import {
 import { ListFilter } from "lucide-react";
 import { AppSidebar } from "@/components/admin-sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { toast, Toaster } from "react-hot-toast";
 
 export default function ManageAccountsPage() {
   const router = useRouter();
@@ -94,29 +95,26 @@ export default function ManageAccountsPage() {
       try {
         const storedUser = JSON.parse(localStorage.getItem("user"));
         if (!storedUser || !storedUser.accountID) {
-          alert("You are not logged in.");
+          toast.error("You are not logged in.");
           router.push("/login");
           return;
         }
-
         const [userData, staffRes, rolesRes] = await Promise.all([
           axios.get(`http://localhost:8080/accounts/${storedUser.accountID}`),
           axios.get("http://localhost:8080/accounts"),
           axios.get("http://localhost:8080/role"),
         ]);
-
         setCurrentUser(userData.data);
         setStaffs(staffRes.data);
         setRoles(rolesRes.data);
       } catch (error) {
         console.error("Error fetching data:", error);
-        alert("Failed to load account data.");
+        toast.error("Failed to load account data.");
         router.push("/login");
       } finally {
         setLoading(false);
       }
     };
-
     fetchData();
   }, []);
 
@@ -125,20 +123,19 @@ export default function ManageAccountsPage() {
     navigator.clipboard.writeText(currentUser?.accountID || "").catch((err) =>
       console.error("Failed to copy:", err)
     );
+    toast.success("User code copied!");
   };
 
   // Reset password handler
   const handleResetPassword = () => {
     if (!resetStaff || !resetStaff.accountID) {
-      alert("Invalid user data. Please try again.");
+      toast.error("Invalid user data.");
       return;
     }
-
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      alert("Passwords do not match!");
+      toast.error("Passwords do not match!");
       return;
     }
-
     axios
       .put(
         `http://localhost:8080/accounts/${resetStaff.accountID}/reset-password`,
@@ -148,7 +145,7 @@ export default function ManageAccountsPage() {
         }
       )
       .then(() => {
-        alert("Password reset successfully");
+        toast.success("Password reset successfully.");
         setIsResetOpen(false);
         setResetStaff(null);
         setPasswordData({
@@ -164,7 +161,7 @@ export default function ManageAccountsPage() {
           err.message ||
           "Unknown error";
         console.error("Password reset error:", errorMessage);
-        alert("Failed to reset password");
+        toast.error(`Failed to reset password: ${errorMessage}`);
         setIsResetOpen(false);
         setResetStaff(null);
         setPasswordData({
@@ -178,7 +175,7 @@ export default function ManageAccountsPage() {
   // Delete handler
   const handleAccountDelete = (accountID) => {
     if (!accountID || !adminPW) {
-      alert("Admin password is required.");
+      toast.error("Admin password is required.");
       return;
     }
 
@@ -188,6 +185,7 @@ export default function ManageAccountsPage() {
       })
       .then(() => {
         setStaffs(staffs.filter((s) => s.accountID !== accountID));
+        toast.success("Account deleted successfully.");
         setIsDeleteAccountDialogOpen(false);
         setDeleteTarget(null);
         setAdminPW("");
@@ -199,7 +197,7 @@ export default function ManageAccountsPage() {
           err.message ||
           "Unknown error";
         console.error("Delete error:", errorMessage);
-        alert(`Failed to delete account: ${errorMessage}`);
+        toast.error(`Failed to delete account: ${errorMessage}`);
         setIsDeleteAccountDialogOpen(false);
         setDeleteTarget(null);
         setAdminPW("");
@@ -223,7 +221,6 @@ export default function ManageAccountsPage() {
           .includes(query)
       );
     }
-
     if (!selectedFilter || !selectedSubFilter) return filtered;
 
     switch (selectedFilter) {
@@ -256,7 +253,6 @@ export default function ManageAccountsPage() {
       default:
         return filtered;
     }
-
     return filtered;
   };
 
@@ -270,7 +266,6 @@ export default function ManageAccountsPage() {
       password,
       confirmPassword,
     } = newStaff;
-
     if (
       !accountID ||
       !firstName ||
@@ -279,15 +274,13 @@ export default function ManageAccountsPage() {
       !password ||
       !confirmPassword
     ) {
-      alert("Please fill in all fields.");
+      toast.error("Please fill in all fields.");
       return;
     }
-
     if (password !== confirmPassword) {
-      alert("Passwords do not match!");
+      toast.error("Passwords do not match!");
       return;
     }
-
     try {
       await axios.post("http://localhost:8080/accounts", {
         accountID,
@@ -296,7 +289,7 @@ export default function ManageAccountsPage() {
         roleID,
         password,
       });
-
+      toast.success("Staff added successfully.");
       setIsAddOpen(false);
       setNewStaff({
         accountID: "",
@@ -306,22 +299,25 @@ export default function ManageAccountsPage() {
         password: "",
         confirmPassword: "",
       });
-
       const res = await axios.get("http://localhost:8080/accounts");
       setStaffs(res.data);
     } catch (err) {
-      alert("Failed to add staff.");
+      toast.error("Failed to add staff.");
       console.error(err);
     }
   };
 
   // Submit edit staff
   const handleUpdateStaff = async (updatedStaff) => {
-    if (!updatedStaff.accountID || !updatedStaff.firstName || !updatedStaff.lastName || !updatedStaff.roleID) {
-      alert("Missing required fields.");
+    if (
+      !updatedStaff.accountID ||
+      !updatedStaff.firstName ||
+      !updatedStaff.lastName ||
+      !updatedStaff.roleID
+    ) {
+      toast.error("Missing required fields.");
       return;
     }
-
     try {
       await axios.put(
         `http://localhost:8080/accounts/${updatedStaff.accountID}`,
@@ -331,15 +327,15 @@ export default function ManageAccountsPage() {
           roleID: updatedStaff.roleID,
         }
       );
-
       setStaffs(
         staffs.map((s) =>
           s.accountID === updatedStaff.accountID ? updatedStaff : s
         )
       );
+      toast.success("Staff updated successfully.");
       setIsEditOpen(false);
     } catch (err) {
-      alert("Failed to update staff.");
+      toast.error("Failed to update staff.");
       console.error(err);
     }
   };
@@ -378,7 +374,6 @@ export default function ManageAccountsPage() {
                 </TabsTrigger>
               </TabsList>
             </div>
-
             {/* MY ACCOUNT TAB */}
             <TabsContent value="my-account" className="mt-0">
               {currentUser ? (
@@ -596,7 +591,6 @@ export default function ManageAccountsPage() {
                 </p>
               )}
             </TabsContent>
-
             {/* STAFF TAB */}
             <TabsContent value="staff" className="mt-0">
               <div className="mb-4">
@@ -645,9 +639,15 @@ export default function ManageAccountsPage() {
                       <DropdownMenuSub>
                         <DropdownMenuSubTrigger>Role</DropdownMenuSubTrigger>
                         <DropdownMenuSubContent>
-                          <DropdownMenuItem onClick={() => handleFilterSelect("Role", "Admin")}>Admin</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleFilterSelect("Role", "Staff")}>Staff</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleFilterSelect("Role", "All")}>All</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleFilterSelect("Role", "Admin")}>
+                            Admin
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleFilterSelect("Role", "Staff")}>
+                            Staff
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleFilterSelect("Role", "All")}>
+                            All
+                          </DropdownMenuItem>
                         </DropdownMenuSubContent>
                       </DropdownMenuSub>
                       <DropdownMenuSub>
@@ -828,7 +828,6 @@ export default function ManageAccountsPage() {
           </Tabs>
         </div>
       </div>
-
       {/* Edit Modal */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="w-[30vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
@@ -880,7 +879,6 @@ export default function ManageAccountsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
       {/* Reset Password Modal */}
       <Dialog open={isResetOpen} onOpenChange={setIsResetOpen}>
         <DialogContent className="w-[30vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
@@ -920,7 +918,6 @@ export default function ManageAccountsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
       {/* Delete Account Modal */}
       <Dialog open={isDeleteAccountDialogOpen} onOpenChange={setIsDeleteAccountDialogOpen}>
         <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
@@ -958,6 +955,7 @@ export default function ManageAccountsPage() {
           </div>
         </DialogContent>
       </Dialog>
+      <Toaster />
     </SidebarProvider>
   );
 }
