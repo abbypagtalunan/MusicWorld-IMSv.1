@@ -6,7 +6,7 @@ import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
-import { Search, ListFilter, Trash2, Eye, CalendarDays, Download, ChevronsUpDown, ChevronUp, ChevronDown } from "lucide-react";
+import { Search, ListFilter, Trash2, Eye, CalendarDays, Download, ChevronsUpDown, ChevronUp, ChevronDown, RotateCcw } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -42,6 +42,31 @@ export default function OrdersPage() {
     setSelectedSubFilter(subFilter);
   };
 
+  // Amount filters
+  const [amountRanges, setAmountRanges] = useState({
+    totalAmount: { min: "", max: "" },
+    totalProductDiscount: { min: "", max: "" },
+    wholeOrderDiscount: { min: "", max: "" },
+    originalTotal: { min: "", max: "" },
+    payment: { min: "", max: "" },
+  });
+
+  const [amountErrors, setAmountErrors] = useState({
+    totalAmount: false,
+    totalProductDiscount: false,
+    wholeOrderDiscount: false,
+    originalTotal: false,
+    payment: false,
+  });
+
+  const [aboveOnly, setAboveOnly] = useState({
+    totalAmount: false,
+    totalProductDiscount: false,
+    wholeOrderDiscount: false,
+    originalTotal: false,
+    payment: false,
+  });
+
   // Fetch Orders
   useEffect(() => {
     axios
@@ -55,6 +80,7 @@ export default function OrdersPage() {
           totalProductDiscount: o.D_totalProductDiscount,
           transacDate: o.T_transactionDate,
           orderPayment: o.O_orderPayment,
+          originalTotal: o.O_originalTotal,
           isDel: o.isTemporarilyDeleted,
         }));
         setOrders(mappedOrders);
@@ -117,6 +143,36 @@ export default function OrdersPage() {
     });
   }
 
+// Apply price range filters
+Object.entries(amountRanges).forEach(([key, range]) => {
+  const min = parseFloat(range.min);
+  const max = parseFloat(range.max);
+
+  if (amountErrors[key]) return;
+
+  result = result.filter(order => {
+    const value = parseFloat(order[key]);
+
+      if (!isNaN(min) && !isNaN(max)) {
+        return value >= min && value <= max;
+      }
+
+      if (!isNaN(min) && aboveOnly[key]) {
+        return value >= min;
+      }
+
+      if (!isNaN(min)) {
+        return value >= min;
+      }
+
+      if (!isNaN(max)) {
+        return value <= max;
+      }
+
+      return true;
+    });
+  });
+
   // Column header sort 
   if (sortConfig.key) {
     result.sort((a, b) => {
@@ -143,8 +199,7 @@ export default function OrdersPage() {
   }
 
   setFilteredOrders(result);
-}, [orders, searchQuery, selectedFilter, selectedSubFilter, fromDate, toDate, sortConfig]);
-
+}, [orders, searchQuery, selectedFilter, selectedSubFilter, fromDate, toDate, sortConfig, amountRanges, amountErrors]);
 
   const handleSort = (key) => {
     setSortConfig((prev) => {
@@ -257,6 +312,7 @@ export default function OrdersPage() {
           totalProductDiscount: o.D_totalProductDiscount,
           transacDate: o.T_transactionDate,
           orderPayment: o.O_orderPayment,
+          originalTotal: o.O_originalTotal,
           isDel: o.isTemporarilyDeleted,
         }));
         setOrders(mappedOrders);
@@ -289,34 +345,60 @@ export default function OrdersPage() {
   // Download
   const [isDownloadConfirmOpen, setDownloadConfirmOpen] = useState("");
   const handleDownloadCSV = () => {
-    const headers = [
-      "Receipt Number",
-      "Order ID",
-      "Transaction Date",
-      "Order Payment",
-      "Total Amount",
-      "Whole Order Discount",
-      "Total Product Discount",
-      "Product Name",
-      "Product Code",
-      "Brand",
-      "Supplier",
-      "Quantity",
-      "Unit Price",
-      "Selling Price",
-      "Discount Type",
-      "Discount Amount",
-      "Item Gross Sale",
-      "Item Net Sale",
-      "Item Gross Profit"
-    ];
-  
-    const rows = [];
-  
-    orders.forEach((order) => {
-      const detailsForOrder = orderDetails.filter(detail => detail.orderID === order.orderID);
-  
-      if (detailsForOrder.length === 0) {
+  // Get current date and time in Philippine Time
+  const now = new Date();
+  const phLocale = "en-PH";
+  const phTimeZone = "Asia/Manila";
+
+  // Format timestamp for filename (no slashes/colons)
+  const formattedDate = now
+    .toLocaleString(phLocale, { timeZone: phTimeZone })
+    .replace(/[/:, ]/g, "-")
+    .replace(/--+/g, "-");
+
+  // Format timestamp for CSV content
+  const downloadTimestamp = `Downloaded At:, "${now.toLocaleString(phLocale, { timeZone: phTimeZone })}"`;
+  const headers = [
+    "Receipt Number",
+    "Order ID",
+    "Transaction Date",
+    "Order Payment",
+    "Total Amount",
+    "Whole Order Discount",
+    "Total Product Discount",
+    "Original Total Amount",
+    "Product Name",
+    "Product Code",
+    "Brand",
+    "Supplier",
+    "Quantity",
+    "Unit Price",
+    "Selling Price",
+    "Discount Type",
+    "Discount Amount",
+    "Item Gross Sale",
+    "Item Net Sale",
+    "Item Gross Profit"
+  ];
+
+  const rows = [];
+
+  filteredOrders.forEach((order) => {
+    const detailsForOrder = orderDetails.filter(detail => detail.orderID === order.orderID);
+
+    if (detailsForOrder.length === 0) {
+      rows.push([
+        order.receiptNo,
+        order.orderID,
+        order.transacDate,
+        order.orderPayment,
+        order.totalAmount,
+        order.wholeOrderDiscount,
+        order.totalProductDiscount,
+        "", "", "", "", "", "", "", "", "", "", "", ""
+      ]);
+    } else {
+      detailsForOrder.forEach(detail => {
         rows.push([
           order.receiptNo,
           order.orderID,
@@ -325,58 +407,47 @@ export default function OrdersPage() {
           order.totalAmount,
           order.wholeOrderDiscount,
           order.totalProductDiscount,
-          "", "", "", "", "", "", "", "", "", "", "", ""
+          order.originalTotal,
+          detail.productName,
+          detail.productCode,
+          detail.brandName,
+          detail.supplierName,
+          detail.quantity,
+          detail.unitPrice,
+          detail.sellingPrice,
+          detail.discountType,
+          detail.discountAmount,
+          detail.itemGross,
+          detail.itemTotal,
+          detail.itemGrossProfit
         ]);
-      } else {
-        detailsForOrder.forEach(detail => {
-          rows.push([
-            order.receiptNo,
-            order.orderID,
-            order.transacDate,
-            order.orderPayment,
-            order.totalAmount,
-            order.wholeOrderDiscount,
-            order.totalProductDiscount,
-            detail.productName,
-            detail.productCode,
-            detail.brandName,
-            detail.supplierName,
-            detail.quantity,
-            detail.unitPrice,
-            detail.sellingPrice,
-            detail.discountType,
-            detail.discountAmount,
-            detail.itemGross,
-            detail.itemTotal,
-            detail.itemGrossProfit
-          ]);
-        });
-      }
-    });
-  
-    const csvContent = [
-      headers.join(","),
-      ...rows.map(row => row.map(val => `"${val}"`).join(","))
-    ].join("\n");
-  
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", "Orders.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-    
+      });
+    }
+  });
+
+  const csvContent = [
+    downloadTimestamp,
+    headers.join(","),
+    ...rows.map(row => row.map(val => `"${val}"`).join(","))
+  ].join("\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.setAttribute("download", `Orders_${formattedDate}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
 
   return (
     <SidebarProvider>
       <div className="flex h-screen w-screen">
         <AppSidebar />
         <div className="flex-1 p-4 flex flex-col w-full">
-          <div className="flex items-center justify-between mb-4 bg-white p-2 rounded-lg">
+          <div className="flex items-center justify-between mb-4 bg-white shadow-sm p-4 rounded-lg">
             <div className="flex items-center space-x-2">
               <div className="relative w-80">
                 {/* Search */}
@@ -400,76 +471,243 @@ export default function OrdersPage() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start">
+                  
                     <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>Order ID</DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Order ID", "Ascending")}>
-                          Ascending
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Order ID", "Descending")}>
-                          Descending
-                        </DropdownMenuItem>
+                      <DropdownMenuSubTrigger>Original Amount</DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent className="p-4 space-y-2">
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="Min ₱"
+                            type="number"
+                            value={amountRanges.originalTotal.min}
+                            onChange={(e) => {
+                              const newMin = e.target.value;
+                              const max = amountRanges.originalTotal.max;
+                              setAmountRanges(prev => ({
+                                ...prev,
+                                originalTotal: { ...prev.originalTotal, min: newMin }
+                              }));
+                              setAmountErrors(prev => ({
+                                ...prev,
+                                originalTotal: max && parseFloat(newMin) > parseFloat(max),
+                              }));
+                            }}
+                            className={amountErrors.originalTotal ? "border-red-500" : ""}
+                          />
+                          <Input
+                            placeholder="Max ₱"
+                            type="number"
+                            value={amountRanges.originalTotal.max}
+                            onChange={(e) => {
+                              const newMax = e.target.value;
+                              const min = amountRanges.originalTotal.min;
+                              setAmountRanges(prev => ({
+                                ...prev,
+                                originalTotal: { ...prev.originalTotal, max: newMax }
+                              }));
+                              setAmountErrors(prev => ({
+                                ...prev,
+                                originalTotal: min && parseFloat(min) > parseFloat(newMax),
+                              }));
+                            }}
+                            className={amountErrors.originalTotal ? "border-red-500" : ""}
+                          />
+                        </div>
+                        {amountErrors.originalTotal && (
+                          <p className="text-red-500 text-sm">Min cannot be greater than Max.</p>
+                        )}
                       </DropdownMenuSubContent>
                     </DropdownMenuSub>
-                    
+
                     <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>Receipt Number</DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Receipt Number", "Ascending")}>
-                          Ascending
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Receipt Number", "Descending")}>
-                          Descending
-                        </DropdownMenuItem>
+                      <DropdownMenuSubTrigger>Total Product Discount</DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent className="p-4 space-y-2">
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="Min ₱"
+                            type="number"
+                            value={amountRanges.totalProductDiscount.min}
+                            onChange={(e) => {
+                              const newMin = e.target.value;
+                              const max = amountRanges.totalProductDiscount.max;
+                              setAmountRanges(prev => ({
+                                ...prev,
+                                totalProductDiscount: { ...prev.totalProductDiscount, min: newMin }
+                              }));
+                              setAmountErrors(prev => ({
+                                ...prev,
+                                totalProductDiscount: max && parseFloat(newMin) > parseFloat(max),
+                              }));
+                            }}
+                            className={amountErrors.totalProductDiscount ? "border-red-500" : ""}
+                          />
+                          <Input
+                            placeholder="Max ₱"
+                            type="number"
+                            value={amountRanges.totalProductDiscount.max}
+                            onChange={(e) => {
+                              const newMax = e.target.value;
+                              const min = amountRanges.totalProductDiscount.min;
+                              setAmountRanges(prev => ({
+                                ...prev,
+                                totalProductDiscount: { ...prev.totalProductDiscount, max: newMax }
+                              }));
+                              setAmountErrors(prev => ({
+                                ...prev,
+                                totalProductDiscount: min && parseFloat(min) > parseFloat(newMax),
+                              }));
+                            }}
+                            className={amountErrors.totalProductDiscount ? "border-red-500" : ""}
+                          />
+                        </div>
+                        {amountErrors.totalProductDiscount && (
+                          <p className="text-red-500 text-sm">Min cannot be greater than Max.</p>
+                        )}
                       </DropdownMenuSubContent>
                     </DropdownMenuSub>
-                    
+
                     <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>Total Amount</DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Total Amount", "Low to High")}>
-                          Low to High
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Total Amount", "High to Low")}>
-                          High to Low
-                        </DropdownMenuItem>
+                      <DropdownMenuSubTrigger>Whole Order Discount</DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent className="p-4 space-y-2">
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="Min ₱"
+                            type="number"
+                            value={amountRanges.wholeOrderDiscount.min}
+                            onChange={(e) => {
+                              const newMin = e.target.value;
+                              const max = amountRanges.wholeOrderDiscount.max;
+                              setAmountRanges(prev => ({
+                                ...prev,
+                                wholeOrderDiscount: { ...prev.wholeOrderDiscount, min: newMin }
+                              }));
+                              setAmountErrors(prev => ({
+                                ...prev,
+                                wholeOrderDiscount: max && parseFloat(newMin) > parseFloat(max),
+                              }));
+                            }}
+                            className={amountErrors.wholeOrderDiscount ? "border-red-500" : ""}
+                          />
+                          <Input
+                            placeholder="Max ₱"
+                            type="number"
+                            value={amountRanges.wholeOrderDiscount.max}
+                            onChange={(e) => {
+                              const newMax = e.target.value;
+                              const min = amountRanges.wholeOrderDiscount.min;
+                              setAmountRanges(prev => ({
+                                ...prev,
+                                wholeOrderDiscount: { ...prev.wholeOrderDiscount, max: newMax }
+                              }));
+                              setAmountErrors(prev => ({
+                                ...prev,
+                                wholeOrderDiscount: min && parseFloat(min) > parseFloat(newMax),
+                              }));
+                            }}
+                            className={amountErrors.wholeOrderDiscount ? "border-red-500" : ""}
+                          />
+                        </div>
+                        {amountErrors.wholeOrderDiscount && (
+                          <p className="text-red-500 text-sm">Min cannot be greater than Max.</p>
+                        )}
                       </DropdownMenuSubContent>
                     </DropdownMenuSub>
 
                     <DropdownMenuSub>
                       <DropdownMenuSubTrigger>Payment</DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Payment", "Low to High")}>
-                          Low to High
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Payment", "High to Low")}>
-                          High to Low
-                        </DropdownMenuItem>
+                      <DropdownMenuSubContent className="p-4 space-y-2">
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="Min ₱"
+                            type="number"
+                            value={amountRanges.payment.min}
+                            onChange={(e) => {
+                              const newMin = e.target.value;
+                              const max = amountRanges.payment.max;
+                              setAmountRanges(prev => ({
+                                ...prev,
+                                payment: { ...prev.payment, min: newMin }
+                              }));
+                              setAmountErrors(prev => ({
+                                ...prev,
+                                payment: max && parseFloat(newMin) > parseFloat(max),
+                              }));
+                            }}
+                            className={amountErrors.payment ? "border-red-500" : ""}
+                          />
+                          <Input
+                            placeholder="Max ₱"
+                            type="number"
+                            value={amountRanges.payment.max}
+                            onChange={(e) => {
+                              const newMax = e.target.value;
+                              const min = amountRanges.payment.min;
+                              setAmountRanges(prev => ({
+                                ...prev,
+                                payment: { ...prev.payment, max: newMax }
+                              }));
+                              setAmountErrors(prev => ({
+                                ...prev,
+                                payment: min && parseFloat(min) > parseFloat(newMax),
+                              }));
+                            }}
+                            className={amountErrors.payment ? "border-red-500" : ""}
+                          />
+                        </div>
+                        {amountErrors.payment && (
+                          <p className="text-red-500 text-sm">Min cannot be greater than Max.</p>
+                        )}
                       </DropdownMenuSubContent>
                     </DropdownMenuSub>
 
                     <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>Date added</DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Date added", "Low to High")}>
-                          Low to High
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Date added", "High to Low")}>
-                          High to Low
-                        </DropdownMenuItem>
+                      <DropdownMenuSubTrigger>Total Amount</DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent className="p-4 space-y-2">
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="Min ₱"
+                            type="number"
+                            value={amountRanges.totalAmount.min}
+                            onChange={(e) => {
+                              const newMin = e.target.value;
+                              const max = amountRanges.totalAmount.max;
+                              setAmountRanges(prev => ({
+                                ...prev,
+                                totalAmount: { ...prev.totalAmount, min: newMin }
+                              }));
+                              setAmountErrors(prev => ({
+                                ...prev,
+                                totalAmount: max && parseFloat(newMin) > parseFloat(max),
+                              }));
+                            }}
+                            className={amountErrors.totalAmount ? "border-red-500" : ""}
+                          />
+                          <Input
+                            placeholder="Max ₱"
+                            type="number"
+                            value={amountRanges.totalAmount.max}
+                            onChange={(e) => {
+                              const newMax = e.target.value;
+                              const min = amountRanges.totalAmount.min;
+                              setAmountRanges(prev => ({
+                                ...prev,
+                                totalAmount: { ...prev.totalAmount, max: newMax }
+                              }));
+                              setAmountErrors(prev => ({
+                                ...prev,
+                                totalAmount: min && parseFloat(min) > parseFloat(newMax),
+                              }));
+                            }}
+                            className={amountErrors.totalAmount ? "border-red-500" : ""}
+                          />
+                        </div>
+                        {amountErrors.totalAmount && (
+                          <p className="text-red-500 text-sm">Min cannot be greater than Max.</p>
+                        )}
                       </DropdownMenuSubContent>
-                    </DropdownMenuSub> 
-
-                    <DropdownMenuItem 
-                      onClick={() => handleFilterSelect(null, null)} 
-                      className="text-red-500 font-medium"
-                      >
-                        Reset Filters
-                    </DropdownMenuItem>
+                    </DropdownMenuSub>
                   </DropdownMenuContent>
-                </DropdownMenu>  
-                
-                 
+                </DropdownMenu> 
 
                 {/* Date Range Filters - From and To */}
                 <Popover>
@@ -541,6 +779,17 @@ export default function OrdersPage() {
                     )}
                   </PopoverContent>
                 </Popover>
+                <Button
+                      variant="outline"
+                      onClick={() => {
+                        setFromDate(null);
+                        setToDate(null);
+                      }}
+                      className="text-sm border-gray-300 hover:text-red-600 "
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                        <span>Reset Date</span>
+                  </Button>
                 </div>
                 </div>
 
@@ -584,22 +833,21 @@ export default function OrdersPage() {
               </div>
             </div>
 
-
-
           {/* TABLE */}
+          <h1 className="text-2xl mb-4 p-4 rounded-sm text-blue-50 bg-blue-950 font-bold">Customer Orders</h1>
           <div className="p-4 bg-white shadow-md rounded-lg flex flex-col overflow-auto w-full">
-          <h1 className="text-gray-600 font-bold">Customer Orders</h1>
             <Table>
-              <TableHeader className="sticky top-0 bg-white z-10">
+              <TableHeader className="sticky top-0 z-10 bg-white shadow-sm border-b">
                 <TableRow>
                   <TableHead onClick={() => handleSort("orderID")} className="cursor-pointer select-none"> Order ID <SortIcon column="orderID" /></TableHead>
                   <TableHead onClick={() => handleSort("transacDate")} className="cursor-pointer select-none"> Date <SortIcon column="transacDate" /></TableHead>
                   <TableHead onClick={() => handleSort("transacDate")} className="cursor-pointer select-none"> Time <SortIcon column="transacDate" /></TableHead>
                   <TableHead onClick={() => handleSort("receiptNo")} className="cursor-pointer select-none"> Receipt Number <SortIcon column="receiptNo" /></TableHead>
-                  <TableHead onClick={() => handleSort("totalAmount")} className="cursor-pointer select-none"> Total Amount <SortIcon column="totalAmount" /></TableHead>
+                  <TableHead onClick={() => handleSort("totalAmount")} className="cursor-pointer select-none">Original Total <SortIcon column="originalTotal" /></TableHead>
                   <TableHead onClick={() => handleSort("totalProductDiscount")} className="cursor-pointer select-none"> Total Product Discount <SortIcon column="totalProductDiscount" /></TableHead>
                   <TableHead onClick={() => handleSort("wholeOrderDiscount")} className="cursor-pointer select-none"> Whole Order Discount <SortIcon column="wholeOrderDiscount" /></TableHead>
                   <TableHead onClick={() => handleSort("orderPayment")} className="cursor-pointer select-none"> Payment <SortIcon column="orderPayment" /></TableHead>
+                  <TableHead onClick={() => handleSort("totalAmount")} className="cursor-pointer select-none"> Total Amount <SortIcon column="totalAmount" /></TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -615,6 +863,7 @@ export default function OrdersPage() {
                     <TableCell>{formatPeso(order.totalProductDiscount)}</TableCell>
                     <TableCell>{formatPeso(order.wholeOrderDiscount)}</TableCell>
                     <TableCell>{formatPeso(order.orderPayment)}</TableCell>
+                    <TableCell>{formatPeso(order.originalTotal)}</TableCell>
 
                 {/*Details toggle button with modal pop-up */}              
                     <TableCell className="flex space-x-2">              

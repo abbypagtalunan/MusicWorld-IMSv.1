@@ -1,6 +1,8 @@
+// components/AppSidebar.tsx (for staff)
 "use client";
 
 import * as React from "react";
+import Link from "next/link"; 
 import {
   CircleXIcon,
   ShoppingCartIcon,
@@ -21,16 +23,29 @@ import {
   SidebarMenuItem,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const data = {
-  user: {
-    name: "Staff",
-    email: "staff@MW-IMS.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
-  navMain: [
+// Import the logout function
+import { handleSignOut } from "@/utils/auth";
+
+export function AppSidebar({ ...props }) {
+  const pathname = usePathname();
+  const [collapsed, setCollapsed] = React.useState(false);
+
+  const userFromStorage = JSON.parse(localStorage.getItem("user")) || {};
+
+  // Format the user object for the sidebar
+  const user = {
+    name: userFromStorage.firstName && userFromStorage.lastName
+      ? `${userFromStorage.firstName} ${userFromStorage.lastName}`
+      : "Guest",
+    email: userFromStorage.accountID,
+    avatar: userFromStorage.avatar || "/avatars/guest.png", // fallback avatar
+  };
+
+  const role = userFromStorage.roleID === 1 ? "Admin" : "Staff"; // Optional role
+
+  const navMain = [
     {
       title: "Order Dashboard",
       url: "./OrderDashboard",
@@ -61,14 +76,9 @@ const data = {
       icon: CircleXIcon,
       path: "deleted",
     },
-  ],
-};
+  ];
 
-export function AppSidebar({ ...props }) {
-  const pathname = usePathname();
-  const [collapsed, setCollapsed] = React.useState(false);
-
-  const navMainWithActive = data.navMain.map((item) => ({
+  const navMainWithActive = navMain.map((item) => ({
     ...item,
     isActive: pathname.includes(item.path),
   }));
@@ -92,7 +102,7 @@ export function AppSidebar({ ...props }) {
             <SidebarMenuItem>
               <Link href="/">
                 <SidebarMenuButton size="xl" tooltip="Home">
-                  <div className="flex justify-center items-center">
+                  <div className="flex justify-center items-center p-1 cursor-default">
                     <img
                       src="/logo1.svg"
                       alt="Music World IMS Logo"
@@ -109,17 +119,19 @@ export function AppSidebar({ ...props }) {
           <NavMain items={navMainWithActive} collapsed={collapsed} />
         </SidebarContent>
 
-        {/* <SidebarFooter className="bg-white">
+        <SidebarFooter className="bg-white">
           <SidebarMenu className="bg-white items-left justify-center">
             <SidebarMenuItem>
-              <SidebarMenuButton size="lg" tooltip="Log Out">
-                <LogOutIcon className="w-5 h-5" />
-                <span className="ml-2">Log Out</span>
-              </SidebarMenuButton>
+              <button onClick={handleSignOut}>
+                <SidebarMenuButton size="lg" tooltip="Log Out">
+                  <LogOutIcon className="w-5 h-5" />
+                  <span className="ml-2">Log Out</span>
+                </SidebarMenuButton>
+              </button>
             </SidebarMenuItem>
           </SidebarMenu>
-          <NavUser user={data.user} />
-        </SidebarFooter> */}
+          <NavUser user={user} role={role} />
+        </SidebarFooter>
       </Sidebar>
     </>
   );

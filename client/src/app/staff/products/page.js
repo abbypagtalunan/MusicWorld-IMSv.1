@@ -22,6 +22,7 @@ export default function ProductsPage() {
       supplierID: "P_supplierID",
       stockField: "P_stockNum",
       lastRestockField: "P_lastRestockDateTime",
+      lastUpdateField: "P_lastEditedDateTime",
       unitpriceField: "P_unitPrice",
       sellingpriceField: "P_sellingPrice",
       statusField: "P_productStatusName",
@@ -97,12 +98,13 @@ export default function ProductsPage() {
     brandID: item.B_brandID,
     supplier: item.supplier || "",
     supplierID: item.S_supplierID,
-    stockNumber: item.stock || 1,
-    lastRestock: item.P_lastRestockDateTime ? formatDateTime(item.P_lastRestockDateTime) : "N/A",
+    stockNumber: item.stock,
+    lastRestock: item.P_lastRestockDateTime ? formatDateTime(item.P_lastRestockDateTime) : "",
+    lastEdit: item.P_lastEditedDateTime ? formatDateTime(item.P_lastEditedDateTime) : "", 
     price: item.P_unitPrice,
     sellingPrice: item.P_sellingPrice,
     status: item.status,
-    dateAdded: item.P_dateAdded ? formatDate(item.P_dateAdded) : "N/A"
+    dateAdded: item.P_dateAdded ? formatDate(item.P_dateAdded) : ""
   }));
   
   // Fetch
@@ -120,6 +122,7 @@ export default function ProductsPage() {
         [config.product.supplierField]: "",
         [config.product.stockField]: "",
         [config.product.lastRestockField]: "",
+        [config.product.lastUpdateField]: "",
         [config.product.unitpriceField]: "",
         [config.product.sellingpriceField]: "",
         [config.product.statusField]: "",
@@ -289,7 +292,7 @@ export default function ProductsPage() {
       <div className="flex h-screen w-screen">
         <AppSidebar />
         <div className="flex-1 p-4 flex flex-col w-full">
-          <div className="flex items-center justify-between mb-4 bg-white p-2 rounded-lg">
+          <div className="flex items-center justify-between mb-4 bg-white p-4 shadow-sm rounded-lg">
             <div className="flex items-center space-x-2">
               <div className="relative w-80">
                 <input
@@ -380,8 +383,8 @@ export default function ProductsPage() {
               </div>
             </div>
           </div>
+          <h1 className="text-2xl mb-4 p-4 rounded-sm text-blue-50 bg-blue-950 font-bold">Products</h1>
           <div className="p-4 bg-white shadow-md rounded-lg flex flex-col overflow-auto w-full">
-          <h1 className="text-gray-600 font-bold">Products</h1>
             <Table>
               <TableHeader className="sticky top-0 bg-white z-10">
                 <TableRow>
@@ -396,6 +399,7 @@ export default function ProductsPage() {
                   <TableHead onClick={() => handleSort("sellingPrice")} className="cursor-pointer select-none">Selling Price <SortIcon column="sellingPrice" /></TableHead>
                   <TableHead onClick={() => handleSort("status")} className="cursor-pointer select-none">Status <SortIcon column="status" /></TableHead>
                   <TableHead onClick={() => handleSort("dateAdded")} className="cursor-pointer select-none">Date Added <SortIcon column="dateAdded" /></TableHead>
+                  <TableHead onClick={() => handleSort("lastEdit")} className="cursor-pointer select-none">Last Edited<SortIcon column="lastEdit" /></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -415,6 +419,7 @@ export default function ProductsPage() {
                     <TableCell>{item.sellingPrice}</TableCell>
                     <TableCell className={`font-semibold ${getStatusTextColor(item.status)}`}>{item.status}</TableCell>
                     <TableCell>{item.dateAdded}</TableCell>
+                    <TableCell>{item.lastEdit}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

@@ -28,6 +28,7 @@ export default function ProductsPage() {
       supplierID: "P_supplierID",
       stockField: "P_stockNum",
       lastRestockField: "P_lastRestockDateTime",
+      lastUpdateField: "P_lastEditedDateTime",
       unitpriceField: "P_unitPrice",
       sellingpriceField: "P_sellingPrice",
       statusField: "P_productStatusName",
@@ -109,12 +110,13 @@ export default function ProductsPage() {
     brandID: item.B_brandID,
     supplier: item.supplier || "",
     supplierID: item.S_supplierID,
-    stockNumber: item.stock || 1,
-    lastRestock: item.P_lastRestockDateTime ? formatDateTime(item.P_lastRestockDateTime) : "N/A",
+    stockNumber: item.stock,
+    lastRestock: item.P_lastRestockDateTime ? formatDateTime(item.P_lastRestockDateTime) : "",
+    lastEdit: item.P_lastEditedDateTime ? formatDateTime(item.P_lastEditedDateTime) : "", 
     price: item.P_unitPrice,
     sellingPrice: item.P_sellingPrice,
     status: item.status,
-    dateAdded: item.P_dateAdded ? formatDate(item.P_dateAdded) : "N/A"
+    dateAdded: item.P_dateAdded ? formatDate(item.P_dateAdded) : ""
   }));
 
   const isAddValid =
@@ -124,8 +126,14 @@ export default function ProductsPage() {
       values[config.product.supplierField] &&
       values[config.product.stockField] &&
       values[config.product.unitpriceField] &&
-      values[config.product.sellingpriceField] &&
-      values[config.product.statusField]
+      values[config.product.sellingpriceField];
+
+  const isUpdateValid =
+      values[config.product.codeField] &&
+      values[config.product.sellingpriceField] !== "" &&
+      !isNaN(parseFloat(values[config.product.sellingpriceField])) &&
+      parseFloat(values[config.product.sellingpriceField]) > 0;
+
   
 
   // Fetch
@@ -143,6 +151,7 @@ export default function ProductsPage() {
         [config.product.supplierField]: "",
         [config.product.stockField]: "",
         [config.product.lastRestockField]: "",
+        [config.product.lastUpdateField]: "",
         [config.product.unitpriceField]: "",
         [config.product.sellingpriceField]: "",
         [config.product.statusField]: "",
@@ -390,10 +399,9 @@ export default function ProductsPage() {
       P_productName: values[config.product.nameField] || selectedProduct.productName,
       B_brandID: values[config.product.brandField] || selectedProduct.brandID,
       S_supplierID: values[config.product.supplierField] || selectedProduct.supplierID,
-      P_stockNum: values[config.product.stockField] || selectedProduct.stockNumber,
+      P_stockNum: values[config.product.stockField] ?? selectedProduct.stockNumber,
       P_unitPrice: values[config.product.unitpriceField] || selectedProduct.unitPrice,
-      P_sellingPrice: values[config.product.sellingpriceField] || selectedProduct.sellingPrice,
-      P_productStatusID: values[config.product.statusID] || selectedProduct.statusID
+      P_sellingPrice: values[config.product.sellingpriceField] || selectedProduct.sellingPrice
     };
 
     axios
@@ -429,7 +437,7 @@ export default function ProductsPage() {
       return;
     }
 
-    if (!P_sellingPrice) {
+    if (!P_sellingPrice || P_sellingPrice <= 0) {
       toast.error("No price entered");
       return;
     }
@@ -472,16 +480,23 @@ export default function ProductsPage() {
       }
     })
     .catch(err => {
-      console.error("Delete error:", err.response?.data || err.message);
-      if (err.response?.status === 403) {
-        toast.error("Invalid admin password");
+      if(err.response) {
+        if (err.response.status === 403) {
+          toast.error("Invalid admin password");
+        } else if (err.response.status === 404) {
+          toast.error("Product not found");
+        } else {
+          toast.error("Deletion failed: " + (err.response?.data?.message || err.message));
+        }
       } else {
-        toast.error("Deletion failed: " + (err.response?.data?.message || err.message));
+        toast.error("Delete request error");
       }
-      setDDOpen(false);
-      setAdminPW("");
-      setSelectedProducts([]);
     })
+    .finally(() => {
+      setAdminPW("");
+      setMDDOpen(false);
+      setSelectedProducts([]);
+    });
   };  
  
   useEffect(() => {
@@ -520,13 +535,27 @@ export default function ProductsPage() {
   
     if (selectedProducts.length === 0) {
       toast.error("No products selected.");
+      setDDOpen(false);
+      setAdminPW("");
+      setSelectedProducts([]);
       return;
     }
+
+    let PWError = false;
   
     Promise.all(
       selectedProducts.map((productCode) =>
         axios.delete(`${config.product.api.delete}/${productCode}`, {
           data: { adminPW: password },
+        }).catch(err => {
+          if (err.response.status === 403 && !PWError) {
+            PWError = true;
+          } else if (err.response.status === 404) {
+            toast.error("Product not found");
+          } else {
+            toast.error("Deletion failed: " + (err.response?.data?.message || err.message));
+          }
+          return err;
         })
       )
     )
@@ -534,80 +563,97 @@ export default function ProductsPage() {
         const successCount = responses.filter(
           (res) => res.data?.affectedRows > 0
         ).length;
-        
         if (successCount > 0) {
           toast.success(`Deleted ${successCount} product(s) successfully`);
-            refreshTable();
-            setSelectedProducts([]); 
-            setAdminPW(""); 
-            setMDDOpen(false);
-        } else {
-          toast.error("No products were deleted (already deleted or not found)");
-        }
+        } 
       })
       .catch((err) => {
-        console.error("Multi-delete error:", err);
         toast.error("Error deleting selected products");
-        setDDOpen(false);
-        setAdminPW("");
-        setSelectedProducts([]);
       })
+      .finally(() => {
+        setAdminPW("");
+        setMDDOpen(false);
+        setSelectedProducts([]);
+      });
   };
 
   // Download
   const [isDownloadConfirmOpen, setDownloadConfirmOpen] = useState("");
   const handleDownloadCSV = (data) => {
-    const headers = [
-      "Product Code",
-      "Product Name",
-      "Category",
-      "Supplier",
-      "Brand",
-      "Stock Number",
-      "Last Restock",
-      "Unit Price",
-      "Selling Price",
-      "Status",
-      "Date Product Added"
-    ];
-  
-    const rows = data.map(item => [
-      item.productCode,
-      item.productName,
-      item.category,
-      item.supplier,
-      item.brand,
-      item.stockNumber,
-      item.lastRestock,
-      item.price,
-      item.sellingPrice,
-      item.status,
-      item.dateAdded
-    ]);
-  
-    const csvContent = [
-      headers.join(","),
-      ...rows.map(row => row.map(val => `"${val}"`).join(","))
-    ].join("\n");
-  
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", "Products.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-  
+  const headers = [
+    "Product Code",
+    "Product Name",
+    "Category",
+    "Supplier",
+    "Brand",
+    "Stock Number",
+    "Last Restock",
+    "Unit Price",
+    "Selling Price",
+    "Status",
+    "Date Product Added",
+    "Last Edited"
+  ];
+
+  const rows = data.map(item => [
+    item.productCode,
+    item.productName,
+    item.category,
+    item.supplier,
+    item.brand,
+    item.stockNumber,
+    item.lastRestock,
+    item.price,
+    item.sellingPrice,
+    item.status,
+    item.dateAdded,
+    item.lastEdit
+  ]);
+
+  // Format Philippine Time
+  const now = new Date();
+  const phLocale = "en-PH";
+  const phTimeZone = "Asia/Manila";
+  const formattedPHDate = now.toLocaleString(phLocale, { timeZone: phTimeZone });
+
+  // Determine Filter Display
+  const filterLabel = selectedFilter && selectedSubFilter
+    ? `${selectedFilter} - ${selectedSubFilter}`
+    : "All";
+
+  const csvContent = [
+    `Products: ${filterLabel}`,
+    `Downloaded At:, "${formattedPHDate}"`,
+    selectedFilter && selectedSubFilter ? `Filter Applied:, "${filterLabel}"` : "Filter Applied:, None",
+    searchTerm ? `Search Term:, "${searchTerm}"` : "",
+    "",
+    headers.join(","),
+    ...rows.map(row => row.map(val => `"${val}"`).join(","))
+  ].join("\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  const safeFilter = selectedFilter && selectedSubFilter
+  ? `${selectedFilter}-${selectedSubFilter}`.replace(/\s+/g, "-")
+  : "All";
+
+  const fileName = `Products_${safeFilter}.csv`;
+  link.setAttribute("download", fileName);
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
 
   return (
     <SidebarProvider>
       <div className="flex h-screen w-screen">
         <AppSidebar />
         <div className="flex-1 p-4 flex flex-col w-full">
-          <div className="flex items-center justify-between mb-4 bg-white p-2 rounded-lg">
+          <div className="flex items-center justify-between mb-4 bg-white shadow-sm p-4 rounded-lg">
             <div className="flex items-center space-x-2">
               <div className="relative w-80">
                 {/* Search */}
@@ -647,18 +693,6 @@ export default function ProductsPage() {
                     </DropdownMenuSub>
                     
                     <DropdownMenuSub>
-                    <DropdownMenuSubTrigger>Product Name</DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Product Name", "Ascending")}>
-                          Ascending
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Product Name", "Descending")}>
-                          Descending
-                        </DropdownMenuItem>
-                      </DropdownMenuSubContent>
-                    </DropdownMenuSub>
-                    
-                    <DropdownMenuSub>
                       <DropdownMenuSubTrigger>Brand</DropdownMenuSubTrigger>
                       <DropdownMenuSubContent>
                         {brands.map((brand) => (
@@ -683,18 +717,6 @@ export default function ProductsPage() {
                         ))}
                       </DropdownMenuSubContent>
                     </DropdownMenuSub>
-
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>Price</DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Price", "Low to High")}>
-                          Low to High
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Price", "High to Low")}>
-                          High to Low
-                        </DropdownMenuItem>
-                      </DropdownMenuSubContent>
-                    </DropdownMenuSub>
                     
                     <DropdownMenuSub>
                       <DropdownMenuSubTrigger>Product Status</DropdownMenuSubTrigger>
@@ -710,18 +732,6 @@ export default function ProductsPage() {
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleFilterSelect("Product Status", "Discontinued")}>
                           Discontinued
-                        </DropdownMenuItem>
-                      </DropdownMenuSubContent>
-                    </DropdownMenuSub>
-
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>Date added</DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Date added", "Ascending")}>
-                          Ascending
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Date added", "Descending")}>
-                          Descending
                         </DropdownMenuItem>
                       </DropdownMenuSubContent>
                     </DropdownMenuSub>
@@ -800,36 +810,93 @@ export default function ProductsPage() {
                     </Select>
 
                     <Label>Stock amount</Label>
-                    <Input type="number" placeholder="Enter Stock amount" required onChange={(e) => setValues({ ...values, [config.product.stockField]: e.target.value })}/>
+                    <Input  
+                      type="number" 
+                      placeholder="Enter stock amount" 
+                      required
+                      min="0"
+                      onKeyDown={(e) => {
+                        if(e.key === 'e' || e.key === '-' || e.key === '+') {
+                          e.preventDefault();
+                        }
+                      }} 
+                      onChange={(e) => {
+                        const value = parseFloat(e.target.value);
+                        if(!isNaN(value) && value >= 0) {
+                          setValues({...values, [config.product.stockField]:value});
+                        } else if (e.target.value === '') {
+                          setValues({...values, [config.product.stockField]:''});    
+                        }
+                      }}
+                    />
 
                     <Label>Price</Label>
-                    <Input placeholder="Enter price"  type="number" required onChange={(e) => setValues({ ...values, [config.product.unitpriceField]: e.target.value })}/>
+                    <Input  
+                      type="number" 
+                      placeholder="Enter price" 
+                      required
+                      min="0.01"
+                      step="0.01"
+                      onKeyDown={(e) => {
+                        if(e.key === 'e' || e.key === '-' || e.key === '+') {
+                          e.preventDefault();
+                        }
+                      }} 
+                      onChange={(e) => {
+                        const value = parseFloat(e.target.value);
+                        if(!isNaN(value) && value > 0) {
+                          setValues({...values, [config.product.unitpriceField]:value});
+                        } else if (e.target.value === '') {
+                          setValues({...values, [config.product.unitpriceField]:''});    
+                        }
+                      }}
+                    />
 
                     <Label>Selling Price</Label>
-                    <Input placeholder="Enter selling price"  type="number" required onChange={(e) => setValues({...values, [config.product.sellingpriceField]: e.target.value,})}/>
+                    <Input  
+                      type="number" 
+                      placeholder="Enter selling price" 
+                      required
+                      min="0.01"
+                      step="0.01"
+                      onKeyDown={(e) => {
+                        if(e.key === 'e' || e.key === '-' || e.key === '+') {
+                          e.preventDefault();
+                        }
+                      }} 
+                      onChange={(e) => {
+                        const value = parseFloat(e.target.value);
+                        if(!isNaN(value) && value > 0) {
+                          setValues({...values, [config.product.sellingpriceField]:value});
+                        } else if (e.target.value === '') {
+                          setValues({...values, [config.product.sellingpriceField]:''});    
+                        }
+                      }}
+                    />
 
-                    <Label>Product Status</Label>
-                    <Select disabled value="1">
-                      <SelectTrigger>
-                        <SelectValue/>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {pStatus.map((pstatus) => (
-                          <SelectItem
-                            key={pstatus.P_productStatusID}
-                            value={pstatus.P_productStatusID.toString()}>
-                            {pstatus.P_productStatusName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button className="bg-blue-400 text-white w-full mt-4" onClick={handleSubmit}>Add Product</Button>
+                    <Button 
+                      className="bg-blue-400 text-white w-full mt-4" 
+                      onClick={handleSubmit}
+                      disabled={!isAddValid}
+                    >Add Product</Button>
                   </div>
                 </SheetContent>
               </Sheet>
 
               {/* Update Price  */}
-              <Dialog open={isPDOpen} onOpenChange={setPDopen}>
+              <Dialog 
+                open={isPDOpen} 
+                onOpenChange={(open) => {
+                  setPDopen(open);
+                  if(!open) {
+                    setPSearchTerm("");
+                    setValues({
+                      ...values,
+                      [config.product.codeField]: "",
+                      [config.product.sellingpriceField]: "",
+                    });
+                  }
+                }}>
                 <DialogTrigger asChild>
                   <Button className="bg-blue-400 text-white">Update Price</Button>
                 </DialogTrigger>
@@ -843,48 +910,98 @@ export default function ProductsPage() {
                     <Input disabled placeholder="Auto-filled" className="bg-gray-300" value={values[config.product.codeField] ?? ""}/>
 
                     <Label>Product </Label>
-                    <Select onValueChange={(value) => {
-                      const selected = data.find(p => p.productCode === value);
-                      if (selected) {
-                        setValues({
-                          ...values,
-                          [config.product.codeField]: selected.productCode,
-                          [config.product.sellingpriceField]: selected.sellingPrice,
-                        });
-                      }
-                    }}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select Product" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {data
-                          .filter(product =>
-                            product.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            product.supplier.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            product.brand.toLowerCase().includes(searchTerm.toLowerCase())
-                          )
-                          .map((product) => (
-                            <SelectItem
-                              key={product.productCode}
-                              value={product.productCode}
-                            >
-                              <div className="flex flex-col">
-                                <span>{product.productName}-S{product.supplier}-B{product.brand}</span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                      </SelectContent>  
-                    </Select>
+                    <div className="relative">
+                      <Input
+                        placeholder="Search product"
+                        value={PSearchTerm}
+                        onChange={(e) => {
+                          setPSearchTerm(e.target.value);
+                          if(e.target.value === "") {
+                            setValues({
+                              ...values,
+                              [config.product.codeField]: "",
+                              [config.product.sellingpriceField]: "",
+                            });
+                          }
+                        }}
+                        className="w-full pr-8"
+                      />
+                      <Search className="absolute right-3 top-3 w-4 h-4 text-gray-400"/>
+                    </div>
+                    <div className="border rounded-md max-h-60 overflow-y-auto">
+                      {data
+                        .filter(product => {
+                          if(!PSearchTerm) return true;
+                          const search = PSearchTerm.toLowerCase();
+
+                          const productName = String(product.productName || '').toLowerCase();
+                          const productCode = String(product.productCode || '').toLowerCase();
+                          const supplier = String(product.supplier || '').toLowerCase();
+                          const brand = String(product.brand || '').toLowerCase();
+                      
+                          return(
+                            productName.toLowerCase().includes(search) ||
+                            productCode.toLowerCase().includes(search) ||
+                            supplier.toLowerCase().includes(search) ||
+                            brand.toLowerCase().includes(search) 
+                          );
+                        })
+                        .map((product) => (
+                          <div
+                            key={product.productCode}
+                            className={`p-2 hover:bg-gray-100 cursor-pointer ${
+                              values[config.product.codeField] === product.productCode ? 'bg-blue-50' : ''
+                            }`}
+                            onClick={() => {
+                              setValues({
+                                ...values,
+                                [config.product.codeField]: product.productCode,
+                                [config.product.sellingpriceField]: product.sellingPrice,
+                              });
+                              setPSearchTerm(`${product.productName} (${product.productCode})`);
+                            }}
+                          >
+                            <div className="flex justify-between">
+                              <span className="font-medium">{product.productName}</span>
+                              <span className="text-gray-500">{product.productCode}</span>
+                            </div>
+                            <div className="flex justify-between text-sm text-gray-500">
+                              <span>Supplier: {product.supplier}</span>
+                              <span>Brand: {product.brand}</span>
+                              <span>Price: {product.sellingPrice}</span>
+                            </div>
+                          </div>
+                        ))}
+                    </div> 
 
                     <Label>Price</Label>
-                    <Input disabled placeholder="Auto-filled" className="bg-gray-300" value={values[config.product.sellingpriceField] ?? ""}/>
+                    <Input disabled placeholder={values[config.product.sellingpriceField] ?? ""} className="bg-gray-300" />
 
                     <Label>Updated Price</Label>
-                    <Input type="number" placeholder="Enter new price" required onChange={(e) => setValues({...values, [config.product.sellingpriceField]: e.target.value,})}/>
+                    <Input  
+                      type="number" 
+                      placeholder="Enter selling price" 
+                      required
+                      min="0.01"
+                      step="0.01"
+                      onKeyDown={(e) => {
+                        if(e.key === 'e' || e.key === '-' || e.key === '+') {
+                          e.preventDefault();
+                        }
+                      }} 
+                      onChange={(e) => {
+                        const value = parseFloat(e.target.value);
+                        if(!isNaN(value) && value > 0) {
+                          setValues({...values, [config.product.sellingpriceField]:value});
+                        } else if (e.target.value === '') {
+                          setValues({...values, [config.product.sellingpriceField]:''});    
+                        }
+                      }}
+                    />
                   </div>
 
                   <DialogFooter className="mt-6">
-                    <Button className="bg-blue-500 text-white w-full" onClick={handlePriceUpdate}>Update Product Price </Button>
+                    <Button className="bg-blue-500 text-white w-full" onClick={handlePriceUpdate} disabled={!isUpdateValid}>Update Product Price </Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
@@ -915,7 +1032,7 @@ export default function ProductsPage() {
                     <Button
                       className="bg-emerald-500 hover:bg-emerald-700 text-white uppercase text-sm font-medium whitespace-nowrap"
                       onClick={() => {
-                        handleDownloadCSV(data);
+                        handleDownloadCSV(getFilteredTransactions());
                         toast.success("Downloaded successfully!");
                         setDownloadConfirmOpen(false);
                       }}
@@ -976,8 +1093,8 @@ export default function ProductsPage() {
               </Dialog>
             </div>
           </div>
+          <h1 className="text-2xl mb-4 p-4 rounded-sm text-blue-50 bg-blue-950 font-bold">Products</h1>
           <div className="p-4 bg-white shadow-md rounded-lg flex flex-col overflow-auto w-full">
-          <h1 className="text-gray-600 font-bold">Products</h1>
             <Table>
               <TableHeader className="sticky top-0 bg-white z-10">
                 <TableRow>
@@ -990,11 +1107,12 @@ export default function ProductsPage() {
                   <TableHead onClick={() => handleSort("brand")} className="cursor-pointer select-none">Brand <SortIcon column="brand" /></TableHead>
                   <TableHead onClick={() => handleSort("supplier")} className="cursor-pointer select-none">Supplier <SortIcon column="supplier" /></TableHead>
                   <TableHead onClick={() => handleSort("stockNumber")} className="cursor-pointer select-none">Stock amount <SortIcon column="stockNumber" /></TableHead>
-                  <TableHead onClick={() => handleSort("lastRestock")} className="cursor-pointer select-none">Last Restock Date and Time <SortIcon column="lastRestock" /></TableHead>
+                  <TableHead onClick={() => handleSort("lastRestock")} className="cursor-pointer select-none">Last Restock<SortIcon column="lastRestock" /></TableHead>
                   <TableHead onClick={() => handleSort("price")} className="cursor-pointer select-none">Price <SortIcon column="price" /></TableHead>
                   <TableHead onClick={() => handleSort("sellingPrice")} className="cursor-pointer select-none">Selling Price <SortIcon column="sellingPrice" /></TableHead>
                   <TableHead onClick={() => handleSort("status")} className="cursor-pointer select-none">Status <SortIcon column="status" /></TableHead>
                   <TableHead onClick={() => handleSort("dateAdded")} className="cursor-pointer select-none">Date Added <SortIcon column="dateAdded" /></TableHead>
+                  <TableHead onClick={() => handleSort("lastEdit")} className="cursor-pointer select-none">Last Edited<SortIcon column="lastEdit" /></TableHead>
                   <TableHead>View/Edit</TableHead>
                 </TableRow>
               </TableHeader>
@@ -1022,6 +1140,7 @@ export default function ProductsPage() {
                     <TableCell>{item.sellingPrice}</TableCell>
                     <TableCell className={`font-semibold ${getStatusTextColor(item.status)}`}>{item.status}</TableCell>
                     <TableCell>{item.dateAdded}</TableCell>
+                    <TableCell>{item.lastEdit}</TableCell>
                     <TableCell className="flex space-x-2">
                       <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600" onClick={() => openEditSheet(item)}>
                         <FilePen size={16} />
@@ -1105,29 +1224,69 @@ export default function ProductsPage() {
               </Select>
 
               <label className="text-black font-semibold text-sm">Stock amount</label>
-              <Input type="number" value={values[config.product.stockField]  ?? ""} onChange={(e) => setValues({ ...values, [config.product.stockField]: e.target.value })}/>
+              <Input 
+                type="number" 
+                value={values[config.product.stockField]  ?? ""} 
+                required
+                min="0"
+                onKeyDown={(e) => {
+                  if(e.key === 'e' || e.key === '-' || e.key === '+') {
+                    e.preventDefault();
+                  }
+                }} 
+                onChange={(e) => {
+                  const value = parseFloat(e.target.value);
+                  if(!isNaN(value) && value >= 0) {
+                    setValues({...values, [config.product.stockField]:value});
+                  } else if (e.target.value === '') {
+                    setValues({...values, [config.product.stockField]:''});    
+                  }
+                }}
+              />
 
               <label className="text-black font-semibold text-sm">Price</label>
-              <Input type="text" value={values[config.product.unitpriceField]  ?? ""} /*defaultValue={selectedProduct.price}*/ onChange={(e) => setValues({ ...values, [config.product.unitpriceField]: e.target.value })}/>
+              <Input 
+                type="number" 
+                value={values[config.product.unitpriceField]  ?? ""}
+                required
+                min="0.01"
+                step="0.01"
+                onKeyDown={(e) => {
+                  if(e.key === 'e' || e.key === '-' || e.key === '+') {
+                    e.preventDefault();
+                  }
+                }} 
+                onChange={(e) => {
+                  const value = parseFloat(e.target.value);
+                  if(!isNaN(value) && value > 0) {
+                    setValues({...values, [config.product.unitpriceField]:value});
+                  } else if (e.target.value === '') {
+                    setValues({...values, [config.product.unitpriceField]:''});    
+                  }
+                }}
+              />
 
               <label className="text-black font-semibold text-sm">Selling Price</label>
-              <Input type="text" value={values[config.product.sellingpriceField] ?? ""} /*defaultValue={selectedProduct.sellingPrice}*/ onChange={(e) => setValues({...values, [config.product.sellingpriceField]: e.target.value,})}/>
-
-              <label className="text-black font-semibold text-sm">Product Status</label>
-              <Select value={values[config.product.statusID]} onValueChange={(value) => setValues({ ...values, [config.product.statusID]: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Status"/>
-                </SelectTrigger>
-                <SelectContent>
-                  {pStatus.map((pstatus) => (
-                    <SelectItem
-                      key={pstatus.P_productStatusID}
-                      value={pstatus.P_productStatusID.toString()}>
-                      {pstatus.P_productStatusName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input 
+                type="number" 
+                value={values[config.product.sellingpriceField] ?? ""} 
+                required
+                min="0.01"
+                step="0.01"
+                onKeyDown={(e) => {
+                  if(e.key === 'e' || e.key === '-' || e.key === '+') {
+                    e.preventDefault();
+                  }
+                }} 
+                onChange={(e) => {
+                  const value = parseFloat(e.target.value);
+                  if(!isNaN(value) && value > 0) {
+                    setValues({...values, [config.product.sellingpriceField]:value});
+                  } else if (e.target.value === '') {
+                    setValues({...values, [config.product.sellingpriceField]:''});    
+                  }
+                }}
+              />
 
               <label className="text-black font-semibold text-sm">Date Added</label>
               <Input value={selectedProduct.dateAdded} disabled className="bg-gray-200" />

@@ -245,8 +245,8 @@ export default function DeletedPage() {
       <div className="flex h-screen w-screen">
         <AppSidebar />
         <div className="flex-1 p-4 flex flex-col w-full">
-          <div className="z-10 sticky top-0 mb-4 bg-white p-4 rounded-lg">
-            <h1 className="text-gray-600 font-bold">Deleted Transactions</h1>
+          <div className="z-10 sticky top-0 mb-4 bg-blue-950 p-4 rounded-sm">
+            <h1 className="text-2xl text-blue-50 font-bold">Deleted Transaction</h1>
           </div>
 
           <Tabs defaultValue="order" onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
