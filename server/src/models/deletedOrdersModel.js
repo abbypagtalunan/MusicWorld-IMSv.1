@@ -27,7 +27,7 @@ const getAllDeleted = (callback) => {
     LEFT JOIN Brands b ON p.B_brandID = b.B_brandID
     LEFT JOIN Suppliers s ON p.S_supplierID = s.S_supplierID
     LEFT JOIN Categories c ON p.C_categoryID = c.C_categoryID
-    WHERE o.isTemporarilyDeleted = TRUE`
+    WHERE o.isTemporarilyDeleted = 1`
   ;
     
     db.query(query, (err, results) => {
