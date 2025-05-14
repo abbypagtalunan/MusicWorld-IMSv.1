@@ -455,7 +455,7 @@ const handleDownloadCSV = (data) => {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.setAttribute("download", `${config.label}.csv`);
+  link.setAttribute("download", `${config.label}-Deleted.csv`);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -631,63 +631,43 @@ const handleDownloadCSV = (data) => {
                                 </DialogContent>
                               </Dialog>
 
-                                            {/* DOWNLOAD */}
-                              <Dialog open={isDownloadConfirmOpen} onOpenChange={(open) => {
-                                setDownloadConfirmOpen(open);
-                                if (!open) {
-                                  setAdminPW("");
-                                }
-                              }}>
-                                <DialogTrigger asChild>
-                                  <Button className="bg-blue-400 text-white">
-                                    <Download className="w-4 h-4" />
+                            {/* DOWNLOAD */}
+                            <Dialog open={isDownloadConfirmOpen} onOpenChange={(open) => {
+                              setDownloadConfirmOpen(open);
+                            }}>
+                              <DialogTrigger asChild>
+                                <Button className="bg-blue-400 text-white">
+                                  <Download className="w-4 h-4" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
+                                <DialogHeader>
+                                  <DialogTitle>
+                                    <span className="text-lg text-blue-900">Confirm Download?</span>
+                                    <span className="text-lg text-gray-400 font-normal italic ml-2">
+                                      ({config.label}-Deleted.cs)
+                                    </span>
+                                  </DialogTitle>
+                                  <DialogClose />
+                                </DialogHeader>
+                                <p className="text-medium text-gray-800 mt-2 pl-4">
+                                  You are about to download the {config.label}-Deleted.csv file. Click the button below to proceed.
+                                </p>
+                                <div className="flex justify-end mt-4 text-gray-700 items-center pl-4">
+                                  <Button
+                                    className="bg-emerald-500 hover:bg-emerald-700 text-white uppercase text-sm font-medium whitespace-nowrap"
+                                    onClick={() => {
+                                      handleDownloadCSV();
+                                      toast.success("Downloaded successfully!");
+                                      setDownloadConfirmOpen(false);
+                                    }}
+                                  >
+                                    DOWNLOAD FILE
                                   </Button>
-                                </DialogTrigger>
-                                <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
-                                  <DialogHeader>
-                                    <DialogTitle>
-                                      <span className="text-lg text-blue-900">Confirm Download?</span>
-                                      <span className="text-lg text-gray-400 font-normal italic ml-2">
-                                        (Products.csv)
-                                      </span>
-                                    </DialogTitle>
-                                    <DialogClose />
-                                  </DialogHeader>
-                                  <p className="text-sm text-gray-800 mt-2 pl-4">
-                                    Downloading the CSV file requires admin authorization. Please enter the admin password below to proceed.
-                                  </p>
-                                  <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">
-                                    <div className="flex-1">
-                                      <label htmlFor="password" className="text-base font-medium text-gray-700 block mb-2">
-                                        Admin Password
-                                      </label>
-                                      <Input
-                                        type="password"
-                                        required
-                                        placeholder="Enter admin password"
-                                        className="w-full"
-                                        value={adminPW}
-                                        onChange={(e) => setAdminPW(e.target.value)}
-                                      />
-                                    </div>
-                                    <Button
-                                      className="bg-emerald-500 hover:bg-emerald-700 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
-                                      onClick={() => {
-                                        if (adminPW === setAdminPW("")) { // need to fix for backend 
-                                          handleDownloadCSV(data);
-                                          toast.success("Download started");
-                                          setDownloadConfirmOpen(false);
-                                        } else {
-                                          toast.error("Invalid admin password");
-                                        }
-                                      }}
-                                    >
-                                      DOWNLOAD FILE
-                                    </Button>
                                   </div>
                                 </DialogContent>
                               </Dialog>
-                                
+                              
                               <Dialog open={isMDDOpen} onOpenChange={(open) => {
                                 setMDDOpen(open);
                                 if (!open) {
@@ -737,6 +717,7 @@ const handleDownloadCSV = (data) => {
                               </Dialog>
                             </div>
                           </div>
+                          
 
                       <div className="sticky top-[72px] z-10 bg-white">
                           <Table className="min-w-full">
