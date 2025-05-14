@@ -50,12 +50,13 @@ exports.createAccount = (req, res) => {
   );
 };
 
-// Update an account (only name and role)
+// Update an account (only name and optional role)
 exports.updateAccount = (req, res) => {
   const { id } = req.params;
   const { firstName, lastName, roleID } = req.body;
 
-  if (!firstName || !lastName || !roleID) {
+  // Validate required fields (firstName and lastName)
+  if (!firstName || !lastName) {
     return res.status(400).json({ message: "Missing required fields" });
   }
 

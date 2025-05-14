@@ -88,6 +88,8 @@ export default function ManageAccountsPage() {
   const [isDeleteAccountDialogOpen, setIsDeleteAccountDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [adminPW, setAdminPW] = useState("");
+  const [editSource, setEditSource] = useState(""); // "my-account" or "staff"
+  const [passwordResetSource, setPasswordResetSource] = useState("");
 
   // Load current user + staff data
   useEffect(() => {
@@ -132,16 +134,28 @@ export default function ManageAccountsPage() {
       toast.error("Invalid user data.");
       return;
     }
+
+    if (passwordResetSource === "my-account") {
+      if (!passwordData.oldPassword) {
+        toast.error("Old password is required.");
+        return;
+      }
+    }
+
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       toast.error("Passwords do not match!");
       return;
     }
+
     axios
       .put(
         `http://localhost:8080/accounts/${resetStaff.accountID}/reset-password`,
         {
           newPassword: passwordData.newPassword,
           confirmPassword: passwordData.confirmPassword,
+          ...(passwordResetSource === "my-account" && {
+            oldPassword: passwordData.oldPassword,
+          }),
         }
       )
       .then(() => {
@@ -178,7 +192,6 @@ export default function ManageAccountsPage() {
       toast.error("Admin password is required.");
       return;
     }
-
     axios
       .delete(`http://localhost:8080/accounts/${accountID}`, {
         data: { adminPW },
@@ -312,27 +325,42 @@ export default function ManageAccountsPage() {
     if (
       !updatedStaff.accountID ||
       !updatedStaff.firstName ||
-      !updatedStaff.lastName ||
-      !updatedStaff.roleID
+      !updatedStaff.lastName
     ) {
       toast.error("Missing required fields.");
       return;
     }
+
+    const payload = {
+      firstName: updatedStaff.firstName,
+      lastName: updatedStaff.lastName,
+    };
+
+    if (editSource === "staff") {
+      payload.roleID = updatedStaff.roleID;
+    }
+
     try {
       await axios.put(
         `http://localhost:8080/accounts/${updatedStaff.accountID}`,
-        {
+        payload
+      );
+
+      if (editSource === "my-account") {
+        setCurrentUser({
+          ...currentUser,
           firstName: updatedStaff.firstName,
           lastName: updatedStaff.lastName,
-          roleID: updatedStaff.roleID,
-        }
-      );
-      setStaffs(
-        staffs.map((s) =>
-          s.accountID === updatedStaff.accountID ? updatedStaff : s
-        )
-      );
-      toast.success("Staff updated successfully.");
+        });
+      } else {
+        setStaffs(
+          staffs.map((s) =>
+            s.accountID === updatedStaff.accountID ? updatedStaff : s
+          )
+        );
+      }
+
+      toast.success("Account updated successfully.");
       setIsEditOpen(false);
     } catch (err) {
       toast.error("Failed to update staff.");
@@ -374,6 +402,7 @@ export default function ManageAccountsPage() {
                 </TabsTrigger>
               </TabsList>
             </div>
+
             {/* MY ACCOUNT TAB */}
             <TabsContent value="my-account" className="mt-0">
               {currentUser ? (
@@ -429,6 +458,7 @@ export default function ManageAccountsPage() {
                           <div className="flex flex-col gap-4 mt-4 text-gray-700">
                             <Label>Date Created</Label>
                             <Input value={currentUser.dateCreated} disabled />
+
                             <Label>First Name</Label>
                             <Input
                               type="text"
@@ -441,6 +471,7 @@ export default function ManageAccountsPage() {
                                 })
                               }
                             />
+
                             <Label>Last Name</Label>
                             <Input
                               type="text"
@@ -453,35 +484,21 @@ export default function ManageAccountsPage() {
                                 })
                               }
                             />
+
+                            {/* Remove role dropdown in My Account tab */}
                             <Label>Role</Label>
-                            <Select
-                              value={currentUser.roleID?.toString()}
-                              onValueChange={(value) =>
-                                setEditedStaff({
-                                  ...editedStaff,
-                                  roleID: parseInt(value),
-                                })
-                              }
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select role" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {roles.map((role) => (
-                                  <SelectItem
-                                    key={role.roleID}
-                                    value={role.roleID.toString()}
-                                  >
-                                    {role.roleName}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <Input
+                              value={roles.find((role) => role.roleID === currentUser.roleID)?.roleName || "Loading..."}
+                              disabled
+                            />
                           </div>
                           <DialogFooter className="mt-6">
                             <Button
                               className="w-full bg-blue-400 text-white"
-                              onClick={() => handleUpdateStaff(editedStaff)}
+                              onClick={() => {
+                                setEditSource("my-account");
+                                handleUpdateStaff(editedStaff);
+                              }}
                             >
                               Update Staff
                             </Button>
@@ -538,44 +555,44 @@ export default function ManageAccountsPage() {
                             <DialogClose />
                           </DialogHeader>
                           <div className="flex flex-col gap-4 mt-4 text-gray-700">
+                            {/* Show old password only when it's "my-account" */}
                             <Label>Old Password</Label>
                             <Input
                               type="password"
                               placeholder="Enter old password"
+                              value={passwordData.oldPassword}
                               onChange={(e) =>
-                                setPasswordData({
-                                  ...passwordData,
-                                  oldPassword: e.target.value,
-                                })
+                                setPasswordData({ ...passwordData, oldPassword: e.target.value })
                               }
                             />
+
                             <Label>New Password</Label>
                             <Input
                               type="password"
                               placeholder="Enter new password"
+                              value={passwordData.newPassword}
                               onChange={(e) =>
-                                setPasswordData({
-                                  ...passwordData,
-                                  newPassword: e.target.value,
-                                })
+                                setPasswordData({ ...passwordData, newPassword: e.target.value })
                               }
                             />
+
                             <Label>Confirm New Password</Label>
                             <Input
                               type="password"
                               placeholder="Confirm new password"
+                              value={passwordData.confirmPassword}
                               onChange={(e) =>
-                                setPasswordData({
-                                  ...passwordData,
-                                  confirmPassword: e.target.value,
-                                })
+                                setPasswordData({ ...passwordData, confirmPassword: e.target.value })
                               }
                             />
                           </div>
                           <DialogFooter>
                             <Button
                               className="w-full bg-blue-400 text-white"
-                              onClick={handleResetPassword}
+                              onClick={() => {
+                                setPasswordResetSource("my-account");
+                                handleResetPassword();
+                              }}
                             >
                               Update Password
                             </Button>
@@ -591,6 +608,7 @@ export default function ManageAccountsPage() {
                 </p>
               )}
             </TabsContent>
+
             {/* STAFF TAB */}
             <TabsContent value="staff" className="mt-0">
               <div className="mb-4">
@@ -788,6 +806,7 @@ export default function ManageAccountsPage() {
                                 onClick={() => {
                                   setIsResetOpen(true);
                                   setResetStaff(staff);
+                                  setPasswordResetSource("staff");
                                 }}
                               >
                                 Reset
@@ -801,6 +820,7 @@ export default function ManageAccountsPage() {
                                 onClick={() => {
                                   setEditedStaff(staff);
                                   setIsEditOpen(true);
+                                  setEditSource("staff");
                                 }}
                               >
                                 <FilePen size={16} />
@@ -828,7 +848,8 @@ export default function ManageAccountsPage() {
           </Tabs>
         </div>
       </div>
-      {/* Edit Modal */}
+
+      {/* EDIT MODAL */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="w-[30vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
           <DialogHeader>
@@ -840,32 +861,40 @@ export default function ManageAccountsPage() {
           <div className="flex flex-col gap-4 mt-4 text-gray-700">
             <Label>Date Created</Label>
             <Input value={editedStaff?.dateCreated || ""} disabled />
+
             <Label>First Name</Label>
             <Input
               value={editedStaff?.firstName || ""}
               onChange={(e) => setEditedStaff({ ...editedStaff, firstName: e.target.value })}
             />
+
             <Label>Last Name</Label>
             <Input
               value={editedStaff?.lastName || ""}
               onChange={(e) => setEditedStaff({ ...editedStaff, lastName: e.target.value })}
             />
-            <Label>Role</Label>
-            <Select
-              value={editedStaff?.roleID?.toString() || ""}
-              onValueChange={(value) => setEditedStaff({ ...editedStaff, roleID: parseInt(value) })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select role" />
-              </SelectTrigger>
-              <SelectContent>
-                {roles.map((role) => (
-                  <SelectItem key={role.roleID} value={role.roleID.toString()}>
-                    {role.roleName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+
+            {editSource === "staff" && (
+              <>
+                <Label>Role</Label>
+                <Select
+                  value={editedStaff?.roleID?.toString() || ""} 
+                  onValueChange={(value) => setEditedStaff({ ...editedStaff, roleID: parseInt(value) })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {roles.map((role) => (
+                      <SelectItem key={role.roleID} value={role.roleID.toString()}>
+                        {role.roleName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </>
+            )}
+
             <Label>User Code</Label>
             <Input value={editedStaff?.accountID || ""} disabled />
           </div>
@@ -879,16 +908,32 @@ export default function ManageAccountsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {/* Reset Password Modal */}
+
+      {/* RESET PASSWORD MODAL */}
       <Dialog open={isResetOpen} onOpenChange={setIsResetOpen}>
         <DialogContent className="w-[30vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
           <DialogHeader>
             <DialogTitle className="text-blue-400 text-xl font-bold">
-              Reset Password for {resetStaff?.firstName} {resetStaff?.lastName}
+              {passwordResetSource === "my-account"
+                ? "Change Your Password"
+                : `Reset Password for ${resetStaff?.firstName} ${resetStaff?.lastName}`}
             </DialogTitle>
             <DialogClose />
           </DialogHeader>
           <div className="flex flex-col gap-4 mt-4 text-gray-700">
+            {passwordResetSource === "my-account" && (
+              <>
+                <Label>Old Password</Label>
+                <Input
+                  type="password"
+                  placeholder="Enter old password"
+                  value={passwordData.oldPassword}
+                  onChange={(e) =>
+                    setPasswordData({ ...passwordData, oldPassword: e.target.value })
+                  }
+                />
+              </>
+            )}
             <Label>New Password</Label>
             <Input
               type="password"
@@ -913,12 +958,15 @@ export default function ManageAccountsPage() {
               className="w-full bg-blue-400 text-white"
               onClick={handleResetPassword}
             >
-              Reset Password
+              {passwordResetSource === "my-account"
+                ? "Update Password"
+                : "Reset Password"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {/* Delete Account Modal */}
+
+      {/* DELETE MODAL */}
       <Dialog open={isDeleteAccountDialogOpen} onOpenChange={setIsDeleteAccountDialogOpen}>
         <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
           <DialogHeader>
@@ -955,6 +1003,7 @@ export default function ManageAccountsPage() {
           </div>
         </DialogContent>
       </Dialog>
+
       <Toaster />
     </SidebarProvider>
   );
