@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { AppSidebar } from "@/components/admin-sidebar"
 import {
@@ -50,8 +50,14 @@ export default function BatchDeliveriesPage() {
     paymentStatus: "",
     dateDue: "",
     datePayment1: "",
+    // for 2nd payment
+    paymentMode2: "",
+    paymentStatus2: "",
+    dateDue2: "",
     datePayment2: ""
   });
+  const [showSecondPayment, setShowSecondPayment] = useState(false);
+  const secondCardRef = useRef(null);
   
   // State for new product form
   const [newProduct, setNewProduct] = useState({
@@ -78,6 +84,12 @@ export default function BatchDeliveriesPage() {
   useEffect(() => {
     loadAllData();
   }, []);
+  
+  useEffect(() => {
+    if (showSecondPayment && secondCardRef.current) {
+      secondCardRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+  }, [showSecondPayment]);
 
   // Function to load all needed data
   const loadAllData = async () => {
@@ -177,10 +189,40 @@ export default function BatchDeliveriesPage() {
 
   // Handle payment details input changes
   const handlePaymentDetailChange = (field, value) => {
-    setPaymentDetails({
-      ...paymentDetails,
-      [field]: value
-    });
+    if (field === 'paymentType') {
+      // identify two-time payment by its primary key (ID = 3)
+      const isTwoTimePayment = parseInt(value, 10) === 3;
+
+      // show or hide the 2nd-payment card
+      setShowSecondPayment(isTwoTimePayment);
+
+      // update paymentType and either seed or clear the 2nd-payment fields
+      setPaymentDetails(prev => {
+        const next = { ...prev, paymentType: value };
+
+        if (isTwoTimePayment) {
+          // calculate 30 days after the main due date
+          const firstDue = new Date(next.dateDue);
+          firstDue.setDate(firstDue.getDate() + 30);
+          next.dateDue2 = firstDue.toISOString().split('T')[0];
+        } else {
+          // clear any leftover 2nd-payment values
+          next.paymentMode2   = "";
+          next.paymentStatus2 = "";
+          next.dateDue2       = "";
+          next.datePayment2   = "";
+        }
+
+        return next;
+      });
+
+    } else {
+      // all other fields just overwrite their key in state
+      setPaymentDetails(prev => ({
+        ...prev,
+        [field]: value
+      }));
+    }
   };
 
   // Generate a unique product code
@@ -202,8 +244,29 @@ export default function BatchDeliveriesPage() {
   // Add new product to the list
   const handleAddProduct = () => {
     // Validate form inputs
-    if (!newProduct.product || !newProduct.supplier || !newProduct.brand || !newProduct.unitPrice || !newProduct.quantity) {
-      toast.error("Please fill in all product fields");
+    // 1) Supplier
+    if (!newProduct.supplier) {
+      toast.error("Supplier field is empty");
+      return;
+    }
+    // 2) Brand
+    if (!newProduct.brand) {
+      toast.error("Brand field is empty");
+      return;
+    }
+    // 3) Product name
+    if (!newProduct.product) {
+      toast.error("Product name field is empty");
+      return;
+    }
+    // 4) Unit price
+    if (!newProduct.unitPrice) {
+      toast.error("Unit price field is empty");
+      return;
+    }
+    // 5) Quantity
+    if (!newProduct.quantity) {
+      toast.error("Quantity field is empty");
       return;
     }
 
@@ -291,12 +354,18 @@ export default function BatchDeliveriesPage() {
     
     const raw = deliveryNumber.trim();
 
-    // ensure every character is a digit:
+    // 1) Error if the field is completely empty:
+    if (!raw) {
+      toast.error("Delivery number field is empty");
+      return;
+    }
+
+    // 2) Then enforce integer-only
     if (!/^\d+$/.test(raw)) {
       toast.error("Delivery number not an integer");
       return;
     }
-    const dnInt = Number(raw); // now we know raw is all digits; parse it safely
+    const dnInt = Number(raw);
 
     try {
       if (productItems.length === 0) {
@@ -306,15 +375,47 @@ export default function BatchDeliveriesPage() {
       
       // Error if no delivery number
       if (!deliveryNumber) {
-        toast.error("Delivery number required.");
+        toast.error("Delivery Number field is empty");
         return;
       }
       
       // Validate required fields for payment details
-      if (!paymentDetails.paymentType || !paymentDetails.paymentMode || 
-          !paymentDetails.paymentStatus || !paymentDetails.dateDue) {
-        toast.error("Please fill in all required payment details");
+      // 1st payment: explicit checks
+      if (!paymentDetails.paymentType) {
+        toast.error("Payment Type field is empty");
         return;
+      }
+      if (!paymentDetails.paymentMode) {
+        toast.error("Payment Mode field is empty");
+        return;
+      }
+      if (!paymentDetails.paymentStatus) {
+        toast.error("Payment Status field is empty");
+        return;
+      }
+      if (!paymentDetails.dateDue) {
+        toast.error("Date of Payment Due field is empty");
+        return;
+      }
+
+      // 2nd payment (if shown): explicit checks
+      if (showSecondPayment) {
+        if (!paymentDetails.paymentMode2) {
+          toast.error("2nd Payment Mode field is empty");
+          return;
+        }
+        if (!paymentDetails.paymentStatus2) {
+          toast.error("2nd Payment Status field is empty");
+          return;
+        }
+        if (!paymentDetails.dateDue2) {
+          toast.error("2nd Date of Payment Due field is empty");
+          return;
+        }
+        if (!paymentDetails.datePayment2) {
+          toast.error("2nd Date of Payment field is empty");
+          return;
+        }
       }
 
       setLoading(true);
@@ -341,7 +442,15 @@ export default function BatchDeliveriesPage() {
           D_paymentStatusID: parseInt(paymentDetails.paymentStatus, 10),
           DPD_dateOfPaymentDue: paymentDetails.dateDue,
           DPD_dateOfPayment1: paymentDetails.datePayment1,
-          DPD_dateOfPayment2: paymentDetails.datePayment2 || null
+          // for 2nd payment
+          D_modeOfPaymentID2: showSecondPayment
+            ? parseInt(paymentDetails.paymentMode2, 10) : null,
+          D_paymentStatusID2: showSecondPayment
+            ? parseInt(paymentDetails.paymentStatus2, 10) : null,
+          DPD_dateOfPaymentDue2: showSecondPayment
+            ? paymentDetails.dateDue2 : null,
+          DPD_dateOfPayment2: showSecondPayment
+            ? paymentDetails.datePayment2 : null
         }
       };
 
@@ -393,6 +502,14 @@ export default function BatchDeliveriesPage() {
           !paymentDetails.paymentStatus || !paymentDetails.dateDue || !paymentDetails.datePayment1) {
         toast.error("Please fill in all required payment details");
         return;
+      }
+      
+      if (showSecondPayment) {
+        if (!paymentDetails.paymentMode2 || !paymentDetails.paymentStatus2 ||
+            !paymentDetails.dateDue2 || !paymentDetails.datePayment2) {
+          toast.error("Please fill in all 2nd payment fields");
+          return;
+        }
       }
       
       const paymentPayload = {
@@ -767,11 +884,20 @@ export default function BatchDeliveriesPage() {
                 {/* First row */}
                 <div className="col-span-3">
                   <Label htmlFor="paymentAmount" className="mb-1 block">Amount</Label>
-                  <Input 
-                    id="paymentAmount" 
-                    value={formattedTotal.replace('₱', '')} 
-                    className="bg-red-800 text-white text-center" 
-                    readOnly 
+                  <Input
+                    id="paymentAmount"
+                    className="bg-red-800 text-white text-center"
+                    readOnly
+                    value={
+                      (showSecondPayment
+                        ? calculateTotal() / 2
+                        : calculateTotal()
+                      ).toLocaleString('en-PH', {
+                        style: 'currency',
+                        currency: 'PHP',
+                        minimumFractionDigits: 0
+                      }).replace('₱', '')
+                    }
                   />
                 </div>
                 <div className="col-span-3">
@@ -792,6 +918,8 @@ export default function BatchDeliveriesPage() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="col-span-3"> </div>
+                <div className="col-span-3"> </div>
                 <div className="col-span-3">
                   <Label htmlFor="paymentMode" className="mb-1 block">Mode of Payment</Label>
                   <Select 
@@ -840,21 +968,14 @@ export default function BatchDeliveriesPage() {
                   />
                 </div>
                 <div className="col-span-3">
-                  <Label htmlFor="paymentDate1" className="mb-1 block">Date of Payment 1</Label>
+                  <Label htmlFor="paymentDate1" className="mb-1 block">Date of Payment</Label>
                   <Input 
                     id="paymentDate1" 
                     type="date" 
                     value={paymentDetails.datePayment1}
+                    min={deliveryDate}
+                    max={paymentDetails.dateDue}
                     onChange={(e) => handlePaymentDetailChange('datePayment1', e.target.value)}
-                  />
-                </div>
-                <div className="col-span-3">
-                  <Label htmlFor="paymentDate2" className="mb-1 block">Date of Payment 2</Label>
-                  <Input 
-                    id="paymentDate2" 
-                    type="date" 
-                    value={paymentDetails.datePayment2}
-                    onChange={(e) => handlePaymentDetailChange('datePayment2', e.target.value)}
                   />
                 </div>
               </div>
@@ -872,6 +993,92 @@ export default function BatchDeliveriesPage() {
               
             </CardContent>
           </Card>
+          
+          {showSecondPayment && (
+            <Card className="mb-4" ref={secondCardRef}>
+              <div className="w-full mt-6 mb-4 pl-4">
+                <h2 className="text-xl text-gray-600 font-medium">2nd Payment</h2>
+              </div>
+              <CardContent className="p-4">
+                <div className="grid grid-cols-12 gap-4">
+                  {/* Amount 2 */}
+                  <div className="col-span-3">
+                    <Label className="mb-1 block">Amount</Label>
+                    <Input
+                      value={(calculateTotal()/2).toLocaleString('en-PH', {
+                        style: 'currency',
+                        currency: 'PHP', minimumFractionDigits: 0
+                      }).replace('₱','')}
+                      readOnly
+                      className="bg-red-800 text-white text-center"
+                    />
+                  </div>
+                  <div className="col-span-3"> </div>
+                  <div className="col-span-3"> </div>
+                  <div className="col-span-3"> </div>
+                  {/* Mode of Payment 2 */}
+                  <div className="col-span-3">
+                    <Label>Mode of Payment</Label>
+                    <Select
+                      value={paymentDetails.paymentMode2}
+                      onValueChange={v => handlePaymentDetailChange('paymentMode2', v)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select mode" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {paymentModes.map(m => (
+                          <SelectItem key={m.D_modeOfPaymentID} value={m.D_modeOfPaymentID.toString()}>
+                            {m.D_mopName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {/* Payment Status 2 */}
+                  <div className="col-span-3">
+                    <Label>Payment Status</Label>
+                    <Select
+                      value={paymentDetails.paymentStatus2}
+                      onValueChange={v => handlePaymentDetailChange('paymentStatus2', v)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {paymentStatuses.map(s => (
+                          <SelectItem key={s.D_paymentStatusID} value={s.D_paymentStatusID.toString()}>
+                            {s.D_statusName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {/* Date of Payment Due 2 */}
+                  <div className="col-span-3">
+                    <Label>Date of Payment Due</Label>
+                    <Input
+                      type="date"
+                      value={paymentDetails.dateDue2}
+                      onChange={e => handlePaymentDetailChange('dateDue2', e.target.value)}
+                    />
+                  </div>
+                  {/* Date of Payment 2 */}
+                  <div className="col-span-3">
+                    <Label>Date of Payment</Label>
+                    <Input
+                      type="date"
+                      value={paymentDetails.datePayment2}
+                      min={deliveryDate}
+                      max={paymentDetails.dateDue2}
+                      onChange={e => handlePaymentDetailChange('datePayment2', e.target.value)}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <Toaster position="top-right" />
         </div>
         </div>

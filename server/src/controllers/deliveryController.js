@@ -67,6 +67,14 @@ const addDelivery = (req, res) => {
           return res.status(400).json({ message: `Missing required payment field: ${field}` });
         }
       }
+      // if 2-month installment, ensure second fields exist
+      if (payment.D_modeOfPaymentID2 && (
+          !payment.D_paymentStatusID2 ||
+          !payment.DPD_dateOfPaymentDue2 ||
+          !payment.DPD_dateOfPayment2
+      )) {
+        return res.status(400).json({ message: "Missing second-payment fields" });
+      }
     }
 
     // 5. Delegate all inserts to the model
@@ -215,7 +223,18 @@ const getPaymentDetails = (req, res) => {
 // Update payment details
 const updatePaymentDetails = (req, res) => {
   const deliveryNumber = req.params.deliveryNumber;
-  const { D_paymentTypeID, D_modeOfPaymentID, D_paymentStatusID, DPD_dateOfPaymentDue, DPD_dateOfPayment1, DPD_dateOfPayment2 } = req.body;
+  const {
+    D_paymentTypeID,
+    D_modeOfPaymentID,
+    D_paymentStatusID,
+    DPD_dateOfPaymentDue,
+    DPD_dateOfPayment1,
+    // for 2nd payment
+    D_modeOfPaymentID2,
+    D_paymentStatusID2,
+    DPD_dateOfPaymentDue2,
+    DPD_dateOfPayment2
+  } = req.body;
 
   if (!deliveryNumber || !D_paymentTypeID || !D_modeOfPaymentID || !D_paymentStatusID) {
     return res.status(400).json({ message: 'Missing required fields' });
@@ -228,7 +247,18 @@ const updatePaymentDetails = (req, res) => {
 
   deliveryModel.updatePaymentDetails(
     deliveryNumber,
-    { D_paymentTypeID, D_modeOfPaymentID, D_paymentStatusID, DPD_dateOfPaymentDue, DPD_dateOfPayment1, DPD_dateOfPayment2 },
+    {
+      D_paymentTypeID,
+      D_modeOfPaymentID,
+      D_paymentStatusID,
+      DPD_dateOfPaymentDue,
+      DPD_dateOfPayment1,
+      // second-payment fields:
+      D_modeOfPaymentID2,
+      D_paymentStatusID2,
+      DPD_dateOfPaymentDue2,
+      DPD_dateOfPayment2
+    },
     (err, results) => {
       if (err) {
         console.error('Error updating payment details:', err);

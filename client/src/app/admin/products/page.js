@@ -555,7 +555,7 @@ export default function ProductsPage() {
   };
 
   // Download
-  const [isDownloadConfirmOpen, setDownloadConfirmOpen] = useState(false);
+  const [isDownloadConfirmOpen, setDownloadConfirmOpen] = useState("");
   const handleDownloadCSV = (data) => {
     const headers = [
       "Product Code",
@@ -622,6 +622,8 @@ export default function ProductsPage() {
                   <Search className="w-5 h-5" />
                 </div>
               </div>
+              
+              {/* Filter Content */}
               <div className="flex items-center space-x-2">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -734,6 +736,8 @@ export default function ProductsPage() {
                 </DropdownMenu>
               </div>
             </div>
+
+            {/* Addd Product Sheet */}
             <div className="flex space-x-2">
               <Sheet open={isAddSheetOpen} onOpenChange={setAddSheetOpen}>
                 <SheetTrigger asChild>
@@ -824,6 +828,7 @@ export default function ProductsPage() {
                 </SheetContent>
               </Sheet>
 
+              {/* Update Price  */}
               <Dialog open={isPDOpen} onOpenChange={setPDopen}>
                 <DialogTrigger asChild>
                   <Button className="bg-blue-400 text-white">Update Price</Button>
@@ -887,9 +892,6 @@ export default function ProductsPage() {
               {/* DOWNLOAD */}
               <Dialog open={isDownloadConfirmOpen} onOpenChange={(open) => {
                 setDownloadConfirmOpen(open);
-                if (!open) {
-                  setAdminPW("");
-                }
               }}>
                 <DialogTrigger asChild>
                   <Button className="bg-blue-400 text-white">
@@ -906,33 +908,16 @@ export default function ProductsPage() {
                     </DialogTitle>
                     <DialogClose />
                   </DialogHeader>
-                  <p className="text-sm text-gray-800 mt-2 pl-4">
-                    Downloading the CSV file requires admin authorization. Please enter the admin password below to proceed.
+                  <p className="text-medium text-gray-800 mt-2 pl-4">
+                    You are about to download the Products.csv file. Click the button below to proceed.
                   </p>
-                  <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">
-                    <div className="flex-1">
-                      <label htmlFor="password" className="text-base font-medium text-gray-700 block mb-2">
-                        Admin Password
-                      </label>
-                      <Input
-                        type="password"
-                        required
-                        placeholder="Enter admin password"
-                        className="w-full"
-                        value={adminPW}
-                        onChange={(e) => setAdminPW(e.target.value)}
-                      />
-                    </div>
+                  <div className="flex justify-end mt-4 text-gray-700 items-center pl-4">
                     <Button
-                      className="bg-emerald-500 hover:bg-emerald-700 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
+                      className="bg-emerald-500 hover:bg-emerald-700 text-white uppercase text-sm font-medium whitespace-nowrap"
                       onClick={() => {
-                        if (adminPW === setAdminPW("")) { // need to fix for backend 
-                          handleDownloadCSV(data);
-                          toast.success("Download started");
-                          setDownloadConfirmOpen(false);
-                        } else {
-                          toast.error("Invalid admin password");
-                        }
+                        handleDownloadCSV(data);
+                        toast.success("Downloaded successfully!");
+                        setDownloadConfirmOpen(false);
                       }}
                     >
                       DOWNLOAD FILE
@@ -1200,7 +1185,6 @@ export default function ProductsPage() {
           </div>
         </DialogContent>
       </Dialog>
-
         </div>
       </div>
     </div>

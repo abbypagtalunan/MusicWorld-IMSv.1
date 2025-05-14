@@ -11,6 +11,7 @@ const getAllOrders = (callback) => {
       o.T_transactionDate,
       o.isTemporarilyDeleted,
       o.O_orderPayment,
+      O_originalTotal,
       SUM(od.OD_discountAmount) AS D_totalProductDiscount
     FROM Orders o
     LEFT JOIN OrderDetails od ON o.O_orderID = od.O_orderID
@@ -22,7 +23,8 @@ const getAllOrders = (callback) => {
       o.D_wholeOrderDiscount,
       o.T_transactionDate,
       o.isTemporarilyDeleted,
-      o.O_orderPayment
+      o.O_orderPayment,
+      O_originalTotal
     ORDER BY o.O_orderID;
 `;
 
@@ -44,7 +46,8 @@ const addOrder = (data, callback) => {
     D_totalProductDiscount,
     T_transactionDate,
     isTemporarilyDeleted,
-    O_orderPayment
+    O_orderPayment,
+    O_originalTotal
   } = data;
 
   // Step 1: Check if the receipt number already exists
@@ -58,8 +61,8 @@ const addOrder = (data, callback) => {
     // Step 2: Insert new order
     const insertOrderQuery = `
       INSERT INTO Orders 
-      (O_receiptNumber, T_totalAmount, D_wholeOrderDiscount, D_totalProductDiscount, T_transactionDate, isTemporarilyDeleted, O_orderPayment)
-      VALUES (?, ?, ?, ?, ?, ?, ?)`;
+      (O_receiptNumber, T_totalAmount, D_wholeOrderDiscount, D_totalProductDiscount, T_transactionDate, isTemporarilyDeleted, O_orderPayment, O_originalTotal)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
 
     db.query(
       insertOrderQuery,
@@ -70,7 +73,8 @@ const addOrder = (data, callback) => {
         D_totalProductDiscount,
         T_transactionDate,
         isTemporarilyDeleted,
-        O_orderPayment
+        O_orderPayment,
+        O_originalTotal
       ],
       (err, results) => {
         if (err) return callback(err, null);
@@ -131,8 +135,6 @@ const checkReceiptNumber = (O_receiptNumber, callback) => {
     }
   });
 };
-
-
 
 module.exports = {
   getAllOrders,
