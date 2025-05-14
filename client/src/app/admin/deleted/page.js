@@ -551,7 +551,7 @@ const handleDownloadCSV = (data) => {
           </div>
 
           <Tabs defaultValue="order" onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-            <div className="w-full z-10 sticky">
+
               <TabsList className="w-full flex justify-start bg-white rounded-md shadow-md px-6 py-6 space-x-4">
                 {Object.entries(configMap).map(([key, cfg]) => (
                   <TabsTrigger
@@ -563,7 +563,7 @@ const handleDownloadCSV = (data) => {
                   </TabsTrigger>
                 ))}
               </TabsList>
-            </div>
+
             <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-4">
               {Object.entries(configMap).map(([key, cfg]) => (
                 <TabsContent key={key} value={key}>
@@ -645,7 +645,7 @@ const handleDownloadCSV = (data) => {
                                   <DialogTitle>
                                     <span className="text-lg text-blue-900">Confirm Download?</span>
                                     <span className="text-lg text-gray-400 font-normal italic ml-2">
-                                      ({config.label}-Deleted.cs)
+                                      ({config.label}-Deleted.csv)
                                     </span>
                                   </DialogTitle>
                                   <DialogClose />
