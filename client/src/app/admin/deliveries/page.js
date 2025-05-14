@@ -677,7 +677,7 @@ export default function DeliveriesPage() {
                     Total Cost <SortIcon column="totalCost" sortConfig={sortConfig} />
                   </TableHead>
                   <TableHead className="pl-8">View/Edit</TableHead>
-                  <TableHead className="pl-6">Delete</TableHead>
+                  <TableHead className="pl-6"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
