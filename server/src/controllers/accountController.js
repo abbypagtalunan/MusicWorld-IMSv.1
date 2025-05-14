@@ -72,9 +72,10 @@ exports.updateAccount = (req, res) => {
 };
 
 // Reset password
+// Reset password
 exports.resetPassword = (req, res) => {
   const { id } = req.params;
-  const { newPassword, confirmPassword } = req.body;
+  const { newPassword, confirmPassword, oldPassword } = req.body;
 
   if (!newPassword || !confirmPassword) {
     return res.status(400).json({ message: "New password and confirmation are required" });
@@ -84,12 +85,32 @@ exports.resetPassword = (req, res) => {
     return res.status(400).json({ message: "Passwords do not match" });
   }
 
-  Account.resetPassword(id, newPassword, (err, result) => {
+  // If source is my-account, verify old password
+  if (req.body.source === "my-account" && !oldPassword) {
+    return res.status(400).json({ message: "Old password is required." });
+  }
+
+  Account.getUserForLogin(id, (err, user) => {
     if (err) {
-      console.error("Error resetting password:", err);
-      return res.status(500).json({ message: "Failed to reset password" });
+      console.error("Error fetching user:", err);
+      return res.status(500).json({ message: "Failed to fetch user." });
     }
-    res.json({ message: "Password reset successfully", data: result });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    if (req.body.source === "my-account" && oldPassword !== user.password) {
+      return res.status(401).json({ message: "Incorrect old password." });
+    }
+
+    Account.resetPassword(id, newPassword, (err, result) => {
+      if (err) {
+        console.error("Error resetting password:", err);
+        return res.status(500).json({ message: "Failed to reset password." });
+      }
+      res.json({ message: "Password reset successfully", data: result });
+    });
   });
 };
 

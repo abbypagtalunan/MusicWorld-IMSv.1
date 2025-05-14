@@ -134,19 +134,28 @@ export default function ManageAccountsPage() {
       toast.error("Invalid user data.");
       return;
     }
-
+  
     if (passwordResetSource === "my-account") {
       if (!passwordData.oldPassword) {
         toast.error("Old password is required.");
         return;
       }
     }
-
+  
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       toast.error("Passwords do not match!");
       return;
     }
-
+  
+    // Prevent using the same old password for new one
+    if (
+      passwordResetSource === "my-account" &&
+      passwordData.newPassword === currentUser?.password
+    ) {
+      toast.error("New password cannot be the same as the old password.");
+      return;
+    }
+  
     axios
       .put(
         `http://localhost:8080/accounts/${resetStaff.accountID}/reset-password`,
@@ -445,9 +454,9 @@ export default function ManageAccountsPage() {
                         </div>
                       </div>
                       <Dialog>
-                        <DialogTrigger asChild>
-                          <Button className="bg-blue-400 text-white">Edit Account</Button>
-                        </DialogTrigger>
+                      <DialogTrigger asChild onClick={() => setEditedStaff(currentUser)}>
+                        <Button className="bg-blue-400 text-white">Edit Account</Button>
+                      </DialogTrigger>
                         <DialogContent aria-describedby="edit-account-dialog" className="w-[30vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
                           <DialogHeader>
                             <DialogTitle className="text-blue-400 text-xl font-bold">
