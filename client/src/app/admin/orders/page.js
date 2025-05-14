@@ -383,7 +383,7 @@ Object.entries(amountRanges).forEach(([key, range]) => {
 
   const rows = [];
 
-  orders.forEach((order) => {
+  filteredOrders.forEach((order) => {
     const detailsForOrder = orderDetails.filter(detail => detail.orderID === order.orderID);
 
     if (detailsForOrder.length === 0) {
@@ -441,8 +441,6 @@ Object.entries(amountRanges).forEach(([key, range]) => {
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 };
-
-    
 
   return (
     <SidebarProvider>

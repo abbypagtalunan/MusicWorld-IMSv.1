@@ -27,8 +27,6 @@ import axios from "axios";
 
 export default function ReportsPage() {
   const [reportData, setReportData] = useState([]);
-  const [selectedOrderID, setSelectedOrderID] = useState(null);
-
   const [fromDate, setFromDate] = useState(null);
   const [toDate, setToDate] = useState(null);
 
@@ -56,6 +54,78 @@ export default function ReportsPage() {
         console.error("Failed to fetch reports:", err);
       });
   }, []);
+
+    // Download Handling
+  const [isDownloadConfirmOpen, setDownloadConfirmOpen] = useState("");
+  const handleDownloadCSV = () => {
+    const now = new Date();
+    const phLocale = "en-PH";
+    const phTimeZone = "Asia/Manila";
+
+    // Format timestamp for filename
+    const formattedDate = now
+      .toLocaleString(phLocale, { timeZone: phTimeZone })
+      .replace(/[/:, ]/g, "-")
+      .replace(/--+/g, "-");
+
+    // CSV timestamp row
+    const downloadTimestamp = `Downloaded At:, "${now.toLocaleString(phLocale, { timeZone: phTimeZone })}"`;
+    const headers = [
+      "Receipt Number",
+      "Order ID",
+      "Transaction Date",
+      "Product Code",
+      "Product Name",
+      "Brand",
+      "Supplier",
+      "Discount Amount",
+      "Item Gross Sale",
+      "Item Net Sale",
+      "Item Gross Profit"
+    ];
+
+    // Use filteredData instead of full reportData
+    const rows = filteredData.map((item) => [
+      item.receiptNumber,
+      item.orderID,
+      item.transactionDate,
+      item.productCode,
+      item.productName,
+      item.brandName,
+      item.supplierName,
+      item.discountAmount,
+      item.grossSale,
+      item.netSale,
+      item.grossProfit
+    ]);
+
+    // Add totals row
+    const totalsRow = [
+      "TOTAL", "", "", "", "", "", "",
+      totals.discountAmount.toFixed(2),
+      totals.grossSale.toFixed(2),
+      totals.netSale.toFixed(2),
+      totals.grossProfit.toFixed(2)
+    ];
+
+    const csvContent = [
+      downloadTimestamp,
+      headers.join(","),
+      ...rows.map((row) => row.map((val) => `"${val}"`).join(",")),
+      totalsRow.map((val) => `"${val}"`).join(",")
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `Order_Report_${formattedDate}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
 
   const filteredData = useMemo(() => {
     return reportData.filter((item) => {
@@ -260,7 +330,9 @@ export default function ReportsPage() {
 
               {/* DOWNLOAD */}
             <div className="flex space-x-2">
-              <Dialog>
+              <Dialog open={isDownloadConfirmOpen} onOpenChange={(open) => {
+                setDownloadConfirmOpen(open);
+              }}>
                 <DialogTrigger asChild>
                   <Button className="bg-blue-400 text-white">
                     <Download className="w-4 h-4" />
@@ -283,7 +355,9 @@ export default function ReportsPage() {
                     <Button
                       className="bg-emerald-500 hover:bg-emerald-700 text-white uppercase text-sm font-medium whitespace-nowrap"
                       onClick={() => {
+                        handleDownloadCSV();
                         toast.success("Downloaded successfully!");
+                        setDownloadConfirmOpen(false);
                       }}
                     >
                       DOWNLOAD FILE
