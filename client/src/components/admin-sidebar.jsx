@@ -2,6 +2,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link"; // ← Added import
 import {
   CircleXIcon,
   ShoppingCartIcon,
@@ -113,16 +114,18 @@ export function AppSidebar({ ...props }) {
         <SidebarHeader className="bg-white">
           <SidebarMenu>
             <SidebarMenuItem>
-              {/* Removed Link component */}
-              <SidebarMenuButton size="xl" tooltip="Home">
-                <div className="flex justify-center items-center">
-                  <img
-                    src="/logo1.svg"
-                    alt="Music World IMS Logo"
-                    className="h-30 w-auto object-contain"
-                  />
-                </div>
-              </SidebarMenuButton>
+              {/* ✅ Now wrapped in Link */}
+              <Link href="/">
+                <SidebarMenuButton size="xl" tooltip="Home">
+                  <div className="flex justify-center items-center">
+                    <img
+                      src="/logo1.svg"
+                      alt="Music World IMS Logo"
+                      className="h-30 w-auto object-contain"
+                    />
+                  </div>
+                </SidebarMenuButton>
+              </Link>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarHeader>

@@ -2,6 +2,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link"; 
 import {
   CircleXIcon,
   ShoppingCartIcon,
@@ -31,10 +32,9 @@ export function AppSidebar({ ...props }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = React.useState(false);
 
-  // 🔄 Get real user data from localStorage
   const userFromStorage = JSON.parse(localStorage.getItem("user")) || {};
 
-  // ✅ Format the user object for the sidebar
+  // Format the user object for the sidebar
   const user = {
     name: userFromStorage.firstName && userFromStorage.lastName
       ? `${userFromStorage.firstName} ${userFromStorage.lastName}`
@@ -100,15 +100,17 @@ export function AppSidebar({ ...props }) {
         <SidebarHeader className="bg-white">
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton size="xl" tooltip="Home">
-                <div className="flex justify-center items-center p-1 cursor-default">
-                  <img
-                    src="/logo1.svg"
-                    alt="Music World IMS Logo"
-                    className="h-30 w-auto object-contain"
-                  />
-                </div>
-              </SidebarMenuButton>
+              <Link href="/">
+                <SidebarMenuButton size="xl" tooltip="Home">
+                  <div className="flex justify-center items-center p-1 cursor-default">
+                    <img
+                      src="/logo1.svg"
+                      alt="Music World IMS Logo"
+                      className="h-30 w-auto object-contain"
+                    />
+                  </div>
+                </SidebarMenuButton>
+              </Link>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarHeader>
