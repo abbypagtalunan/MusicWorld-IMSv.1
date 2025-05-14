@@ -35,7 +35,7 @@ export default function BatchDeliveriesPage() {
   const [products, setProducts] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [brands, setBrands] = useState([]);
-  const [deliveryNumber, setDeliveryNumber] = useState("");
+  const [deliveryNumber, setDeliveryNumber] = useState("10013");
   const [deliveryDate, setDeliveryDate] = useState("");
   const [loading, setLoading] = useState(true);
   const [selectedSupplier, setSelectedSupplier] = useState("");
@@ -62,10 +62,10 @@ export default function BatchDeliveriesPage() {
   // State for new product form
   const [newProduct, setNewProduct] = useState({
     product: "",
-    supplier: "",
+    supplier: "2",
     brand: "",
     unitPrice: "",
-    quantity: ""
+    quantity: "6"
   });
 
   // API endpoints
@@ -120,9 +120,12 @@ export default function BatchDeliveriesPage() {
       setPaymentModes(paymentModesRes.data);
       setPaymentStatuses(paymentStatusesRes.data);
       
-      // Set today's date as default delivery date
-      const today = new Date().toISOString().split('T')[0];
-      setDeliveryDate(today);
+      // Set today's date as default delivery date (philippines)
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm   = String(now.getMonth() + 1).padStart(2, '0');
+      const dd   = String(now.getDate()).padStart(2, '0');
+      setDeliveryDate(`${yyyy}-${mm}-${dd}`);
 
       // Initialize payment details with due date
       setPaymentDetails(prev => ({
@@ -223,9 +226,20 @@ export default function BatchDeliveriesPage() {
 
         // prepare or clear second-payment fields
         if (isTwoTimePayment) {
+          // 1) ensure the first due date exists (one month after deliveryDate)
+          if (!next.dateDue && deliveryDate) {
+            const due = new Date(deliveryDate);
+            due.setMonth(due.getMonth() + 1);
+            next.dateDue = due.toISOString().split('T')[0];
+          }
+          // 2) now safely compute the 2nd due date (30 days after first due)
           const firstDue = new Date(next.dateDue);
-          firstDue.setDate(firstDue.getDate() + 30);
-          next.dateDue2 = firstDue.toISOString().split('T')[0];
+          if (!isNaN(firstDue)) {
+            firstDue.setDate(firstDue.getDate() + 30);
+            next.dateDue2 = firstDue.toISOString().split('T')[0];
+          } else {
+            next.dateDue2 = '';
+          }
         } else {
           next.paymentMode2   = '';
           next.paymentStatus2 = '';
@@ -240,19 +254,18 @@ export default function BatchDeliveriesPage() {
           .find(s => s.D_paymentStatusID.toString() === value);
         const isUnpaid = statusObj?.D_statusName.toLowerCase() === 'unpaid';
 
-        // Allow editing when payment type is '1' (one-time payment) and status is 'unpaid'
-        const isOneTimePayment = paymentDetails.paymentType === '2';
+        // Only for the "two-time payment" type (ID === '3')
+        const isTwoTimePayment = paymentDetails.paymentType === '3';
 
-        if (isUnpaid && !isOneTimePayment) {
-          next.datePayment1   = '';
+        if (isUnpaid && isTwoTimePayment) {
+          // reset all 2nd-panel fields
           next.paymentMode2   = '';
           next.paymentStatus2 = '';
-          next.dateDue2       = '';
           next.datePayment2   = '';
-          setShowSecondPayment(false);
+          // leave showSecondPayment(true) so panel stays visible
         }
       }
-      
+
       return next;
     });
   };
@@ -296,7 +309,14 @@ export default function BatchDeliveriesPage() {
       toast.error("Unit price field is empty");
       return;
     }
-    // 5) Quantity
+    
+    // 5) Quantity must be a non‐zero positive integer (1,2,3…)
+    if (!/^[1-9]\d*$/.test(newProduct.quantity)) {
+      toast.error("Quantity is not a positive integer");
+      return;
+    }
+    
+    // 6) Quantity field must not be empty
     if (!newProduct.quantity) {
       toast.error("Quantity field is empty");
       return;
@@ -425,8 +445,25 @@ export default function BatchDeliveriesPage() {
         toast.error("Payment Status field is empty");
         return;
       }
-      if (!paymentDetails.dateDue) {
+      
+      // Check for Date of Payment Due only if payment type is NOT 'Full upfront payment'
+      const paymentTypeObj = paymentTypes.find(
+        pt => pt.D_paymentTypeID.toString() === paymentDetails.paymentType
+      );
+      const isFullUpfront = paymentTypeObj?.D_paymentName.toLowerCase().includes('full upfront payment');
+
+      if (!isFullUpfront && !paymentDetails.dateDue) {
         toast.error("Date of Payment Due field is empty");
+        return;
+      }
+      
+      // require actual payment date only if status is NOT Unpaid
+      const statusObj = paymentStatuses.find(s =>
+        s.D_paymentStatusID.toString() === paymentDetails.paymentStatus
+      );
+      const isUnpaid = statusObj?.D_statusName.toLowerCase() === 'unpaid';
+      if (!isUnpaid && !paymentDetails.datePayment1) {
+        toast.error("Date of Payment field is missing");
         return;
       }
 
@@ -444,7 +481,13 @@ export default function BatchDeliveriesPage() {
           toast.error("2nd Date of Payment Due field is empty");
           return;
         }
-        if (!paymentDetails.datePayment2) {
+
+        // require actual 2nd-payment date only if status2 is NOT Unpaid
+        const status2Obj = paymentStatuses.find(s =>
+          s.D_paymentStatusID.toString() === paymentDetails.paymentStatus2
+        );
+        const isUnpaid2 = status2Obj?.D_statusName.toLowerCase() === 'unpaid';
+        if (!isUnpaid2 && !paymentDetails.datePayment2) {
           toast.error("2nd Date of Payment field is empty");
           return;
         }
@@ -472,8 +515,8 @@ export default function BatchDeliveriesPage() {
           D_paymentTypeID: parseInt(paymentDetails.paymentType, 10),
           D_modeOfPaymentID: parseInt(paymentDetails.paymentMode, 10),
           D_paymentStatusID: parseInt(paymentDetails.paymentStatus, 10),
-          DPD_dateOfPaymentDue: paymentDetails.dateDue,
-          DPD_dateOfPayment1: paymentDetails.datePayment1,
+          DPD_dateOfPaymentDue: paymentDetails.dateDue || null,
+          DPD_dateOfPayment1: paymentDetails.datePayment1 || null,
           // for 2nd payment
           D_modeOfPaymentID2: showSecondPayment
             ? parseInt(paymentDetails.paymentMode2, 10) : null,
@@ -548,8 +591,8 @@ export default function BatchDeliveriesPage() {
         D_paymentTypeID: parseInt(paymentDetails.paymentType),
         D_modeOfPaymentID: parseInt(paymentDetails.paymentMode),
         D_paymentStatusID: parseInt(paymentDetails.paymentStatus),
-        DPD_dateOfPaymentDue: paymentDetails.dateDue,
-        DPD_dateOfPayment1: paymentDetails.datePayment1,
+        DPD_dateOfPaymentDue: paymentDetails.dateDue || null,
+        DPD_dateOfPayment1: paymentDetails.datePayment1 || null,
         DPD_dateOfPayment2: paymentDetails.datePayment2 || null
       };
       
@@ -629,11 +672,16 @@ export default function BatchDeliveriesPage() {
     );
   };
   
-  // disable logic when first-payment status is “Unpaid”
-  const isFirstUnpaid = paymentStatuses
+  // enable 2nd panel fields only when first payment status is "Paid"
+  const isFirstPaid = paymentStatuses
     .find(s => s.D_paymentStatusID.toString() === paymentDetails.paymentStatus)
     ?.D_statusName
-    .toLowerCase() === 'unpaid';
+    .toLowerCase() === 'paid';
+    
+  // disable 2nd panel Date of Payment if its status is "Unpaid"
+  const status2Obj = paymentStatuses
+    .find(s => s.D_paymentStatusID.toString() === paymentDetails.paymentStatus2);
+  const isSecondUnpaid = status2Obj?.D_statusName.toLowerCase() === 'unpaid';
 
   return (
     <SidebarProvider>
@@ -1022,7 +1070,7 @@ export default function BatchDeliveriesPage() {
                     value={paymentDetails.datePayment1}
                     min={deliveryDate}
                     max={paymentDetails.dateDue}
-                    disabled={paymentDetails.paymentType === '1' || isFirstUnpaid}
+                    disabled={paymentDetails.paymentType === '1' || !isFirstPaid}
                     onChange={(e) => handlePaymentDetailChange('datePayment1', e.target.value)}
                   />
                 </div>
@@ -1070,7 +1118,7 @@ export default function BatchDeliveriesPage() {
                     <Select
                       value={paymentDetails.paymentMode2}
                       onValueChange={v => handlePaymentDetailChange('paymentMode2', v)}
-                      disabled={isFirstUnpaid}
+                      disabled={!isFirstPaid}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select mode" />
@@ -1090,7 +1138,7 @@ export default function BatchDeliveriesPage() {
                     <Select
                       value={paymentDetails.paymentStatus2}
                       onValueChange={v => handlePaymentDetailChange('paymentStatus2', v)}
-                      disabled={isFirstUnpaid}
+                      disabled={!isFirstPaid}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select status" />
@@ -1111,6 +1159,7 @@ export default function BatchDeliveriesPage() {
                       type="date"
                       value={paymentDetails.dateDue2}
                       readOnly
+                      disabled={!isFirstPaid}
                     />
                     {/* onChange={e => handlePaymentDetailChange('dateDue2', e.target.value)} */}
                   </div>
@@ -1123,7 +1172,9 @@ export default function BatchDeliveriesPage() {
                       min={deliveryDate}
                       max={paymentDetails.dateDue2}
                       onChange={e => handlePaymentDetailChange('datePayment2', e.target.value)}
-                      disabled={isFirstUnpaid}
+                      disabled={
+                        !isFirstPaid || isSecondUnpaid || !paymentDetails.paymentStatus2
+                      }
                     />
                   </div>
                 </div>
