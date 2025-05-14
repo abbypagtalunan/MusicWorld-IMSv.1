@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
-import { CalendarDays, Download, ChevronsUpDown, ChevronUp, ChevronDown} from "lucide-react";
+import { CalendarDays, Download, ChevronsUpDown, ChevronUp, ChevronDown, RotateCcw} from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -245,6 +245,17 @@ export default function ReportsPage() {
                     )}
                   </PopoverContent>
                 </Popover>
+                <Button
+                    variant="outline"
+                    onClick={() => {
+                      setFromDate(null);
+                      setToDate(null);
+                    }}
+                    className="text-sm border-gray-300 hover:text-red-600"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                      <span>Reset Date</span>
+                </Button>
             </div>
 
               {/* DOWNLOAD */}
