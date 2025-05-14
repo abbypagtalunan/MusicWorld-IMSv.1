@@ -27,8 +27,6 @@ import axios from "axios";
 
 export default function ReportsPage() {
   const [reportData, setReportData] = useState([]);
-  const [selectedOrderID, setSelectedOrderID] = useState(null);
-
   const [fromDate, setFromDate] = useState(null);
   const [toDate, setToDate] = useState(null);
 
@@ -64,14 +62,14 @@ export default function ReportsPage() {
     const phLocale = "en-PH";
     const phTimeZone = "Asia/Manila";
 
-    // Format date for filename (avoid illegal characters)
+    // Format timestamp for filename
     const formattedDate = now
       .toLocaleString(phLocale, { timeZone: phTimeZone })
       .replace(/[/:, ]/g, "-")
       .replace(/--+/g, "-");
 
+    // CSV timestamp row
     const downloadTimestamp = `Downloaded At:, "${now.toLocaleString(phLocale, { timeZone: phTimeZone })}"`;
-
     const headers = [
       "Receipt Number",
       "Order ID",
@@ -86,7 +84,8 @@ export default function ReportsPage() {
       "Item Gross Profit"
     ];
 
-    const rows = reportData.map((item) => [
+    // Use filteredData instead of full reportData
+    const rows = filteredData.map((item) => [
       item.receiptNumber,
       item.orderID,
       item.transactionDate,
@@ -100,10 +99,20 @@ export default function ReportsPage() {
       item.grossProfit
     ]);
 
+    // Add totals row
+    const totalsRow = [
+      "TOTAL", "", "", "", "", "", "",
+      totals.discountAmount.toFixed(2),
+      totals.grossSale.toFixed(2),
+      totals.netSale.toFixed(2),
+      totals.grossProfit.toFixed(2)
+    ];
+
     const csvContent = [
       downloadTimestamp,
       headers.join(","),
-      ...rows.map((row) => row.map((val) => `"${val}"`).join(","))
+      ...rows.map((row) => row.map((val) => `"${val}"`).join(",")),
+      totalsRow.map((val) => `"${val}"`).join(",")
     ].join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
