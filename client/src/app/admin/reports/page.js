@@ -222,6 +222,17 @@ export default function ReportsPage() {
                   />
                 </PopoverContent>
               </Popover>
+
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setFromDate(null);
+                  setToDate(null);
+                }}
+                className="text-sm border-gray-300 hover:text-red-600"
+              >
+                Reset Filter
+              </Button>
             </div>
 
               {/* DOWNLOAD */}
