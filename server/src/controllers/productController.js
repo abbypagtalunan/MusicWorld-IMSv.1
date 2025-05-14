@@ -98,32 +98,48 @@ const deductProductStockNumber = (req, res) => {
   });
 };
 
-
 // Route to delete a product
 const deleteProduct = (req, res) => {
   const productCode = req.params.id;
   const { adminPW } = req.body;
 
-  if (!adminPW || adminPW !== "1234") {
+  if (!adminPW) {
     return res.status(403).json({ message: "Invalid admin password" });
   }
 
-  productModel.deleteProduct(productCode, (err, results) => {
+  const query = `
+    SELECT * FROM UserAccounts 
+    WHERE roleID = 1 AND password = ? 
+  `;
+
+  db.query(query, [adminPW], (err, results) => {
     if (err) {
-      console.error('Error deleting product:', err);
-      return res.status(500).json({ 
-        message: 'Error deleting product',
-        error: err.message 
-      });
+      console.error('Error checking admin credentials:', err);
+      return res.status(500).json({ message: 'Internal server error' });
     }
-    if (!results || results.affectedRows === 0) {
-      return res.status(404).json({ 
-        message: 'Product not found or already deleted' 
-      });
+    console.log('Admin lookup result:', results);
+
+    if (results.length === 0) {
+      return res.status(403).json({ message: "Invalid admin credentials" });
     }
-    res.status(200).json({ 
-      message: 'Product deleted successfully',
-      affectedRows: results.affectedRows 
+
+    productModel.deleteProduct(productCode, (err, results) => {
+      if (err) {
+        console.error('Error deleting product:', err);
+        return res.status(500).json({ 
+          message: 'Error deleting product',
+          error: err.message 
+        });
+      }
+      if (!results || results.affectedRows === 0) {
+        return res.status(404).json({ 
+          message: 'Product not found or already deleted' 
+        });
+      }
+      res.status(200).json({ 
+        message: 'Product deleted successfully',
+        affectedRows: results.affectedRows 
+      });
     });
   });
 };
