@@ -92,31 +92,32 @@ export default function ManageAccountsPage() {
   const [passwordResetSource, setPasswordResetSource] = useState("");
 
   // Load current user + staff data
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const storedUser = JSON.parse(localStorage.getItem("user"));
-        if (!storedUser || !storedUser.accountID) {
-          toast.error("You are not logged in.");
-          router.push("/login");
-          return;
-        }
-        const [userData, staffRes, rolesRes] = await Promise.all([
-          axios.get(`http://localhost:8080/accounts/${storedUser.accountID}`),
-          axios.get("http://localhost:8080/accounts"),
-          axios.get("http://localhost:8080/role"),
-        ]);
-        setCurrentUser(userData.data);
-        setStaffs(staffRes.data);
-        setRoles(rolesRes.data);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        toast.error("Failed to load account data.");
+  const fetchData = async () => {
+    try {
+      const storedUser = JSON.parse(localStorage.getItem("user"));
+      if (!storedUser || !storedUser.accountID) {
+        toast.error("You are not logged in.");
         router.push("/login");
-      } finally {
-        setLoading(false);
+        return;
       }
-    };
+      const [userData, staffRes, rolesRes] = await Promise.all([
+        axios.get(`http://localhost:8080/accounts/${storedUser.accountID}`),
+        axios.get("http://localhost:8080/accounts"),
+        axios.get("http://localhost:8080/role"),
+      ]);
+      setCurrentUser(userData.data);
+      setStaffs(staffRes.data);
+      setRoles(rolesRes.data);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      toast.error("Failed to load account data.");
+      router.push("/login");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
   }, []);
 
@@ -134,19 +135,19 @@ export default function ManageAccountsPage() {
       toast.error("Invalid user data.");
       return;
     }
-  
+
     if (passwordResetSource === "my-account") {
       if (!passwordData.oldPassword) {
         toast.error("Old password is required.");
         return;
       }
     }
-  
+
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       toast.error("Passwords do not match!");
       return;
     }
-  
+
     // Prevent using the same old password for new one
     if (
       passwordResetSource === "my-account" &&
@@ -155,7 +156,7 @@ export default function ManageAccountsPage() {
       toast.error("New password cannot be the same as the old password.");
       return;
     }
-  
+
     axios
       .put(
         `http://localhost:8080/accounts/${resetStaff.accountID}/reset-password`,
@@ -176,6 +177,9 @@ export default function ManageAccountsPage() {
           newPassword: "",
           confirmPassword: "",
         });
+
+        // Refresh data after successful action
+        fetchData();
       })
       .catch((err) => {
         const errorMessage =
@@ -201,16 +205,19 @@ export default function ManageAccountsPage() {
       toast.error("Admin password is required.");
       return;
     }
+
     axios
       .delete(`http://localhost:8080/accounts/${accountID}`, {
         data: { adminPW },
       })
       .then(() => {
-        setStaffs(staffs.filter((s) => s.accountID !== accountID));
         toast.success("Account deleted successfully.");
         setIsDeleteAccountDialogOpen(false);
         setDeleteTarget(null);
         setAdminPW("");
+
+        // Refresh data after delete
+        fetchData();
       })
       .catch((err) => {
         const errorMessage =
@@ -244,7 +251,6 @@ export default function ManageAccountsPage() {
       );
     }
     if (!selectedFilter || !selectedSubFilter) return filtered;
-
     switch (selectedFilter) {
       case "Name":
         return filtered.sort((a, b) =>
@@ -288,6 +294,7 @@ export default function ManageAccountsPage() {
       password,
       confirmPassword,
     } = newStaff;
+
     if (
       !accountID ||
       !firstName ||
@@ -299,10 +306,12 @@ export default function ManageAccountsPage() {
       toast.error("Please fill in all fields.");
       return;
     }
+
     if (password !== confirmPassword) {
       toast.error("Passwords do not match!");
       return;
     }
+
     try {
       await axios.post("http://localhost:8080/accounts", {
         accountID,
@@ -321,8 +330,9 @@ export default function ManageAccountsPage() {
         password: "",
         confirmPassword: "",
       });
-      const res = await axios.get("http://localhost:8080/accounts");
-      setStaffs(res.data);
+
+      // Refresh data after adding
+      fetchData();
     } catch (err) {
       toast.error("Failed to add staff.");
       console.error(err);
@@ -371,6 +381,9 @@ export default function ManageAccountsPage() {
 
       toast.success("Account updated successfully.");
       setIsEditOpen(false);
+
+      // Refresh data after update
+      fetchData();
     } catch (err) {
       toast.error("Failed to update staff.");
       console.error(err);
@@ -411,7 +424,6 @@ export default function ManageAccountsPage() {
                 </TabsTrigger>
               </TabsList>
             </div>
-
             {/* MY ACCOUNT TAB */}
             <TabsContent value="my-account" className="mt-0">
               {currentUser ? (
@@ -454,9 +466,9 @@ export default function ManageAccountsPage() {
                         </div>
                       </div>
                       <Dialog>
-                      <DialogTrigger asChild onClick={() => setEditedStaff(currentUser)}>
-                        <Button className="bg-blue-400 text-white">Edit Account</Button>
-                      </DialogTrigger>
+                        <DialogTrigger asChild onClick={() => setEditedStaff(currentUser)}>
+                          <Button className="bg-blue-400 text-white">Edit Account</Button>
+                        </DialogTrigger>
                         <DialogContent aria-describedby="edit-account-dialog" className="w-[30vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
                           <DialogHeader>
                             <DialogTitle className="text-blue-400 text-xl font-bold">
@@ -467,7 +479,6 @@ export default function ManageAccountsPage() {
                           <div className="flex flex-col gap-4 mt-4 text-gray-700">
                             <Label>Date Created</Label>
                             <Input value={currentUser.dateCreated} disabled />
-
                             <Label>First Name</Label>
                             <Input
                               type="text"
@@ -480,7 +491,6 @@ export default function ManageAccountsPage() {
                                 })
                               }
                             />
-
                             <Label>Last Name</Label>
                             <Input
                               type="text"
@@ -493,7 +503,6 @@ export default function ManageAccountsPage() {
                                 })
                               }
                             />
-
                             {/* Remove role dropdown in My Account tab */}
                             <Label>Role</Label>
                             <Input
@@ -553,72 +562,69 @@ export default function ManageAccountsPage() {
                         </div>
                       </div>
                       <Dialog>
-                      <DialogTrigger asChild>
-                        <Button
-                          className="bg-blue-400 text-white"
-                          onClick={() => {
-                            if (currentUser && currentUser.accountID) {
-                              setIsResetOpen(true);
-                              setResetStaff(currentUser);
-                              setPasswordResetSource("my-account");
-                            } else {
-                              toast.error("User data not available.");
-                            }
-                          }}
-                        >
-                          Change Password
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent aria-describedby="change-password-dialog" className="w-[30vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
-                        <DialogHeader>
-                          <DialogTitle className="text-blue-400 text-xl font-bold">
-                            Change Password
-                          </DialogTitle>
-                          <DialogClose />
-                        </DialogHeader>
-                        <div className="flex flex-col gap-4 mt-4 text-gray-700">
-                          {/* Show old password only when it's "my-account" */}
-                          <Label>Old Password</Label>
-                          <Input
-                            type="password"
-                            placeholder="Enter old password"
-                            value={passwordData.oldPassword}
-                            onChange={(e) =>
-                              setPasswordData({ ...passwordData, oldPassword: e.target.value })
-                            }
-                          />
-                          <Label>New Password</Label>
-                          <Input
-                            type="password"
-                            placeholder="Enter new password"
-                            value={passwordData.newPassword}
-                            onChange={(e) =>
-                              setPasswordData({ ...passwordData, newPassword: e.target.value })
-                            }
-                          />
-                          <Label>Confirm New Password</Label>
-                          <Input
-                            type="password"
-                            placeholder="Confirm new password"
-                            value={passwordData.confirmPassword}
-                            onChange={(e) =>
-                              setPasswordData({ ...passwordData, confirmPassword: e.target.value })
-                            }
-                          />
-                        </div>
-                        <DialogFooter>
+                        <DialogTrigger asChild>
                           <Button
-                            className="w-full bg-blue-400 text-white"
+                            className="bg-blue-400 text-white"
                             onClick={() => {
-                              setPasswordResetSource("my-account");
-                              handleResetPassword();
+                              if (currentUser && currentUser.accountID) {
+                                setIsResetOpen(true);
+                                setResetStaff(currentUser);
+                                setPasswordResetSource("my-account");
+                              } else {
+                                toast.error("User data not available.");
+                              }
                             }}
                           >
-                            Update Password
+                            Change Password
                           </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
+                        </DialogTrigger>
+                        <DialogContent aria-describedby="change-password-dialog" className="w-[30vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
+                          <DialogHeader>
+                            <DialogTitle className="text-blue-400 text-xl font-bold">
+                              Change Password
+                            </DialogTitle>
+                            <DialogClose />
+                          </DialogHeader>
+                          <div className="flex flex-col gap-4 mt-4 text-gray-700">
+                            {/* Show old password only when it's "my-account" */}
+                            <Label>Old Password</Label>
+                            <Input
+                              type="password"
+                              placeholder="Enter old password"
+                              value={passwordData.oldPassword}
+                              onChange={(e) =>
+                                setPasswordData({ ...passwordData, oldPassword: e.target.value })
+                              }
+                            />
+                            <Label>New Password</Label>
+                            <Input
+                              type="password"
+                              placeholder="Enter new password"
+                              value={passwordData.newPassword}
+                              onChange={(e) =>
+                                setPasswordData({ ...passwordData, newPassword: e.target.value })
+                              }
+                            />
+                            <Label>Confirm New Password</Label>
+                            <Input
+                              type="password"
+                              placeholder="Confirm new password"
+                              value={passwordData.confirmPassword}
+                              onChange={(e) =>
+                                setPasswordData({ ...passwordData, confirmPassword: e.target.value })
+                              }
+                            />
+                          </div>
+                          <DialogFooter>
+                            <Button
+                              className="w-full bg-blue-400 text-white"
+                              onClick={handleResetPassword}
+                            >
+                              Update Password
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
                     </CardContent>
                   </Card>
                 </div>
@@ -628,7 +634,6 @@ export default function ManageAccountsPage() {
                 </p>
               )}
             </TabsContent>
-
             {/* STAFF TAB */}
             <TabsContent value="staff" className="mt-0">
               <div className="mb-4">
@@ -868,7 +873,6 @@ export default function ManageAccountsPage() {
           </Tabs>
         </div>
       </div>
-
       {/* EDIT MODAL */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="w-[30vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
@@ -881,19 +885,16 @@ export default function ManageAccountsPage() {
           <div className="flex flex-col gap-4 mt-4 text-gray-700">
             <Label>Date Created</Label>
             <Input value={editedStaff?.dateCreated || ""} disabled />
-
             <Label>First Name</Label>
             <Input
               value={editedStaff?.firstName || ""}
               onChange={(e) => setEditedStaff({ ...editedStaff, firstName: e.target.value })}
             />
-
             <Label>Last Name</Label>
             <Input
               value={editedStaff?.lastName || ""}
               onChange={(e) => setEditedStaff({ ...editedStaff, lastName: e.target.value })}
             />
-
             {editSource === "staff" && (
               <>
                 <Label>Role</Label>
@@ -914,7 +915,6 @@ export default function ManageAccountsPage() {
                 </Select>
               </>
             )}
-
             <Label>User Code</Label>
             <Input value={editedStaff?.accountID || ""} disabled />
           </div>
@@ -928,7 +928,6 @@ export default function ManageAccountsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
       {/* RESET PASSWORD MODAL */}
       <Dialog open={isResetOpen} onOpenChange={setIsResetOpen}>
         <DialogContent className="w-[30vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
@@ -985,7 +984,6 @@ export default function ManageAccountsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
       {/* DELETE MODAL */}
       <Dialog open={isDeleteAccountDialogOpen} onOpenChange={setIsDeleteAccountDialogOpen}>
         <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
@@ -1023,7 +1021,6 @@ export default function ManageAccountsPage() {
           </div>
         </DialogContent>
       </Dialog>
-
       <Toaster />
     </SidebarProvider>
   );
