@@ -29,6 +29,7 @@ const OrderDashboard = () => {
   const [orderDiscount, setOrderDiscount] = useState(0);
   const [productDiscounts, setProductDiscounts] = useState([]);
   const [selectedProductDiscount, setSelectedProductDiscount] = useState(null);
+  const [originalTotal, setOriginalTotal] = useState(0); 
 
   // Freebies
   const [openFreebie, setOpenFreebie] = useState(false);
@@ -37,7 +38,6 @@ const OrderDashboard = () => {
 
   // Whole order variables
   const [hasInteractedWithPayModal, setHasInteractedWithPayModal] = useState(false);
- 
   const [payment, setPayment] = useState(0); 
   const [selectedDiscountType, setSelectedDiscountType] = useState("");
   const [wholeOrderDiscountInput, setWholeOrderDiscountInput] = useState("");
@@ -79,11 +79,12 @@ const OrderDashboard = () => {
       D_totalProductDiscount: totalProductDiscounted,
       T_transactionDate: transactionDate,
       isTemporarilyDeleted: false,
-      O_orderPayment: payment
+      O_orderPayment: payment,
+      O_originalTotal: originalTotal
     };
   
     console.log("PAYMENT ORDERLOAD: ", orderPayload.O_orderPayment);
-    console.log("Order Payload:", orderPayload);
+    console.log("ORDER PAYLOAD:", orderPayload);
   
     try {
       // Create order
@@ -111,7 +112,7 @@ const OrderDashboard = () => {
           OD_discountAmount: isFreebie ? 0.00 : discount,
         };
   
-        console.log("Order Detail Payload:", detailPayload);
+        console.log("ORDER DETAIL PAYLOAD:", detailPayload);
   
         // Create order detail
         await axios.post("http://localhost:8080/orderDetails", detailPayload)
@@ -187,18 +188,25 @@ const OrderDashboard = () => {
     const totalProductDiscount = updatedData.reduce((sum, item) => {
       return sum + (parseFloat(item["Discount Value"]) || 0);
     }, 0);
+
+    const originalTotal = updatedData.reduce((sum, item) => {
+      return sum + (parseFloat(item["Price"]) || 0) * (parseInt(item["Quantity"]) || 1);
+    }, 0);
   
     setData(updatedData);
+    setOriginalTotal(originalTotal)
     setTotalProductDiscounted(totalProductDiscount);
     setNetItemSale(netSales);
     setUnitPrice(unitPrice);
     setSelectedDiscountType(selectedDiscountType);
-    console.log("<Discount Type>: ", selectedDiscountType);
-  
-    console.log('[Total ProductDiscount Amount]: ', totalProductDiscount);
+    console.log("Details upon adding a order item: ")
+    console.log('Unit Price: ', unitPrice);
+    console.log('Selling Price: ', sellingPrice);
+    console.log("Discount Type: ", selectedDiscountType);
     console.log('Discount Amount: ', discountAmount);
+    console.log('Total Product Discount Amount: ', totalProductDiscount);
     console.log('Net Sales (Selling price): ', netSales);
-    console.log('<Unit Price>: ', unitPrice);
+    console.log("Original Total: ", originalTotal);
   
     // Reset form
     setSelectedProduct(null);
@@ -250,9 +258,9 @@ const OrderDashboard = () => {
           label: `${p.P_productName} - B${p.brand} - S${p.supplier}`,
         }));
         setProducts(mappedProducts);
-        console.log("Products fetched and mapped.");
+        console.log("Products fetched and mapped for product chooser.");
       } catch (err) {
-        console.error("Failed to fetch products:", err);
+        console.error("Failed to fetch products for product chooser:", err);
       }
     };
     
@@ -289,15 +297,6 @@ const OrderDashboard = () => {
   // DELETE BOTH OCCURRENCE IF SAME PRODUCT CODE
   const handleDelete = (productCode) => {
     setData((prevData) => prevData.filter(item => item["Product Code"] !== productCode));
-  };
-
-  const formatNumberWithCommas = (value) => {
-    if (!value) return "";
-    const [integerPart, decimalPart] = value.replace(/[^0-9.]/g, "").split(".");
-    const formattedInteger = parseInt(integerPart || "0", 10).toLocaleString("en-PH");
-    return decimalPart !== undefined
-      ? `₱${formattedInteger}.${decimalPart.slice(0, 2)}`
-      : `₱${formattedInteger}`;
   };
   
   useEffect(() => {
@@ -444,7 +443,6 @@ const OrderDashboard = () => {
                             const updatedPayment = rawValue === "" ? 0 : parseFloat(rawValue);
                             setPayment(updatedPayment);
                             console.log("Payment: ", payment)
-                            console.log("!!!!!discountedTotal: ", discountedTotal)
                           }}
                           onBlur={() => {
                             if (!payment || parseFloat(payment.toString().replace(/,/g, "")) < discountedTotal) {
@@ -478,9 +476,11 @@ const OrderDashboard = () => {
                           onChange={(e) => {
                             const value = e.target.value.replace(/[^0-9]/g, '');
                             setReceiptNumber(value);
+                            console.log("Upon Payment Values: ");
                             console.log("Payment: ", payment);
                             console.log("Total Amount: ", totalAmount);
                             console.log("Total Amount with Whole Order Discount: ", totalWithWholeDiscount);
+                            console.log("Original Amount: ", originalTotal)
                             if (value.trim() !== "") setReceiptNumberError(false); 
                           }}
                           onBlur={() => {
@@ -615,7 +615,7 @@ const OrderDashboard = () => {
                   if (!isNaN(value)) {
                     setOrderQuantity(value);
                   } else {
-                    setOrderQuantity(''); // or keep it unchanged
+                    setOrderQuantity(''); 
                   }
                 }}
                 className={`w-full border rounded-md px-5 py-2 text-sm ${
@@ -653,7 +653,6 @@ const OrderDashboard = () => {
                       onClick={() => {
                         const discountType = itemDiscount.D_discountType;
                         setSelectedDiscountType(discountType);
-                        console.log("Discount Type: ", discountType);
                         const currentPrice = parseFloat(selectedProduct?.price || "0");
                         const currentQuantity = parseInt(orderQuantity || "1");
 
