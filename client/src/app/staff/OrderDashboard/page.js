@@ -351,8 +351,8 @@ const OrderDashboard = () => {
         <AppSidebar />
 
         <div className="flex flex-col flex-grow h-screen overflow-y-auto relative">
-          <div className="rounded-lg shadow-sm border-b sticky top-0 z-20 bg-white px-8 py-8">
-            <h1 className="text-3xl text-black font-bold">Summary of Order/s</h1>
+          <div className="shadow-sm border-b sticky top-0 z-20 bg-blue-950 px-8 py-8">
+            <h1 className="text-3xl text-white font-bold">Summary of Order/s</h1>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-4 w-full p-4">
             
