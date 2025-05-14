@@ -1,3 +1,4 @@
+// components/AppSidebar.tsx (for staff)
 "use client";
 
 import * as React from "react";
@@ -23,6 +24,9 @@ import {
 } from "@/components/ui/sidebar";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+
+// Import the logout function
+import { handleSignOut } from "@/utils/auth";
 
 const data = {
   user: {
@@ -109,17 +113,19 @@ export function AppSidebar({ ...props }) {
           <NavMain items={navMainWithActive} collapsed={collapsed} />
         </SidebarContent>
 
-        {/* <SidebarFooter className="bg-white">
+        <SidebarFooter className="bg-white">
           <SidebarMenu className="bg-white items-left justify-center">
             <SidebarMenuItem>
-              <SidebarMenuButton size="lg" tooltip="Log Out">
-                <LogOutIcon className="w-5 h-5" />
-                <span className="ml-2">Log Out</span>
-              </SidebarMenuButton>
+              <button onClick={handleSignOut}>
+                <SidebarMenuButton size="lg" tooltip="Log Out">
+                  <LogOutIcon className="w-5 h-5" />
+                  <span className="ml-2">Log Out</span>
+                </SidebarMenuButton>
+              </button>
             </SidebarMenuItem>
           </SidebarMenu>
           <NavUser user={data.user} />
-        </SidebarFooter> */}
+        </SidebarFooter>
       </Sidebar>
     </>
   );

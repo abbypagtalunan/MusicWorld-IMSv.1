@@ -16,7 +16,7 @@ import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, Dialog
 import { CalendarDays, Download, ChevronsUpDown, ChevronUp, ChevronDown} from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { Calendar } from "@/components/ui/calendar";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import {
   Popover,
   PopoverContent,
@@ -237,63 +237,75 @@ export default function ReportsPage() {
         <div className="flex-1 p-4 flex flex-col w-full">
           <div className="flex items-center justify-between mb-4 bg-white p-2 rounded-lg">
             <div className="flex items-center space-x-2">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-[180px] flex items-center justify-between px-3 py-2 border rounded-md font-normal",
-                      !fromDate && "text-muted-foreground"
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-[150px] flex items-center justify-between px-3 py-2 border rounded-md font-normal",
+                        !fromDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarDays className="mr-2 h-4 w-4" />
+                      {fromDate ? format(fromDate, "PPP") : <span>From</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[250px] p-0">
+                    <CalendarComponent
+                      mode="single"
+                      selected={fromDate}
+                      onSelect={handleFromDateChange}
+                      initialFocus
+                    />
+                    {fromDate && (
+                      <div className="p-2 border-t flex justify-end">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => setFromDate(null)}
+                          className="text-red-500"
+                        >
+                          Clear
+                        </Button>
+                      </div>
                     )}
-                  >
-                    <CalendarDays className="mr-2 h-4 w-4" />
-                    {fromDate ? format(fromDate, "PPP") : <span>From</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[250px] p-0">
-                  <Calendar
-                    mode="single"
-                    selected={fromDate}
-                    onSelect={handleFromDateChange}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    disabled={!fromDate}
-                    className={cn(
-                      "w-[180px] flex items-center justify-between px-3 py-2 border rounded-md font-normal",
-                      !toDate && "text-muted-foreground"
+                  </PopoverContent>
+                </Popover>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-[150px] flex items-center justify-between px-3 py-2 border rounded-md font-normal",
+                        !toDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarDays className="mr-2 h-4 w-4" />
+                      {toDate ? format(toDate, "PPP") : <span>To</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[250px] p-0">
+                    <CalendarComponent
+                      mode="single"
+                      selected={toDate}
+                      onSelect={handleToDateChange}
+                      initialFocus
+                      disabled={(date) => fromDate && date < fromDate}
+                    />
+                    {toDate && (
+                      <div className="p-2 border-t flex justify-end">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => setToDate(null)}
+                          className="text-red-500"
+                        >
+                          Clear
+                        </Button>
+                      </div>
                     )}
-                  >
-                    <CalendarDays className="mr-2 h-4 w-4" />
-                    {toDate ? format(toDate, "PPP") : <span>To</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[250px] p-0">
-                  <Calendar
-                    mode="single"
-                    selected={toDate}
-                    onSelect={handleToDateChange}
-                    initialFocus
-                    disabled={(date) => fromDate && date < fromDate}
-                  />
-                </PopoverContent>
-              </Popover>
-
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setFromDate(null);
-                  setToDate(null);
-                }}
-                className="text-sm border-gray-300 hover:text-red-600"
-              >
-                Reset Filter
-              </Button>
+                  </PopoverContent>
+                </Popover>
             </div>
 
               {/* DOWNLOAD */}

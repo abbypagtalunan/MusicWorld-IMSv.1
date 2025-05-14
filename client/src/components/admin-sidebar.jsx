@@ -3,13 +3,13 @@ import * as React from "react"
 import {
   CircleXIcon,
   ShoppingCartIcon,
-  TicketPercentIcon,
-  LogOutIcon,
   TruckIcon,
   Undo2Icon,
   ListIcon,
+  TicketPercentIcon,
   ChartNoAxesCombinedIcon,
   User,
+  LogOutIcon,
   SettingsIcon,
 } from "lucide-react"
 import { NavMain } from "@/components/nav-main"
@@ -27,6 +27,8 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+// Import the logout handler
+import { handleSignOut } from "@/utils/auth";
 
 const data = {
   user: {
@@ -60,12 +62,6 @@ const data = {
       icon: Undo2Icon,
       path: "returns"
     },
-    // {
-    //   title: "Discounts",
-    //   url: "./discounts",
-    //   icon: TicketPercentIcon,
-    //   path: "discounts"
-    // },
     {
       title: "Deleted Transactions",
       url: "./deleted",
@@ -78,24 +74,14 @@ const data = {
       icon: ChartNoAxesCombinedIcon,
       path: "reports"
     },
-    // {
-    //   title: "Configurations",
-    //   url: "./configurations",
-    //   icon: SettingsIcon,
-    //   path: "configurations"
-    // },
     {
       title: "Manage Accounts",
       url: "./accounts",
       icon: User,
       path: "accounts"
     }
-
-
-
   ]
 };
-
 
 export function AppSidebar({ ...props }) {
   const pathname = usePathname();
@@ -108,7 +94,6 @@ export function AppSidebar({ ...props }) {
 
   return (
     <>
-      {/* Mobile toggle button */}
       <SidebarTrigger
         className="fixed top-4 left-4 z-50 bg-white rounded-full p-2 shadow-md hover:bg-gray-200 md:hidden"
         onClick={() => setCollapsed((prev) => !prev)}
@@ -142,17 +127,19 @@ export function AppSidebar({ ...props }) {
           <NavMain items={navMainWithActive} collapsed={collapsed} />
         </SidebarContent>
 
-        {/* <SidebarFooter className="bg-white">
+        <SidebarFooter className="bg-white">
           <SidebarMenu className="bg-white items-left justify-center">
             <SidebarMenuItem>
-              <SidebarMenuButton size="lg" tooltip="Log Out">
-                <LogOutIcon className="w-5 h-5" />
-                <span className="ml-2">Log Out</span>
-              </SidebarMenuButton>
+              <button onClick={handleSignOut}>
+                <SidebarMenuButton size="lg" tooltip="Log Out">
+                  <LogOutIcon className="w-5 h-5" />
+                  <span className="ml-2">Log Out</span>
+                </SidebarMenuButton>
+              </button>
             </SidebarMenuItem>
           </SidebarMenu>
           <NavUser user={data.user} />
-        </SidebarFooter> */}
+        </SidebarFooter> 
       </Sidebar>
     </>
   );
