@@ -13,10 +13,10 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
-import { CalendarDays, Download, ChevronsUpDown, ChevronUp, ChevronDown} from "lucide-react";
+import { CalendarDays, Download, ChevronsUpDown, ChevronUp, ChevronDown, RotateCcw} from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { Calendar } from "@/components/ui/calendar";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import {
   Popover,
   PopoverContent,
@@ -27,8 +27,6 @@ import axios from "axios";
 
 export default function ReportsPage() {
   const [reportData, setReportData] = useState([]);
-  const [selectedOrderID, setSelectedOrderID] = useState(null);
-
   const [fromDate, setFromDate] = useState(null);
   const [toDate, setToDate] = useState(null);
 
@@ -56,6 +54,78 @@ export default function ReportsPage() {
         console.error("Failed to fetch reports:", err);
       });
   }, []);
+
+    // Download Handling
+  const [isDownloadConfirmOpen, setDownloadConfirmOpen] = useState("");
+  const handleDownloadCSV = () => {
+    const now = new Date();
+    const phLocale = "en-PH";
+    const phTimeZone = "Asia/Manila";
+
+    // Format timestamp for filename
+    const formattedDate = now
+      .toLocaleString(phLocale, { timeZone: phTimeZone })
+      .replace(/[/:, ]/g, "-")
+      .replace(/--+/g, "-");
+
+    // CSV timestamp row
+    const downloadTimestamp = `Downloaded At:, "${now.toLocaleString(phLocale, { timeZone: phTimeZone })}"`;
+    const headers = [
+      "Receipt Number",
+      "Order ID",
+      "Transaction Date",
+      "Product Code",
+      "Product Name",
+      "Brand",
+      "Supplier",
+      "Discount Amount",
+      "Item Gross Sale",
+      "Item Net Sale",
+      "Item Gross Profit"
+    ];
+
+    // Use filteredData instead of full reportData
+    const rows = filteredData.map((item) => [
+      item.receiptNumber,
+      item.orderID,
+      item.transactionDate,
+      item.productCode,
+      item.productName,
+      item.brandName,
+      item.supplierName,
+      item.discountAmount,
+      item.grossSale,
+      item.netSale,
+      item.grossProfit
+    ]);
+
+    // Add totals row
+    const totalsRow = [
+      "TOTAL", "", "", "", "", "", "",
+      totals.discountAmount.toFixed(2),
+      totals.grossSale.toFixed(2),
+      totals.netSale.toFixed(2),
+      totals.grossProfit.toFixed(2)
+    ];
+
+    const csvContent = [
+      downloadTimestamp,
+      headers.join(","),
+      ...rows.map((row) => row.map((val) => `"${val}"`).join(",")),
+      totalsRow.map((val) => `"${val}"`).join(",")
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `Order_Report_${formattedDate}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
 
   const filteredData = useMemo(() => {
     return reportData.filter((item) => {
@@ -176,68 +246,93 @@ export default function ReportsPage() {
         <div className="flex-1 p-4 flex flex-col w-full">
           <div className="flex items-center justify-between mb-4 bg-white p-2 rounded-lg">
             <div className="flex items-center space-x-2">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-[180px] flex items-center justify-between px-3 py-2 border rounded-md font-normal",
-                      !fromDate && "text-muted-foreground"
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-[150px] flex items-center justify-between px-3 py-2 border rounded-md font-normal",
+                        !fromDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarDays className="mr-2 h-4 w-4" />
+                      {fromDate ? format(fromDate, "PPP") : <span>From</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[250px] p-0">
+                    <CalendarComponent
+                      mode="single"
+                      selected={fromDate}
+                      onSelect={handleFromDateChange}
+                      initialFocus
+                    />
+                    {fromDate && (
+                      <div className="p-2 border-t flex justify-end">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => setFromDate(null)}
+                          className="text-red-500"
+                        >
+                          Clear
+                        </Button>
+                      </div>
                     )}
-                  >
-                    <CalendarDays className="mr-2 h-4 w-4" />
-                    {fromDate ? format(fromDate, "PPP") : <span>From</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[250px] p-0">
-                  <Calendar
-                    mode="single"
-                    selected={fromDate}
-                    onSelect={handleFromDateChange}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    disabled={!fromDate}
-                    className={cn(
-                      "w-[180px] flex items-center justify-between px-3 py-2 border rounded-md font-normal",
-                      !toDate && "text-muted-foreground"
+                  </PopoverContent>
+                </Popover>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-[150px] flex items-center justify-between px-3 py-2 border rounded-md font-normal",
+                        !toDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarDays className="mr-2 h-4 w-4" />
+                      {toDate ? format(toDate, "PPP") : <span>To</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[250px] p-0">
+                    <CalendarComponent
+                      mode="single"
+                      selected={toDate}
+                      onSelect={handleToDateChange}
+                      initialFocus
+                      disabled={(date) => fromDate && date < fromDate}
+                    />
+                    {toDate && (
+                      <div className="p-2 border-t flex justify-end">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => setToDate(null)}
+                          className="text-red-500"
+                        >
+                          Clear
+                        </Button>
+                      </div>
                     )}
+                  </PopoverContent>
+                </Popover>
+                <Button
+                    variant="outline"
+                    onClick={() => {
+                      setFromDate(null);
+                      setToDate(null);
+                    }}
+                    className="text-sm border-gray-300 hover:text-red-600"
                   >
-                    <CalendarDays className="mr-2 h-4 w-4" />
-                    {toDate ? format(toDate, "PPP") : <span>To</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[250px] p-0">
-                  <Calendar
-                    mode="single"
-                    selected={toDate}
-                    onSelect={handleToDateChange}
-                    initialFocus
-                    disabled={(date) => fromDate && date < fromDate}
-                  />
-                </PopoverContent>
-              </Popover>
-
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setFromDate(null);
-                  setToDate(null);
-                }}
-                className="text-sm border-gray-300 hover:text-red-600"
-              >
-                Reset Filter
-              </Button>
+                    <RotateCcw className="w-4 h-4" />
+                      <span>Reset Date</span>
+                </Button>
             </div>
 
               {/* DOWNLOAD */}
             <div className="flex space-x-2">
-              <Dialog>
+              <Dialog open={isDownloadConfirmOpen} onOpenChange={(open) => {
+                setDownloadConfirmOpen(open);
+              }}>
                 <DialogTrigger asChild>
                   <Button className="bg-blue-400 text-white">
                     <Download className="w-4 h-4" />
@@ -260,7 +355,9 @@ export default function ReportsPage() {
                     <Button
                       className="bg-emerald-500 hover:bg-emerald-700 text-white uppercase text-sm font-medium whitespace-nowrap"
                       onClick={() => {
+                        handleDownloadCSV();
                         toast.success("Downloaded successfully!");
+                        setDownloadConfirmOpen(false);
                       }}
                     >
                       DOWNLOAD FILE

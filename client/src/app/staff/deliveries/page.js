@@ -122,19 +122,6 @@ export default function DeliveriesPage() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start">
-
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>Delivery Number</DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Delivery Number", "Ascending")}>
-                          Ascending
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Delivery Number", "Descending")}>
-                          Descending
-                        </DropdownMenuItem>
-                      </DropdownMenuSubContent>
-                    </DropdownMenuSub>
-
                     <DropdownMenuSub>
                       <DropdownMenuSubTrigger>Supplier</DropdownMenuSubTrigger>
                       <DropdownMenuSubContent>
@@ -147,17 +134,12 @@ export default function DeliveriesPage() {
                       </DropdownMenuSubContent>
                     </DropdownMenuSub>
 
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger> Total Cost</DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Price", "Low to High")}>
-                          Low to High
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Price", "High to Low")}>
-                          High to Low
-                        </DropdownMenuItem>
-                      </DropdownMenuSubContent>
-                    </DropdownMenuSub>
+                    <DropdownMenuItem 
+                      onClick={() => handleFilterSelect(null, null)} 
+                      className="text-red-500 font-medium"
+                      >
+                        Reset Filters
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
