@@ -647,18 +647,6 @@ export default function ProductsPage() {
                     </DropdownMenuSub>
                     
                     <DropdownMenuSub>
-                    <DropdownMenuSubTrigger>Product Name</DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Product Name", "Ascending")}>
-                          Ascending
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Product Name", "Descending")}>
-                          Descending
-                        </DropdownMenuItem>
-                      </DropdownMenuSubContent>
-                    </DropdownMenuSub>
-                    
-                    <DropdownMenuSub>
                       <DropdownMenuSubTrigger>Brand</DropdownMenuSubTrigger>
                       <DropdownMenuSubContent>
                         {brands.map((brand) => (
@@ -683,18 +671,6 @@ export default function ProductsPage() {
                         ))}
                       </DropdownMenuSubContent>
                     </DropdownMenuSub>
-
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>Price</DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Price", "Low to High")}>
-                          Low to High
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Price", "High to Low")}>
-                          High to Low
-                        </DropdownMenuItem>
-                      </DropdownMenuSubContent>
-                    </DropdownMenuSub>
                     
                     <DropdownMenuSub>
                       <DropdownMenuSubTrigger>Product Status</DropdownMenuSubTrigger>
@@ -710,18 +686,6 @@ export default function ProductsPage() {
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleFilterSelect("Product Status", "Discontinued")}>
                           Discontinued
-                        </DropdownMenuItem>
-                      </DropdownMenuSubContent>
-                    </DropdownMenuSub>
-
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>Date added</DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Date added", "Ascending")}>
-                          Ascending
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleFilterSelect("Date added", "Descending")}>
-                          Descending
                         </DropdownMenuItem>
                       </DropdownMenuSubContent>
                     </DropdownMenuSub>

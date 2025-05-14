@@ -7,7 +7,7 @@ const getAllDeleted = (callback) => {
       r.R_returnID,
       p.P_productCode,
       r.R_returnTypeID,
-      rt.RT_returnTypeDescription,
+      r.R_reasonOfReturn,
       p.P_productName,
       r.R_TotalPrice,
       r.R_dateOfReturn,

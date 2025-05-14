@@ -74,6 +74,7 @@ export default function OrdersPage() {
           totalProductDiscount: o.D_totalProductDiscount,
           transacDate: o.T_transactionDate,
           orderPayment: o.O_orderPayment,
+          originalTotal: o.O_originalTotal,
           isDel: o.isTemporarilyDeleted,
         }));
         setOrders(mappedOrders);
@@ -305,6 +306,7 @@ Object.entries(amountRanges).forEach(([key, range]) => {
           totalProductDiscount: o.D_totalProductDiscount,
           transacDate: o.T_transactionDate,
           orderPayment: o.O_orderPayment,
+          originalTotal: o.O_originalTotal,
           isDel: o.isTemporarilyDeleted,
         }));
         setOrders(mappedOrders);
@@ -337,34 +339,60 @@ Object.entries(amountRanges).forEach(([key, range]) => {
   // Download
   const [isDownloadConfirmOpen, setDownloadConfirmOpen] = useState("");
   const handleDownloadCSV = () => {
-    const headers = [
-      "Receipt Number",
-      "Order ID",
-      "Transaction Date",
-      "Order Payment",
-      "Total Amount",
-      "Whole Order Discount",
-      "Total Product Discount",
-      "Product Name",
-      "Product Code",
-      "Brand",
-      "Supplier",
-      "Quantity",
-      "Unit Price",
-      "Selling Price",
-      "Discount Type",
-      "Discount Amount",
-      "Item Gross Sale",
-      "Item Net Sale",
-      "Item Gross Profit"
-    ];
-  
-    const rows = [];
-  
-    orders.forEach((order) => {
-      const detailsForOrder = orderDetails.filter(detail => detail.orderID === order.orderID);
-  
-      if (detailsForOrder.length === 0) {
+  // Get current date and time in Philippine Time
+  const now = new Date();
+  const phLocale = "en-PH";
+  const phTimeZone = "Asia/Manila";
+
+  // Format timestamp for filename (no slashes/colons)
+  const formattedDate = now
+    .toLocaleString(phLocale, { timeZone: phTimeZone })
+    .replace(/[/:, ]/g, "-")
+    .replace(/--+/g, "-");
+
+  // Format timestamp for CSV content
+  const downloadTimestamp = `Downloaded At:, "${now.toLocaleString(phLocale, { timeZone: phTimeZone })}"`;
+  const headers = [
+    "Receipt Number",
+    "Order ID",
+    "Transaction Date",
+    "Order Payment",
+    "Total Amount",
+    "Whole Order Discount",
+    "Total Product Discount",
+    "Original Total Amount",
+    "Product Name",
+    "Product Code",
+    "Brand",
+    "Supplier",
+    "Quantity",
+    "Unit Price",
+    "Selling Price",
+    "Discount Type",
+    "Discount Amount",
+    "Item Gross Sale",
+    "Item Net Sale",
+    "Item Gross Profit"
+  ];
+
+  const rows = [];
+
+  orders.forEach((order) => {
+    const detailsForOrder = orderDetails.filter(detail => detail.orderID === order.orderID);
+
+    if (detailsForOrder.length === 0) {
+      rows.push([
+        order.receiptNo,
+        order.orderID,
+        order.transacDate,
+        order.orderPayment,
+        order.totalAmount,
+        order.wholeOrderDiscount,
+        order.totalProductDiscount,
+        "", "", "", "", "", "", "", "", "", "", "", ""
+      ]);
+    } else {
+      detailsForOrder.forEach(detail => {
         rows.push([
           order.receiptNo,
           order.orderID,
@@ -373,50 +401,41 @@ Object.entries(amountRanges).forEach(([key, range]) => {
           order.totalAmount,
           order.wholeOrderDiscount,
           order.totalProductDiscount,
-          "", "", "", "", "", "", "", "", "", "", "", ""
+          order.originalTotal,
+          detail.productName,
+          detail.productCode,
+          detail.brandName,
+          detail.supplierName,
+          detail.quantity,
+          detail.unitPrice,
+          detail.sellingPrice,
+          detail.discountType,
+          detail.discountAmount,
+          detail.itemGross,
+          detail.itemTotal,
+          detail.itemGrossProfit
         ]);
-      } else {
-        detailsForOrder.forEach(detail => {
-          rows.push([
-            order.receiptNo,
-            order.orderID,
-            order.transacDate,
-            order.orderPayment,
-            order.totalAmount,
-            order.wholeOrderDiscount,
-            order.totalProductDiscount,
-            detail.productName,
-            detail.productCode,
-            detail.brandName,
-            detail.supplierName,
-            detail.quantity,
-            detail.unitPrice,
-            detail.sellingPrice,
-            detail.discountType,
-            detail.discountAmount,
-            detail.itemGross,
-            detail.itemTotal,
-            detail.itemGrossProfit
-          ]);
-        });
-      }
-    });
-  
-    const csvContent = [
-      headers.join(","),
-      ...rows.map(row => row.map(val => `"${val}"`).join(","))
-    ].join("\n");
-  
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", "Orders.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
+      });
+    }
+  });
+
+  const csvContent = [
+    downloadTimestamp,
+    headers.join(","),
+    ...rows.map(row => row.map(val => `"${val}"`).join(","))
+  ].join("\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.setAttribute("download", `Orders_${formattedDate}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+
     
 
   return (
@@ -717,10 +736,11 @@ Object.entries(amountRanges).forEach(([key, range]) => {
                   <TableHead onClick={() => handleSort("transacDate")} className="cursor-pointer select-none"> Date <SortIcon column="transacDate" /></TableHead>
                   <TableHead onClick={() => handleSort("transacDate")} className="cursor-pointer select-none"> Time <SortIcon column="transacDate" /></TableHead>
                   <TableHead onClick={() => handleSort("receiptNo")} className="cursor-pointer select-none"> Receipt Number <SortIcon column="receiptNo" /></TableHead>
-                  <TableHead onClick={() => handleSort("totalAmount")} className="cursor-pointer select-none"> Total Amount <SortIcon column="totalAmount" /></TableHead>
+                  <TableHead onClick={() => handleSort("totalAmount")} className="cursor-pointer select-none">Original Total <SortIcon column="originalTotal" /></TableHead>
                   <TableHead onClick={() => handleSort("totalProductDiscount")} className="cursor-pointer select-none"> Total Product Discount <SortIcon column="totalProductDiscount" /></TableHead>
                   <TableHead onClick={() => handleSort("wholeOrderDiscount")} className="cursor-pointer select-none"> Whole Order Discount <SortIcon column="wholeOrderDiscount" /></TableHead>
                   <TableHead onClick={() => handleSort("orderPayment")} className="cursor-pointer select-none"> Payment <SortIcon column="orderPayment" /></TableHead>
+                  <TableHead onClick={() => handleSort("totalAmount")} className="cursor-pointer select-none"> Total Amount <SortIcon column="totalAmount" /></TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -736,6 +756,7 @@ Object.entries(amountRanges).forEach(([key, range]) => {
                     <TableCell>{formatPeso(order.totalProductDiscount)}</TableCell>
                     <TableCell>{formatPeso(order.wholeOrderDiscount)}</TableCell>
                     <TableCell>{formatPeso(order.orderPayment)}</TableCell>
+                    <TableCell>{formatPeso(order.originalTotal)}</TableCell>
 
                 {/*Details toggle button with modal pop-up */}              
                     <TableCell className="flex space-x-2">              
