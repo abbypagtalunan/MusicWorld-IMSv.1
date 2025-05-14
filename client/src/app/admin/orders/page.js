@@ -286,7 +286,8 @@ export default function OrdersPage() {
       .catch((err) => console.error("Failed to fetch order details:", err));
   };
 
-
+  // Download
+  const [isDownloadConfirmOpen, setDownloadConfirmOpen] = useState("");
   const handleDownloadCSV = () => {
     const headers = [
       "Receipt Number",
@@ -542,15 +543,44 @@ export default function OrdersPage() {
                 </Popover>
 
               {/* DOWNLOAD */}
-              <Button
-                onClick={() => handleDownloadCSV()}
-                className="bg-blue-400 text-white"
-              >
-                <Download className="w-4 h-4" />
-              </Button>
+              <Dialog open={isDownloadConfirmOpen} onOpenChange={(open) => {
+                setDownloadConfirmOpen(open);
+              }}>
+                <DialogTrigger asChild>
+                  <Button className="bg-blue-400 text-white">
+                    <Download className="w-4 h-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
+                  <DialogHeader>
+                    <DialogTitle>
+                      <span className="text-lg text-blue-900">Confirm Download?</span>
+                      <span className="text-lg text-gray-400 font-normal italic ml-2">
+                        (Orders.csv)
+                      </span>
+                    </DialogTitle>
+                    <DialogClose />
+                  </DialogHeader>
+                  <p className="text-medium text-gray-800 mt-2 pl-4">
+                    You are about to download the Orders.csv file. Click the button below to proceed.
+                  </p>
+                  <div className="flex justify-end mt-4 text-gray-700 items-center pl-4">
+                    <Button
+                      className="bg-emerald-500 hover:bg-emerald-700 text-white uppercase text-sm font-medium whitespace-nowrap"
+                      onClick={() => {
+                        handleDownloadCSV();
+                        toast.success("Downloaded successfully!");
+                        setDownloadConfirmOpen(false);
+                      }}
+                    >
+                      DOWNLOAD FILE
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
               </div>
-            </div>
-          </div>
+              </div>
+              </div>
 
           {/* TABLE */}
           <div className="p-4 bg-white shadow-md rounded-lg flex flex-col overflow-auto w-full">
