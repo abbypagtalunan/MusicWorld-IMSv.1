@@ -545,7 +545,7 @@ export default function OrdersPage() {
                 </div>
 
               {/* DOWNLOAD */}
-              <div className="flex space-x-2">
+            <div className="flex space-x-2">
               <Dialog open={isDownloadConfirmOpen} onOpenChange={(open) => {
                 setDownloadConfirmOpen(open);
               }}>

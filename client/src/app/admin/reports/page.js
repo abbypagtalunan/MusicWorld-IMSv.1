@@ -12,6 +12,7 @@ import {
   TableFooter,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { CalendarDays, Download, ChevronsUpDown, ChevronUp, ChevronDown} from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -221,6 +222,41 @@ export default function ReportsPage() {
                 </PopoverContent>
               </Popover>
             </div>
+
+              {/* DOWNLOAD */}
+            <div className="flex space-x-2">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button className="bg-blue-400 text-white">
+                    <Download className="w-4 h-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
+                  <DialogHeader>
+                    <DialogTitle>
+                      <span className="text-lg text-blue-900">Confirm Download?</span>
+                      <span className="text-lg text-gray-400 font-normal italic ml-2">
+                        (Reports.csv)
+                      </span>
+                    </DialogTitle>
+                    <DialogClose />
+                  </DialogHeader>
+                  <p className="text-medium text-gray-800 mt-2 pl-4">
+                    You are about to download the Reports.csv file. Click the button below to proceed.
+                  </p>
+                  <div className="flex justify-end mt-4 text-gray-700 items-center pl-4">
+                    <Button
+                      className="bg-emerald-500 hover:bg-emerald-700 text-white uppercase text-sm font-medium whitespace-nowrap"
+                      onClick={() => {
+                        toast.success("Downloaded successfully!");
+                      }}
+                    >
+                      DOWNLOAD FILE
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+              </div>
           </div>
 
           <div className="p-4 bg-white shadow-md rounded-lg flex flex-col overflow-auto w-full">
