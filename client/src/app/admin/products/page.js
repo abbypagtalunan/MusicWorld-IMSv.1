@@ -622,6 +622,8 @@ export default function ProductsPage() {
                   <Search className="w-5 h-5" />
                 </div>
               </div>
+              
+              {/* Filter Content */}
               <div className="flex items-center space-x-2">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -734,6 +736,8 @@ export default function ProductsPage() {
                 </DropdownMenu>
               </div>
             </div>
+
+            {/* Addd Product Sheet */}
             <div className="flex space-x-2">
               <Sheet open={isAddSheetOpen} onOpenChange={setAddSheetOpen}>
                 <SheetTrigger asChild>
@@ -824,6 +828,7 @@ export default function ProductsPage() {
                 </SheetContent>
               </Sheet>
 
+              {/* Update Price  */}
               <Dialog open={isPDOpen} onOpenChange={setPDopen}>
                 <DialogTrigger asChild>
                   <Button className="bg-blue-400 text-white">Update Price</Button>

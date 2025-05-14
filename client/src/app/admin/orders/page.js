@@ -541,8 +541,11 @@ export default function OrdersPage() {
                     )}
                   </PopoverContent>
                 </Popover>
+                </div>
+                </div>
 
               {/* DOWNLOAD */}
+              <div className="flex space-x-2">
               <Dialog open={isDownloadConfirmOpen} onOpenChange={(open) => {
                 setDownloadConfirmOpen(open);
               }}>
@@ -579,8 +582,9 @@ export default function OrdersPage() {
                 </DialogContent>
               </Dialog>
               </div>
-              </div>
-              </div>
+            </div>
+
+
 
           {/* TABLE */}
           <div className="p-4 bg-white shadow-md rounded-lg flex flex-col overflow-auto w-full">
