@@ -121,8 +121,11 @@ const addDelivery = (deliveryData, products, payment, callback) => {
                 D_paymentStatusID,
                 DPD_dateOfPaymentDue,
                 DPD_dateOfPayment1,
+                D_modeOfPaymentID2,
+                D_paymentStatusID2,
+                DPD_dateOfPaymentDue2,
                 DPD_dateOfPayment2)
-              VALUES (?, ?, ?, ?, ?, ?, ?)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
             
             conn.query(insertPaymentQuery, [
@@ -132,6 +135,9 @@ const addDelivery = (deliveryData, products, payment, callback) => {
               payment.D_paymentStatusID,
               payment.DPD_dateOfPaymentDue,
               payment.DPD_dateOfPayment1,
+              payment.D_modeOfPaymentID2 || null,
+              payment.D_paymentStatusID2 || null,
+              payment.DPD_dateOfPaymentDue2 || null,
               payment.DPD_dateOfPayment2 || null
             ], (err, paymentResult) => {
               if (err) {
@@ -375,19 +381,57 @@ const updatePaymentDetails = (deliveryNumber, paymentData, callback) => {
       // Update existing payment details
       query = `
         UPDATE DeliveryPaymentDetails
-        SET D_paymentTypeID = ?, D_modeOfPaymentID = ?, D_paymentStatusID = ?, 
-            DPD_dateOfPaymentDue = ?, DPD_dateOfPayment1 = ?, DPD_dateOfPayment2 = ?
+        SET D_paymentTypeID = ?,
+            D_modeOfPaymentID     = ?,
+            D_paymentStatusID     = ?,
+            DPD_dateOfPaymentDue  = ?,
+            DPD_dateOfPayment1    = ?,
+            D_modeOfPaymentID2    = ?,
+            D_paymentStatusID2    = ?,
+            DPD_dateOfPaymentDue2 = ?,
+            DPD_dateOfPayment2    = ?
         WHERE D_deliveryNumber = ?
       `;
-      params = [D_paymentTypeID, D_modeOfPaymentID, D_paymentStatusID, DPD_dateOfPaymentDue, DPD_dateOfPayment1, DPD_dateOfPayment2, deliveryNumber];
+      params = [
+        deliveryNumber,
+        D_paymentTypeID,
+        D_modeOfPaymentID,
+        D_paymentStatusID,
+        DPD_dateOfPaymentDue,
+        DPD_dateOfPayment1,
+        D_modeOfPaymentID2,
+        D_paymentStatusID2,
+        DPD_dateOfPaymentDue2,
+        DPD_dateOfPayment2
+      ];
     } else {
       // Insert new payment details
       query = `
         INSERT INTO DeliveryPaymentDetails 
-        (D_deliveryNumber, D_paymentTypeID, D_modeOfPaymentID, D_paymentStatusID, DPD_dateOfPaymentDue, DPD_dateOfPayment1, DPD_dateOfPayment2)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+          (D_deliveryNumber,
+          D_paymentTypeID,
+          D_modeOfPaymentID,
+          D_paymentStatusID,
+          DPD_dateOfPaymentDue,
+          DPD_dateOfPayment1,
+          D_modeOfPaymentID2,
+          D_paymentStatusID2,
+          DPD_dateOfPaymentDue2,
+          DPD_dateOfPayment2)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
-      params = [deliveryNumber, D_paymentTypeID, D_modeOfPaymentID, D_paymentStatusID, DPD_dateOfPaymentDue, DPD_dateOfPayment1, DPD_dateOfPayment2];
+      params = [
+        deliveryNumber,
+        D_paymentTypeID,
+        D_modeOfPaymentID,
+        D_paymentStatusID,
+        DPD_dateOfPaymentDue,
+        DPD_dateOfPayment1,
+        D_modeOfPaymentID2,
+        D_paymentStatusID2,
+        DPD_dateOfPaymentDue2,
+        DPD_dateOfPayment2
+      ];
     }
 
     db.query(query, params, (err, results) => {
