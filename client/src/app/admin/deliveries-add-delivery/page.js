@@ -601,12 +601,11 @@ export default function BatchDeliveriesPage() {
     <SidebarProvider>
       <div className="flex h-screen w-screen">
         <AppSidebar />
-        <div className="flex-1 flex flex-col w-full overflow-hidden">
-        <div className="flex items-center justify-between bg-white p-4 sticky top-2 z-10 shadow-sm">
-            <div>
-              <h1 className="text-xl text-gray-600 font-medium">Batching of Deliveries</h1>
-            </div>
-            <div>
+        <div className="flex-1 p-4 flex flex-col w-full">
+          <div className="bg-blue-950 p-4 rounded-sm mb-2 shadow-md">
+            <div className="flex items-center justify-between sticky top-2 z-10">
+              <h1 className="text-2xl text-blue-50 font-bold">Batching of Deliveries</h1>
+            
               <Button className="bg-blue-400 text-white" onClick={() => router.push("./deliveries")}>
                 <Undo2 size={16} className="mr-2" />
                 <span>Return to Deliveries</span>
@@ -875,7 +874,7 @@ export default function BatchDeliveriesPage() {
 
           {/* Delivery Payment Details Section */}
           <div className="w-full mt-6 mb-4">
-            <h2 className="text-xl text-gray-600 font-medium">Delivery Payment Details</h2>
+            <h2 className="text-2xl text-blue-950 font-bold">Delivery Payment Details</h2>
           </div>
           
           <Card className="mb-4">

@@ -353,8 +353,8 @@ export default function ManageAccountsPage() {
       <div className="flex h-screen w-screen">
         <AppSidebar />
         <div className="flex-1 p-4 flex flex-col overflow-hidden">
-          <div className="z-10 sticky top-0 mb-4 bg-white p-4 rounded-lg">
-            <h1 className="text-lg text-gray-600 font-medium">Manage Accounts</h1>
+          <div className="z-10 sticky top-0 mb-4 bg-blue-950 p-4 rounded-sm">
+            <h1 className="text-2xl text-blue-50 font-bold">Manage Accounts</h1>
           </div>
           <Tabs
             defaultValue="my-account"

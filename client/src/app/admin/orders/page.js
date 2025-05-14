@@ -447,7 +447,7 @@ Object.entries(amountRanges).forEach(([key, range]) => {
       <div className="flex h-screen w-screen">
         <AppSidebar />
         <div className="flex-1 p-4 flex flex-col w-full">
-          <div className="flex items-center justify-between mb-4 bg-white p-2 rounded-lg">
+          <div className="flex items-center justify-between mb-4 bg-white shadow-sm p-4 rounded-lg">
             <div className="flex items-center space-x-2">
               <div className="relative w-80">
                 {/* Search */}
@@ -785,7 +785,7 @@ Object.entries(amountRanges).forEach(([key, range]) => {
                         setFromDate(null);
                         setToDate(null);
                       }}
-                      className="text-sm border-gray-300 hover:text-red-600"
+                      className="text-sm border-gray-300 hover:text-red-600 "
                     >
                       <RotateCcw className="w-4 h-4" />
                         <span>Reset Date</span>
@@ -833,13 +833,11 @@ Object.entries(amountRanges).forEach(([key, range]) => {
               </div>
             </div>
 
-
-
           {/* TABLE */}
+          <h1 className="text-2xl mb-4 p-4 rounded-sm text-blue-50 bg-blue-950 font-bold">Customer Orders</h1>
           <div className="p-4 bg-white shadow-md rounded-lg flex flex-col overflow-auto w-full">
-          <h1 className="text-gray-600 font-bold">Customer Orders</h1>
             <Table>
-              <TableHeader className="sticky top-0 bg-white z-10">
+              <TableHeader className="sticky top-0 z-10 bg-white shadow-sm border-b">
                 <TableRow>
                   <TableHead onClick={() => handleSort("orderID")} className="cursor-pointer select-none"> Order ID <SortIcon column="orderID" /></TableHead>
                   <TableHead onClick={() => handleSort("transacDate")} className="cursor-pointer select-none"> Date <SortIcon column="transacDate" /></TableHead>
