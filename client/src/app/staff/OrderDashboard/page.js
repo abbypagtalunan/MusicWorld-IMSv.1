@@ -347,11 +347,11 @@ const OrderDashboard = () => {
   
   return (
     <SidebarProvider>
-      <div className="flex w-full min-h-screen overflow-x-hidden">
+      <div className="flex h-screen w-screen">
         <AppSidebar />
 
-        <div className="flex flex-col flex-grow h-screen overflow-y-auto relative">
-          <div className="shadow-sm border-b sticky top-0 z-20 bg-blue-950 px-8 py-8">
+        <div className="flex-1 p-4 flex flex-col w-full">
+          <div className="rounded-sm shadow-sm border-b sticky top-0 z-10 bg-blue-950 px-8 py-8">
             <h1 className="text-3xl text-white font-bold">Summary of Order/s</h1>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-4 w-full p-4">
@@ -367,14 +367,14 @@ const OrderDashboard = () => {
 
               {/* TOTAL AMOUNT - PAYMENT */}
               <div className="bg-white shadow-lg p-6 text-center rounded-xl">
-                <h2 className="text-lg text-blue-600">TOTAL AMOUNT</h2>
-                <p className="text-5xl font-bold text-blue-600">
+                <h2 className="text-lg text-blue-950">TOTAL AMOUNT</h2>
+                <p className="text-5xl font-bold text-blue-950">
                   {new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(discountedTotal)}
                 </p>
 
                 <div className="mt-4 flex justify-center items-center gap-2">
                   <div className="flex flex-col items-start w-[40%]">
-                    <label className={`text-sm text-[15px] ${isInvalidDiscount ? "text-red-600" : "text-blue-600"}`}>
+                    <label className={`text-sm text-[15px] ${isInvalidDiscount ? "text-red-600" : "text-blue-950"}`}>
                       {isInvalidDiscount ? "Invalid Discount Amount" : "APPLY PURCHASE DISCOUNT"}
                     </label>
                     <input
@@ -405,7 +405,7 @@ const OrderDashboard = () => {
                     className={`px-4 py-1 mt-5 rounded-md text-[13px] transition-colors ${
                       data.length === 0
                         ? "bg-gray-400 text-white cursor-not-allowed"
-                        : "bg-blue-600 text-white hover:bg-blue-700"
+                        : "bg-blue-400 text-white hover:bg-blue-700"
                     }`}
                   >
                     INPUT PAYMENT
@@ -414,8 +414,8 @@ const OrderDashboard = () => {
                   {isModalOpen && (
                     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-30" onClick={() => setIsModalOpen(false)}>
                       <div className="bg-white p-5 rounded-lg shadow-lg w-[400px] text-center relative" onClick={(e) => e.stopPropagation()}>
-                        <h2 className="text-lg text-blue-600">TOTAL AMOUNT</h2>
-                        <p className="text-[45px] font-bold text-blue-600">
+                        <h2 className="text-lg text-blue-950">TOTAL AMOUNT</h2>
+                        <p className="text-[45px] font-bold text-blue-950">
                           {new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(discountedTotal)}
                         </p>
                         <label
@@ -504,7 +504,7 @@ const OrderDashboard = () => {
                             ${
                               payment < totalWithWholeDiscount|| receiptNumber === "" || payment === 0 
                                 ? "bg-gray-400 cursor-not-allowed text-white"
-                                : "bg-blue-600 hover:bg-blue-700 text-white"
+                                : "bg-blue-400 hover:bg-blue-600 text-white"
                             }`}
                           onClick={handlePaymentConfirmation}
                           disabled={ payment === 0 || payment < totalWithWholeDiscount || receiptNumber === ""}
@@ -512,7 +512,7 @@ const OrderDashboard = () => {
                           Enter Payment
                         </button>
                         
-                        <p className="pl-9 mb-5 mt-2 text-start text-[13px] font-bold text-blue-600">
+                        <p className="pl-9 mb-5 mt-2 text-start text-[13px] font-bold text-blue-950">
                           CHANGE: {new Intl.NumberFormat("en-PH", { 
                             style: "currency", 
                             currency: "PHP" 
@@ -539,7 +539,7 @@ const OrderDashboard = () => {
                 }}
               >
               {/* ADD PRODUCT/ITEM */}
-              <h2 className="text-xl text-center font-semibold text-blue-600 pb-4">Add Product to Order/s</h2>
+              <h2 className="text-xl text-center font-bold text-blue-950 pb-4">Add Product to Order/s</h2>
               <form className="text-[15px] space-y-2">
                 <div className="text-left">
                   {/* COMBOBOX SEARCH PRODUCT */}
@@ -721,7 +721,7 @@ const OrderDashboard = () => {
 
               <button
                 type="button"
-                className="w-full mt-4 bg-blue-600 text-white py-2 rounded-md"
+                className="w-full mt-4 bg-blue-400 text-white py-2 rounded-md"
                 onClick={handleAddOrderItem}
               >
                 {isEditMode ? "Update Item" : "Add Product"}
@@ -731,7 +731,7 @@ const OrderDashboard = () => {
 
             {/* FREEBIES */}
           <div className="bg-white shadow-lg p-5 rounded-xl">
-            <h2 className="text-xl text-center font-semibold text-blue-600 pb-4">Add Freebie/s</h2>
+            <h2 className="text-xl text-center font-bold text-blue-950 pb-4">Add Freebie/s</h2>
             <form className="text-[15px] space-y-2">
               <div className="text-left">
                 <label className="block mb-1 text-sm">Product</label>
@@ -778,7 +778,7 @@ const OrderDashboard = () => {
 
               <button
                 type="button"
-                className="w-full mt-4 bg-blue-600 text-white py-2 rounded-md"
+                className="w-full mt-4 bg-blue-400 text-white py-2 rounded-md"
                 onClick={handleAddFreebie}
               >
                 Add Freebie
