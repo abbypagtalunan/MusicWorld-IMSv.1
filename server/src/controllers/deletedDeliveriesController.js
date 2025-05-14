@@ -1,4 +1,5 @@
-const deletedDeliveriesModel = require('../models/deletedDeliveriesModel'); // Import the product model
+const deletedDeliveriesModel = require('../models/deletedDeliveriesModel'); 
+const db = require('../../db');
 
 // Route to fetch all products
 const getAllDeleted = (req, res) => {
@@ -28,13 +29,29 @@ const retrieveDeleted = (req, res) => {
 }
 
 const deleteDeleted = (req, res) => {
-    const deliveryNumber = req.params.id;
-    const { adminPW } = req.body;
+  const deliveryNumber = req.params.id;
+  const { adminPW } = req.body;
 
-    if (adminPW !== "1234") {
-      return res.status(403).json({ message: "Invalid admin password" });
+  if (!adminPW) {
+    return res.status(403).json({ message: "Invalid admin password" });
+  }
+    
+  const query = `
+    SELECT * FROM UserAccounts 
+    WHERE roleID = 1 AND password = ? 
+  `;
+
+  db.query(query, [adminPW], (err, results) => {
+    if (err) {
+      console.error('Error checking admin credentials:', err);
+      return res.status(500).json({ message: 'Internal server error' });
     }
-  
+    console.log('Admin lookup result:', results);
+
+    if (results.length === 0) {
+      return res.status(403).json({ message: "Invalid admin credentials" });
+    }
+
     deletedDeliveriesModel.deletePermanently(deliveryNumber, (err, results) => {
       if (err) {
         console.error('Error deleting transaction:', err);
@@ -43,7 +60,8 @@ const deleteDeleted = (req, res) => {
         res.status(200).json({ message: 'transaction deleted successfully', results });
       }
     });
-  };
+  })
+};
 
 module.exports = {
     getAllDeleted,

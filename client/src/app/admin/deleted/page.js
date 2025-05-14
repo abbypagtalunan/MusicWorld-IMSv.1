@@ -725,7 +725,7 @@ const handleDownloadCSV = (data) => {
                               <TableRow>
                               {activeTab === "order" && (
                                 <>
-                                  <TableHead className="px-4 py-2">
+                                  <TableHead className="w-[50px]">
                                     <input type="checkbox" onChange={handleSelectAll} checked={selectedTransactions.length === getFilteredTransactions().length && selectedTransactions.length > 0} />
                                   </TableHead>
                                   <TableHead onClick={() => handleSort(config.dateField)} className="cursor-pointer">

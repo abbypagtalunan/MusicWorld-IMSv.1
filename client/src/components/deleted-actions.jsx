@@ -403,7 +403,7 @@ const RDaction = ({ item, handleRetrieve, handleDelete, idField, codeField }) =>
                         </div>
                         <Button
                         className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
-                        onClick={() => {handleDelete(`${item[idField]}-${item[codeField]}`, adminPW); setDDOpen(false);}}
+                        onClick={() => {handleDelete(`${item[idField]}-${item[codeField]}`, adminPW); setDDOpen(false); setAdminPW("")}}
                         >
                         DELETE TRANSACTION
                         </Button>

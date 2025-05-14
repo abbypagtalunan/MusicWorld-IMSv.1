@@ -28,11 +28,27 @@ const retrieveDeleted = (req, res) => {
 }
 
 const deleteDeleted = (req, res) => {
-    const orderID = req.params.id;
-    const { adminPW } = req.body;
+  const orderID = req.params.id;
+  const { adminPW } = req.body;
 
-    if (adminPW !== "1234") {
-      return res.status(403).json({ message: "Invalid admin password" });
+  if (!adminPW) {
+    return res.status(403).json({ message: "Invalid admin password" });
+  }
+
+  const query = `
+    SELECT * FROM UserAccounts 
+    WHERE roleID = 1 AND password = ? 
+  `;
+
+  db.query(query, [adminPW], (err, results) => {
+    if (err) {
+      console.error('Error checking admin credentials:', err);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+    console.log('Admin lookup result:', results);
+  
+    if (results.length === 0) {
+      return res.status(403).json({ message: "Invalid admin credentials" });
     }
   
     deletedOrdersModel.deletePermanently(orderID, (err, results) => {
@@ -43,7 +59,8 @@ const deleteDeleted = (req, res) => {
         res.status(200).json({ message: 'Transaction deleted successfully', results });
       }
     });
-  };
+  });
+};
 
 module.exports = {
     getAllDeleted,
