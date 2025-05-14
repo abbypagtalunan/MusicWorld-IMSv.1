@@ -544,61 +544,72 @@ export default function ManageAccountsPage() {
                         </div>
                       </div>
                       <Dialog>
-                        <DialogTrigger asChild>
-                          <Button className="bg-blue-400 text-white">Change Password</Button>
-                        </DialogTrigger>
-                        <DialogContent aria-describedby="change-password-dialog" className="w-[30vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
-                          <DialogHeader>
-                            <DialogTitle className="text-blue-400 text-xl font-bold">
-                              Change Password
-                            </DialogTitle>
-                            <DialogClose />
-                          </DialogHeader>
-                          <div className="flex flex-col gap-4 mt-4 text-gray-700">
-                            {/* Show old password only when it's "my-account" */}
-                            <Label>Old Password</Label>
-                            <Input
-                              type="password"
-                              placeholder="Enter old password"
-                              value={passwordData.oldPassword}
-                              onChange={(e) =>
-                                setPasswordData({ ...passwordData, oldPassword: e.target.value })
-                              }
-                            />
-
-                            <Label>New Password</Label>
-                            <Input
-                              type="password"
-                              placeholder="Enter new password"
-                              value={passwordData.newPassword}
-                              onChange={(e) =>
-                                setPasswordData({ ...passwordData, newPassword: e.target.value })
-                              }
-                            />
-
-                            <Label>Confirm New Password</Label>
-                            <Input
-                              type="password"
-                              placeholder="Confirm new password"
-                              value={passwordData.confirmPassword}
-                              onChange={(e) =>
-                                setPasswordData({ ...passwordData, confirmPassword: e.target.value })
-                              }
-                            />
-                          </div>
-                          <DialogFooter>
-                            <Button
-                              className="w-full bg-blue-400 text-white"
-                              onClick={() => {
-                                setPasswordResetSource("my-account");
-                                handleResetPassword();
-                              }}
-                            >
-                              Update Password
-                            </Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
+                      <DialogTrigger asChild>
+                        <Button
+                          className="bg-blue-400 text-white"
+                          onClick={() => {
+                            if (currentUser && currentUser.accountID) {
+                              setIsResetOpen(true);
+                              setResetStaff(currentUser);
+                              setPasswordResetSource("my-account");
+                            } else {
+                              toast.error("User data not available.");
+                            }
+                          }}
+                        >
+                          Change Password
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent aria-describedby="change-password-dialog" className="w-[30vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
+                        <DialogHeader>
+                          <DialogTitle className="text-blue-400 text-xl font-bold">
+                            Change Password
+                          </DialogTitle>
+                          <DialogClose />
+                        </DialogHeader>
+                        <div className="flex flex-col gap-4 mt-4 text-gray-700">
+                          {/* Show old password only when it's "my-account" */}
+                          <Label>Old Password</Label>
+                          <Input
+                            type="password"
+                            placeholder="Enter old password"
+                            value={passwordData.oldPassword}
+                            onChange={(e) =>
+                              setPasswordData({ ...passwordData, oldPassword: e.target.value })
+                            }
+                          />
+                          <Label>New Password</Label>
+                          <Input
+                            type="password"
+                            placeholder="Enter new password"
+                            value={passwordData.newPassword}
+                            onChange={(e) =>
+                              setPasswordData({ ...passwordData, newPassword: e.target.value })
+                            }
+                          />
+                          <Label>Confirm New Password</Label>
+                          <Input
+                            type="password"
+                            placeholder="Confirm new password"
+                            value={passwordData.confirmPassword}
+                            onChange={(e) =>
+                              setPasswordData({ ...passwordData, confirmPassword: e.target.value })
+                            }
+                          />
+                        </div>
+                        <DialogFooter>
+                          <Button
+                            className="w-full bg-blue-400 text-white"
+                            onClick={() => {
+                              setPasswordResetSource("my-account");
+                              handleResetPassword();
+                            }}
+                          >
+                            Update Password
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
                     </CardContent>
                   </Card>
                 </div>
