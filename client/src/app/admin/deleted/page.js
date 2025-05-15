@@ -564,13 +564,13 @@ const handleDownloadCSV = (data) => {
                 ))}
               </TabsList>
 
-            <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-4">
+            <div className="flex flex-col w-full gap-4 items-stretch">
               {Object.entries(configMap).map(([key, cfg]) => (
                 <TabsContent key={key} value={key}>
                   {/* Table */}
-                    <Card className="overflow-hidden">
+                    <Card className="w-full flex flex-col overflow-hidden">
                     <div className="max-h-[600px] overflow-y-auto relative">
-                      <CardContent className="p-0">
+                      <CardContent className="p-0 overflow">
                         {/* Search */}
                         <div className=" bg-white p-4 flex justify-between items-center">
                             <div className="relative w-80">
@@ -719,385 +719,396 @@ const handleDownloadCSV = (data) => {
                           </div>
                           
 
-                      <div className="sticky top-[72px] z-10 bg-white">
-                          <Table className="min-w-full">
-                          <TableHeader className="sticky top-[72px] z-10 bg-white shadow-sm">
-                              <TableRow>
-                              {activeTab === "order" && (
-                                <>
-                                  <TableHead className="w-[50px]">
-                                    <input type="checkbox" onChange={handleSelectAll} checked={selectedTransactions.length === getFilteredTransactions().length && selectedTransactions.length > 0} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.dateField)} className="cursor-pointer">
-                                    Date <SortIcon column={config.dateField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.idField)} className="cursor-pointer">
-                                    Order ID <SortIcon column={config.idField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.receiptField)} className="cursor-pointer">
-                                    Receipt Number <SortIcon column={config.receiptField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.codeField)} className="cursor-pointer">
-                                    Product Code <SortIcon column={config.codeField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.nameField)} className="cursor-pointer">
-                                    Product <SortIcon column={config.nameField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.quantityField)} className="cursor-pointer">
-                                    Quantity <SortIcon column={config.quantityField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.totalamtField)} className="cursor-pointer">
-                                    Item Total <SortIcon column={config.totalamtField} />
-                                  </TableHead>
-                                  <TableHead>Retrieve/Delete</TableHead>
-                                </>
-                              )}
-                              {activeTab === "return" && (
-                                <>
-                                  <TableHead>
-                                    <input type="checkbox" onChange={handleSelectAll} checked={selectedTransactions.length === getFilteredTransactions().length && selectedTransactions.length > 0} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.idField)} className="cursor-pointer">
-                                    Return ID <SortIcon column={config.idField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.codeField)} className="cursor-pointer">
-                                    Product Code <SortIcon column={config.codeField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.typeField)} className="cursor-pointer">
-                                    Reason of Return <SortIcon column={config.typeField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.nameField)} className="cursor-pointer">
-                                    Product <SortIcon column={config.nameField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.totalamtField)} className="cursor-pointer">
-                                    Return Total Amount <SortIcon column={config.totalamtField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.dateField)} className="cursor-pointer">
-                                    Return Date <SortIcon column={config.dateField} />
-                                  </TableHead>
-                                  <TableHead>Retrieve/Delete</TableHead>
-                                </>
-                              )}
-                              {activeTab === "delivery" && (
-                                <>
-                                  <TableHead>
-                                    <input type="checkbox" onChange={handleSelectAll} checked={selectedTransactions.length === getFilteredTransactions().length && selectedTransactions.length > 0} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.idField)} className="cursor-pointer">
-                                    Delivery ID <SortIcon column={config.idField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.codeField)} className="cursor-pointer">
-                                    Product Code <SortIcon column={config.codeField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.nameField)} className="cursor-pointer">
-                                    Product <SortIcon column={config.nameField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.supplierField)} className="cursor-pointer">
-                                    Supplier <SortIcon column={config.supplierField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.quantityField)} className="cursor-pointer">
-                                    Quantity <SortIcon column={config.quantityField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.dateField)} className="cursor-pointer">
-                                    Delivery Date <SortIcon column={config.dateField} />
-                                  </TableHead>
-                                  <TableHead>Details</TableHead>
-                                  <TableHead>Retrieve/Delete</TableHead>
-                                </>
-                              )}
-                              {activeTab === "product" && (
-                                <>
-                                  <TableHead>
-                                    <input type="checkbox" onChange={handleSelectAll} checked={selectedTransactions.length === getFilteredTransactions().length && selectedTransactions.length > 0} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.codeField)} className="cursor-pointer">
-                                    Product Code <SortIcon column={config.codeField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.categoryField)} className="cursor-pointer">
-                                    Category <SortIcon column={config.categoryField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.nameField)} className="cursor-pointer">
-                                    Name <SortIcon column={config.nameField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.brandField)} className="cursor-pointer">
-                                    Brand <SortIcon column={config.brandField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.supplierField)} className="cursor-pointer">
-                                    Supplier <SortIcon column={config.supplierField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.stockField)} className="cursor-pointer">
-                                    Stock Amount <SortIcon column={config.stockField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.unitpriceField)} className="cursor-pointer">
-                                    Unit Price <SortIcon column={config.unitpriceField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.sellingpriceField)} className="cursor-pointer">
-                                    Selling Price <SortIcon column={config.sellingpriceField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.statusField)} className="cursor-pointer">
-                                    Status <SortIcon column={config.statusField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.dateField)} className="cursor-pointer">
-                                    Date Added <SortIcon column={config.dateField} />
-                                  </TableHead>
-                                  <TableHead>Retrieve/Delete</TableHead>
-                                </>
-                              )}
-                            </TableRow>
-                          </TableHeader>
-                          </Table>
-                          </div>
-
                         <div className="overflow-y-auto max-h-[450px]">
-                      <Table className="min-w-full">
-                          <TableBody>
-                          {getCurrentTabData().length === 0 ? (
-                            <TableRow>
-                              <TableCell colSpan={8} className="text-center">
-                                No deleted transactions found.
-                              </TableCell>
-                            </TableRow>
-                          ):(
-                            getFilteredTransactions().map((item, index) => (
-                              <TableRow key={index}>
+                          <Table className="min-w-full ">
+                            <TableHeader className="sticky top-0 z-10 bg-white shadow-sm">
+                              <TableRow>
                                 {activeTab === "order" && (
                                   <>
-                                    <TableCell>
-                                      <input
-                                        type="checkbox"
-                                        checked={selectedTransactions.includes(`${item[config.idField]}-${item[config.codeField]}`)}
-                                        onChange={() => handleSelectTransaction(`${item[config.idField]}-${item[config.codeField]}`)}
-                                      />
-                                    </TableCell> 
-                                    <TableCell>{new Date(item[config.dateField]).toLocaleDateString()}</TableCell>
-                                    <TableCell>{item[config.idField]}</TableCell>
-                                    <TableCell>{item[config.receiptField]}</TableCell>
-                                    <TableCell>{item[config.codeField]}</TableCell>
-                                    <TableCell>{item[config.nameField] + " " + item[config.supplierField] + " " + item[config.brandField]}</TableCell>
-                                    <TableCell>{item[config.quantityField]}</TableCell>
-                                    <TableCell>{item[config.totalamtField]}</TableCell>
-                                    <TableCell>
-                                      <Dialog>
-                                        <DialogTrigger asChild>
-                                          <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600">
-                                            <Eye size={16} />
-                                          </Button>
-                                        </DialogTrigger>
-                                        <DialogContent className="w-[90vw] max-w-3xl sm:max-w-lg md:max-w-3xl max-h-[90vh] overflow-y-auto p-6">
-                                          <DialogHeader>
-                                            <DialogTitle>Transaction Details</DialogTitle>
-                                            <DialogClose />
-                                          </DialogHeader>
-                                          <Table>
-                                            <TableHeader>
-                                              <TableRow>
-                                                <TableHead>Order Detail ID</TableHead>
-                                                <TableHead>Product Code</TableHead>
-                                                <TableHead>Supplier</TableHead>
-                                                <TableHead>Brand</TableHead>
-                                                <TableHead>Category</TableHead>
-                                                <TableHead>Product</TableHead>
-                                                <TableHead>Selling Price</TableHead>
-                                                <TableHead>Discount Amount</TableHead>
-                                                <TableHead>Quantity</TableHead>
-                                                <TableHead>Item total</TableHead>
-                                              </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                              <TableRow>
-                                              <TableCell>{item[config.idDetail]}</TableCell>
-                                                <TableCell>{item[config.codeField]}</TableCell>
-                                                <TableCell>{item[config.supplierField]}</TableCell>
-                                                <TableCell>{item[config.brandField]}</TableCell>
-                                                <TableCell>{item[config.brandField]}</TableCell>
-                                                <TableCell>{item[config.nameField]}</TableCell>
-                                                <TableCell>{item[config.sellingpriceField]}</TableCell>
-                                                <TableCell>{item[config.discAmtField]}</TableCell>
-                                                
-                                                <TableCell>{item[config.quantityField]}</TableCell>
-                                                <TableCell>{item[config.totalamtField]}</TableCell>
-                                              </TableRow>
-                                            </TableBody>
-                                          </Table>
-                                        </DialogContent>
-                                      </Dialog>
-                                    </TableCell>
-                                    <TableCell className="flex items-center">
-                                      <RDaction
-                                        item={item}
-                                        handleRetrieve={handleRetrieve}
-                                        handleDelete={handleDelete}           
-                                        idField={config.idField}
-                                        codeField={config.codeField}
-                                      />
-                                    </TableCell>
+                                    <TableHead className="px-4 py-2">
+                                      <input type="checkbox" onChange={handleSelectAll} checked={selectedTransactions.length === getFilteredTransactions().length && selectedTransactions.length > 0} />
+                                    </TableHead>
+                                    <TableHead onClick={() => handleSort(config.dateField)} className="cursor-pointer">
+                                      Date <SortIcon column={config.dateField} />
+                                    </TableHead>
+                                    <TableHead onClick={() => handleSort(config.idField)} className="cursor-pointer">
+                                      Order ID <SortIcon column={config.idField} />
+                                    </TableHead>
+                                    <TableHead onClick={() => handleSort(config.receiptField)} className="cursor-pointer">
+                                      Receipt Number <SortIcon column={config.receiptField} />
+                                    </TableHead>
+                                    <TableHead onClick={() => handleSort(config.codeField)} className="cursor-pointer">
+                                      Product Code <SortIcon column={config.codeField} />
+                                    </TableHead>
+                                    <TableHead onClick={() => handleSort(config.nameField)} className="cursor-pointer">
+                                      Product <SortIcon column={config.nameField} />
+                                    </TableHead>
+                                    <TableHead onClick={() => handleSort(config.quantityField)} className="cursor-pointer">
+                                      Quantity <SortIcon column={config.quantityField} />
+                                    </TableHead>
+                                    <TableHead onClick={() => handleSort(config.totalamtField)} className="cursor-pointer">
+                                      Item Total <SortIcon column={config.totalamtField} />
+                                    </TableHead>
+                                    <TableHead>Details</TableHead>                                 
+                                    <TableHead>Retrieve/Delete</TableHead>
                                   </>
                                 )}
                                 {activeTab === "return" && (
                                   <>
-                                    <TableCell>
-                                      <input
-                                        type="checkbox"
-                                        checked={selectedTransactions.includes(`${item[config.idField]}-${item[config.codeField]}`)}
-                                        onChange={() => handleSelectTransaction(`${item[config.idField]}-${item[config.codeField]}`)}
-                                      />
-                                    </TableCell>
-                                    <TableCell>{item[config.idField]}</TableCell>
-                                    <TableCell>{item[config.codeField]}</TableCell>
-                                    <TableCell>{item[config.typeField]}</TableCell>
-                                    <TableCell>{item[config.nameField]}</TableCell>
-                                    <TableCell>{item[config.totalamtField]}</TableCell>
-                                    <TableCell>{new Date(item[config.dateField]).toLocaleDateString()}</TableCell>
-                                    <TableCell>
-                                      <Dialog>
-                                        <DialogTrigger asChild>
-                                          <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600">
-                                            <Eye size={16} />
-                                          </Button>
-                                        </DialogTrigger>
-                                        <DialogContent className="max-w-3xl p-6">
-                                          <DialogHeader>
-                                            <DialogTitle>Transaction Details</DialogTitle>
-                                            <DialogClose />
-                                          </DialogHeader>
-                                          <Table>
-                                            <TableHeader>
-                                              <TableRow>
-                                                <TableHead>Product Code</TableHead>
-                                                <TableHead>Supplier</TableHead>
-                                                <TableHead>Brand</TableHead>
-                                                <TableHead>Category</TableHead>
-                                                <TableHead>Product</TableHead>
-                                                <TableHead>Quantity</TableHead>
-                                                <TableHead>Discount amount</TableHead>
-                                              </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                              <TableRow>
-                                                <TableCell>{item[config.codeField]}</TableCell>
-                                                <TableCell>{item[config.supplierField]}</TableCell>
-                                                <TableCell>{item[config.brandField]}</TableCell>
-                                                <TableCell>{item[config.brandField]}</TableCell>
-                                                <TableCell>{item[config.nameField]}</TableCell>
-                                                <TableCell>{item[config.quantityField]}</TableCell>
-                                                <TableCell>{item[config.discountField]}</TableCell>
-                                              </TableRow>
-                                            </TableBody>
-                                          </Table>
-                                        </DialogContent>
-                                      </Dialog>
-                                    </TableCell>
-                                    <TableCell>
-                                      <RDaction
-                                        item={item}
-                                        handleRetrieve={handleRetrieve}
-                                        handleDelete={handleDelete}           
-                                        idField={config.idField}
-                                        codeField={config.codeField}
-                                      />
-                                    </TableCell>
+                                    <TableHead>
+                                      <input type="checkbox" onChange={handleSelectAll} checked={selectedTransactions.length === getFilteredTransactions().length && selectedTransactions.length > 0} />
+                                    </TableHead>
+                                    <TableHead onClick={() => handleSort(config.idField)} className="cursor-pointer">
+                                      Return ID <SortIcon column={config.idField} />
+                                    </TableHead>
+                                    <TableHead onClick={() => handleSort(config.codeField)} className="cursor-pointer">
+                                      Product Code <SortIcon column={config.codeField} />
+                                    </TableHead>
+                                    <TableHead onClick={() => handleSort(config.typeField)} className="cursor-pointer">
+                                      Reason of Return <SortIcon column={config.typeField} />
+                                    </TableHead>
+                                    <TableHead onClick={() => handleSort(config.nameField)} className="cursor-pointer">
+                                      Product <SortIcon column={config.nameField} />
+                                    </TableHead>
+                                    <TableHead onClick={() => handleSort(config.totalamtField)} className="cursor-pointer">
+                                      Return Total Amount <SortIcon column={config.totalamtField} />
+                                    </TableHead>
+                                    <TableHead onClick={() => handleSort(config.dateField)} className="cursor-pointer">
+                                      Return Date <SortIcon column={config.dateField} />
+                                    </TableHead>
+                                    <TableHead>Details</TableHead>                                 
+                                    <TableHead>Retrieve/Delete</TableHead>
                                   </>
                                 )}
                                 {activeTab === "delivery" && (
                                   <>
-                                    <TableCell>
-                                      <input
-                                        type="checkbox"
-                                        checked={selectedTransactions.includes(`${item[config.idField]}-${item[config.codeField]}`)}
-                                        onChange={() => handleSelectTransaction(`${item[config.idField]}-${item[config.codeField]}`)}
-                                      />
-                                    </TableCell>
-                                    <TableCell>{item[config.idField]}</TableCell>
-                                    <TableCell>{item[config.codeField]}</TableCell>
-                                    <TableCell>{item[config.nameField]}</TableCell>
-                                    <TableCell>{item[config.supplierField]}</TableCell>
-                                    <TableCell>{item[config.quantityField]}</TableCell>
-                                    <TableCell>{new Date(item[config.dateField]).toLocaleDateString()}</TableCell>
-                                    <TableCell>
-                                      <Dialog>
-                                        <DialogTrigger asChild>
-                                          <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600">
-                                            <Eye size={16} />
-                                          </Button>
-                                        </DialogTrigger>
-                                        <DialogContent className="max-w-3xl p-6">
-                                          <DialogHeader>
-                                            <DialogTitle>Transaction Details</DialogTitle>
-                                            <DialogClose />
-                                          </DialogHeader>
-                                          <Table>
-                                            <TableHeader>
-                                              <TableRow>
-                                                <TableHead>Product Code</TableHead>
-                                                <TableHead>Supplier</TableHead>
-                                                <TableHead>Brand</TableHead>
-                                                <TableHead>Category</TableHead>
-                                                <TableHead>Product</TableHead>
-                                                <TableHead>Quantity</TableHead>
-                                              </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                              <TableRow>
-                                                <TableCell>{item[config.codeField]}</TableCell>
-                                                <TableCell>{item[config.supplierField]}</TableCell>
-                                                <TableCell>{item[config.brandField]}</TableCell>
-                                                <TableCell>{item[config.brandField]}</TableCell>
-                                                <TableCell>{item[config.nameField]}</TableCell>
-                                                <TableCell>{item[config.quantityField]}</TableCell>
-                                              </TableRow>
-                                            </TableBody>
-                                          </Table>
-                                        </DialogContent>
-                                      </Dialog>
-                                    </TableCell>
-                                    <TableCell>
-                                      <RDaction
-                                        item={item}
-                                        handleRetrieve={handleRetrieve}
-                                        handleDelete={handleDelete}           
-                                        idField={config.idField}
-                                        codeField={config.codeField}
-                                      />
-                                    </TableCell>
+                                    <TableHead>
+                                      <input type="checkbox" onChange={handleSelectAll} checked={selectedTransactions.length === getFilteredTransactions().length && selectedTransactions.length > 0} />
+                                    </TableHead>
+                                    <TableHead onClick={() => handleSort(config.idField)} className="cursor-pointer">
+                                      Delivery ID <SortIcon column={config.idField} />
+                                    </TableHead>
+                                    <TableHead onClick={() => handleSort(config.codeField)} className="cursor-pointer">
+                                      Product Code <SortIcon column={config.codeField} />
+                                    </TableHead>
+                                    <TableHead onClick={() => handleSort(config.nameField)} className="cursor-pointer">
+                                      Product <SortIcon column={config.nameField} />
+                                    </TableHead>
+                                    <TableHead onClick={() => handleSort(config.supplierField)} className="cursor-pointer">
+                                      Supplier <SortIcon column={config.supplierField} />
+                                    </TableHead>
+                                    <TableHead onClick={() => handleSort(config.quantityField)} className="cursor-pointer">
+                                      Quantity <SortIcon column={config.quantityField} />
+                                    </TableHead>
+                                    <TableHead onClick={() => handleSort(config.dateField)} className="cursor-pointer">
+                                      Delivery Date <SortIcon column={config.dateField} />
+                                    </TableHead>
+                                    <TableHead>Details</TableHead>
+                                    <TableHead>Retrieve/Delete</TableHead>
                                   </>
                                 )}
                                 {activeTab === "product" && (
-                                    <>
-                                    <TableCell>
-                                      <input
-                                        type="checkbox"
-                                        checked={selectedTransactions.includes(`${item[config.idField]}-${item[config.codeField]}`)}
-                                        onChange={() => handleSelectTransaction(`${item[config.idField]}-${item[config.codeField]}`)}
-                                      />
-                                    </TableCell>
-                                    <TableCell>{item[config.codeField]}</TableCell>
-                                    <TableCell>{item[config.categoryField]}</TableCell>
-                                    <TableCell>{item[config.skuField]}</TableCell>
-                                    <TableCell>{item[config.nameField]}</TableCell>
-                                    <TableCell>{item[config.brandField]}</TableCell>
-                                    <TableCell>{item[config.supplierField]}</TableCell>
-                                    <TableCell>{item[config.stockField]}</TableCell>
-                                    <TableCell>{item[config.unitpriceField]}</TableCell>
-                                    <TableCell>{item[config.sellingpriceField]}</TableCell>
-                                    <TableCell>{item[config.statusField]}</TableCell>
-                                    <TableCell>{new Date(item[config.dateField]).toLocaleDateString()}</TableCell>
-                                    <TableCell>
-                                      <RDaction
-                                        item={item}
-                                        handleRetrieve={handleRetrieve}
-                                        handleDelete={handleDelete}           
-                                        idField={config.idField}
-                                        codeField={config.codeField}
-                                      />
-                                    </TableCell>
+                                  <>
+                                    <TableHead>
+                                      <input type="checkbox" onChange={handleSelectAll} checked={selectedTransactions.length === getFilteredTransactions().length && selectedTransactions.length > 0} />
+                                    </TableHead>
+                                    <TableHead onClick={() => handleSort(config.codeField)} className="cursor-pointer">
+                                      Product Code <SortIcon column={config.codeField} />
+                                    </TableHead>
+                                    <TableHead onClick={() => handleSort(config.categoryField)} className="cursor-pointer">
+                                      Category <SortIcon column={config.categoryField} />
+                                    </TableHead>
+                                    <TableHead onClick={() => handleSort(config.nameField)} className="cursor-pointer">
+                                      Name <SortIcon column={config.nameField} />
+                                    </TableHead>
+                                    <TableHead onClick={() => handleSort(config.brandField)} className="cursor-pointer">
+                                      Brand <SortIcon column={config.brandField} />
+                                    </TableHead>
+                                    <TableHead onClick={() => handleSort(config.supplierField)} className="cursor-pointer">
+                                      Supplier <SortIcon column={config.supplierField} />
+                                    </TableHead>
+                                    <TableHead onClick={() => handleSort(config.stockField)} className="cursor-pointer">
+                                      Stock Amount <SortIcon column={config.stockField} />
+                                    </TableHead>
+                                    <TableHead onClick={() => handleSort(config.unitpriceField)} className="cursor-pointer">
+                                      Unit Price <SortIcon column={config.unitpriceField} />
+                                    </TableHead>
+                                    <TableHead onClick={() => handleSort(config.sellingpriceField)} className="cursor-pointer">
+                                      Selling Price <SortIcon column={config.sellingpriceField} />
+                                    </TableHead>
+                                    <TableHead onClick={() => handleSort(config.statusField)} className="cursor-pointer">
+                                      Status <SortIcon column={config.statusField} />
+                                    </TableHead>
+                                    <TableHead onClick={() => handleSort(config.dateField)} className="cursor-pointer">
+                                      Date Added <SortIcon column={config.dateField} />
+                                    </TableHead>
+                                    <TableHead>Details</TableHead>
+                                    <TableHead>Retrieve/Delete</TableHead>
                                   </>
                                 )}
-                            </TableRow>
-                            ))
-                          )}
-                        </TableBody>
-                      </Table>
-                      </div>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {getCurrentTabData().length === 0 ? (
+                                <TableRow>
+                                  <TableCell colSpan={activeTab === "product" ? 13 : (activeTab === "order" ? 10 : (activeTab === "return" ? 9 : 8))} className="text-center">
+                                    No deleted transactions found.
+                                  </TableCell>
+                                </TableRow>
+                              ) : (
+                                getFilteredTransactions().map((item, index) => (
+                                  <TableRow key={index}>
+                                    {activeTab === "order" && (
+                                      <>
+                                        <TableCell>
+                                          <input
+                                            type="checkbox"
+                                            checked={selectedTransactions.includes(`${item[config.idField]}-${item[config.codeField]}`)}
+                                            onChange={() => handleSelectTransaction(`${item[config.idField]}-${item[config.codeField]}`)}
+                                          />
+                                        </TableCell> 
+                                        <TableCell>{new Date(item[config.dateField]).toLocaleDateString()}</TableCell>
+                                        <TableCell>{item[config.idField]}</TableCell>
+                                        <TableCell>{item[config.receiptField]}</TableCell>
+                                        <TableCell>{item[config.codeField]}</TableCell>
+                                        <TableCell>{item[config.nameField] + " " + item[config.supplierField] + " " + item[config.brandField]}</TableCell>
+                                        <TableCell>{item[config.quantityField]}</TableCell>
+                                        <TableCell>{item[config.totalamtField]}</TableCell>
+                                        <TableCell>
+                                          <Dialog>
+                                            <DialogTrigger asChild>
+                                              <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600">
+                                                <Eye size={16} />
+                                              </Button>
+                                            </DialogTrigger>
+                                            <DialogContent className="w-[90vw] max-w-3xl sm:max-w-lg md:max-w-3xl max-h-[90vh] overflow-y-auto p-6">
+                                              <DialogHeader>
+                                                <DialogTitle>Transaction Details</DialogTitle>
+                                                <DialogClose />
+                                              </DialogHeader>
+                                              <Table>
+                                                <TableHeader>
+                                                  <TableRow>
+                                                    <TableHead>Order Detail ID</TableHead>
+                                                    <TableHead>Product Code</TableHead>
+                                                    <TableHead>Supplier</TableHead>
+                                                    <TableHead>Brand</TableHead>
+                                                    <TableHead>Category</TableHead>
+                                                    <TableHead>Product</TableHead>
+                                                    <TableHead>Selling Price</TableHead>
+                                                    <TableHead>Discount Amount</TableHead>
+                                                    <TableHead>Quantity</TableHead>
+                                                    <TableHead>Item total</TableHead>
+                                                  </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                  <TableRow>
+                                                    <TableCell>{item[config.idDetail]}</TableCell>
+                                                    <TableCell>{item[config.codeField]}</TableCell>
+                                                    <TableCell>{item[config.supplierField]}</TableCell>
+                                                    <TableCell>{item[config.brandField]}</TableCell>
+                                                    <TableCell>{item[config.brandField]}</TableCell>
+                                                    <TableCell>{item[config.nameField]}</TableCell>
+                                                    <TableCell>{item[config.sellingpriceField]}</TableCell>
+                                                    <TableCell>{item[config.discAmtField]}</TableCell>
+                                                    <TableCell>{item[config.quantityField]}</TableCell>
+                                                    <TableCell>{item[config.totalamtField]}</TableCell>
+                                                  </TableRow>
+                                                </TableBody>
+                                              </Table>
+                                            </DialogContent>
+                                          </Dialog>
+                                        </TableCell>
+                                        <TableCell>
+                                          <RDaction
+                                            item={item}
+                                            handleRetrieve={handleRetrieve}
+                                            handleDelete={handleDelete}           
+                                            idField={config.idField}
+                                            codeField={config.codeField}
+                                          />
+                                        </TableCell>
+                                      </>
+                                    )}
+                                    {activeTab === "return" && (
+                                      <>
+                                        <TableCell>
+                                          <input
+                                            type="checkbox"
+                                            checked={selectedTransactions.includes(`${item[config.idField]}-${item[config.codeField]}`)}
+                                            onChange={() => handleSelectTransaction(`${item[config.idField]}-${item[config.codeField]}`)}
+                                          />
+                                        </TableCell>
+                                        <TableCell>{item[config.idField]}</TableCell>
+                                        <TableCell>{item[config.codeField]}</TableCell>
+                                        <TableCell>{item[config.typeField]}</TableCell>
+                                        <TableCell>{item[config.nameField]}</TableCell>
+                                        <TableCell>{item[config.totalamtField]}</TableCell>
+                                        <TableCell>{new Date(item[config.dateField]).toLocaleDateString()}</TableCell>
+                                        <TableCell>
+                                          <Dialog>
+                                            <DialogTrigger asChild>
+                                              <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600">
+                                                <Eye size={16} />
+                                              </Button>
+                                            </DialogTrigger>
+                                            <DialogContent className="max-w-3xl p-6">
+                                              <DialogHeader>
+                                                <DialogTitle>Transaction Details</DialogTitle>
+                                                <DialogClose />
+                                              </DialogHeader>
+                                              <Table>
+                                                <TableHeader>
+                                                  <TableRow>
+                                                    <TableHead>Product Code</TableHead>
+                                                    <TableHead>Supplier</TableHead>
+                                                    <TableHead>Brand</TableHead>
+                                                    <TableHead>Category</TableHead>
+                                                    <TableHead>Product</TableHead>
+                                                    <TableHead>Quantity</TableHead>
+                                                    <TableHead>Discount amount</TableHead>
+                                                  </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                  <TableRow>
+                                                    <TableCell>{item[config.codeField]}</TableCell>
+                                                    <TableCell>{item[config.supplierField]}</TableCell>
+                                                    <TableCell>{item[config.brandField]}</TableCell>
+                                                    <TableCell>{item[config.brandField]}</TableCell>
+                                                    <TableCell>{item[config.nameField]}</TableCell>
+                                                    <TableCell>{item[config.quantityField]}</TableCell>
+                                                    <TableCell>{item[config.discountField]}</TableCell>
+                                                  </TableRow>
+                                                </TableBody>
+                                              </Table>
+                                            </DialogContent>
+                                          </Dialog>
+                                        </TableCell>
+                                        <TableCell>
+                                          <RDaction
+                                            item={item}
+                                            handleRetrieve={handleRetrieve}
+                                            handleDelete={handleDelete}           
+                                            idField={config.idField}
+                                            codeField={config.codeField}
+                                          />
+                                        </TableCell>
+                                      </>
+                                    )}
+                                    {activeTab === "delivery" && (
+                                      <>
+                                        <TableCell>
+                                          <input
+                                            type="checkbox"
+                                            checked={selectedTransactions.includes(`${item[config.idField]}-${item[config.codeField]}`)}
+                                            onChange={() => handleSelectTransaction(`${item[config.idField]}-${item[config.codeField]}`)}
+                                          />
+                                        </TableCell>
+                                        <TableCell>{item[config.idField]}</TableCell>
+                                        <TableCell>{item[config.codeField]}</TableCell>
+                                        <TableCell>{item[config.nameField]}</TableCell>
+                                        <TableCell>{item[config.supplierField]}</TableCell>
+                                        <TableCell>{item[config.quantityField]}</TableCell>
+                                        <TableCell>{new Date(item[config.dateField]).toLocaleDateString()}</TableCell>
+                                        <TableCell>
+                                          <Dialog>
+                                            <DialogTrigger asChild>
+                                              <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600">
+                                                <Eye size={16} />
+                                              </Button>
+                                            </DialogTrigger>
+                                            <DialogContent className="max-w-3xl p-6">
+                                              <DialogHeader>
+                                                <DialogTitle>Transaction Details</DialogTitle>
+                                                <DialogClose />
+                                              </DialogHeader>
+                                              <Table>
+                                                <TableHeader>
+                                                  <TableRow>
+                                                    <TableHead>Product Code</TableHead>
+                                                    <TableHead>Supplier</TableHead>
+                                                    <TableHead>Brand</TableHead>
+                                                    <TableHead>Category</TableHead>
+                                                    <TableHead>Product</TableHead>
+                                                    <TableHead>Quantity</TableHead>
+                                                  </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                  <TableRow>
+                                                    <TableCell>{item[config.codeField]}</TableCell>
+                                                    <TableCell>{item[config.supplierField]}</TableCell>
+                                                    <TableCell>{item[config.brandField]}</TableCell>
+                                                    <TableCell>{item[config.brandField]}</TableCell>
+                                                    <TableCell>{item[config.nameField]}</TableCell>
+                                                    <TableCell>{item[config.quantityField]}</TableCell>
+                                                  </TableRow>
+                                                </TableBody>
+                                              </Table>
+                                            </DialogContent>
+                                          </Dialog>
+                                        </TableCell>
+                                        <TableCell>
+                                          <RDaction
+                                            item={item}
+                                            handleRetrieve={handleRetrieve}
+                                            handleDelete={handleDelete}           
+                                            idField={config.idField}
+                                            codeField={config.codeField}
+                                          />
+                                        </TableCell>
+                                      </>
+                                    )}
+                                    {activeTab === "product" && (
+                                      <>
+                                        <TableCell>
+                                          <input
+                                            type="checkbox"
+                                            checked={selectedTransactions.includes(`${item[config.idField]}-${item[config.codeField]}`)}
+                                            onChange={() => handleSelectTransaction(`${item[config.idField]}-${item[config.codeField]}`)}
+                                          />
+                                        </TableCell>
+                                        <TableCell>{item[config.codeField]}</TableCell>
+                                        <TableCell>{item[config.categoryField]}</TableCell>
+                                        <TableCell>{item[config.nameField]}</TableCell>
+                                        <TableCell>{item[config.brandField]}</TableCell>
+                                        <TableCell>{item[config.supplierField]}</TableCell>
+                                        <TableCell>{item[config.stockField]}</TableCell>
+                                        <TableCell>{item[config.unitpriceField]}</TableCell>
+                                        <TableCell>{item[config.sellingpriceField]}</TableCell>
+                                        <TableCell>{item[config.statusField]}</TableCell>
+                                        <TableCell>{new Date(item[config.dateField]).toLocaleDateString()}</TableCell>
+                                        <TableCell>
+                                          <Dialog>
+                                            <DialogTrigger asChild>
+                                              <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600">
+                                                <Eye size={16} />
+                                              </Button>
+                                            </DialogTrigger>
+                                            <DialogContent className="max-w-3xl p-6">
+                                              <DialogHeader>
+                                                <DialogTitle>Product Details</DialogTitle>
+                                                <DialogClose />
+                                              </DialogHeader>
+                                            </DialogContent>
+                                          </Dialog>
+                                        </TableCell>
+                                        <TableCell>
+                                          <RDaction
+                                            item={item}
+                                            handleRetrieve={handleRetrieve}
+                                            handleDelete={handleDelete}           
+                                            idField={config.idField}
+                                            codeField={config.codeField}
+                                          />
+                                        </TableCell>
+                                      </>
+                                    )}
+                                  </TableRow>
+                                ))
+                              )}
+                            </TableBody>
+                          </Table>
+                        </div>
                     </CardContent>
                     </div>
                   </Card>
