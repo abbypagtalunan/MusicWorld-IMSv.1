@@ -360,7 +360,17 @@ const getPaymentDetails = (callback) => {
 
 // Update payment details for a delivery
 const updatePaymentDetails = (deliveryNumber, paymentData, callback) => {
-  const { D_paymentTypeID, D_modeOfPaymentID, D_paymentStatusID, DPD_dateOfPaymentDue, DPD_dateOfPayment1, DPD_dateOfPayment2 } = paymentData;
+  const {
+    D_paymentTypeID,
+    D_modeOfPaymentID,
+    D_paymentStatusID,
+    DPD_dateOfPaymentDue,
+    DPD_dateOfPayment1,
+    D_modeOfPaymentID2,
+    D_paymentStatusID2,
+    DPD_dateOfPaymentDue2,
+    DPD_dateOfPayment2
+  } = paymentData;
 
   if (!DPD_dateOfPaymentDue || !DPD_dateOfPayment1) {
     return callback(new Error('Payment due date and first payment date are required'));
@@ -393,7 +403,6 @@ const updatePaymentDetails = (deliveryNumber, paymentData, callback) => {
         WHERE D_deliveryNumber = ?
       `;
       params = [
-        deliveryNumber,
         D_paymentTypeID,
         D_modeOfPaymentID,
         D_paymentStatusID,
@@ -402,8 +411,10 @@ const updatePaymentDetails = (deliveryNumber, paymentData, callback) => {
         D_modeOfPaymentID2,
         D_paymentStatusID2,
         DPD_dateOfPaymentDue2,
-        DPD_dateOfPayment2
+        DPD_dateOfPayment2,
+        deliveryNumber   // ← this one goes last, to satisfy `WHERE D_deliveryNumber = ?`
       ];
+
     } else {
       // Insert new payment details
       query = `

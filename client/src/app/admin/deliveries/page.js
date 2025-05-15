@@ -367,28 +367,40 @@ export default function DeliveriesPage() {
       toast.error("No payment details to save");
       return;
     }
-    
-    setIsLoading(true); // Show spinner
+
+    setIsLoading(true);
 
     const payload = {
-      D_paymentTypeID: parseInt(detail.paymentType),
-      D_modeOfPaymentID: parseInt(detail.paymentMode),
-      D_paymentStatusID: parseInt(detail.paymentStatus),
+      // required first-payment fields
+      D_paymentTypeID:    parseInt(detail.paymentType, 10),
+      D_modeOfPaymentID:  parseInt(detail.paymentMode, 10),
+      D_paymentStatusID:  parseInt(detail.paymentStatus, 10),
       DPD_dateOfPaymentDue: detail.dateDue,
-      DPD_dateOfPayment1: detail.datePayment1,
-      DPD_dateOfPayment2: detail.datePayment2 || null
+      DPD_dateOfPayment1:   detail.datePayment1,
+
+      // second-payment fields (will be null if not applicable)
+      D_modeOfPaymentID2:   detail.paymentMode2  ? parseInt(detail.paymentMode2, 10)  : null,
+      D_paymentStatusID2:   detail.paymentStatus2 ? parseInt(detail.paymentStatus2, 10) : null,
+      DPD_dateOfPaymentDue2: detail.dateDue2    || null,
+      DPD_dateOfPayment2:   detail.datePayment2 || null,
     };
 
-    axios.put(`${config.paymentDetails.update}/${deliveryNum}`, payload)
+    axios
+      .put(
+        // note the added “/payment-details”
+        `${config.paymentDetails.update}/${deliveryNum}/payment-details`,
+        payload
+      )
       .then(() => {
         toast.success("Payment details updated successfully!");
+        // optionally reload the details or full data here
       })
       .catch(err => {
         console.error("Error updating payment details:", err.response?.data || err);
         toast.error("Failed to update payment details");
       })
       .finally(() => {
-        setIsLoading(false); // Hide spinner
+        setIsLoading(false);
       });
   };
 

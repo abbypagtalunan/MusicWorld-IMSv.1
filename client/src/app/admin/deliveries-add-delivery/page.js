@@ -570,39 +570,42 @@ export default function BatchDeliveriesPage() {
   };
 
   // Save payment details separately
-  const handleSavePaymentDetails = async () => {
-    try {
-      // Validate required fields
-      if (!paymentDetails.paymentType || !paymentDetails.paymentMode || 
-          !paymentDetails.paymentStatus || !paymentDetails.dateDue || !paymentDetails.datePayment1) {
-        toast.error("Please fill in all required payment details");
-        return;
-      }
-      
-      if (showSecondPayment) {
-        if (!paymentDetails.paymentMode2 || !paymentDetails.paymentStatus2 ||
-            !paymentDetails.dateDue2 || !paymentDetails.datePayment2) {
-          toast.error("Please fill in all 2nd payment fields");
-          return;
-        }
-      }
-      
-      const paymentPayload = {
-        D_paymentTypeID: parseInt(paymentDetails.paymentType),
-        D_modeOfPaymentID: parseInt(paymentDetails.paymentMode),
-        D_paymentStatusID: parseInt(paymentDetails.paymentStatus),
-        DPD_dateOfPaymentDue: paymentDetails.dateDue || null,
-        DPD_dateOfPayment1: paymentDetails.datePayment1 || null,
-        DPD_dateOfPayment2: paymentDetails.datePayment2 || null
-      };
-      
-      await axios.put(`${API_CONFIG.deliveries}/${deliveryNumber}/payment-details`, paymentPayload);
-      toast.success("Payment details saved successfully");
-      
-    } catch (error) {
-      console.error("Error saving payment details:", error);
-      toast.error(error.response?.data?.message || "Failed to save payment details");
+  const handleSavePaymentDetails = (deliveryNum) => {
+    const detail = paymentDetails[deliveryNum];
+    if (!detail) {
+      toast.error("No payment details to save");
+      return;
     }
+    setIsLoading(true);
+
+    const payload = {
+      D_paymentTypeID:    parseInt(detail.paymentType, 10),
+      D_modeOfPaymentID:  parseInt(detail.paymentMode, 10),
+      D_paymentStatusID:  parseInt(detail.paymentStatus, 10),
+      DPD_dateOfPaymentDue: detail.dateDue,
+      DPD_dateOfPayment1:   detail.datePayment1,
+      D_modeOfPaymentID2:   detail.paymentMode2  ? parseInt(detail.paymentMode2, 10)  : null,
+      D_paymentStatusID2:   detail.paymentStatus2 ? parseInt(detail.paymentStatus2, 10) : null,
+      DPD_dateOfPaymentDue2: detail.dateDue2      || null,
+      DPD_dateOfPayment2:   detail.datePayment2   || null,
+    };
+
+    axios
+      .put(
+        `${API_CONFIG.paymentDetails.update}/${deliveryNum}/payment-details`,
+        payload
+      )
+      .then(() => {
+        toast.success("Payment details updated successfully!");
+        // optionally re-load or refresh here
+      })
+      .catch(err => {
+        console.error("Error updating payment details:", err.response?.data || err);
+        toast.error("Failed to update payment details");
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
   };
   
   // Handle delivery deletion
