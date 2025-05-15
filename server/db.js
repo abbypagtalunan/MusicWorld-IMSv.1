@@ -44,7 +44,7 @@ db.getConnection((err, connection) => {
   if (err) {
     console.error('Could not connect to local database:', err);
   } else {
-    console.log('Connected to local MySQL database');
+    console.log('Connected to local MySQL database FOR REG TEST');
     connection.release();
   }
 });
