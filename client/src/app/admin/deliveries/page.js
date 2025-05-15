@@ -637,10 +637,12 @@ export default function DeliveriesPage() {
                   <TableHead onClick={() => handleSort("totalCost")} className="pl-10 cursor-pointer select-none">
                     Total Cost <SortIcon column="totalCost" sortConfig={sortConfig} />
                   </TableHead>
-                  <TableHead className="pl-8">View/Edit</TableHead>
+                  <TableHead className="pl-0">View Products</TableHead>
+                  <TableHead className="pl-0">Edit Payment</TableHead>
                   <TableHead className="pl-6"></TableHead>
                 </TableRow>
               </TableHeader>
+              
               <TableBody>
                 {getFilteredTransactions().map((d) => (
                   <TableRow key={d.deliveryNum}>
@@ -651,7 +653,7 @@ export default function DeliveriesPage() {
                     </TableCell>
                     <TableCell className="pl-10">{d.totalCost}</TableCell>
                     
-                    {/* Delivery Details dialog */}
+                    {/* View delivery products */}
                     <TableCell className="pl-6">
                       <Dialog>
                         <DialogTrigger asChild>
@@ -666,12 +668,11 @@ export default function DeliveriesPage() {
                         </DialogTrigger>
                         <DialogContent className="w-[90vw] sm:w-[600px] md:w-[750px] lg:w-[900px] xl:w-[1100px] max-w-[95vw] p-4 sm:p-6 overflow-y-auto max-h-[90vh]">
                           <DialogHeader>
-                            <DialogTitle>Delivery Details</DialogTitle>
-                            <DialogDescription>View and manage delivery information and payment details</DialogDescription>
+                            <DialogTitle>Delivery Product Details</DialogTitle>
+                            <DialogDescription>View delivery products</DialogDescription>
                             <DialogClose />
                           </DialogHeader>
                           
-                          {/* Main content layout within Delivery Details dialog */}
                           <div className="flex flex-col gap-6">
                             {/* Basic Delivery Info */}
                             <div className="grid grid-cols-2 gap-4">
@@ -684,174 +685,307 @@ export default function DeliveriesPage() {
                                 <Input value={`DR-${d.deliveryNum}`} className="text-center" readOnly />
                               </div>
                             </div>                            
-                            {/* TOP CONTENT: Product items table - showing products per delivery */}
-                            <div className="w-full">
-                              <div className="overflow-x-auto">
-                                <Table>
-                                  <TableHeader className="bg-gray-100 sticky top-0">
-                                    <TableRow>
-                                      <TableHead>Product Code</TableHead>
-                                      <TableHead>Supplier</TableHead>
-                                      <TableHead>Brand</TableHead>
-                                      <TableHead>Product</TableHead>
-                                      <TableHead>Quantity</TableHead>
-                                      <TableHead>Unit Price</TableHead>
-                                      <TableHead>Total</TableHead>
-                                    </TableRow>
-                                  </TableHeader>
-                                  <TableBody>
-                                    {/* Check if the deliveryProducts data exists for this delivery number */}
-                                    {deliveryProducts[d.deliveryNum] && deliveryProducts[d.deliveryNum].length > 0 ? (
-                                      deliveryProducts[d.deliveryNum].map((item, index) => (
-                                        <TableRow key={index}>
-                                          <TableCell>{item.productCode}</TableCell>
-                                          <TableCell>{item.supplier}</TableCell>
-                                          <TableCell>{item.brand}</TableCell>
-                                          <TableCell>{item.product}</TableCell>
-                                          <TableCell>{item.quantity}</TableCell>
-                                          <TableCell>{item.unitPrice}</TableCell>
-                                          <TableCell>{item.total}</TableCell>
-                                        </TableRow>
-                                      ))
-                                    ) : (
-                                      <TableRow>
-                                        <TableCell colSpan={7} className="text-center text-gray-500">
-                                          No products found for this delivery
-                                        </TableCell>
+                            
+                            {/* Products Table */}
+                            <div className="w-full overflow-x-auto">
+                              <Table>
+                                <TableHeader className="bg-gray-100 sticky top-0">
+                                  <TableRow>
+                                    <TableHead>Product Code</TableHead>
+                                    <TableHead>Supplier</TableHead>
+                                    <TableHead>Brand</TableHead>
+                                    <TableHead>Product</TableHead>
+                                    <TableHead>Quantity</TableHead>
+                                    <TableHead>Unit Price</TableHead>
+                                    <TableHead>Total</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {deliveryProducts[d.deliveryNum]?.length > 0 ? (
+                                    deliveryProducts[d.deliveryNum].map((item, idx) => (
+                                      <TableRow key={idx}>
+                                        <TableCell>{item.productCode}</TableCell>
+                                        <TableCell>{item.supplier}</TableCell>
+                                        <TableCell>{item.brand}</TableCell>
+                                        <TableCell>{item.product}</TableCell>
+                                        <TableCell>{item.quantity}</TableCell>
+                                        <TableCell>{item.unitPrice}</TableCell>
+                                        <TableCell>{item.total}</TableCell>
                                       </TableRow>
-                                    )}
-                                  </TableBody>
-                                </Table>
-                              </div>
-                            </div>    
-                                                    
-                            {/* BOTTOM CONTENT: Delivery Payment Details Section */}
-                            <DialogHeader>
-                              <DialogTitle>Delivery Payment Details</DialogTitle>
-                            </DialogHeader>
-                            <div className="flex w-full">
-                              <div className="grid grid-cols-12 gap-4">
-                                {/* First row */}
-                                <div className="col-span-3">
-                                  <Label htmlFor="paymentDeliveryNumber" className="mb-1 block">Delivery Number</Label>
-                                  <Input id="paymentDeliveryNumber" value={`DR-${d.deliveryNum}`} className="bg-gray-200 text-center" readOnly title="Auto-generated" />
-                                </div>
-                                <div className="col-span-3">
-                                  <Label htmlFor="paymentAmount" className="mb-1 block">Amount</Label>
-                                  <Input id="paymentAmount" value={d.totalCost.replace('₱', '')} className="bg-red-800 text-white text-center" readOnly />
-                                </div>
-                                <div className="col-span-3">
-                                  <Label htmlFor="paymentType" className="mb-1 block">Payment Type</Label>
-                                  <Select
-                                    value={paymentDetails[d.deliveryNum]?.paymentType || ""}
-                                    onValueChange={(value) => updatePaymentDetail(d.deliveryNum, 'paymentType', value)}
-                                    name="paymentType"
-                                    disabled={true}
-                                  >
-                                    <SelectTrigger id="paymentType">
-                                      <SelectValue placeholder="Select payment type" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {paymentTypes.map(type => (
-                                        <SelectItem key={type.D_paymentTypeID} value={type.D_paymentTypeID.toString()}>
-                                          {type.D_paymentName}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </div>
+                                    ))
+                                  ) : (
+                                    <TableRow>
+                                      <TableCell colSpan={7} className="text-center text-gray-500">
+                                        No products found for this delivery
+                                      </TableCell>
+                                    </TableRow>
+                                  )}
+                                </TableBody>
+                              </Table>
+                            </div>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                    </TableCell>
+
+                    {/* Edit payment details */}
+                    <TableCell className="p1-6">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600">
+                            <FilePen size={16} />
+                          </Button>
+                        </DialogTrigger>
+                        
+                        <DialogContent className="w-[60vw] max-w-[60vw] p-4 sm:p-6">
+                          <DialogHeader>
+                            <DialogTitle>Delivery Payment Details</DialogTitle>
+                            <DialogClose />
+                          </DialogHeader>
+
+                          {/* always-shown: delivery number, amount, payment-type */}
+                          <div className="grid grid-cols-12 gap-4">
+                            <div className="col-span-3">
+                              <Label htmlFor="paymentDeliveryNumber" className="mb-1 block">Delivery Number</Label>
+                              <Input
+                                id="paymentDeliveryNumber"
+                                value={`DR-${d.deliveryNum}`}
+                                className="bg-gray-200 text-center"
+                                readOnly
+                              />
+                            </div>
+                            <div className="col-span-3">
+                              <Label htmlFor="paymentAmount" className="mb-1 block">Amount</Label>
+                              <Input
+                                id="paymentAmount"
+                                value={d.totalCost.replace('₱', '')}
+                                className="bg-red-800 text-white text-center"
+                                readOnly
+                              />
+                            </div>
+                            <div className="col-span-3">
+                              <Label htmlFor="paymentType" className="mb-1 block">Payment Type</Label>
+                              <Select
+                                value={paymentDetails[d.deliveryNum]?.paymentType || ""}
+                                onValueChange={(v) => updatePaymentDetail(d.deliveryNum, 'paymentType', v)}
+                                name="paymentType"
+                              >
+                                <SelectTrigger id="paymentType">
+                                  <SelectValue placeholder="Select payment type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {paymentTypes.map(pt => (
+                                    <SelectItem key={pt.D_paymentTypeID} value={pt.D_paymentTypeID.toString()}>
+                                      {pt.D_paymentName}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+
+                          {/* determine if two-time (ID '3') or one-time/full */}
+                          {paymentDetails[d.deliveryNum]?.paymentType === '3' ? (
+                            <>
+                              {/* 1st payment section wrapped in its own grid */}
+                              <div className="grid grid-cols-12 gap-4 mt-0">
+                                <h3 className="col-span-12 text-lg font-semibold mt-6">1st payment</h3>
                                 <div className="col-span-3">
                                   <Label htmlFor="paymentMode" className="mb-1 block">Mode of Payment</Label>
                                   <Select
                                     value={paymentDetails[d.deliveryNum]?.paymentMode || ""}
-                                    onValueChange={(value) => updatePaymentDetail(d.deliveryNum, 'paymentMode', value)}
+                                    onValueChange={(v) => updatePaymentDetail(d.deliveryNum, 'paymentMode', v)}
                                     name="paymentMode"
-                                    disabled={true}
                                   >
                                     <SelectTrigger id="paymentMode">
                                       <SelectValue placeholder="Select payment mode" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      {paymentModes.map(mode => (
-                                        <SelectItem key={mode.D_modeOfPaymentID} value={mode.D_modeOfPaymentID.toString()}>
-                                          {mode.D_mopName}
+                                      {paymentModes.map(pm => (
+                                        <SelectItem key={pm.D_modeOfPaymentID} value={pm.D_modeOfPaymentID.toString()}>
+                                          {pm.D_mopName}
                                         </SelectItem>
                                       ))}
                                     </SelectContent>
                                   </Select>
                                 </div>
-                                {/* Second row */}
                                 <div className="col-span-3">
                                   <Label htmlFor="paymentStatus" className="mb-1 block">Payment Status</Label>
                                   <Select
                                     value={paymentDetails[d.deliveryNum]?.paymentStatus || ""}
-                                    onValueChange={(value) => updatePaymentDetail(d.deliveryNum, 'paymentStatus', value)}
+                                    onValueChange={(v) => updatePaymentDetail(d.deliveryNum, 'paymentStatus', v)}
                                     name="paymentStatus"
-                                    disabled={true}
                                   >
                                     <SelectTrigger id="paymentStatus">
                                       <SelectValue placeholder="Select status" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      {paymentStatuses.map(status => (
-                                        <SelectItem key={status.D_paymentStatusID} value={status.D_paymentStatusID.toString()}>
-                                          {status.D_statusName}
+                                      {paymentStatuses.map(ps => (
+                                        <SelectItem key={ps.D_paymentStatusID} value={ps.D_paymentStatusID.toString()}>
+                                          {ps.D_statusName}
                                         </SelectItem>
                                       ))}
                                     </SelectContent>
                                   </Select>
                                 </div>
-
                                 <div className="col-span-3">
                                   <Label htmlFor="paymentDateDue" className="mb-1 block">Date of Payment Due</Label>
-                                  <Input 
-                                    id="paymentDateDue" 
-                                    type="date" 
-                                    value={paymentDetails[d.deliveryNum]?.dateDue || "-"}
-                                    readOnly
+                                  <Input
+                                    id="paymentDateDue"
+                                    type="date"
+                                    value={paymentDetails[d.deliveryNum]?.dateDue || ""}
+                                    onChange={(e) => updatePaymentDetail(d.deliveryNum, 'dateDue', e.target.value)}
                                   />
                                 </div>
                                 <div className="col-span-3">
-                                  <Label htmlFor="paymentDate1" className="mb-1 block">Date of Payment 1</Label>
-                                  <Input 
-                                    id="paymentDate1" 
-                                    type="date" 
-                                    value={paymentDetails[d.deliveryNum]?.datePayment1 || "-"}
-                                    readOnly
-                                  />
-                                </div>
-                                <div className="col-span-3">
-                                  <Label htmlFor="paymentDate2" className="mb-1 block">Date of Payment 2</Label>
-                                  <Input 
-                                    id="paymentDate2" 
-                                    type="date" 
-                                    value={paymentDetails[d.deliveryNum]?.datePayment2 || "-"}
-                                    readOnly
+                                  <Label htmlFor="paymentDate1" className="mb-1 block">Date of Payment</Label>
+                                  <Input
+                                    id="paymentDate1"
+                                    type="date"
+                                    value={paymentDetails[d.deliveryNum]?.datePayment1 || ""}
+                                    onChange={(e) => updatePaymentDetail(d.deliveryNum, 'datePayment1', e.target.value)}
                                   />
                                 </div>
                               </div>
-                            </div>
+                              
+                              {/* 2nd payment section wrapped in its own grid */}
+                              <div className="grid grid-cols-12 gap-4 mt-0">
+                                <h3 className="col-span-12 text-lg font-semibold mt-6">2nd payment</h3>
+                                <div className="col-span-3">
+                                  <Label htmlFor="paymentMode2" className="mb-1 block">Mode of Payment</Label>
+                                  <Select
+                                    value={paymentDetails[d.deliveryNum]?.paymentMode2 || ""}
+                                    onValueChange={(v) => updatePaymentDetail(d.deliveryNum, 'paymentMode2', v)}
+                                    name="paymentMode2"
+                                  >
+                                    <SelectTrigger id="paymentMode2">
+                                      <SelectValue placeholder="Select payment mode" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {paymentModes.map(pm => (
+                                        <SelectItem key={pm.D_modeOfPaymentID} value={pm.D_modeOfPaymentID.toString()}>
+                                          {pm.D_mopName}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div className="col-span-3">
+                                  <Label htmlFor="paymentStatus2" className="mb-1 block">Payment Status</Label>
+                                  <Select
+                                    value={paymentDetails[d.deliveryNum]?.paymentStatus2 || ""}
+                                    onValueChange={(v) => updatePaymentDetail(d.deliveryNum, 'paymentStatus2', v)}
+                                    name="paymentStatus2"
+                                  >
+                                    <SelectTrigger id="paymentStatus2">
+                                      <SelectValue placeholder="Select status" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {paymentStatuses.map(ps => (
+                                        <SelectItem key={ps.D_paymentStatusID} value={ps.D_paymentStatusID.toString()}>
+                                          {ps.D_statusName}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div className="col-span-3">
+                                  <Label htmlFor="paymentDateDue2" className="mb-1 block">Date of Payment Due</Label>
+                                  <Input
+                                    id="paymentDateDue2"
+                                    type="date"
+                                    value={paymentDetails[d.deliveryNum]?.dateDue2 || ""}
+                                    onChange={(e) => updatePaymentDetail(d.deliveryNum, 'dateDue2', e.target.value)}
+                                  />
+                                </div>
+                                <div className="col-span-3">
+                                  <Label htmlFor="paymentDate2" className="mb-1 block">Date of Payment</Label>
+                                  <Input
+                                    id="paymentDate2"
+                                    type="date"
+                                    value={paymentDetails[d.deliveryNum]?.datePayment2 || ""}
+                                    onChange={(e) => updatePaymentDetail(d.deliveryNum, 'datePayment2', e.target.value)}
+                                  />
+                                </div>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              {/* one-time/full upfront */}
+                              <div className="grid grid-cols-12 gap-4 mt-4">
+                                <div className="col-span-3">
+                                  <Label htmlFor="paymentMode" className="mb-1 block">Mode of Payment</Label>
+                                  <Select
+                                    value={paymentDetails[d.deliveryNum]?.paymentMode || ""}
+                                    onValueChange={v => updatePaymentDetail(d.deliveryNum, 'paymentMode', v)}
+                                    name="paymentMode"
+                                  >
+                                    <SelectTrigger id="paymentMode">
+                                      <SelectValue placeholder="Select payment mode" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {paymentModes.map(pm => (
+                                        <SelectItem key={pm.D_modeOfPaymentID} value={pm.D_modeOfPaymentID.toString()}>
+                                          {pm.D_mopName}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div className="col-span-3">
+                                  <Label htmlFor="paymentStatus" className="mb-1 block">Payment Status</Label>
+                                  <Select
+                                    value={paymentDetails[d.deliveryNum]?.paymentStatus || ""}
+                                    onValueChange={v => updatePaymentDetail(d.deliveryNum, 'paymentStatus', v)}
+                                    name="paymentStatus"
+                                  >
+                                    <SelectTrigger id="paymentStatus">
+                                      <SelectValue placeholder="Select status" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {paymentStatuses.map(ps => (
+                                        <SelectItem key={ps.D_paymentStatusID} value={ps.D_paymentStatusID.toString()}>
+                                          {ps.D_statusName}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div className="col-span-3">
+                                  <Label htmlFor="paymentDateDue" className="mb-1 block">Date of Payment Due</Label>
+                                  <Input
+                                    id="paymentDateDue"
+                                    type="date"
+                                    value={paymentDetails[d.deliveryNum]?.dateDue || ""}
+                                    onChange={e => updatePaymentDetail(d.deliveryNum, 'dateDue', e.target.value)}
+                                  />
+                                </div>
+                                <div className="col-span-3">
+                                  <Label htmlFor="paymentDate1" className="mb-1 block">Date of Payment</Label>
+                                  <Input
+                                    id="paymentDate1"
+                                    type="date"
+                                    value={paymentDetails[d.deliveryNum]?.datePayment1 || ""}
+                                    onChange={e => updatePaymentDetail(d.deliveryNum, 'datePayment1', e.target.value)}
+                                  />
+                                </div>
+                              </div>
+                            </>
+                          )}
+
+                          <div className="mt-4 flex justify-end space-x-2">
+                            <Button onClick={() => handleSavePaymentDetails(d.deliveryNum)}>
+                              <Save size={16} className="mr-2" />
+                              Save
+                            </Button>
                           </div>
                         </DialogContent>
                       </Dialog>
-
-                      {/* Edit button*/}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-gray-500 hover:text-blue-600"
-                        onClick={() => {
-                          // TODO: navigate to your “edit” page or open an edit dialog
-                          // e.g. router.push(`./deliveries-edit/${d.deliveryNum}`)
-                        }}
-                      >
-                        <FilePen size={16} />
-                      </Button>
-
                     </TableCell>
+
                     
                     {/* For deleting transactions */}
-                    <TableCell className="p1-6">
+                    <TableCell className="pl-0 pr-8">
                       <Dialog>
                         <DialogTrigger asChild>
                           <Button variant="ghost" size="sm" className="text-gray-500 hover:text-red-600">
@@ -891,6 +1025,7 @@ export default function DeliveriesPage() {
                   </TableRow>
                 ))}
               </TableBody>
+              
             </Table>
           </div>
         </div>
