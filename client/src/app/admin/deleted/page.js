@@ -720,130 +720,130 @@ const handleDownloadCSV = (data) => {
                           
 
                         <div className="overflow-y-auto max-h-[450px]">
-                          <Table className="min-w-full ">
-                            <TableHeader className="sticky top-0 z-10 bg-white shadow-sm">
+                          <Table className="min-w-full relative">
+                            <TableHeader className="sticky top-0 z-10 bg-white">
                               <TableRow>
                                 {activeTab === "order" && (
                                   <>
-                                    <TableHead className="px-4 py-2">
+                                    <TableHead className="sticky top-0 z-10 bg-white px-4 py-2">
                                       <input type="checkbox" onChange={handleSelectAll} checked={selectedTransactions.length === getFilteredTransactions().length && selectedTransactions.length > 0} />
                                     </TableHead>
-                                    <TableHead onClick={() => handleSort(config.dateField)} className="cursor-pointer">
+                                    <TableHead onClick={() => handleSort(config.dateField)} className="sticky top-0 z-10 bg-white cursor-pointer">
                                       Date <SortIcon column={config.dateField} />
                                     </TableHead>
-                                    <TableHead onClick={() => handleSort(config.idField)} className="cursor-pointer">
+                                    <TableHead onClick={() => handleSort(config.idField)} className="sticky top-0 z-10 bg-white cursor-pointer">
                                       Order ID <SortIcon column={config.idField} />
                                     </TableHead>
-                                    <TableHead onClick={() => handleSort(config.receiptField)} className="cursor-pointer">
+                                    <TableHead onClick={() => handleSort(config.receiptField)} className="sticky top-0 z-10 bg-white cursor-pointer">
                                       Receipt Number <SortIcon column={config.receiptField} />
                                     </TableHead>
-                                    <TableHead onClick={() => handleSort(config.codeField)} className="cursor-pointer">
+                                    <TableHead onClick={() => handleSort(config.codeField)} className="sticky top-0 z-10 bg-white cursor-pointer">
                                       Product Code <SortIcon column={config.codeField} />
                                     </TableHead>
-                                    <TableHead onClick={() => handleSort(config.nameField)} className="cursor-pointer">
+                                    <TableHead onClick={() => handleSort(config.nameField)} className="sticky top-0 z-10 bg-white cursor-pointer">
                                       Product <SortIcon column={config.nameField} />
                                     </TableHead>
-                                    <TableHead onClick={() => handleSort(config.quantityField)} className="cursor-pointer">
+                                    <TableHead onClick={() => handleSort(config.quantityField)} className="sticky top-0 z-10 bg-white cursor-pointer">
                                       Quantity <SortIcon column={config.quantityField} />
                                     </TableHead>
-                                    <TableHead onClick={() => handleSort(config.totalamtField)} className="cursor-pointer">
+                                    <TableHead onClick={() => handleSort(config.totalamtField)} className="sticky top-0 z-10 bg-white cursor-pointer">
                                       Item Total <SortIcon column={config.totalamtField} />
                                     </TableHead>
-                                    <TableHead>Details</TableHead>                                 
-                                    <TableHead>Retrieve/Delete</TableHead>
+                                    <TableHead className="sticky top-0 z-10 bg-white">Details</TableHead>                                 
+                                    <TableHead className="sticky top-0 z-10 bg-white">Retrieve/Delete</TableHead>
                                   </>
                                 )}
                                 {activeTab === "return" && (
                                   <>
-                                    <TableHead>
+                                    <TableHead className="sticky top-0 z-10 bg-white">
                                       <input type="checkbox" onChange={handleSelectAll} checked={selectedTransactions.length === getFilteredTransactions().length && selectedTransactions.length > 0} />
                                     </TableHead>
-                                    <TableHead onClick={() => handleSort(config.idField)} className="cursor-pointer">
+                                    <TableHead onClick={() => handleSort(config.idField)} className="sticky top-0 z-10 bg-white cursor-pointer">
                                       Return ID <SortIcon column={config.idField} />
                                     </TableHead>
-                                    <TableHead onClick={() => handleSort(config.codeField)} className="cursor-pointer">
+                                    <TableHead onClick={() => handleSort(config.codeField)} className="sticky top-0 z-10 bg-white cursor-pointer">
                                       Product Code <SortIcon column={config.codeField} />
                                     </TableHead>
-                                    <TableHead onClick={() => handleSort(config.typeField)} className="cursor-pointer">
+                                    <TableHead onClick={() => handleSort(config.typeField)} className="sticky top-0 z-10 bg-white cursor-pointer">
                                       Reason of Return <SortIcon column={config.typeField} />
                                     </TableHead>
-                                    <TableHead onClick={() => handleSort(config.nameField)} className="cursor-pointer">
+                                    <TableHead onClick={() => handleSort(config.nameField)} className="sticky top-0 z-10 bg-white cursor-pointer">
                                       Product <SortIcon column={config.nameField} />
                                     </TableHead>
-                                    <TableHead onClick={() => handleSort(config.totalamtField)} className="cursor-pointer">
+                                    <TableHead onClick={() => handleSort(config.totalamtField)} className="sticky top-0 z-10 bg-white cursor-pointer">
                                       Return Total Amount <SortIcon column={config.totalamtField} />
                                     </TableHead>
-                                    <TableHead onClick={() => handleSort(config.dateField)} className="cursor-pointer">
+                                    <TableHead onClick={() => handleSort(config.dateField)} className="sticky top-0 z-10 bg-white cursor-pointer">
                                       Return Date <SortIcon column={config.dateField} />
                                     </TableHead>
-                                    <TableHead>Details</TableHead>                                 
-                                    <TableHead>Retrieve/Delete</TableHead>
+                                    <TableHead className="sticky top-0 z-10 bg-white">Details</TableHead>                                 
+                                    <TableHead className="sticky top-0 z-10 bg-white">Retrieve/Delete</TableHead>
                                   </>
                                 )}
                                 {activeTab === "delivery" && (
                                   <>
-                                    <TableHead>
+                                    <TableHead className="sticky top-0 z-10 bg-white">
                                       <input type="checkbox" onChange={handleSelectAll} checked={selectedTransactions.length === getFilteredTransactions().length && selectedTransactions.length > 0} />
                                     </TableHead>
-                                    <TableHead onClick={() => handleSort(config.idField)} className="cursor-pointer">
+                                    <TableHead onClick={() => handleSort(config.idField)} className="sticky top-0 z-10 bg-white cursor-pointer">
                                       Delivery ID <SortIcon column={config.idField} />
                                     </TableHead>
-                                    <TableHead onClick={() => handleSort(config.codeField)} className="cursor-pointer">
+                                    <TableHead onClick={() => handleSort(config.codeField)} className="sticky top-0 z-10 bg-white cursor-pointer">
                                       Product Code <SortIcon column={config.codeField} />
                                     </TableHead>
-                                    <TableHead onClick={() => handleSort(config.nameField)} className="cursor-pointer">
+                                    <TableHead onClick={() => handleSort(config.nameField)} className="sticky top-0 z-10 bg-white cursor-pointer">
                                       Product <SortIcon column={config.nameField} />
                                     </TableHead>
-                                    <TableHead onClick={() => handleSort(config.supplierField)} className="cursor-pointer">
+                                    <TableHead onClick={() => handleSort(config.supplierField)} className="sticky top-0 z-10 bg-white cursor-pointer">
                                       Supplier <SortIcon column={config.supplierField} />
                                     </TableHead>
-                                    <TableHead onClick={() => handleSort(config.quantityField)} className="cursor-pointer">
+                                    <TableHead onClick={() => handleSort(config.quantityField)} className="sticky top-0 z-10 bg-white cursor-pointer">
                                       Quantity <SortIcon column={config.quantityField} />
                                     </TableHead>
-                                    <TableHead onClick={() => handleSort(config.dateField)} className="cursor-pointer">
+                                    <TableHead onClick={() => handleSort(config.dateField)} className="sticky top-0 z-10 bg-white cursor-pointer">
                                       Delivery Date <SortIcon column={config.dateField} />
                                     </TableHead>
-                                    <TableHead>Details</TableHead>
-                                    <TableHead>Retrieve/Delete</TableHead>
+                                    <TableHead className="sticky top-0 z-10 bg-white">Details</TableHead>
+                                    <TableHead className="sticky top-0 z-10 bg-white">Retrieve/Delete</TableHead>
                                   </>
                                 )}
                                 {activeTab === "product" && (
                                   <>
-                                    <TableHead>
+                                    <TableHead className="sticky top-0 z-10 bg-white">
                                       <input type="checkbox" onChange={handleSelectAll} checked={selectedTransactions.length === getFilteredTransactions().length && selectedTransactions.length > 0} />
                                     </TableHead>
-                                    <TableHead onClick={() => handleSort(config.codeField)} className="cursor-pointer">
+                                    <TableHead onClick={() => handleSort(config.codeField)} className="sticky top-0 z-10 bg-white cursor-pointer">
                                       Product Code <SortIcon column={config.codeField} />
                                     </TableHead>
-                                    <TableHead onClick={() => handleSort(config.categoryField)} className="cursor-pointer">
+                                    <TableHead onClick={() => handleSort(config.categoryField)} className="sticky top-0 z-10 bg-white cursor-pointer">
                                       Category <SortIcon column={config.categoryField} />
                                     </TableHead>
-                                    <TableHead onClick={() => handleSort(config.nameField)} className="cursor-pointer">
+                                    <TableHead onClick={() => handleSort(config.nameField)} className="sticky top-0 z-10 bg-white cursor-pointer">
                                       Name <SortIcon column={config.nameField} />
                                     </TableHead>
-                                    <TableHead onClick={() => handleSort(config.brandField)} className="cursor-pointer">
+                                    <TableHead onClick={() => handleSort(config.brandField)} className="sticky top-0 z-10 bg-white cursor-pointer">
                                       Brand <SortIcon column={config.brandField} />
                                     </TableHead>
-                                    <TableHead onClick={() => handleSort(config.supplierField)} className="cursor-pointer">
+                                    <TableHead onClick={() => handleSort(config.supplierField)} className="sticky top-0 z-10 bg-white cursor-pointer">
                                       Supplier <SortIcon column={config.supplierField} />
                                     </TableHead>
-                                    <TableHead onClick={() => handleSort(config.stockField)} className="cursor-pointer">
+                                    <TableHead onClick={() => handleSort(config.stockField)} className="sticky top-0 z-10 bg-white cursor-pointer">
                                       Stock Amount <SortIcon column={config.stockField} />
                                     </TableHead>
-                                    <TableHead onClick={() => handleSort(config.unitpriceField)} className="cursor-pointer">
+                                    <TableHead onClick={() => handleSort(config.unitpriceField)} className="sticky top-0 z-10 bg-white cursor-pointer">
                                       Unit Price <SortIcon column={config.unitpriceField} />
                                     </TableHead>
-                                    <TableHead onClick={() => handleSort(config.sellingpriceField)} className="cursor-pointer">
+                                    <TableHead onClick={() => handleSort(config.sellingpriceField)} className="sticky top-0 z-10 bg-white cursor-pointer">
                                       Selling Price <SortIcon column={config.sellingpriceField} />
                                     </TableHead>
-                                    <TableHead onClick={() => handleSort(config.statusField)} className="cursor-pointer">
+                                    <TableHead onClick={() => handleSort(config.statusField)} className="sticky top-0 z-10 bg-white cursor-pointer">
                                       Status <SortIcon column={config.statusField} />
                                     </TableHead>
-                                    <TableHead onClick={() => handleSort(config.dateField)} className="cursor-pointer">
+                                    <TableHead onClick={() => handleSort(config.dateField)} className="sticky top-0 z-10 bg-white cursor-pointer">
                                       Date Added <SortIcon column={config.dateField} />
                                     </TableHead>
-                                    <TableHead>Details</TableHead>
-                                    <TableHead>Retrieve/Delete</TableHead>
+                                    <TableHead className="sticky top-0 z-10 bg-white">Details</TableHead>
+                                    <TableHead className="sticky top-0 z-10 bg-white">Retrieve/Delete</TableHead>
                                   </>
                                 )}
                               </TableRow>
@@ -1086,7 +1086,7 @@ const handleDownloadCSV = (data) => {
                                             </DialogTrigger>
                                             <DialogContent className="max-w-3xl p-6">
                                               <DialogHeader>
-                                                <DialogTitle>Product Details</DialogTitle>
+                                                <DialogTitle>Transaction Details</DialogTitle>
                                                 <DialogClose />
                                               </DialogHeader>
                                             </DialogContent>
