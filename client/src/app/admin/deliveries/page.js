@@ -102,12 +102,13 @@ export default function DeliveriesPage() {
           const detailsMap = {};
           res.data.forEach(item => {
             detailsMap[item.D_deliveryNumber] = {
-              paymentType: item.D_paymentTypeID.toString(),
-              paymentMode: item.D_modeOfPaymentID.toString(),
+              paymentType:   item.D_paymentTypeID.toString(),
+              paymentMode:   item.D_modeOfPaymentID.toString(),
               paymentStatus: item.D_paymentStatusID.toString(),
-              dateDue: formatDateForInput(item.DPD_dateOfPaymentDue),
-              datePayment1: formatDateForInput(item.DPD_dateOfPayment1),
-              datePayment2: formatDateForInput(item.DPD_dateOfPayment2) || "",
+              dateDue:       formatDateForInput(item.DPD_dateOfPaymentDue),
+              datePayment1:  formatDateForInput(item.DPD_dateOfPayment1),
+              dateDue2:      formatDateForInput(item.DPD_dateOfPaymentDue2) || "",
+              datePayment2:  formatDateForInput(item.DPD_dateOfPayment2)   || "",
             };
           });
           setPaymentDetails(detailsMap);
@@ -728,7 +729,7 @@ export default function DeliveriesPage() {
                       </Dialog>
                     </TableCell>
 
-                    {/* Edit payment details */}
+                    {/* Delivery payment details */}
                     <TableCell className="p1-6">
                       <Dialog>
                         <DialogTrigger asChild>
@@ -755,41 +756,66 @@ export default function DeliveriesPage() {
                               />
                             </div>
                             <div className="col-span-3">
-                              <Label htmlFor="paymentAmount" className="mb-1 block">Amount</Label>
-                              <Input
-                                id="paymentAmount"
-                                value={d.totalCost.replace('₱', '')}
-                                className="bg-red-800 text-white text-center"
-                                readOnly
-                              />
-                            </div>
-                            <div className="col-span-3">
                               <Label htmlFor="paymentType" className="mb-1 block">Payment Type</Label>
+                              {/* make payment type uneditable */}
                               <Select
                                 value={paymentDetails[d.deliveryNum]?.paymentType || ""}
                                 onValueChange={(v) => updatePaymentDetail(d.deliveryNum, 'paymentType', v)}
                                 name="paymentType"
+                                disabled={true}
                               >
                                 <SelectTrigger id="paymentType">
                                   <SelectValue placeholder="Select payment type" />
                                 </SelectTrigger>
                                 <SelectContent>
                                   {paymentTypes.map(pt => (
-                                    <SelectItem key={pt.D_paymentTypeID} value={pt.D_paymentTypeID.toString()}>
+                                    <SelectItem key={pt.D_paymentTypeID} value={pt.D_paymentTypeID.toString()} className="hover:bg-gray-100 data-[highlighted]:bg-gray-100">
                                       {pt.D_paymentName}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
                               </Select>
                             </div>
+                            
+                            {paymentDetails[d.deliveryNum]?.paymentType !== '3' ? (
+                              <>
+                                <div className="col-span-3"></div>
+                                <div className="col-span-3"></div>
+                                <div className="col-span-3">
+                                  <Label htmlFor="paymentAmount" className="mb-1 block">Amount</Label>
+                                  <Input
+                                    id="paymentAmount"
+                                    value={d.totalCost.replace('₱', '')}
+                                    className="bg-red-800 text-white text-center"
+                                    readOnly
+                                  />
+                                </div>
+                              </>
+                              ) : (
+                              <> </>
+                            )}
+                              
                           </div>
 
                           {/* determine if two-time (ID '3') or one-time/full */}
                           {paymentDetails[d.deliveryNum]?.paymentType === '3' ? (
                             <>
-                              {/* 1st payment section wrapped in its own grid */}
+                              {/* 1st payment section */}
                               <div className="grid grid-cols-12 gap-4 mt-0">
                                 <h3 className="col-span-12 text-lg font-semibold mt-6">1st payment</h3>
+
+                                <div className="col-span-3">
+                                  <Label htmlFor="paymentAmount" className="mb-1 block">Amount</Label>
+                                  <Input
+                                    id="paymentAmount"
+                                    value={(parseFloat(d.totalCost.replace('₱', '')) / 2).toFixed(2)}
+                                    className="bg-red-800 text-white text-center"
+                                    readOnly
+                                  />
+                                </div>
+                                <div className="col-span-3"></div>
+                                <div className="col-span-3"></div>
+                                <div className="col-span-3"></div>
                                 <div className="col-span-3">
                                   <Label htmlFor="paymentMode" className="mb-1 block">Mode of Payment</Label>
                                   <Select
@@ -801,42 +827,56 @@ export default function DeliveriesPage() {
                                       <SelectValue placeholder="Select payment mode" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      {paymentModes.map(pm => (
-                                        <SelectItem key={pm.D_modeOfPaymentID} value={pm.D_modeOfPaymentID.toString()}>
-                                          {pm.D_mopName}
+                                      {paymentModes.map(mode => (
+                                        <SelectItem
+                                          key={mode.D_modeOfPaymentID}
+                                          value={mode.D_modeOfPaymentID.toString()}
+                                          className="hover:bg-gray-100 data-[highlighted]:bg-gray-100"
+                                        >
+                                          {mode.D_mopName}
                                         </SelectItem>
                                       ))}
                                     </SelectContent>
                                   </Select>
                                 </div>
+
                                 <div className="col-span-3">
                                   <Label htmlFor="paymentStatus" className="mb-1 block">Payment Status</Label>
                                   <Select
                                     value={paymentDetails[d.deliveryNum]?.paymentStatus || ""}
-                                    onValueChange={(v) => updatePaymentDetail(d.deliveryNum, 'paymentStatus', v)}
+                                    onValueChange={v => updatePaymentDetail(d.deliveryNum, 'paymentStatus', v)}
                                     name="paymentStatus"
+                                    disabled={paymentDetails[d.deliveryNum]?.paymentType === '1'}
                                   >
                                     <SelectTrigger id="paymentStatus">
-                                      <SelectValue placeholder="Select status" />
+                                      <SelectValue placeholder="Select payment status" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      {paymentStatuses.map(ps => (
-                                        <SelectItem key={ps.D_paymentStatusID} value={ps.D_paymentStatusID.toString()}>
-                                          {ps.D_statusName}
+                                      {paymentStatuses.map(status => (
+                                        <SelectItem
+                                          key={status.D_paymentStatusID}
+                                          value={status.D_paymentStatusID.toString()}
+                                          className="hover:bg-gray-100 data-[highlighted]:bg-gray-100"
+                                        >
+                                          {status.D_statusName}
                                         </SelectItem>
                                       ))}
                                     </SelectContent>
                                   </Select>
                                 </div>
+
                                 <div className="col-span-3">
                                   <Label htmlFor="paymentDateDue" className="mb-1 block">Date of Payment Due</Label>
+                                  {/* ⑤ Date of Payment Due fields should be uneditable */}
                                   <Input
                                     id="paymentDateDue"
                                     type="date"
                                     value={paymentDetails[d.deliveryNum]?.dateDue || ""}
-                                    onChange={(e) => updatePaymentDetail(d.deliveryNum, 'dateDue', e.target.value)}
+                                    placeholder="mm/dd/yyyy"
+                                    disabled={true}
                                   />
                                 </div>
+
                                 <div className="col-span-3">
                                   <Label htmlFor="paymentDate1" className="mb-1 block">Date of Payment</Label>
                                   <Input
@@ -844,67 +884,116 @@ export default function DeliveriesPage() {
                                     type="date"
                                     value={paymentDetails[d.deliveryNum]?.datePayment1 || ""}
                                     onChange={(e) => updatePaymentDetail(d.deliveryNum, 'datePayment1', e.target.value)}
+                                    /* ② only allow selection between delivery date and due date */
+                                    min={d.rawDate}
+                                    max={paymentDetails[d.deliveryNum]?.dateDue}
+                                    /* ③ disable when status is unpaid */
+                                    disabled={
+                                      paymentStatuses.find(s => s.D_paymentStatusID.toString() === paymentDetails[d.deliveryNum]?.paymentStatus)
+                                        ?.D_statusName.toLowerCase() === 'unpaid'
+                                    }
                                   />
                                 </div>
                               </div>
-                              
-                              {/* 2nd payment section wrapped in its own grid */}
+
+                              {/* 2nd payment section */}
                               <div className="grid grid-cols-12 gap-4 mt-0">
                                 <h3 className="col-span-12 text-lg font-semibold mt-6">2nd payment</h3>
+
+                                <div className="col-span-3">
+                                  <Label htmlFor="paymentAmount" className="mb-1 block">Amount</Label>
+                                  <Input
+                                    id="paymentAmount"
+                                    value={(parseFloat(d.totalCost.replace('₱', '')) / 2).toFixed(2)}
+                                    className="bg-red-800 text-white text-center"
+                                    readOnly
+                                  />
+                                </div>
+                                <div className="col-span-3"></div>
+                                <div className="col-span-3"></div>
+                                <div className="col-span-3"></div>
                                 <div className="col-span-3">
                                   <Label htmlFor="paymentMode2" className="mb-1 block">Mode of Payment</Label>
                                   <Select
                                     value={paymentDetails[d.deliveryNum]?.paymentMode2 || ""}
-                                    onValueChange={(v) => updatePaymentDetail(d.deliveryNum, 'paymentMode2', v)}
+                                    onValueChange={v => updatePaymentDetail(d.deliveryNum, 'paymentMode2', v)}
                                     name="paymentMode2"
+                                    disabled={
+                                      paymentStatuses.find(s => s.D_paymentStatusID.toString() === paymentDetails[d.deliveryNum]?.paymentStatus)
+                                        ?.D_statusName.toLowerCase() === 'unpaid'
+                                    }
                                   >
                                     <SelectTrigger id="paymentMode2">
                                       <SelectValue placeholder="Select payment mode" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      {paymentModes.map(pm => (
-                                        <SelectItem key={pm.D_modeOfPaymentID} value={pm.D_modeOfPaymentID.toString()}>
-                                          {pm.D_mopName}
+                                      {paymentModes.map(mode => (
+                                        <SelectItem
+                                          key={mode.D_modeOfPaymentID}
+                                          value={mode.D_modeOfPaymentID.toString()}
+                                          className="hover:bg-gray-100 data-[highlighted]:bg-gray-100"
+                                        >
+                                          {mode.D_mopName}
                                         </SelectItem>
                                       ))}
                                     </SelectContent>
                                   </Select>
                                 </div>
+
                                 <div className="col-span-3">
                                   <Label htmlFor="paymentStatus2" className="mb-1 block">Payment Status</Label>
                                   <Select
                                     value={paymentDetails[d.deliveryNum]?.paymentStatus2 || ""}
-                                    onValueChange={(v) => updatePaymentDetail(d.deliveryNum, 'paymentStatus2', v)}
+                                    onValueChange={v => updatePaymentDetail(d.deliveryNum, 'paymentStatus2', v)}
                                     name="paymentStatus2"
+                                    disabled={
+                                      paymentStatuses.find(s => s.D_paymentStatusID.toString() === paymentDetails[d.deliveryNum]?.paymentStatus)
+                                        ?.D_statusName.toLowerCase() === 'unpaid'
+                                    }
                                   >
                                     <SelectTrigger id="paymentStatus2">
-                                      <SelectValue placeholder="Select status" />
+                                      <SelectValue placeholder="Select payment status" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      {paymentStatuses.map(ps => (
-                                        <SelectItem key={ps.D_paymentStatusID} value={ps.D_paymentStatusID.toString()}>
-                                          {ps.D_statusName}
+                                      {paymentStatuses.map(status => (
+                                        <SelectItem
+                                          key={status.D_paymentStatusID}
+                                          value={status.D_paymentStatusID.toString()}
+                                          className="hover:bg-gray-100 data-[highlighted]:bg-gray-100"
+                                        >
+                                          {status.D_statusName}
                                         </SelectItem>
                                       ))}
                                     </SelectContent>
                                   </Select>
                                 </div>
+
                                 <div className="col-span-3">
                                   <Label htmlFor="paymentDateDue2" className="mb-1 block">Date of Payment Due</Label>
                                   <Input
                                     id="paymentDateDue2"
                                     type="date"
                                     value={paymentDetails[d.deliveryNum]?.dateDue2 || ""}
-                                    onChange={(e) => updatePaymentDetail(d.deliveryNum, 'dateDue2', e.target.value)}
+                                    disabled={true}
                                   />
                                 </div>
+
                                 <div className="col-span-3">
                                   <Label htmlFor="paymentDate2" className="mb-1 block">Date of Payment</Label>
                                   <Input
                                     id="paymentDate2"
                                     type="date"
                                     value={paymentDetails[d.deliveryNum]?.datePayment2 || ""}
-                                    onChange={(e) => updatePaymentDetail(d.deliveryNum, 'datePayment2', e.target.value)}
+                                    onChange={(e) => updatePaymentDetail(d.deliveryNum, 'paymentDate2', e.target.value)}
+                                    min={d.rawDate}
+                                    max={paymentDetails[d.deliveryNum]?.dateDue2}
+                                    disabled={
+                                      paymentStatuses.find(s => s.D_paymentStatusID.toString() === paymentDetails[d.deliveryNum]?.paymentStatus)
+                                        ?.D_statusName.toLowerCase() === 'unpaid'
+                                      ||
+                                      paymentStatuses.find(s => s.D_paymentStatusID.toString() === paymentDetails[d.deliveryNum]?.paymentStatus2)
+                                        ?.D_statusName.toLowerCase() === 'unpaid'
+                                    }
                                   />
                                 </div>
                               </div>
@@ -919,33 +1008,43 @@ export default function DeliveriesPage() {
                                     value={paymentDetails[d.deliveryNum]?.paymentMode || ""}
                                     onValueChange={v => updatePaymentDetail(d.deliveryNum, 'paymentMode', v)}
                                     name="paymentMode"
+                                    disabled={paymentDetails[d.deliveryNum]?.paymentType === '1'}
                                   >
                                     <SelectTrigger id="paymentMode">
                                       <SelectValue placeholder="Select payment mode" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      {paymentModes.map(pm => (
-                                        <SelectItem key={pm.D_modeOfPaymentID} value={pm.D_modeOfPaymentID.toString()}>
-                                          {pm.D_mopName}
+                                      {paymentModes.map(mode => (
+                                        <SelectItem
+                                          key={mode.D_modeOfPaymentID}
+                                          value={mode.D_modeOfPaymentID.toString()}
+                                          className="hover:bg-gray-100 data-[highlighted]:bg-gray-100"
+                                        >
+                                          {mode.D_mopName}
                                         </SelectItem>
                                       ))}
                                     </SelectContent>
                                   </Select>
                                 </div>
                                 <div className="col-span-3">
-                                  <Label htmlFor="paymentStatus" className="mb-1 block">Payment Status</Label>
+                                  <Label htmlFor="paymentStatus1" className="mb-1 block">Payment Status</Label>
                                   <Select
                                     value={paymentDetails[d.deliveryNum]?.paymentStatus || ""}
                                     onValueChange={v => updatePaymentDetail(d.deliveryNum, 'paymentStatus', v)}
                                     name="paymentStatus"
+                                    disabled={paymentDetails[d.deliveryNum]?.paymentType === '1'}
                                   >
-                                    <SelectTrigger id="paymentStatus">
-                                      <SelectValue placeholder="Select status" />
+                                    <SelectTrigger id="paymentStatus1">
+                                      <SelectValue placeholder="Select payment status" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      {paymentStatuses.map(ps => (
-                                        <SelectItem key={ps.D_paymentStatusID} value={ps.D_paymentStatusID.toString()}>
-                                          {ps.D_statusName}
+                                      {paymentStatuses.map(status => (
+                                        <SelectItem
+                                          key={status.D_paymentStatusID}
+                                          value={status.D_paymentStatusID.toString()}
+                                          className="hover:bg-gray-100 data-[highlighted]:bg-gray-100"
+                                        >
+                                          {status.D_statusName}
                                         </SelectItem>
                                       ))}
                                     </SelectContent>
@@ -957,7 +1056,7 @@ export default function DeliveriesPage() {
                                     id="paymentDateDue"
                                     type="date"
                                     value={paymentDetails[d.deliveryNum]?.dateDue || ""}
-                                    onChange={e => updatePaymentDetail(d.deliveryNum, 'dateDue', e.target.value)}
+                                    disabled={true}
                                   />
                                 </div>
                                 <div className="col-span-3">
@@ -967,6 +1066,13 @@ export default function DeliveriesPage() {
                                     type="date"
                                     value={paymentDetails[d.deliveryNum]?.datePayment1 || ""}
                                     onChange={e => updatePaymentDetail(d.deliveryNum, 'datePayment1', e.target.value)}
+                                    min={d.rawDate}
+                                    max={paymentDetails[d.deliveryNum]?.dateDue}
+                                    disabled={
+                                      paymentDetails[d.deliveryNum]?.paymentType === '1' ||
+                                      paymentStatuses.find(s => s.D_paymentStatusID.toString() === paymentDetails[d.deliveryNum]?.paymentStatus)
+                                        ?.D_statusName.toLowerCase() === 'unpaid'
+                                    }
                                   />
                                 </div>
                               </div>
@@ -980,6 +1086,7 @@ export default function DeliveriesPage() {
                             </Button>
                           </div>
                         </DialogContent>
+
                       </Dialog>
                     </TableCell>
 
