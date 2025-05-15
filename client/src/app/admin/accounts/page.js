@@ -653,7 +653,7 @@ export default function ManageAccountsPage() {
                     <DropdownMenuTrigger asChild>
                       <Button variant="outline" className="flex items-center space-x-2">
                         <ListFilter className="w-4 h-4" />
-                        <span>Filter</span>
+                        <span>Filter/Sort</span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start">
