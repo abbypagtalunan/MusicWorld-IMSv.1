@@ -539,7 +539,7 @@ const OrderDashboard = () => {
                 }}
               >
               {/* ADD PRODUCT/ITEM */}
-              <h2 className="text-xl text-center font-bold text-blue-950 pb-4">Add Product to Order/s</h2>
+              <h2 className="text-xl text-center font-bold text-blue-950 pb-4">Add Product to Order</h2>
               <form className="text-[15px] space-y-2">
                 <div className="text-left">
                   {/* COMBOBOX SEARCH PRODUCT */}

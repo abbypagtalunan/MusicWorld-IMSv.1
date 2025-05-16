@@ -32,7 +32,7 @@ const mysql = require('mysql2');
 const db = mysql.createPool({
   host: 'localhost',
   user: 'root',
-  password: '', // ⬅️ No password
+  password: '', 
   database: 'defaultdb',
   port: 3306,
   waitForConnections: true,
