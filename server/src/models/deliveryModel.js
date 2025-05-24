@@ -42,7 +42,7 @@ const addDelivery = (deliveryData, products, payment, callback) => {
   }
 
   // Validate payment details
-  if (payment && (!payment.D_paymentTypeID || !payment.D_modeOfPaymentID || !payment.D_paymentStatusID)) {
+  if (payment && (!payment.D_paymentTypeID || !payment.D_paymentStatusID)) {
     return callback(new Error("Missing required payment fields"));
   }
 

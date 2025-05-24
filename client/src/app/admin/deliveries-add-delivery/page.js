@@ -60,6 +60,7 @@ export default function BatchDeliveriesPage() {
   // Track UI-selected payment status values: -1 (unset), 1 = paid, 2 = unpaid
   const [selectedPaymentStatus1, setSelectedPaymentStatus1] = useState(-1);
   const [selectedPaymentStatus2, setSelectedPaymentStatus2] = useState(-1);
+  const [selectedPaymentType, setSelectedPaymentType] = useState(-1);  // 1 = full upfront, 2 = one-time, 3 = two-time
   
   const [showSecondPayment, setShowSecondPayment] = useState(false);
   const secondCardRef = useRef(null);
@@ -196,8 +197,9 @@ export default function BatchDeliveriesPage() {
 
       // 1) On Payment Type change
       if (field === 'paymentType') {
-        const isTwoTimePayment = parseInt(value, 10) === 3;
-        setShowSecondPayment(isTwoTimePayment);
+        const selectedType = parseInt(value, 10);
+        setSelectedPaymentType(selectedType); // 1 = full upfront, 2 = one-time, 3 = two-time
+        setShowSecondPayment(selectedType === 3);
 
         // auto-fill/clear first payment date
         if (value === '1') {
@@ -230,7 +232,7 @@ export default function BatchDeliveriesPage() {
         }
 
         // prepare or clear second-payment fields
-        if (isTwoTimePayment) {
+        if (selectedPaymentType === 3) {
           // 1) ensure the first due date exists (one month after deliveryDate)
           if (!next.dateDue && deliveryDate) {
             const due = new Date(deliveryDate);
@@ -255,31 +257,27 @@ export default function BatchDeliveriesPage() {
       
       // 2) On Payment Status change (purely UI-driven “Unpaid”)
       if (field === 'paymentStatus') {
-        // find out what the user just picked
         const statusObj = paymentStatuses
           .find(s => s.D_paymentStatusID.toString() === value);
         const statusName = statusObj?.D_statusName.toLowerCase();
-        const isUnpaidSelection = statusName === 'unpaid';
-        
-        setSelectedPaymentStatus1(statusName === 'paid' ? 1 : statusName === 'unpaid' ? 2 : -1);
 
-        // if they picked Unpaid, always clear & disable the corresponding date field
-        if (isUnpaidSelection) {
-          // first payment panel
+        const newStatus = statusName === 'paid' ? 1 : statusName === 'unpaid' ? 2 : -1;
+        setSelectedPaymentStatus1(newStatus);
+
+        if (newStatus === 2) {
           next.datePayment1 = '';
-
-          // if in two-time mode, also clear second payment date if they somehow unset panel two
           next.datePayment2 = '';
-        }
-
-        // preserve your existing two-time reset logic for the rest of the panel
-        if (isUnpaidSelection && paymentDetails.paymentType === '3') {
-          next.paymentMode2   = '';
-          next.paymentStatus2 = '';
-          // showSecondPayment stays true so panel two remains visible
+          
+          if (selectedPaymentType === 3) {
+            next.paymentMode2   = '';
+            next.paymentStatus2 = '';
+          }
+        } else if (newStatus === 1) {
+          const today = new Date().toISOString().split('T')[0];
+          next.datePayment1 = today;
         }
       }
-      
+
       if (field === 'paymentStatus2') {
         const statusObj2 = paymentStatuses.find(s => s.D_paymentStatusID.toString() === value);
         const statusName2 = statusObj2?.D_statusName.toLowerCase();
@@ -457,13 +455,15 @@ export default function BatchDeliveriesPage() {
         toast.error("Payment Type field is empty");
         return;
       }
-      if (!paymentDetails.paymentMode) {
-        toast.error("Payment Mode field is empty");
-        return;
-      }
       if (!paymentDetails.paymentStatus) {
         toast.error("Payment Status field is empty");
         return;
+      }
+      if (selectedPaymentStatus1 === 1) { // if payment status is Paid
+        if (!paymentDetails.paymentMode) {
+          toast.error("Payment Mode field is empty");
+          return;
+        }
       }
       
       // Check for Date of Payment Due only if payment type is NOT 'Full upfront payment'
@@ -1062,7 +1062,9 @@ export default function BatchDeliveriesPage() {
                   <Select 
                     value={paymentDetails.paymentMode} 
                     onValueChange={(value) => handlePaymentDetailChange('paymentMode', value)}
-                    disabled={selectedPaymentStatus1 !== 1}
+                    disabled={
+                      selectedPaymentType !== 1 && selectedPaymentStatus1 !== 1
+                    }
                   >
                     <SelectTrigger id="paymentMode">
                       <SelectValue placeholder="Select payment mode" />
@@ -1093,7 +1095,7 @@ export default function BatchDeliveriesPage() {
                   <Input 
                     id="paymentDate1" 
                     type="date" 
-                    value={selectedPaymentStatus1 === 1 ? todayDate : ''}
+                    value={paymentDetails.datePayment1 || ''}
                     disabled={true}
                     onChange={(e) => handlePaymentDetailChange('datePayment1', e.target.value)}
                   />

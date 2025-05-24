@@ -61,7 +61,7 @@ const addDelivery = (req, res) => {
 
     // 4. Validate payment if provided
     if (payment) {
-      const required = ['D_paymentTypeID', 'D_modeOfPaymentID', 'D_paymentStatusID'];
+      const required = ['D_paymentTypeID', 'D_paymentStatusID'];
       for (const field of required) {
         if (!payment[field]) {
           return res.status(400).json({ message: `Missing required payment field: ${field}` });

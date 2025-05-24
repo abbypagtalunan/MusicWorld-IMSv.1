@@ -104,7 +104,7 @@ export default function DeliveriesPage() {
           res.data.forEach(item => {
             detailsMap[item.D_deliveryNumber] = {
               paymentType:   item.D_paymentTypeID.toString(),
-              paymentMode:   item.D_modeOfPaymentID.toString(),
+              paymentMode:   item.D_modeOfPaymentID !== null ? item.D_modeOfPaymentID.toString() : "",
               paymentStatus: item.D_paymentStatusID.toString(),
               dateDue:       formatDateForInput(item.DPD_dateOfPaymentDue),
               datePayment1:  formatDateForInput(item.DPD_dateOfPayment1),
