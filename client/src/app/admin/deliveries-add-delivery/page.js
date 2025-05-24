@@ -56,6 +56,11 @@ export default function BatchDeliveriesPage() {
     dateDue2: "",
     datePayment2: ""
   });
+  
+  // Track UI-selected payment status values: -1 (unset), 1 = paid, 2 = unpaid
+  const [selectedPaymentStatus1, setSelectedPaymentStatus1] = useState(-1);
+  const [selectedPaymentStatus2, setSelectedPaymentStatus2] = useState(-1);
+  
   const [showSecondPayment, setShowSecondPayment] = useState(false);
   const secondCardRef = useRef(null);
   
@@ -248,22 +253,37 @@ export default function BatchDeliveriesPage() {
         }
       }
       
-      // 2) On Payment Status change
+      // 2) On Payment Status change (purely UI-driven “Unpaid”)
       if (field === 'paymentStatus') {
+        // find out what the user just picked
         const statusObj = paymentStatuses
           .find(s => s.D_paymentStatusID.toString() === value);
-        const isUnpaid = statusObj?.D_statusName.toLowerCase() === 'unpaid';
+        const statusName = statusObj?.D_statusName.toLowerCase();
+        const isUnpaidSelection = statusName === 'unpaid';
+        
+        setSelectedPaymentStatus1(statusName === 'paid' ? 1 : statusName === 'unpaid' ? 2 : -1);
 
-        // Only for the "two-time payment" type (ID === '3')
-        const isTwoTimePayment = paymentDetails.paymentType === '3';
+        // if they picked Unpaid, always clear & disable the corresponding date field
+        if (isUnpaidSelection) {
+          // first payment panel
+          next.datePayment1 = '';
 
-        if (isUnpaid && isTwoTimePayment) {
-          // reset all 2nd-panel fields
+          // if in two-time mode, also clear second payment date if they somehow unset panel two
+          next.datePayment2 = '';
+        }
+
+        // preserve your existing two-time reset logic for the rest of the panel
+        if (isUnpaidSelection && paymentDetails.paymentType === '3') {
           next.paymentMode2   = '';
           next.paymentStatus2 = '';
-          next.datePayment2   = '';
-          // leave showSecondPayment(true) so panel stays visible
+          // showSecondPayment stays true so panel two remains visible
         }
+      }
+      
+      if (field === 'paymentStatus2') {
+        const statusObj2 = paymentStatuses.find(s => s.D_paymentStatusID.toString() === value);
+        const statusName2 = statusObj2?.D_statusName.toLowerCase();
+        setSelectedPaymentStatus2(statusName2 === 'paid' ? 1 : statusName2 === 'unpaid' ? 2 : -1);
       }
 
       return next;
@@ -674,17 +694,20 @@ export default function BatchDeliveriesPage() {
       product.P_productName.toLowerCase().includes(searchTerm.toLowerCase())
     );
   };
-  
-  // enable 2nd panel fields only when first payment status is "Paid"
-  const isFirstPaid = paymentStatuses
-    .find(s => s.D_paymentStatusID.toString() === paymentDetails.paymentStatus)
-    ?.D_statusName
-    .toLowerCase() === 'paid';
     
   // disable 2nd panel Date of Payment if its status is "Unpaid"
   const status2Obj = paymentStatuses
     .find(s => s.D_paymentStatusID.toString() === paymentDetails.paymentStatus2);
   const isSecondUnpaid = status2Obj?.D_statusName.toLowerCase() === 'unpaid';
+  
+  const getTodayDate = () => {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+  const todayDate = getTodayDate();
 
   return (
     <SidebarProvider>
@@ -1009,25 +1032,7 @@ export default function BatchDeliveriesPage() {
                 </div>
                 <div className="col-span-3"> </div>
                 <div className="col-span-3"> </div>
-                <div className="col-span-3">
-                  <Label htmlFor="paymentMode" className="mb-1 block">Mode of Payment</Label>
-                  <Select 
-                    value={paymentDetails.paymentMode} 
-                    onValueChange={(value) => handlePaymentDetailChange('paymentMode', value)}
-                  >
-                    <SelectTrigger id="paymentMode">
-                      <SelectValue placeholder="Select payment mode" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {paymentModes.map(mode => (
-                        <SelectItem key={mode.D_modeOfPaymentID} value={mode.D_modeOfPaymentID.toString()}>
-                          {mode.D_mopName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
+                
                 {/* Second row */}
                 <div className="col-span-3">
                   <Label htmlFor="paymentStatus" className="mb-1 block">Payment Status</Label>
@@ -1051,6 +1056,26 @@ export default function BatchDeliveriesPage() {
                     </SelectContent>
                   </Select>
                 </div>
+                
+                <div className="col-span-3">
+                  <Label htmlFor="paymentMode" className="mb-1 block">Mode of Payment</Label>
+                  <Select 
+                    value={paymentDetails.paymentMode} 
+                    onValueChange={(value) => handlePaymentDetailChange('paymentMode', value)}
+                    disabled={selectedPaymentStatus1 !== 1}
+                  >
+                    <SelectTrigger id="paymentMode">
+                      <SelectValue placeholder="Select payment mode" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {paymentModes.map(mode => (
+                        <SelectItem key={mode.D_modeOfPaymentID} value={mode.D_modeOfPaymentID.toString()}>
+                          {mode.D_mopName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
                 <div className="col-span-3">
                   <Label htmlFor="paymentDateDue" className="mb-1 block">Date of Payment Due</Label>
@@ -1062,17 +1087,14 @@ export default function BatchDeliveriesPage() {
                     className={paymentDetails.paymentType === '1' ? 'text-gray-400' : ''}
                     readOnly
                   />
-                  {/* onChange={(e) => handlePaymentDetailChange('dateDue', e.target.value)} */}
                 </div>
                 <div className="col-span-3">
                   <Label htmlFor="paymentDate1" className="mb-1 block">Date of Payment</Label>
                   <Input 
                     id="paymentDate1" 
                     type="date" 
-                    value={paymentDetails.datePayment1}
-                    min={deliveryDate}
-                    max={paymentDetails.dateDue}
-                    disabled={paymentDetails.paymentType === '1' || !isFirstPaid}
+                    value={selectedPaymentStatus1 === 1 ? todayDate : ''}
+                    disabled={true}
                     onChange={(e) => handlePaymentDetailChange('datePayment1', e.target.value)}
                   />
                 </div>
@@ -1114,33 +1136,13 @@ export default function BatchDeliveriesPage() {
                   <div className="col-span-3"> </div>
                   <div className="col-span-3"> </div>
                   <div className="col-span-3"> </div>
-                  {/* Mode of Payment 2 */}
-                  <div className="col-span-3">
-                    <Label>Mode of Payment</Label>
-                    <Select
-                      value={paymentDetails.paymentMode2}
-                      onValueChange={v => handlePaymentDetailChange('paymentMode2', v)}
-                      disabled={!isFirstPaid}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select mode" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {paymentModes.map(m => (
-                          <SelectItem key={m.D_modeOfPaymentID} value={m.D_modeOfPaymentID.toString()}>
-                            {m.D_mopName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
                   {/* Payment Status 2 */}
                   <div className="col-span-3">
                     <Label>Payment Status</Label>
                     <Select
                       value={paymentDetails.paymentStatus2}
                       onValueChange={v => handlePaymentDetailChange('paymentStatus2', v)}
-                      disabled={!isFirstPaid}
+                      disabled={selectedPaymentStatus1 !== 1}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select status" />
@@ -1154,6 +1156,26 @@ export default function BatchDeliveriesPage() {
                       </SelectContent>
                     </Select>
                   </div>
+                  {/* Mode of Payment 2 */}
+                  <div className="col-span-3">
+                    <Label>Mode of Payment</Label>
+                    <Select
+                      value={paymentDetails.paymentMode2}
+                      onValueChange={v => handlePaymentDetailChange('paymentMode2', v)}
+                      disabled={selectedPaymentStatus2 !== 1}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select mode" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {paymentModes.map(m => (
+                          <SelectItem key={m.D_modeOfPaymentID} value={m.D_modeOfPaymentID.toString()}>
+                            {m.D_mopName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   {/* Date of Payment Due 2 */}
                   <div className="col-span-3">
                     <Label>Date of Payment Due</Label>
@@ -1161,22 +1183,17 @@ export default function BatchDeliveriesPage() {
                       type="date"
                       value={paymentDetails.dateDue2}
                       readOnly
-                      disabled={!isFirstPaid}
+                      disabled={selectedPaymentStatus1 !== 1}
                     />
-                    {/* onChange={e => handlePaymentDetailChange('dateDue2', e.target.value)} */}
                   </div>
                   {/* Date of Payment 2 */}
                   <div className="col-span-3">
                     <Label>Date of Payment</Label>
                     <Input
                       type="date"
-                      value={paymentDetails.datePayment2}
-                      min={deliveryDate}
-                      max={paymentDetails.dateDue2}
+                      value={selectedPaymentStatus2 === 1 ? todayDate : ''}
                       onChange={e => handlePaymentDetailChange('datePayment2', e.target.value)}
-                      disabled={
-                        !isFirstPaid || isSecondUnpaid || !paymentDetails.paymentStatus2
-                      }
+                      disabled={true}
                     />
                   </div>
                 </div>

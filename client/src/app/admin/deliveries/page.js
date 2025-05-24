@@ -262,6 +262,15 @@ export default function DeliveriesPage() {
     const date = new Date(dateString);
     return date.toISOString().split('T')[0];
   };
+  
+  const getTodayDate = () => {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+  const todayDate = getTodayDate();
 
   const handleFilterSelect = (filter, subFilter = null) => {
     setSelectedFilter(filter);
@@ -939,7 +948,7 @@ export default function DeliveriesPage() {
                                     onChange={(e) => updatePaymentDetail(d.deliveryNum, 'datePayment1', e.target.value)}
                                     /* ② only allow selection between delivery date and due date */
                                     min={d.rawDate}
-                                    max={paymentDetails[d.deliveryNum]?.dateDue}
+                                    max={todayDate}
                                     /* ③ disable when status is unpaid */
                                     disabled={
                                       paymentStatuses.find(s => s.D_paymentStatusID.toString() === paymentDetails[d.deliveryNum]?.paymentStatus)
@@ -1039,7 +1048,7 @@ export default function DeliveriesPage() {
                                     value={paymentDetails[d.deliveryNum]?.datePayment2 || ""}
                                     onChange={(e) => updatePaymentDetail(d.deliveryNum, 'paymentDate2', e.target.value)}
                                     min={d.rawDate}
-                                    max={paymentDetails[d.deliveryNum]?.dateDue2}
+                                    max={todayDate}
                                     disabled={
                                       paymentStatuses.find(s => s.D_paymentStatusID.toString() === paymentDetails[d.deliveryNum]?.paymentStatus)
                                         ?.D_statusName.toLowerCase() === 'unpaid'
@@ -1120,7 +1129,7 @@ export default function DeliveriesPage() {
                                     value={paymentDetails[d.deliveryNum]?.datePayment1 || ""}
                                     onChange={e => updatePaymentDetail(d.deliveryNum, 'datePayment1', e.target.value)}
                                     min={d.rawDate}
-                                    max={paymentDetails[d.deliveryNum]?.dateDue}
+                                    max={todayDate}
                                     disabled={
                                       paymentDetails[d.deliveryNum]?.paymentType === '1' ||
                                       paymentStatuses.find(s => s.D_paymentStatusID.toString() === paymentDetails[d.deliveryNum]?.paymentStatus)
