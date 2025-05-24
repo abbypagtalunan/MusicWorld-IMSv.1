@@ -21,6 +21,7 @@ export default function DeliveriesPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState(null);
   const [selectedSubFilter, setSelectedSubFilter] = useState(null);
+  const [selectedSupplier, setSelectedSupplier] = useState("");
   
   const [searchValue, setSearchValue] = useState("");
   const [searchResult, setSearchResult] = useState(null);
@@ -265,8 +266,16 @@ export default function DeliveriesPage() {
   const handleFilterSelect = (filter, subFilter = null) => {
     setSelectedFilter(filter);
     setSelectedSubFilter(subFilter);
-  };
 
+    // when filtering by supplier, set selectedSupplier accordingly;
+    // otherwise clear it
+    if (filter === "Supplier") {
+      setSelectedSupplier(subFilter);
+    } else {
+      setSelectedSupplier("");
+    }
+  };
+  
    // Sort
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "ascending" });
 
@@ -292,73 +301,88 @@ export default function DeliveriesPage() {
   }
 
   const getFilteredTransactions = () => {
-{      if (searchResult !== null) {
-        return searchResult;
-      }
+    // ① If the user has typed a value, filter by substring match first
+    let filteredTransactions = [...deliveries];
+    if (searchValue) {
+      filteredTransactions = filteredTransactions.filter(item =>
+        item.deliveryNum.includes(searchValue)
+      );
+    }
+    
+    if (searchResult !== null) {
+      return searchResult;
+    }
 
-      let sortedTransactions = [...deliveries];
+    // Apply supplier filter if one is chosen
+    if (selectedSupplier) {
+      filteredTransactions = filteredTransactions.filter(d =>
+        (deliveryProducts[d.deliveryNum]?.[0]?.supplier || "Unknown") === selectedSupplier
+      );
+    }
 
-      if (selectedFilter && selectedSubFilter) {
-        if (selectedFilter === "Delivery Number") {
-          sortedTransactions.sort((a, b) => {
-            const numA = parseInt(a.deliveryNum);
-            const numB = parseInt(b.deliveryNum);
-            return selectedSubFilter === "Ascending" ? numA - numB : numB - numA;
-          });
-        }
+    // ③ Apply existing filter/sort logic to the already-filtered list
+    let sortedTransactions = [...filteredTransactions];
 
-        if (selectedFilter === "Supplier") {
-          sortedTransactions = sortedTransactions.filter((item) => 
-            item.supplier === selectedSubFilter
-          );
-        }
-
-        if (selectedFilter === "Price") {
-          sortedTransactions.sort((a, b) => {
-            const getPrice = (str) => parseFloat(str.replace(/[^\d.]/g, ""));
-            return selectedSubFilter === "Low to High"
-              ? getPrice(a.totalCost) - getPrice(b.totalCost)
-              : getPrice(b.totalCost) - getPrice(a.totalCost);
-          });
-        }
-
-        if (selectedFilter === "Date") {
-          sortedTransactions.sort((a, b) => {
-            const dateA = new Date(a.dateAdded);
-            const dateB = new Date(b.dateAdded);
-            return selectedSubFilter === "Oldest"
-              ? dateA - dateB
-              : dateB - dateA;
-          });
-        }
-      } else if (sortConfig.key) {
-        
+    if (selectedFilter && selectedSubFilter) {
+      if (selectedFilter === "Delivery Number") {
         sortedTransactions.sort((a, b) => {
-          const valA = a[sortConfig.key] ?? "";
-          const valB = b[sortConfig.key] ?? "";
-
-          const numA = parseFloat(valA.toString().replace(/[₱,]/g, ""));
-          const numB = parseFloat(valB.toString().replace(/[₱,]/g, ""));
-
-          if (!isNaN(numA) && !isNaN(numB)) {
-            return sortConfig.direction === "ascending" ? numA - numB : numB - numA;
-          }
-
-          if (!isNaN(Date.parse(valA)) && !isNaN(Date.parse(valB))) {
-            return sortConfig.direction === "ascending"
-              ? new Date(valA) - new Date(valB)
-              : new Date(valB) - new Date(valA);
-          }
-
-          return sortConfig.direction === "ascending"
-            ? valA.toString().localeCompare(valB.toString())
-            : valB.toString().localeCompare(valA.toString());
+          const numA = parseInt(a.deliveryNum);
+          const numB = parseInt(b.deliveryNum);
+          return selectedSubFilter === "Ascending" ? numA - numB : numB - numA;
         });
       }
 
-      return sortedTransactions;
-    };
-}
+      if (selectedFilter === "Supplier") {
+        sortedTransactions = sortedTransactions.filter((item) => 
+          (deliveryProducts[item.deliveryNum]?.[0]?.supplier || "Unknown") === selectedSubFilter
+        );
+      }
+
+      if (selectedFilter === "Price") {
+        sortedTransactions.sort((a, b) => {
+          const getPrice = (str) => parseFloat(str.replace(/[^\d.]/g, ""));
+          return selectedSubFilter === "Low to High"
+            ? getPrice(a.totalCost) - getPrice(b.totalCost)
+            : getPrice(b.totalCost) - getPrice(a.totalCost);
+        });
+      }
+
+      if (selectedFilter === "Date") {
+        sortedTransactions.sort((a, b) => {
+          const dateA = new Date(a.dateAdded);
+          const dateB = new Date(b.dateAdded);
+          return selectedSubFilter === "Oldest"
+            ? dateA - dateB
+            : dateB - dateA;
+        });
+      }
+    } else if (sortConfig.key) {
+      
+      sortedTransactions.sort((a, b) => {
+        const valA = a[sortConfig.key] ?? "";
+        const valB = b[sortConfig.key] ?? "";
+
+        const numA = parseFloat(valA.toString().replace(/[₱,]/g, ""));
+        const numB = parseFloat(valB.toString().replace(/[₱,]/g, ""));
+
+        if (!isNaN(numA) && !isNaN(numB)) {
+          return sortConfig.direction === "ascending" ? numA - numB : numB - numA;
+        }
+
+        if (!isNaN(Date.parse(valA)) && !isNaN(Date.parse(valB))) {
+          return sortConfig.direction === "ascending"
+            ? new Date(valA) - new Date(valB)
+            : new Date(valB) - new Date(valA);
+        }
+
+        return sortConfig.direction === "ascending"
+          ? valA.toString().localeCompare(valB.toString())
+          : valB.toString().localeCompare(valA.toString());
+      });
+    }
+
+    return sortedTransactions;
+  };
 
   // Function to handle saving payment details
   const handleSavePaymentDetails = (deliveryNum) => {
@@ -504,6 +528,23 @@ export default function DeliveriesPage() {
         setIsLoading(false); // hide spinner
       });
   };
+    
+  // Place this above the DeliveriesPage component
+  const handleSearchChange = (e) => {
+    let val = e.target.value;
+    // Strip out anything that is not a digit
+    val = val.replace(/\D/g, '');
+    setSearchValue(val);
+  };
+  
+  // ① Compute suppliers only from the first DeliveryProductDetail ([0]) of each delivery
+  const firstProductSuppliers = Array.from(
+    new Set(
+      deliveries.map(d =>
+        deliveryProducts[d.deliveryNum]?.[0]?.supplier || "Unknown"
+      )
+    )
+  );
 
   return (
     <SidebarProvider>
@@ -520,7 +561,7 @@ export default function DeliveriesPage() {
                     id="deliverySearch"
                     name="deliverySearch"
                     value={searchValue}
-                    onChange={(e) => setSearchValue(e.target.value)}
+                    onChange={handleSearchChange}           // ← use sanitized change handler
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         handleSearch();
@@ -601,12 +642,12 @@ export default function DeliveriesPage() {
                     <DropdownMenuSub>
                       <DropdownMenuSubTrigger>Supplier</DropdownMenuSubTrigger>
                       <DropdownMenuSubContent>
-                        {suppliers.map(supplier => (
+                        {firstProductSuppliers.map(name => (
                           <DropdownMenuItem 
-                            key={supplier.S_supplierID}
-                            onClick={() => handleFilterSelect("Supplier", supplier.S_supplierName)}
+                            key={name}
+                            onClick={() => handleFilterSelect("Supplier", name)}
                           >
-                            {supplier.S_supplierName}
+                            {name}
                           </DropdownMenuItem>
                         ))}
                       </DropdownMenuSubContent>
