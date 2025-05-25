@@ -249,50 +249,54 @@ export default function ManageAccountsPage() {
     setSelectedSubFilter(subFilter);
   };
 
-  // Get filtered/sorted/searched staff list
-  const getFilteredStaffs = () => {
-    let filtered = [...staffs];
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter((staff) =>
-        `${staff.firstName} ${staff.lastName} ${staff.accountID}`
-          .toLowerCase()
-          .includes(query)
+const getFilteredStaffs = () => {
+  let filtered = [...staffs];
+  // Remove the current user from the staff list
+  if (currentUser?.accountID) {
+    filtered = filtered.filter((staff) => staff.accountID !== currentUser.accountID);
+  }
+
+  if (searchQuery) {
+    const query = searchQuery.toLowerCase();
+    filtered = filtered.filter((staff) =>
+      `${staff.firstName} ${staff.lastName} ${staff.accountID}`
+        .toLowerCase()
+        .includes(query)
+    );
+  }
+  if (!selectedFilter || !selectedSubFilter) return filtered;
+  switch (selectedFilter) {
+    case "Name":
+      return filtered.sort((a, b) =>
+        selectedSubFilter === "Ascending"
+          ? `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`)
+          : `${b.firstName} ${b.lastName}`.localeCompare(`${a.firstName} ${a.lastName}`)
       );
-    }
-    if (!selectedFilter || !selectedSubFilter) return filtered;
-    switch (selectedFilter) {
-      case "Name":
-        return filtered.sort((a, b) =>
-          selectedSubFilter === "Ascending"
-            ? `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`)
-            : `${b.firstName} ${b.lastName}`.localeCompare(`${a.firstName} ${a.lastName}`)
-        );
-      case "Role":
-        const selectedRole = roles.find(
-          (r) => r.roleName.toLowerCase() === selectedSubFilter.toLowerCase()
-        );
-        if (selectedRole) {
-          return filtered.filter((s) => s.roleID === selectedRole.roleID);
-        } else if (selectedSubFilter === "All") {
-          return [...filtered];
-        }
-        break;
-      case "User Code":
-        return filtered.sort((a, b) =>
-          selectedSubFilter === "Low to High" ? a.accountID - b.accountID : b.accountID - a.accountID
-        );
-      case "Date Created":
-        return filtered.sort((a, b) => {
-          const dateA = new Date(a.dateCreated);
-          const dateB = new Date(b.dateCreated);
-          return selectedSubFilter === "Oldest" ? dateA - dateB : dateB - dateA;
-        });
-      default:
-        return filtered;
-    }
-    return filtered;
-  };
+    case "Role":
+      const selectedRole = roles.find(
+        (r) => r.roleName.toLowerCase() === selectedSubFilter.toLowerCase()
+      );
+      if (selectedRole) {
+        return filtered.filter((s) => s.roleID === selectedRole.roleID);
+      } else if (selectedSubFilter === "All") {
+        return [...filtered];
+      }
+      break;
+    case "User Code":
+      return filtered.sort((a, b) =>
+        selectedSubFilter === "Low to High" ? a.accountID - b.accountID : b.accountID - a.accountID
+      );
+    case "Date Created":
+      return filtered.sort((a, b) => {
+        const dateA = new Date(a.dateCreated);
+        const dateB = new Date(b.dateCreated);
+        return selectedSubFilter === "Oldest" ? dateA - dateB : dateB - dateA;
+      });
+    default:
+      return filtered;
+  }
+  return filtered;
+};
 
   // Submit add staff
   const handleAddStaff = async () => {
@@ -471,7 +475,7 @@ export default function ManageAccountsPage() {
                             Date Created
                           </Label>
                           <p className="text-base font-medium text-gray-800">
-                            {currentUser.dateCreated}
+                            {new Date(currentUser.dateCreated).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
