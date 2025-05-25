@@ -516,16 +516,17 @@ export default function DeliveriesPage() {
       });
   };
   
-  // when user clicks the date-search button
-  const handleSearchDate = async () => {
-    if (!searchDate) {
+  // automatically fetch when date changes
+  const handleSearchDate = async (dateParam) => {
+    const date = dateParam || searchDate;
+    if (!date) {
       setSearchResult(null);
       return;
     }
     setIsLoading(true);
     try {
       const res = await axios.get(
-        `${config.deliveries.searchByDate}?date=${searchDate}`
+        `${config.deliveries.searchByDate}?date=${date}`
       );
       setSearchResult(normalizeDeliveryData(res.data));
     } catch (err) {
@@ -654,18 +655,14 @@ export default function DeliveriesPage() {
                   type="date"
                   id="deliveryDateSearch"
                   value={searchDate}
-                  onChange={e => setSearchDate(e.target.value)}
+                  onChange={e => {
+                    const date = e.target.value;
+                    setSearchDate(date);
+                    // automatically fetch on date select
+                    handleSearchDate(date);
+                  }}
                   className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-100 text-gray-500"
                 />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleSearchDate}
-                  className="flex items-center space-x-1 bg-blue-100"
-                >
-                  <Search className="w-4 h-4" />
-                  <span>Go</span>
-                </Button>
                 {searchDate && searchResult && (
                   <Button
                     variant="ghost"
@@ -680,6 +677,7 @@ export default function DeliveriesPage() {
                   </Button>
                 )}
               </div>
+
               <span className="pr-5"></span>
               <div className="flex items-center space-x-2">
                 <DropdownMenu>
@@ -745,13 +743,15 @@ export default function DeliveriesPage() {
                   </TableHead>
                   <TableHead className="pl-0">View Details</TableHead>
                   <TableHead className="pl-0">Edit Payment</TableHead>
-                  <TableHead className="pl-6">Delete</TableHead>
+                  <TableHead className="pl-0">Delete</TableHead>
                 </TableRow>
               </TableHeader>
               
               <TableBody>
                 {getFilteredTransactions().map((d) => (
-                  <TableRow key={d.deliveryNum}>
+                  <TableRow
+                    key={d.deliveryNum}
+                  >
                     <TableCell className="pl-10">{d.dateAdded}</TableCell>
                     <TableCell className="pl-6">{`DR-${d.deliveryNum}`}</TableCell>
                     <TableCell className="pl-0">

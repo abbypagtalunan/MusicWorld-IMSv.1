@@ -52,7 +52,7 @@ export default function BatchDeliveriesPage() {
     datePayment1: "",
     // for 2nd payment
     paymentMode2: "",
-    paymentStatus2: "",
+    paymentStatus2: "2",  // ← default to Unpaid (primary key = 2)
     dateDue2: "",
     datePayment2: ""
   });
@@ -239,7 +239,7 @@ export default function BatchDeliveriesPage() {
             next.dateDue2 = due2.toISOString().split('T')[0];
           }
           next.paymentStatus = '';
-          next.paymentStatus2 = '';
+          next.paymentStatus2 = '2'; // ← default to Unpaid
         }
         else if (prev.paymentType === '1') {
           next.paymentStatus = '';
@@ -258,11 +258,9 @@ export default function BatchDeliveriesPage() {
 
         if (newStatus === 2) {
           next.datePayment1 = '';
-          next.datePayment2 = '';
           
           if (selectedPaymentType === 3) {
             next.paymentMode2   = '';
-            next.paymentStatus2 = '';
           }
         } else if (newStatus === 1) {
           const today = new Date().toISOString().split('T')[0];
@@ -458,27 +456,17 @@ export default function BatchDeliveriesPage() {
       }
 
       // 2nd payment (if shown): explicit checks
-      if (showSecondPayment) {
-        if (!paymentDetails.paymentMode2) {
-          toast.error("2nd Payment Mode field is empty");
-          return;
-        }
+      if (showSecondPayment && selectedPaymentStatus1 === 1) { // if only status 1 is Paid
         if (!paymentDetails.paymentStatus2) {
           toast.error("2nd Payment Status field is empty");
           return;
         }
-        if (!paymentDetails.dateDue2) {
-          toast.error("2nd Date of Payment Due field is empty");
+        if (!paymentDetails.paymentMode2 && selectedPaymentStatus2 === 1) {
+          toast.error("2nd Payment Mode field is empty");
           return;
         }
-
-        // require actual 2nd-payment date only if status2 is NOT Unpaid
-        const status2Obj = paymentStatuses.find(s =>
-          s.D_paymentStatusID.toString() === paymentDetails.paymentStatus2
-        );
-        const isUnpaid2 = status2Obj?.D_statusName.toLowerCase() === 'unpaid';
-        if (!isUnpaid2 && !paymentDetails.datePayment2) {
-          toast.error("2nd Date of Payment field is empty");
+        if (!paymentDetails.dateDue2) {
+          toast.error("2nd Date of Payment Due field is empty");
           return;
         }
       }
@@ -534,6 +522,10 @@ export default function BatchDeliveriesPage() {
         paymentStatus: "",
         dateDue: "",
         datePayment1: "",
+        // keep all keys defined so inputs never go from defined→undefined:
+        paymentMode2: "",
+        paymentStatus2: "2",   // match your initial default
+        dateDue2: "",
         datePayment2: ""
       });
       setNewProduct({
@@ -960,6 +952,8 @@ export default function BatchDeliveriesPage() {
                       type="text" 
                       placeholder="Enter quantity" 
                       className="mt-1"
+                      autoComplete="off"      // ← Disable autocomplete/history
+                      spellCheck={false}      // ← Disable spellcheck suggestions
                       value={newProduct.quantity}
                       onChange={e => {
                         const val = e.target.value;

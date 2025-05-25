@@ -67,14 +67,6 @@ const addDelivery = (req, res) => {
           return res.status(400).json({ message: `Missing required payment field: ${field}` });
         }
       }
-      // if 2-month installment, ensure second fields exist
-      if (payment.D_modeOfPaymentID2 && (
-          !payment.D_paymentStatusID2 ||
-          !payment.DPD_dateOfPaymentDue2 ||
-          !payment.DPD_dateOfPayment2
-      )) {
-        return res.status(400).json({ message: "Missing second-payment fields" });
-      }
     }
 
     // 5. Delegate all inserts to the model
