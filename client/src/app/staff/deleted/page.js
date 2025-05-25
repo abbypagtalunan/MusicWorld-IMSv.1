@@ -99,7 +99,6 @@ export default function DeletedPage() {
     },
   };
 
-    
   const config = configMap[activeTab] || {};  
 
   const getCurrentTabData = () => {
@@ -134,15 +133,14 @@ export default function DeletedPage() {
 
   useEffect(() => {
     setSearchTerm("");
+    setCurrentPage(1);
   }, [activeTab]);
 
-
   const [searchTerm, setSearchTerm] = useState("");
-
-  // Search
-    const [selectedTransactions, setSelectedTransactions] = useState([]);
-  // Sort
+  const [selectedTransactions, setSelectedTransactions] = useState([]);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "ascending" });
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
 
   const handleSort = (key) => {
     setSortConfig((prev) => {
@@ -157,8 +155,7 @@ export default function DeletedPage() {
     });
   };
 
-
-  // Search  
+  // Search and filter logic
   const getFilteredTransactions = () => {
     let result = [...getCurrentTabData()];
 
@@ -172,7 +169,8 @@ export default function DeletedPage() {
           case "order":
             matches.push(
               String(item[config.idField] || '').toLowerCase().includes(search),
-              String(item[config.nameField] || '').toLowerCase().includes(search)
+              String(item[config.nameField] || '').toLowerCase().includes(search),
+              String(item[config.codeField] || '').toLowerCase().includes(search)
             );
             break;
           case "return":
@@ -203,8 +201,8 @@ export default function DeletedPage() {
       });
     }
 
-  // Sort logic
-  const key = sortConfig.key;
+    // Sort logic
+    const key = sortConfig.key;
     if (key && sortConfig.direction !== null) {
       result.sort((a, b) => {
         let valA = a[key];
@@ -261,9 +259,6 @@ export default function DeletedPage() {
       <ChevronDown className="inline ml-1 w-4 h-4 text-blue-500" />
     );
   }  
-  
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 12;
 
   // Pagination logic functions
   const getPaginatedData = () => {
@@ -293,43 +288,6 @@ export default function DeletedPage() {
     }
   };
 
-  // Reset to page 1 when search term changes
-  const handleSearchChange = (e) => {
-    setSearchTerm(e.target.value);
-    setSelectedTransactions([]);
-    setCurrentPage(1); // Reset to first page
-  };
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 12;
-  
-  // Pagination logic functions
-  const getPaginatedData = () => {
-    const filteredData = getFilteredTransactions();
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return filteredData.slice(startIndex, endIndex);
-  };
-  
-  const getTotalPages = () => {
-    return Math.ceil(getFilteredTransactions().length / itemsPerPage);
-  };
-  
-  const goToPage = (page) => {
-    setCurrentPage(page);
-  };
-  
-  const goToPreviousPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-    }
-  };
-  
-  const goToNextPage = () => {
-    if (currentPage < getTotalPages()) {
-      setCurrentPage(currentPage + 1);
-    }
-  };
-  
   // Reset to page 1 when search term changes
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
@@ -337,7 +295,7 @@ export default function DeletedPage() {
     setCurrentPage(1); // Reset to first page
   };
    
-   return (
+  return (
     <SidebarProvider>
       <div className="flex h-screen w-screen">
         <AppSidebar />
@@ -347,20 +305,6 @@ export default function DeletedPage() {
           </div>
 
           <Tabs defaultValue="order" onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-            <div className="w-full z-10 sticky">
-              <TabsList className="w-full flex justify-start bg-white rounded-md shadow-md px-6 py-6 space-x-4">
-                {Object.entries(configMap).map(([key, cfg]) => (
-                  <TabsTrigger
-                    key={key}
-                    value={key}
-                    className="data-[state=active]:text-indigo-600"
-                  >
-                    {`${cfg.label.toUpperCase()}`}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </div>
-            <div className="flex-1 flex flex-col overflow-hidden">
             <TabsList className="w-full flex justify-start bg-white rounded-md shadow-md px-6 py-3 space-x-4 flex-shrink-0 h-16">
               {Object.entries(configMap).map(([key, cfg]) => (
                 <TabsTrigger
@@ -376,403 +320,399 @@ export default function DeletedPage() {
             <div className="flex-1 flex flex-col overflow-hidden">
               {Object.entries(configMap).map(([key, cfg]) => (
                 <TabsContent key={key} value={key} className="flex-1 flex-col overflow-hidden m-0 data-[state=active]:flex data-[state=inactive]:hidden">
-                <TabsContent key={key} value={key} className="flex-1 flex-col overflow-hidden m-0 data-[state=active]:flex data-[state=inactive]:hidden">
-                  {/* Table */}
-                    <Card className="w-full h-full flex flex-col overflow-hidden">
+                  <Card className="w-full flex-1 flex flex-col overflow-hidden">
                     <div className="p-0 flex-1 flex flex-col overflow-hidden min-h-0">
-                      <CardContent className="p-0 overflow">
-                        {/* Search */}
-                        <div className=" bg-white p-4 flex justify-between items-center">
-                            <div className="relative w-80">
-                              <Input
-                                type="text"
-                                placeholder={`Search ${config.label}...`}
-                                className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                value={searchTerm}
-                                onChange={(e) => {
-                                  setSearchTerm(e.target.value);
-                                  setSelectedTransactions([]);
-                                }}
-                              />
-                              <div className="absolute left-3 top-2.5 text-gray-500">
-                                <Search className="w-5 h-5" variant="outline"/>
-                              </div>
-                              {searchTerm && (
-                                <div
-                                  className="absolute right-3 top-2.5 text-gray-500 cursor-pointer"
-                                  onClick={() => {
-                                    setSearchTerm("");
-                                    setSelectedTransactions([]);
-                                  }}
-                                >
-                                  <X className="w-5 h-5" />
-                                </div>
-                              )}
+                      <CardContent className="p-0 flex-1 flex flex-col overflow-hidden min-h-0">
+                        {/* Search - Fixed height */}
+                        <div className="bg-white p-4 flex justify-between items-center border-b flex-shrink-0">
+                          <div className="relative w-80">
+                            <Input
+                              type="text"
+                              placeholder={`Search ${config.label}...`}
+                              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              value={searchTerm}
+                              onChange={handleSearchChange}
+                            />
+                            <div className="absolute left-3 top-2.5 text-gray-500">
+                              <Search className="w-5 h-5" variant="outline"/>
                             </div>
+                            {searchTerm && (
+                              <div
+                                className="absolute right-3 top-2.5 text-gray-500 cursor-pointer"
+                                onClick={() => {
+                                  setSearchTerm("");
+                                  setSelectedTransactions([]);
+                                  setCurrentPage(1);
+                                }}
+                              >
+                                <X className="w-5 h-5" />
+                              </div>
+                            )}
                           </div>
-
-                      <div className="sticky top-[72px] z-10 bg-white">
-                          <Table className="min-w-full table-fixed w-full">
-                          <TableHeader className="sticky top-[72px] z-10 bg-white shadow-sm">
-                              <TableRow>
-                              {activeTab === "order" && (
-                                <>
-                                  <TableHead onClick={() => handleSort(config.idField)} className="cursor-pointer">
-                                    Order ID <SortIcon column={config.idField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.codeField)} className="cursor-pointer">
-                                    Product Code <SortIcon column={config.codeField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.receiptField)} className="cursor-pointer">
-                                    Receipt Number <SortIcon column={config.receiptField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.nameField)} className="cursor-pointer">
-                                    Product <SortIcon column={config.nameField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.totalamtField)} className="cursor-pointer">
-                                    Order Total Amount <SortIcon column={config.totalamtField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.dateField)} className="cursor-pointer">
-                                    Order Date <SortIcon column={config.dateField} />
-                                  </TableHead>
-                                  <TableHead>View Details</TableHead>
-                                </>
-                              )}
-                              {activeTab === "return" && (
-                                <>
-                                  <TableHead onClick={() => handleSort(config.idField)} className="cursor-pointer">
-                                    Return ID <SortIcon column={config.idField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.codeField)} className="cursor-pointer">
-                                    Product Code <SortIcon column={config.codeField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.typeField)} className="cursor-pointer">
-                                    Reason of Return <SortIcon column={config.typeField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.nameField)} className="cursor-pointer">
-                                    Product <SortIcon column={config.nameField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.totalamtField)} className="cursor-pointer">
-                                    Return Total Amount <SortIcon column={config.totalamtField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.dateField)} className="cursor-pointer">
-                                    Return Date <SortIcon column={config.dateField} />
-                                  </TableHead>
-                                  <TableHead>View Details</TableHead>
-                                </>
-                              )}
-                              {activeTab === "delivery" && (
-                                <>
-                                  <TableHead onClick={() => handleSort(config.idField)} className="cursor-pointer">
-                                    Delivery ID <SortIcon column={config.idField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.codeField)} className="cursor-pointer">
-                                    Product Code <SortIcon column={config.codeField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.nameField)} className="cursor-pointer">
-                                    Product <SortIcon column={config.nameField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.supplierField)} className="cursor-pointer">
-                                    Supplier <SortIcon column={config.supplierField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.quantityField)} className="cursor-pointer">
-                                    Quantity <SortIcon column={config.quantityField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.dateField)} className="cursor-pointer">
-                                    Delivery Date <SortIcon column={config.dateField} />
-                                  </TableHead>
-                                  <TableHead>View Details</TableHead>
-                                </>
-                              )}
-                              {activeTab === "product" && (
-                                <>
-                                  <TableHead onClick={() => handleSort(config.codeField)} className="cursor-pointer">
-                                    Product Code <SortIcon column={config.codeField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.categoryField)} className="cursor-pointer">
-                                    Category <SortIcon column={config.categoryField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.skuField)} className="cursor-pointer">
-                                    SKU <SortIcon column={config.skuField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.nameField)} className="cursor-pointer">
-                                    Name <SortIcon column={config.nameField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.brandField)} className="cursor-pointer">
-                                    Brand <SortIcon column={config.brandField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.supplierField)} className="cursor-pointer">
-                                    Supplier <SortIcon column={config.supplierField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.stockField)} className="cursor-pointer">
-                                    Stock Amount <SortIcon column={config.stockField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.unitpriceField)} className="cursor-pointer">
-                                    Unit Price <SortIcon column={config.unitpriceField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.sellingpriceField)} className="cursor-pointer">
-                                    Selling Price <SortIcon column={config.sellingpriceField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.statusField)} className="cursor-pointer">
-                                    Status <SortIcon column={config.statusField} />
-                                  </TableHead>
-                                  <TableHead onClick={() => handleSort(config.dateField)} className="cursor-pointer">
-                                    Date Added <SortIcon column={config.dateField} />
-                                  </TableHead>
-                                </>
-                              )}
-                            </TableRow>
-                          </TableHeader>
-                          </Table>
+                        </div>
+                        
+                        {/* Table Container - Flexible height with sticky headers */}
+                        <div className="flex-1 overflow-hidden relative min-h-0">
+                          <div className="h-full overflow-y-auto overflow-x-auto">
+                            <Table className="min-w-full w-full relative">
+                              <TableHeader className="sticky top-0 z-30 bg-white shadow-md border-b-2 border-gray-200">
+                                <TableRow className="bg-white">
+                                  {activeTab === "order" && (
+                                    <>
+                                      <TableHead onClick={() => handleSort(config.idField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
+                                        Order ID <SortIcon column={config.idField} />
+                                      </TableHead>
+                                      <TableHead onClick={() => handleSort(config.codeField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
+                                        Product Code <SortIcon column={config.codeField} />
+                                      </TableHead>
+                                      <TableHead onClick={() => handleSort(config.receiptField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
+                                        Receipt Number <SortIcon column={config.receiptField} />
+                                      </TableHead>
+                                      <TableHead onClick={() => handleSort(config.nameField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
+                                        Product <SortIcon column={config.nameField} />
+                                      </TableHead>
+                                      <TableHead onClick={() => handleSort(config.totalamtField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
+                                        Order Total Amount <SortIcon column={config.totalamtField} />
+                                      </TableHead>
+                                      <TableHead onClick={() => handleSort(config.dateField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
+                                        Order Date <SortIcon column={config.dateField} />
+                                      </TableHead>
+                                      <TableHead className="sticky top-0 z-30 bg-white px-4 py-3 font-semibold text-gray-900">View Details</TableHead>
+                                    </>
+                                  )}
+                                  {activeTab === "return" && (
+                                    <>
+                                      <TableHead onClick={() => handleSort(config.idField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
+                                        Return ID <SortIcon column={config.idField} />
+                                      </TableHead>
+                                      <TableHead onClick={() => handleSort(config.codeField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
+                                        Product Code <SortIcon column={config.codeField} />
+                                      </TableHead>
+                                      <TableHead onClick={() => handleSort(config.typeField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
+                                        Reason of Return <SortIcon column={config.typeField} />
+                                      </TableHead>
+                                      <TableHead onClick={() => handleSort(config.nameField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
+                                        Product <SortIcon column={config.nameField} />
+                                      </TableHead>
+                                      <TableHead onClick={() => handleSort(config.totalamtField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
+                                        Return Total Amount <SortIcon column={config.totalamtField} />
+                                      </TableHead>
+                                      <TableHead onClick={() => handleSort(config.dateField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
+                                        Return Date <SortIcon column={config.dateField} />
+                                      </TableHead>
+                                      <TableHead className="sticky top-0 z-30 bg-white px-4 py-3 font-semibold text-gray-900">View Details</TableHead>
+                                    </>
+                                  )}
+                                  {activeTab === "delivery" && (
+                                    <>
+                                      <TableHead onClick={() => handleSort(config.idField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
+                                        Delivery ID <SortIcon column={config.idField} />
+                                      </TableHead>
+                                      <TableHead onClick={() => handleSort(config.codeField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
+                                        Product Code <SortIcon column={config.codeField} />
+                                      </TableHead>
+                                      <TableHead onClick={() => handleSort(config.nameField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
+                                        Product <SortIcon column={config.nameField} />
+                                      </TableHead>
+                                      <TableHead onClick={() => handleSort(config.supplierField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
+                                        Supplier <SortIcon column={config.supplierField} />
+                                      </TableHead>
+                                      <TableHead onClick={() => handleSort(config.quantityField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
+                                        Quantity <SortIcon column={config.quantityField} />
+                                      </TableHead>
+                                      <TableHead onClick={() => handleSort(config.dateField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
+                                        Delivery Date <SortIcon column={config.dateField} />
+                                      </TableHead>
+                                      <TableHead className="sticky top-0 z-30 bg-white px-4 py-3 font-semibold text-gray-900">View Details</TableHead>
+                                    </>
+                                  )}
+                                  {activeTab === "product" && (
+                                    <>
+                                      <TableHead onClick={() => handleSort(config.codeField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
+                                        Product Code <SortIcon column={config.codeField} />
+                                      </TableHead>
+                                      <TableHead onClick={() => handleSort(config.categoryField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
+                                        Category <SortIcon column={config.categoryField} />
+                                      </TableHead>
+                                      <TableHead onClick={() => handleSort(config.skuField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
+                                        SKU <SortIcon column={config.skuField} />
+                                      </TableHead>
+                                      <TableHead onClick={() => handleSort(config.nameField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
+                                        Name <SortIcon column={config.nameField} />
+                                      </TableHead>
+                                      <TableHead onClick={() => handleSort(config.brandField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
+                                        Brand <SortIcon column={config.brandField} />
+                                      </TableHead>
+                                      <TableHead onClick={() => handleSort(config.supplierField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
+                                        Supplier <SortIcon column={config.supplierField} />
+                                      </TableHead>
+                                      <TableHead onClick={() => handleSort(config.stockField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
+                                        Stock Amount <SortIcon column={config.stockField} />
+                                      </TableHead>
+                                      <TableHead onClick={() => handleSort(config.unitpriceField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
+                                        Unit Price <SortIcon column={config.unitpriceField} />
+                                      </TableHead>
+                                      <TableHead onClick={() => handleSort(config.sellingpriceField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
+                                        Selling Price <SortIcon column={config.sellingpriceField} />
+                                      </TableHead>
+                                      <TableHead onClick={() => handleSort(config.statusField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
+                                        Status <SortIcon column={config.statusField} />
+                                      </TableHead>
+                                      <TableHead onClick={() => handleSort(config.dateField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
+                                        Date Added <SortIcon column={config.dateField} />
+                                      </TableHead>
+                                    </>
+                                  )}
+                                </TableRow>
+                              </TableHeader>
+                              
+                              <TableBody>
+                                {getPaginatedData().length === 0 ? (
+                                  <TableRow>
+                                    <TableCell colSpan={activeTab === "product" ? 11 : (activeTab === "order" ? 7 : (activeTab === "return" ? 7 : 7))} className="text-center py-8">
+                                      No deleted transactions found.
+                                    </TableCell>
+                                  </TableRow>
+                                ) : (
+                                  getPaginatedData().map((item, index) => (
+                                    <TableRow key={index} className="hover:bg-gray-50">
+                                      {activeTab === "order" && (
+                                        <>
+                                          <TableCell className="px-4 py-3">{item[config.idField]}</TableCell>
+                                          <TableCell className="px-4 py-3">{item[config.codeField]}</TableCell>
+                                          <TableCell className="px-4 py-3">{item[config.receiptField]}</TableCell>
+                                          <TableCell className="px-4 py-3">{item[config.nameField]}</TableCell>
+                                          <TableCell className="px-4 py-3">{item[config.totalamtField]}</TableCell>
+                                          <TableCell className="px-4 py-3">{new Date(item[config.dateField]).toLocaleDateString()}</TableCell>
+                                          <TableCell className="px-4 py-3">
+                                            <Dialog>
+                                              <DialogTrigger asChild>
+                                                <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600">
+                                                  <Eye size={16} />
+                                                </Button>
+                                              </DialogTrigger>
+                                              <DialogContent className="w-[90vw] max-w-3xl sm:max-w-lg md:max-w-3xl max-h-[90vh] overflow-y-auto p-6">
+                                                <DialogHeader>
+                                                  <DialogTitle>Transaction Details</DialogTitle>
+                                                  <DialogClose />
+                                                </DialogHeader>
+                                                <Table>
+                                                  <TableHeader>
+                                                    <TableRow>
+                                                      <TableHead>Product Code</TableHead>
+                                                      <TableHead>Supplier</TableHead>
+                                                      <TableHead>Brand</TableHead>
+                                                      <TableHead>Category</TableHead>
+                                                      <TableHead>Product</TableHead>
+                                                      <TableHead>Selling Price</TableHead>
+                                                      <TableHead>Quantity</TableHead>
+                                                      <TableHead>Item total</TableHead>
+                                                    </TableRow>
+                                                  </TableHeader>
+                                                  <TableBody>
+                                                    <TableRow>
+                                                      <TableCell>{item[config.codeField]}</TableCell>
+                                                      <TableCell>{item[config.supplierField]}</TableCell>
+                                                      <TableCell>{item[config.brandField]}</TableCell>
+                                                      <TableCell>{item[config.categoryField]}</TableCell>
+                                                      <TableCell>{item[config.nameField]}</TableCell>
+                                                      <TableCell>{item[config.sellingpriceField]}</TableCell>
+                                                      <TableCell>{item[config.quantityField]}</TableCell>
+                                                      <TableCell>{item[config.itemtotalField]}</TableCell>
+                                                    </TableRow>
+                                                  </TableBody>
+                                                </Table>
+                                              </DialogContent>
+                                            </Dialog>
+                                          </TableCell>
+                                        </>
+                                      )}
+                                      {activeTab === "return" && (
+                                        <>
+                                          <TableCell className="px-4 py-3">{item[config.idField]}</TableCell>
+                                          <TableCell className="px-4 py-3">{item[config.codeField]}</TableCell>
+                                          <TableCell className="px-4 py-3">{item[config.typeField]}</TableCell>
+                                          <TableCell className="px-4 py-3">{item[config.nameField]}</TableCell>
+                                          <TableCell className="px-4 py-3">{item[config.totalamtField]}</TableCell>
+                                          <TableCell className="px-4 py-3">{new Date(item[config.dateField]).toLocaleDateString()}</TableCell>
+                                          <TableCell className="px-4 py-3">
+                                            <Dialog>
+                                              <DialogTrigger asChild>
+                                                <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600">
+                                                  <Eye size={16} />
+                                                </Button>
+                                              </DialogTrigger>
+                                              <DialogContent className="w-[90vw] max-w-3xl sm:max-w-lg md:max-w-3xl max-h-[90vh] overflow-y-auto p-6">
+                                                <DialogHeader>
+                                                  <DialogTitle>Return Details</DialogTitle>
+                                                  <DialogClose />
+                                                </DialogHeader>
+                                                <Table>
+                                                  <TableHeader>
+                                                    <TableRow>
+                                                      <TableHead>Product Code</TableHead>
+                                                      <TableHead>Supplier</TableHead>
+                                                      <TableHead>Brand</TableHead>
+                                                      <TableHead>Category</TableHead>
+                                                      <TableHead>Product</TableHead>
+                                                      <TableHead>Quantity</TableHead>
+                                                      <TableHead>Discount amount</TableHead>
+                                                    </TableRow>
+                                                  </TableHeader>
+                                                  <TableBody>
+                                                    <TableRow>
+                                                      <TableCell>{item[config.codeField]}</TableCell>
+                                                      <TableCell>{item[config.supplierField]}</TableCell>
+                                                      <TableCell>{item[config.brandField]}</TableCell>
+                                                      <TableCell>{item[config.categoryField]}</TableCell>
+                                                      <TableCell>{item[config.nameField]}</TableCell>
+                                                      <TableCell>{item[config.quantityField]}</TableCell>
+                                                      <TableCell>{item[config.discountField]}</TableCell>
+                                                    </TableRow>
+                                                  </TableBody>
+                                                </Table>
+                                              </DialogContent>
+                                            </Dialog>
+                                          </TableCell>
+                                        </>
+                                      )}
+                                      {activeTab === "delivery" && (
+                                        <>
+                                          <TableCell className="px-4 py-3">{item[config.idField]}</TableCell>
+                                          <TableCell className="px-4 py-3">{item[config.codeField]}</TableCell>
+                                          <TableCell className="px-4 py-3">{item[config.nameField]}</TableCell>
+                                          <TableCell className="px-4 py-3">{item[config.supplierField]}</TableCell>
+                                          <TableCell className="px-4 py-3">{item[config.quantityField]}</TableCell>
+                                          <TableCell className="px-4 py-3">{new Date(item[config.dateField]).toLocaleDateString()}</TableCell>
+                                          <TableCell className="px-4 py-3">
+                                            <Dialog>
+                                              <DialogTrigger asChild>
+                                                <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600">
+                                                  <Eye size={16} />
+                                                </Button>
+                                              </DialogTrigger>
+                                              <DialogContent className="w-[90vw] max-w-3xl sm:max-w-lg md:max-w-3xl max-h-[90vh] overflow-y-auto p-6">
+                                                <DialogHeader>
+                                                  <DialogTitle>Delivery Details</DialogTitle>
+                                                  <DialogClose />
+                                                </DialogHeader>
+                                                <Table>
+                                                  <TableHeader>
+                                                    <TableRow>
+                                                      <TableHead>Product Code</TableHead>
+                                                      <TableHead>Supplier</TableHead>
+                                                      <TableHead>Brand</TableHead>
+                                                      <TableHead>Category</TableHead>
+                                                      <TableHead>Product</TableHead>
+                                                      <TableHead>Quantity</TableHead>
+                                                    </TableRow>
+                                                  </TableHeader>
+                                                  <TableBody>
+                                                    <TableRow>
+                                                      <TableCell>{item[config.codeField]}</TableCell>
+                                                      <TableCell>{item[config.supplierField]}</TableCell>
+                                                      <TableCell>{item[config.brandField]}</TableCell>
+                                                      <TableCell>{item[config.categoryField]}</TableCell>
+                                                      <TableCell>{item[config.nameField]}</TableCell>
+                                                      <TableCell>{item[config.quantityField]}</TableCell>
+                                                    </TableRow>
+                                                  </TableBody>
+                                                </Table>
+                                              </DialogContent>
+                                            </Dialog>
+                                          </TableCell>
+                                        </>
+                                      )}
+                                      {activeTab === "product" && (
+                                        <>
+                                          <TableCell className="px-4 py-3">{item[config.codeField]}</TableCell>
+                                          <TableCell className="px-4 py-3">{item[config.categoryField]}</TableCell>
+                                          <TableCell className="px-4 py-3">{item[config.skuField]}</TableCell>
+                                          <TableCell className="px-4 py-3">{item[config.nameField]}</TableCell>
+                                          <TableCell className="px-4 py-3">{item[config.brandField]}</TableCell>
+                                          <TableCell className="px-4 py-3">{item[config.supplierField]}</TableCell>
+                                          <TableCell className="px-4 py-3">{item[config.stockField]}</TableCell>
+                                          <TableCell className="px-4 py-3">{item[config.unitpriceField]}</TableCell>
+                                          <TableCell className="px-4 py-3">{item[config.sellingpriceField]}</TableCell>
+                                          <TableCell className="px-4 py-3">{item[config.statusField]}</TableCell>
+                                          <TableCell className="px-4 py-3">{new Date(item[config.dateField]).toLocaleDateString()}</TableCell>
+                                        </>
+                                      )}
+                                    </TableRow>
+                                  ))
+                                )}
+                              </TableBody>
+                            </Table>
+                          </div>
                         </div>
 
-                      <div className="overflow-y-auto max-h-[450px]">
-                      <Table className="min-w-full">
-                          <TableBody>
-                          {getCurrentTabData().length === 0 ? (
-                            <TableRow>
-                              <TableCell colSpan={8} className="text-center">
-                                No deleted transactions found.
-                              </TableCell>
-                            </TableRow>
-                          ):(
-                            getFilteredTransactions().map((item, index) => (
-                              <TableRow key={index}>
-                                {activeTab === "order" && (
-                                  <>
-                                    <TableCell>{item[config.idField]}</TableCell>
-                                    <TableCell>{item[config.codeField]}</TableCell>
-                                    <TableCell>{item[config.receiptField]}</TableCell>
-                                    <TableCell>{item[config.nameField]}</TableCell>
-                                    <TableCell>{item[config.totalamtField]}</TableCell>
-                                    <TableCell>{new Date(item[config.dateField]).toLocaleDateString()}</TableCell>
-                                    <TableCell>
-                                      <Dialog>
-                                        <DialogTrigger asChild>
-                                          <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600">
-                                            <Eye size={16} />
-                                          </Button>
-                                        </DialogTrigger>
-                                        <DialogContent className="w-[90vw] max-w-3xl sm:max-w-lg md:max-w-3xl max-h-[90vh] overflow-y-auto p-6">
-                                          <DialogHeader>
-                                            <DialogTitle>Transaction Details</DialogTitle>
-                                            <DialogClose />
-                                          </DialogHeader>
-                                          <Table>
-                                            <TableHeader>
-                                              <TableRow>
-                                                <TableHead>Product Code</TableHead>
-                                                <TableHead>Supplier</TableHead>
-                                                <TableHead>Brand</TableHead>
-                                                <TableHead>Category</TableHead>
-                                                <TableHead>Product</TableHead>
-                                                <TableHead>Selling Price</TableHead>
-                                                <TableHead>Quantity</TableHead>
-                                                <TableHead>Item total</TableHead>
-                                              </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                              <TableRow>
-                                                <TableCell>{item[config.codeField]}</TableCell>
-                                                <TableCell>{item[config.supplierField]}</TableCell>
-                                                <TableCell>{item[config.brandField]}</TableCell>
-                                                <TableCell>{item[config.brandField]}</TableCell>
-                                                <TableCell>{item[config.nameField]}</TableCell>
-                                                <TableCell>{item[config.sellingpriceField]}</TableCell>
-                                                <TableCell>{item[config.quantityField]}</TableCell>
-                                                <TableCell>{item[config.itemtotalField]}</TableCell>
-                                              </TableRow>
-                                            </TableBody>
-                                          </Table>
-                                        </DialogContent>
-                                      </Dialog>
-                                    </TableCell>
-                                  </>
-                                )}
-                                {activeTab === "return" && (
-                                  <>
-                                    <TableCell>{item[config.idField]}</TableCell>
-                                    <TableCell>{item[config.codeField]}</TableCell>
-                                    <TableCell>{item[config.typeField]}</TableCell>
-                                    <TableCell>{item[config.nameField]}</TableCell>
-                                    <TableCell>{item[config.totalamtField]}</TableCell>
-                                    <TableCell>{new Date(item[config.dateField]).toLocaleDateString()}</TableCell>
-                                    <TableCell>
-                                      <Dialog>
-                                        <DialogTrigger asChild>
-                                          <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600">
-                                            <Eye size={16} />
-                                          </Button>
-                                        </DialogTrigger>
-                                        <DialogContent className="max-w-3xl p-6">
-                                          <DialogHeader>
-                                            <DialogTitle>Transaction Details</DialogTitle>
-                                            <DialogClose />
-                                          </DialogHeader>
-                                          <Table>
-                                            <TableHeader>
-                                              <TableRow>
-                                                <TableHead>Product Code</TableHead>
-                                                <TableHead>Supplier</TableHead>
-                                                <TableHead>Brand</TableHead>
-                                                <TableHead>Category</TableHead>
-                                                <TableHead>Product</TableHead>
-                                                <TableHead>Quantity</TableHead>
-                                                <TableHead>Discount amount</TableHead>
-                                              </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                              <TableRow>
-                                                <TableCell>{item[config.codeField]}</TableCell>
-                                                <TableCell>{item[config.supplierField]}</TableCell>
-                                                <TableCell>{item[config.brandField]}</TableCell>
-                                                <TableCell>{item[config.brandField]}</TableCell>
-                                                <TableCell>{item[config.nameField]}</TableCell>
-                                                <TableCell>{item[config.quantityField]}</TableCell>
-                                                <TableCell>{item[config.discountField]}</TableCell>
-                                              </TableRow>
-                                            </TableBody>
-                                          </Table>
-                                        </DialogContent>
-                                      </Dialog>
-                                    </TableCell>
-                                  </>
-                                )}
-                                {activeTab === "delivery" && (
-                                  <>
-                                    <TableCell>{item[config.idField]}</TableCell>
-                                    <TableCell>{item[config.codeField]}</TableCell>
-                                    <TableCell>{item[config.nameField]}</TableCell>
-                                    <TableCell>{item[config.supplierField]}</TableCell>
-                                    <TableCell>{item[config.quantityField]}</TableCell>
-                                    <TableCell>{new Date(item[config.dateField]).toLocaleDateString()}</TableCell>
-                                    <TableCell>
-                                      <Dialog>
-                                        <DialogTrigger asChild>
-                                          <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600">
-                                            <Eye size={16} />
-                                          </Button>
-                                        </DialogTrigger>
-                                        <DialogContent className="max-w-3xl p-6">
-                                          <DialogHeader>
-                                            <DialogTitle>Transaction Details</DialogTitle>
-                                            <DialogClose />
-                                          </DialogHeader>
-                                          <Table>
-                                            <TableHeader>
-                                              <TableRow>
-                                                <TableHead>Product Code</TableHead>
-                                                <TableHead>Supplier</TableHead>
-                                                <TableHead>Brand</TableHead>
-                                                <TableHead>Category</TableHead>
-                                                <TableHead>Product</TableHead>
-                                                <TableHead>Quantity</TableHead>
-                                              </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                              <TableRow>
-                                                <TableCell>{item[config.codeField]}</TableCell>
-                                                <TableCell>{item[config.supplierField]}</TableCell>
-                                                <TableCell>{item[config.brandField]}</TableCell>
-                                                <TableCell>{item[config.brandField]}</TableCell>
-                                                <TableCell>{item[config.nameField]}</TableCell>
-                                                <TableCell>{item[config.quantityField]}</TableCell>
-                                              </TableRow>
-                                            </TableBody>
-                                          </Table>
-                                        </DialogContent>
-                                      </Dialog>
-                                    </TableCell>
-                                  </>
-                                )}
-                                {activeTab === "product" && (
-                                    <>
-                                    <TableCell>{item[config.codeField]}</TableCell>
-                                    <TableCell>{item[config.categoryField]}</TableCell>
-                                    <TableCell>{item[config.skuField]}</TableCell>
-                                    <TableCell>{item[config.nameField]}</TableCell>
-                                    <TableCell>{item[config.brandField]}</TableCell>
-                                    <TableCell>{item[config.supplierField]}</TableCell>
-                                    <TableCell>{item[config.stockField]}</TableCell>
-                                    <TableCell>{item[config.unitpriceField]}</TableCell>
-                                    <TableCell>{item[config.sellingpriceField]}</TableCell>
-                                    <TableCell>{item[config.statusField]}</TableCell>
-                                    <TableCell>{new Date(item[config.dateField]).toLocaleDateString()}</TableCell>
-                                  </>
-                                )}
-                            </TableRow>
-                            ))
-                          )}
-                        </TableBody>
-                      </Table>
-                      </div>
-                      {/* Pagination Controls */}
-                       <div className="flex-shrink-0 bg-white border-t px-4 py-3 flex items-center justify-between">
-                         <div className="text-sm text-gray-700">
-                           Showing {getPaginatedData().length > 0 ? ((currentPage - 1) * itemsPerPage) + 1 : 0} to {Math.min(currentPage * itemsPerPage, getFilteredTransactions().length)} of {getFilteredTransactions().length} results
-                         </div>
-                         
-                         <div className="flex items-center space-x-2">
-                           <Button
-                             variant="outline"
-                             size="sm"
-                             onClick={goToPreviousPage}
-                             disabled={currentPage === 1}
-                             className="px-3 py-1"
-                           >
-                             Previous
-                           </Button>
-                           
-                           <div className="flex space-x-1">
-                             {Array.from({ length: getTotalPages() }, (_, i) => i + 1)
-                               .filter(page => {
-                                 // Show first page, last page, current page, and pages around current
-                                 return page === 1 || 
-                                       page === getTotalPages() || 
-                                       Math.abs(page - currentPage) <= 1;
-                               })
-                               .map((page, index, arr) => {
-                                 // Add ellipsis if there's a gap
-                                 const showEllipsis = index > 0 && page - arr[index - 1] > 1;
-                                 return (
-                                   <React.Fragment key={page}>
-                                     {showEllipsis && (
-                                       <span className="px-2 py-1 text-gray-500">...</span>
-                                     )}
-                                     <Button
-                                       variant={currentPage === page ? "default" : "outline"}
-                                       size="sm"
-                                       onClick={() => goToPage(page)}
-                                       className={`px-3 py-1 ${currentPage === page ? 'bg-blue-500 text-white' : ''}`}
-                                     >
-                                       {page}
-                                     </Button>
-                                   </React.Fragment>
-                                 );
-                               })}
-                           </div>
-                           
-                           <Button
-                             variant="outline"
-                             size="sm"
-                             onClick={goToNextPage}
-                             disabled={currentPage === getTotalPages()}
-                             className="px-3 py-1"
-                           >
-                             Next
-                           </Button>
-                         </div>
-                       </div>
-                     </CardContent>
-                     </div>
-                   </Card>
-                 </TabsContent>                            
-               ))}
-             </div>
-           </Tabs>
-         </div>
-       </div>
-       <Toaster position="top-center"/>
-     </SidebarProvider>
-   );
- }
+                        {/* Pagination Controls */}
+                        <div className="flex-shrink-0 bg-white border-t px-4 py-3 flex items-center justify-between">
+                          <div className="text-sm text-gray-700">
+                            Showing {getPaginatedData().length > 0 ? ((currentPage - 1) * itemsPerPage) + 1 : 0} to {Math.min(currentPage * itemsPerPage, getFilteredTransactions().length)} of {getFilteredTransactions().length} results
+                          </div>
+                          
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={goToPreviousPage}
+                              disabled={currentPage === 1}
+                              className="px-3 py-1"
+                            >
+                              Previous
+                            </Button>
+                            
+                            <div className="flex space-x-1">
+                              {Array.from({ length: getTotalPages() }, (_, i) => i + 1)
+                                .filter(page => {
+                                  // Show first page, last page, current page, and pages around current
+                                  return page === 1 || 
+                                        page === getTotalPages() || 
+                                        Math.abs(page - currentPage) <= 1;
+                                })
+                                .map((page, index, arr) => {
+                                  // Add ellipsis if there's a gap
+                                  const showEllipsis = index > 0 && page - arr[index - 1] > 1;
+                                  return (
+                                    <React.Fragment key={page}>
+                                      {showEllipsis && (
+                                        <span className="px-2 py-1 text-gray-500">...</span>
+                                      )}
+                                      <Button
+                                        variant={currentPage === page ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => goToPage(page)}
+                                        className={`px-3 py-1 ${currentPage === page ? 'bg-blue-500 text-white' : ''}`}
+                                      >
+                                        {page}
+                                      </Button>
+                                    </React.Fragment>
+                                  );
+                                })}
+                            </div>
+                            
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={goToNextPage}
+                              disabled={currentPage === getTotalPages()}
+                              className="px-3 py-1"
+                            >
+                              Next
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </div>
+                  </Card>
+                </TabsContent>                            
+              ))}
+            </div>
+          </Tabs>
+        </div>
+      </div>
+      <Toaster position="top-center"/>
+    </SidebarProvider>
+  );
+}
