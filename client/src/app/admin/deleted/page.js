@@ -87,19 +87,18 @@ export default function DeletedPage() {
     },
 
     product: {
-      label: "Products",
+      label: "Product",
       idField: "P_productCode",
-      codeField: "P_productCode",
       categoryField: "category",
       nameField: "P_productName",
       brandField: "brand",
       supplierField: "supplier",
-      stockField: "stockAmt",
-      stockID: "P_StockDetailsID",
+      stockField: "stock",
+      lastRestockField: "P_lastRestockDateTime",
+      lastUpdateField: "P_lastEditedDateTime",
       unitpriceField: "P_unitPrice",
       sellingpriceField: "P_sellingPrice",
-      statusField: "P_productStatusName",
-      statusId: "P_productStatusID",
+      statusField: "status",
       dateField: "P_dateAdded",
       setter: setDeletedProducts,
       api: {
@@ -452,16 +451,16 @@ const handleDownloadCSV = (data) => {
           "Date Product Added"
         ];
         rows = currentTabD.map(item => [
-          item.productCode,
-          item.productName,
-          item.category,
-          item.supplier,
-          item.brand,
-          item.stockNumber,
-          item.lastRestock,
-          item.price,
-          item.sellingPrice,
-          item.status,
+          item[config.idField],
+          item[config.nameField],
+          item[config.categoryField],
+          item[config.supplierField],
+          item[config.brandField],
+          item[config.stockField],
+          item[config.lastRestockField],
+          item[config.unitpriceField],
+          item[config.sellingpriceField],
+          item[config.statusField],
           new Date(item[config.dateField]).toLocaleDateString()
         ]);
         break;
@@ -868,7 +867,7 @@ return (
                                     <TableHead className="sticky top-0 z-20 bg-white px-4 py-3 border-b">
                                       <input type="checkbox" onChange={handleSelectAll} checked={selectedTransactions.length === getPaginatedData().length && getPaginatedData().length > 0} />
                                     </TableHead>
-                                    <TableHead onClick={() => handleSort(config.codeField)} className="sticky top-0 z-20 bg-white cursor-pointer px-4 py-3 border-b">
+                                    <TableHead onClick={() => handleSort(config.idField)} className="sticky top-0 z-20 bg-white cursor-pointer px-4 py-3 border-b">
                                       Product Code <SortIcon column={config.codeField} />
                                     </TableHead>
                                     <TableHead onClick={() => handleSort(config.categoryField)} className="sticky top-0 z-20 bg-white cursor-pointer px-4 py-3 border-b">
@@ -1132,7 +1131,7 @@ return (
                                             onChange={() => handleSelectTransaction(`${item[config.idField]}-${item[config.codeField]}`)}
                                           />
                                         </TableCell>
-                                        <TableCell className="px-4 py-3">{item[config.codeField]}</TableCell>
+                                        <TableCell className="px-4 py-3">{item[config.idField]}</TableCell>
                                         <TableCell className="px-4 py-3">{item[config.categoryField]}</TableCell>
                                         <TableCell className="px-4 py-3">{item[config.nameField]}</TableCell>
                                         <TableCell className="px-4 py-3">{item[config.brandField]}</TableCell>
