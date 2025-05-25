@@ -186,10 +186,11 @@ export default function ReportsPage() {
   const handleSort = (key) => {
     setSortConfig((prev) => {
       if (prev.key === key) {
-        return {
-          key,
-          direction: prev.direction === "ascending" ? "descending" : "ascending",
-        };
+        if (prev.direction === "ascending") {
+          return { key, direction: "descending" };
+        } else if (prev.direction === "descending") {
+          return { key: null, direction: null }; // reset sort
+        }
       }
       return { key, direction: "ascending" };
     });
