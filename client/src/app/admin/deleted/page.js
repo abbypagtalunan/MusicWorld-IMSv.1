@@ -560,7 +560,7 @@ const handleDownloadCSV = (data) => {
         setSelectedTransactions([]);
       });
   };  
- const [currentPage, setCurrentPage] = useState(1);
+const [currentPage, setCurrentPage] = useState(1);
 const itemsPerPage = 12;
 
 // Pagination logic functions

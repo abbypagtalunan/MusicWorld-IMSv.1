@@ -1188,6 +1188,7 @@ export default function ProductsPage() {
                   <TableHead onClick={() => handleSort("dateAdded")} className="cursor-pointer select-none">Date Added <SortIcon column="dateAdded" /></TableHead>
                   <TableHead onClick={() => handleSort("lastEdit")} className="cursor-pointer select-none">Last Edited<SortIcon column="lastEdit" /></TableHead>
                   <TableHead>View/Edit</TableHead>
+                  <TableHead>Delete</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1220,10 +1221,12 @@ export default function ProductsPage() {
                     <TableCell className={`font-semibold ${getStatusTextColor(item.status)}`}>{item.status}</TableCell>
                     <TableCell>{item.dateAdded}</TableCell>
                     <TableCell>{item.lastEdit}</TableCell>
-                    <TableCell className="flex space-x-2">
+                    <TableCell>
                       <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600" onClick={() => openEditSheet(item)}>
                         <FilePen size={16} />
                       </Button>
+                    </TableCell>
+                    <TableCell>
                       {/* For deleting transactions */}
                       <Button
                         variant="ghost"
