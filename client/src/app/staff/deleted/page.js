@@ -344,7 +344,7 @@ export default function DeletedPage() {
                                   <TableHead onClick={() => handleSort(config.dateField)} className="cursor-pointer">
                                     Order Date <SortIcon column={config.dateField} />
                                   </TableHead>
-                                  <TableHead>Details</TableHead>
+                                  <TableHead>View</TableHead>
                                 </>
                               )}
                               {activeTab === "return" && (
