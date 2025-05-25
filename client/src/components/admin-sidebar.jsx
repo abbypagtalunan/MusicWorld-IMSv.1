@@ -95,6 +95,12 @@ export function AppSidebar({ ...props }) {
       path: "reports"
     },
     {
+      title: "Configurations",
+      url: "./configurations",
+      icon: SettingsIcon,
+      path: "configurations"
+    },
+    {
       title: "Manage Accounts",
       url: "./accounts",
       icon: User,

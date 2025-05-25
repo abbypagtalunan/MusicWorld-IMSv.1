@@ -146,10 +146,11 @@ export default function DeletedPage() {
   const handleSort = (key) => {
     setSortConfig((prev) => {
       if (prev.key === key) {
-        return {
-          key,
-          direction: prev.direction === "ascending" ? "descending" : "ascending",
-        };
+        if (prev.direction === "ascending") {
+          return { key, direction: "descending" };
+        } else if (prev.direction === "descending") {
+          return { key: null, direction: null }; // reset sort
+        }
       }
       return { key, direction: "ascending" };
     });
@@ -202,31 +203,50 @@ export default function DeletedPage() {
 
   // Sort logic
   const key = sortConfig.key;
-    if (key) {
+    if (key && sortConfig.direction !== null) {
       result.sort((a, b) => {
         let valA = a[key];
         let valB = b[key];
 
-        // Handle numeric strings with ₱ or commas
-        if (typeof valA === "string" && valA.includes("₱")) {
-          valA = parseFloat(valA.replace(/[₱,]/g, ""));
-          valB = parseFloat(valB.replace(/[₱,]/g, ""));
+        // Normalize null/undefined
+        if (valA === null || valA === undefined) valA = "";
+        if (valB === null || valB === undefined) valB = "";
+
+        // Remove ₱ or commas (e.g. ₱1,000)
+        const currencyRegex = /[₱,]/g;
+        if (typeof valA === "string" && valA.match(currencyRegex)) {
+          valA = parseFloat(valA.replace(currencyRegex, ""));
+          valB = parseFloat(valB.replace(currencyRegex, ""));
         }
 
-        // Handle dates
-        if (!isNaN(Date.parse(valA))) {
+        // Number comparison
+        if (!isNaN(valA) && !isNaN(valB)) {
+          valA = Number(valA);
+          valB = Number(valB);
+        }
+
+        // Date comparison
+        else if (!isNaN(Date.parse(valA)) && !isNaN(Date.parse(valB))) {
           valA = new Date(valA);
           valB = new Date(valB);
         }
 
-        if (sortConfig.direction === "ascending") {
-          return valA > valB ? 1 : valA < valB ? -1 : 0;
-        } else {
-          return valA < valB ? 1 : valA > valB ? -1 : 0;
+        // Case-insensitive string compare
+        else {
+          valA = String(valA);
+          valB = String(valB);
+
+          return sortConfig.direction === "ascending"
+            ? valA.localeCompare(valB, undefined, { sensitivity: "base" })
+            : valB.localeCompare(valA, undefined, { sensitivity: "base" });
         }
+
+        // For numbers or dates
+        return sortConfig.direction === "ascending"
+          ? valA - valB
+          : valB - valA;
       });
     }
-
     return result;
   };
   

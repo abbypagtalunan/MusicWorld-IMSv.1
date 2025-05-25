@@ -6,7 +6,7 @@ import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
-import { Search, ListFilter, Trash2, Eye, CalendarDays, Download, ChevronsUpDown, ChevronUp, ChevronDown, RotateCcw } from "lucide-react";
+import { Search, ListFilter, Trash2, Eye, CalendarDays, Download, ChevronsUpDown, ChevronUp, ChevronDown, RotateCcw, Ellipsis } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -849,7 +849,8 @@ Object.entries(amountRanges).forEach(([key, range]) => {
                   <TableHead onClick={() => handleSort("wholeOrderDiscount")} className="cursor-pointer select-none"> Whole Order Discount <SortIcon column="wholeOrderDiscount" /></TableHead>
                   <TableHead onClick={() => handleSort("orderPayment")} className="cursor-pointer select-none"> Payment <SortIcon column="orderPayment" /></TableHead>
                   <TableHead onClick={() => handleSort("totalAmount")} className="cursor-pointer select-none"> Total Amount <SortIcon column="totalAmount" /></TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead>View/Return</TableHead>
+                  <TableHead>Delete</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -866,12 +867,12 @@ Object.entries(amountRanges).forEach(([key, range]) => {
                     <TableCell>{formatPeso(order.orderPayment)}</TableCell>
                     <TableCell>{formatPeso(order.originalTotal)}</TableCell>
 
-                {/*Details toggle button with modal pop-up */}              
-                    <TableCell className="flex space-x-2">              
+                {/* View/Return toggle button with modal pop-up */}              
+                    <TableCell className="flex justify-center items-center">              
                       <Dialog>
                         <DialogTrigger asChild>
                           <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600" onClick={() => setSelectedOrderID(order.orderID)} >
-                            <Eye size={16} />
+                            <Ellipsis size={16} />
                           </Button>
                         </DialogTrigger>
                         <DialogContent className="w-full max-w-screen-lg sm:max-w-screen-md md:max-w-screen-lg lg:max-w-screen-xl max-h-[95vh] overflow-y-auto p-6">
@@ -925,8 +926,11 @@ Object.entries(amountRanges).forEach(([key, range]) => {
                           )}
                         </DialogContent>
                       </Dialog>            
-
-                      <Button
+                    </TableCell>
+                    
+                    {/* for delete button */}
+                    <TableCell>
+                     <Button
                         variant="ghost"
                         size="sm"
                         className="text-gray-500 hover:text-red-600"
