@@ -265,11 +265,16 @@ const OrderDashboard = () => {
     };
     
   
-    const handleProductSelect = (product) => {
-      console.log("Selected Product:", product);
-      setSelectedProduct(product);  
-      setOpenProduct(false); 
-    };
+  const handleProductSelect = (product) => {
+    console.log("Selected Product:", product);
+    setSelectedProduct(product);  
+    setOpenProduct(false); 
+
+    setSelectedProductDiscount(null);
+    setOrderDiscount(0);
+    setSelectedDiscountType("");
+  };
+
   
   const handleAddFreebie = () => {
   if (!selectedFreebie || freebieQuantity <= 0) return;
