@@ -226,32 +226,24 @@ export default function BatchDeliveriesPage() {
             next.dateDue = due.toISOString().split('T')[0];
           }
           next.paymentStatus = '';
-        } else if (prev.paymentType === '1') {
+        }
+        else if (value === '3') {
+          // two-time payment: set due dates 30 and 60 days later
+          if (deliveryDate) {
+            const due1 = new Date(deliveryDate);
+            due1.setDate(due1.getDate() + 30);
+            next.dateDue = due1.toISOString().split('T')[0];
+
+            const due2 = new Date(deliveryDate);
+            due2.setDate(due2.getDate() + 60);
+            next.dateDue2 = due2.toISOString().split('T')[0];
+          }
+          next.paymentStatus = '';
+          next.paymentStatus2 = '';
+        }
+        else if (prev.paymentType === '1') {
           next.paymentStatus = '';
           // restore original due-date if you need
-        }
-
-        // prepare or clear second-payment fields
-        if (selectedPaymentType === 3) {
-          // 1) ensure the first due date exists (one month after deliveryDate)
-          if (!next.dateDue && deliveryDate) {
-            const due = new Date(deliveryDate);
-            due.setMonth(due.getMonth() + 1);
-            next.dateDue = due.toISOString().split('T')[0];
-          }
-          // 2) now safely compute the 2nd due date (30 days after first due)
-          const firstDue = new Date(next.dateDue);
-          if (!isNaN(firstDue)) {
-            firstDue.setDate(firstDue.getDate() + 30);
-            next.dateDue2 = firstDue.toISOString().split('T')[0];
-          } else {
-            next.dateDue2 = '';
-          }
-        } else {
-          next.paymentMode2   = '';
-          next.paymentStatus2 = '';
-          next.dateDue2       = '';
-          next.datePayment2   = '';
         }
       }
       
@@ -420,7 +412,10 @@ export default function BatchDeliveriesPage() {
 
   // Save the delivery to the database
   const handleSaveDelivery = async () => {
-    // console.log("handleSaveDelivery() from page.js called.");
+    // reset global variables
+    setSelectedPaymentType(-1);
+    setSelectedPaymentStatus1(-1);
+    setSelectedPaymentStatus2(-1);
     
     const raw = deliveryNumber.trim();
 
@@ -459,32 +454,12 @@ export default function BatchDeliveriesPage() {
         toast.error("Payment Status field is empty");
         return;
       }
-      if (selectedPaymentStatus1 === 1) { // if payment status is Paid
+      // if payment status is Paid or payment type is Full upfront
+      if (selectedPaymentStatus1 === 1 || selectedPaymentType === 1) {
         if (!paymentDetails.paymentMode) {
           toast.error("Payment Mode field is empty");
           return;
         }
-      }
-      
-      // Check for Date of Payment Due only if payment type is NOT 'Full upfront payment'
-      const paymentTypeObj = paymentTypes.find(
-        pt => pt.D_paymentTypeID.toString() === paymentDetails.paymentType
-      );
-      const isFullUpfront = paymentTypeObj?.D_paymentName.toLowerCase().includes('full upfront payment');
-
-      if (!isFullUpfront && !paymentDetails.dateDue) {
-        toast.error("Date of Payment Due field is empty");
-        return;
-      }
-      
-      // require actual payment date only if status is NOT Unpaid
-      const statusObj = paymentStatuses.find(s =>
-        s.D_paymentStatusID.toString() === paymentDetails.paymentStatus
-      );
-      const isUnpaid = statusObj?.D_statusName.toLowerCase() === 'unpaid';
-      if (!isUnpaid && !paymentDetails.datePayment1) {
-        toast.error("Date of Payment field is missing");
-        return;
       }
 
       // 2nd payment (if shown): explicit checks
