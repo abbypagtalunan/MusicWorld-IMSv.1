@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogFooter } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
 import { useRef } from "react";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function ProductsPage() {
   const config = {
@@ -209,6 +210,8 @@ export default function ProductsPage() {
 
   // Highlight selected row
   const [highlightedCode, setHighlightedCode] = useState(null);
+
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSort = (key) => {
     setSortConfig((prev) => {
@@ -1124,18 +1127,32 @@ export default function ProductsPage() {
                     Deleting these transactions will reflect on Void Transactions. Enter the admin password to delete the selected products.
                   </p>
                   <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">
-                    <div className="flex-1">
-                      <label htmlFor="password" className="text-base font-medium text-gray-700 block mb-2">
+                    <div className="w-full">
+                      <label className="text-base font-medium text-gray-700 block mb-2">
                         Admin Password
                       </label>
-                      <Input
-                        type="password"
-                        required
-                        placeholder="Enter admin password"
-                        className="w-full"
-                        value={adminPW}
-                        onChange={(e) => setAdminPW(e.target.value)}
-                      />
+                      <div className="relative w-full">
+                        <Input
+                          type={showPassword ? "text" : "password"}
+                          required
+                          placeholder="Enter valid password"
+                          className="w-full pr-10"
+                          value={adminPW}
+                          onChange={(e) => setAdminPW(e.target.value)}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword((prev) => !prev)}
+                          className="absolute inset-y-0 right-3 flex items-center text-gray-500"
+                          tabIndex={-1}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="w-5 h-5" />
+                          ) : (
+                            <Eye className="w-5 h-5" />
+                          )}
+                        </button>
+                      </div>
                     </div>
                     <Button
                       className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
@@ -1379,20 +1396,33 @@ export default function ProductsPage() {
             Deleting this transaction will reflect on Void Transactions. Enter the admin password to delete this transaction.
           </p>
           <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">
-            <div className="flex-1">
+            <div className="w-full">
               <label className="text-base font-medium text-gray-700 block mb-2">
                 Admin Password
               </label>
-              <Input
-                type="password"
-                required
-                placeholder="Enter valid password"
-                className="w-full"
-                value={adminPW}
-                onChange={(e) => setAdminPW(e.target.value)}
-              />
+              <div className="relative w-full">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  placeholder="Enter valid password"
+                  className="w-full pr-10"
+                  value={adminPW}
+                  onChange={(e) => setAdminPW(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute inset-y-0 right-3 flex items-center text-gray-500"
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
             </div>
-
             <Button
               className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
               onClick={() => {
