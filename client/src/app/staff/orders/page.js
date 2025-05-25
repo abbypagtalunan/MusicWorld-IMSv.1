@@ -721,11 +721,11 @@ export default function OrdersPage() {
                     <TableCell>{formatDate(order.transacDate)}</TableCell>
                     <TableCell>{formatTime(order.transacDate)}</TableCell>
                     <TableCell>{order.receiptNo || "0"}</TableCell>
-                    <TableCell>{formatPeso(order.totalAmount)}</TableCell>
+                    <TableCell>{formatPeso(order.originalTotal)}</TableCell>
                     <TableCell>{formatPeso(order.totalProductDiscount)}</TableCell>
                     <TableCell>{formatPeso(order.wholeOrderDiscount)}</TableCell>
                     <TableCell>{formatPeso(order.orderPayment)}</TableCell>
-                    <TableCell>{formatPeso(order.originalTotal)}</TableCell>
+                    <TableCell>{formatPeso(order.totalAmount)}</TableCell>
 
                 {/*Details toggle button with modal pop-up */}              
                     <TableCell className="flex space-x-2">              
