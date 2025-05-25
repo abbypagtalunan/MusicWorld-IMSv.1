@@ -333,13 +333,15 @@ export default function DeliveriesPage() {
     });
   };
 
-  function SortIcon({ column }) {
-      if (sortConfig.key !== column) return <ChevronsUpDown className="inline ml-1 w-4 h-4 text-gray-400" />;
-      return sortConfig.direction === "ascending" ? (
-        <ChevronUp className="inline ml-1 w-4 h-4 text-blue-500" />
-      ) : (
-        <ChevronDown className="inline ml-1 w-4 h-4 text-blue-500" />
-      );
+  function SortIcon({ column, sortConfig }) {
+    if (sortConfig.key !== column) {
+      return <ChevronsUpDown className="inline ml-1 w-4 h-4 text-gray-400" />;
+    }
+    return sortConfig.direction === "ascending" ? (
+      <ChevronUp className="inline ml-1 w-4 h-4 text-blue-500" />
+    ) : (
+      <ChevronDown className="inline ml-1 w-4 h-4 text-blue-500" />
+    );
   }
 
   const getFilteredTransactions = () => {
@@ -785,7 +787,7 @@ export default function DeliveriesPage() {
                             {/* Products table header (static) */}
                             <Table className="min-w-full table-fixed">
                               <colgroup>
-                                <col className="w-[14.2857%]" />  {/* 1/7 each */}
+                                <col className="w-[14.2857%]" />
                                 <col className="w-[14.2857%]" />
                                 <col className="w-[14.2857%]" />
                                 <col className="w-[14.2857%]" />
@@ -795,25 +797,46 @@ export default function DeliveriesPage() {
                               </colgroup>
                               <TableHeader className="bg-white">
                                 <TableRow className="border-b border-gray-200">
-                                  <TableHead className="cursor-pointer select-none">
+                                  <TableHead
+                                    onClick={() => handleProductSort("productCode")}
+                                    className="cursor-pointer select-none"
+                                  >
                                     Code <SortIcon column="productCode" sortConfig={productSortConfig} />
                                   </TableHead>
-                                  <TableHead className="cursor-pointer select-none">
+                                  <TableHead
+                                    onClick={() => handleProductSort("supplier")}
+                                    className="cursor-pointer select-none"
+                                  >
                                     Supplier <SortIcon column="supplier" sortConfig={productSortConfig} />
                                   </TableHead>
-                                  <TableHead className="cursor-pointer select-none">
+                                  <TableHead
+                                    onClick={() => handleProductSort("brand")}
+                                    className="cursor-pointer select-none"
+                                  >
                                     Brand <SortIcon column="brand" sortConfig={productSortConfig} />
                                   </TableHead>
-                                  <TableHead className="cursor-pointer select-none">
+                                  <TableHead
+                                    onClick={() => handleProductSort("product")}
+                                    className="cursor-pointer select-none"
+                                  >
                                     Product <SortIcon column="product" sortConfig={productSortConfig} />
                                   </TableHead>
-                                  <TableHead className="text-center">
+                                  <TableHead
+                                    onClick={() => handleProductSort("quantity")}
+                                    className="cursor-pointer select-none text-center"
+                                  >
                                     Quantity
                                   </TableHead>
-                                  <TableHead className="text-center">
+                                  <TableHead
+                                    onClick={() => handleProductSort("unitPrice")}
+                                    className="cursor-pointer select-none text-center"
+                                  >
                                     Unit Price
                                   </TableHead>
-                                  <TableHead className="cursor-pointer select-none text-center">
+                                  <TableHead
+                                    onClick={() => handleProductSort("total")}
+                                    className="cursor-pointer select-none text-center"
+                                  >
                                     Total <SortIcon column="total" sortConfig={productSortConfig} />
                                   </TableHead>
                                 </TableRow>
