@@ -202,14 +202,16 @@ export default function ProductsPage() {
   const handleSort = (key) => {
     setSortConfig((prev) => {
       if (prev.key === key) {
-        return {
-          key,
-          direction: prev.direction === "ascending" ? "descending" : "ascending",
-        };
+        if (prev.direction === "ascending") {
+          return { key, direction: "descending" };
+        } else if (prev.direction === "descending") {
+          return { key: null, direction: null }; // reset
+        }
       }
       return { key, direction: "ascending" };
     });
   };
+
 
   const getFilteredTransactions = () => {
     config?.nameField && config?.idField
@@ -272,22 +274,27 @@ export default function ProductsPage() {
     // Table Header Sorting
     if (sortConfig.key !== null) {
       sortedTransactions.sort((a, b) => {
-        const valA = a[sortConfig.key] ?? "";
-        const valB = b[sortConfig.key] ?? "";
+        const valA = a[sortConfig.key];
+        const valB = b[sortConfig.key];
 
-        if (typeof valA === "string") {
+        // Fix: convert to number if both are numeric
+        if (!isNaN(parseFloat(valA)) && !isNaN(parseFloat(valB))) {
           return sortConfig.direction === "ascending"
-            ? valA.localeCompare(valB)
-            : valB.localeCompare(valA);
-        } else if (!isNaN(valA)) {
-          return sortConfig.direction === "ascending" ? valA - valB : valB - valA;
-        } else if (Date.parse(valA)) {
+            ? parseFloat(valA) - parseFloat(valB)
+            : parseFloat(valB) - parseFloat(valA);
+        }
+
+        // Fix: parse dates properly
+        if (Date.parse(valA) && Date.parse(valB)) {
           return sortConfig.direction === "ascending"
             ? new Date(valA) - new Date(valB)
             : new Date(valB) - new Date(valA);
         }
 
-        return 0;
+        // Fallback: string compare
+        return sortConfig.direction === "ascending"
+          ? String(valA).localeCompare(String(valB))
+          : String(valB).localeCompare(String(valA));
       });
     }
 
