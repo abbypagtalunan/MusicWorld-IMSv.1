@@ -764,113 +764,80 @@ export default function DeliveriesPage() {
                             </div>                            
                             
                             {/* Products table header (static) */}
-                            <Table className="min-w-full">
+                            <Table className="min-w-full table-fixed">
+                              <colgroup>
+                                <col className="w-[14.2857%]" />  {/* 1/7 each */}
+                                <col className="w-[14.2857%]" />
+                                <col className="w-[14.2857%]" />
+                                <col className="w-[14.2857%]" />
+                                <col className="w-[14.2857%]" />
+                                <col className="w-[14.2857%]" />
+                                <col className="w-[14.2857%]" />
+                              </colgroup>
                               <TableHeader className="bg-white">
                                 <TableRow className="border-b border-gray-200">
-                                  <TableHead onClick={() => handleProductSort("productCode")} className="cursor-pointer select-none">
-                                    <span className="inline-block">
-                                      Product Code <SortIcon column="productCode" sortConfig={productSortConfig} />
-                                    </span>
+                                  <TableHead className="cursor-pointer select-none">
+                                    Code <SortIcon column="productCode" sortConfig={productSortConfig} />
                                   </TableHead>
-                                  <TableHead onClick={() => handleProductSort("supplier")} className="cursor-pointer select-none">
-                                    <span className="-ml-10 inline-block">
-                                      Supplier <SortIcon column="supplier" sortConfig={productSortConfig} />
-                                    </span>
+                                  <TableHead className="cursor-pointer select-none">
+                                    Supplier <SortIcon column="supplier" sortConfig={productSortConfig} />
                                   </TableHead>
-                                  <TableHead onClick={() => handleProductSort("brand")} className="cursor-pointer select-none">
-                                    <span className="inline-block">
-                                      Brand <SortIcon column="brand" sortConfig={productSortConfig} />
-                                    </span>
+                                  <TableHead className="cursor-pointer select-none">
+                                    Brand <SortIcon column="brand" sortConfig={productSortConfig} />
                                   </TableHead>
-                                  <TableHead onClick={() => handleProductSort("product")} className="cursor-pointer select-none">
-                                    <span className="-ml-5 inline-block">
-                                      Product <SortIcon column="product" sortConfig={productSortConfig} />
-                                    </span>
+                                  <TableHead className="cursor-pointer select-none">
+                                    Product <SortIcon column="product" sortConfig={productSortConfig} />
                                   </TableHead>
-                                  <TableHead>
-                                    <span className="ml-20 -mr-10 inline-block">
-                                      Quantity
-                                    </span>
+                                  <TableHead className="text-center">
+                                    Quantity
                                   </TableHead>
-                                  <TableHead>
-                                    <span className="inline-block">
-                                      Unit Price
-                                    </span>
+                                  <TableHead className="text-center">
+                                    Unit Price
                                   </TableHead>
-                                  <TableHead onClick={() => handleProductSort("total")} className="cursor-pointer select-none">
-                                    <span className="mr-10 inline-block">
-                                      Total <SortIcon column="total" sortConfig={productSortConfig} />
-                                    </span>
+                                  <TableHead className="cursor-pointer select-none text-center">
+                                    Total <SortIcon column="total" sortConfig={productSortConfig} />
                                   </TableHead>
                                 </TableRow>
                               </TableHeader>
                             </Table>
-                            
+
                             {/* Products table body */}
                             <div className="relative w-full max-h-[60vh] overflow-y-auto overflow-x-auto">
-                              <Table className="min-w-full">
+                              <Table className="min-w-full table-fixed">
+                                <colgroup>
+                                  <col className="w-[14.2857%]" />
+                                  <col className="w-[14.2857%]" />
+                                  <col className="w-[14.2857%]" />
+                                  <col className="w-[14.2857%]" />
+                                  <col className="w-[14.2857%]" />
+                                  <col className="w-[14.2857%]" />
+                                  <col className="w-[14.2857%]" />
+                                </colgroup>
                                 <TableBody>
-                                  {(() => {
-                                    // get & sort products according to productSortConfig
-                                    let items = deliveryProducts[d.deliveryNum] || [];
-                                    if (productSortConfig.key) {
-                                      items = [...items].sort((a, b) => {
-                                        const key = productSortConfig.key;
-                                        const dir = productSortConfig.direction;
-
-                                        let valA = a[key];
-                                        let valB = b[key];
-
-                                        // Numeric sort for known numeric fields
-                                        if (key === "total" || key === "productCode") {
-                                          const numA = parseFloat(valA.toString().replace(/[^\d.]/g, ""));
-                                          const numB = parseFloat(valB.toString().replace(/[^\d.]/g, ""));
-                                          return dir === "ascending" ? numA - numB : numB - numA;
-                                        }
-
-                                        return dir === "ascending"
-                                          ? valA.toString().localeCompare(valB.toString())
-                                          : valB.toString().localeCompare(valA.toString());
-                                      });
-                                    }
-                                    return items.length > 0 ? (
-                                      items.map((item, idx) => (
+                                  {(deliveryProducts[d.deliveryNum]?.length ?? 0) > 0
+                                    ? deliveryProducts[d.deliveryNum].map((item, idx) => (
                                         <TableRow key={idx}>
-                                          <TableCell>
-                                            <span className="ml-10 mr-5">{item.productCode}</span>
-                                          </TableCell>
-                                          <TableCell>
-                                            <span className="ml-10">{item.supplier}</span>
-                                          </TableCell>
-                                          <TableCell>
-                                            <span className="ml-5">{item.brand}</span>
-                                          </TableCell>
-                                          <TableCell>
-                                            <span className="-ml-5 -mr-10">{item.product}</span>
-                                          </TableCell>
-                                          <TableCell>
-                                            <span className="-ml-15">{item.quantity}</span>
-                                          </TableCell>
-                                          <TableCell>
-                                            <span className="ml-5">{item.unitPrice}</span>
-                                          </TableCell>
-                                          <TableCell>
-                                            <span className="">{item.total}</span>
-                                          </TableCell>
+                                          <TableCell className="px-2 text-left pl-10">{item.productCode}</TableCell>
+                                          <TableCell className="px-2 text-sm pl-6">{item.supplier}</TableCell>
+                                          <TableCell className="px-2 text-sm">{item.brand}</TableCell>
+                                          <TableCell className="px-2 text-sm">{item.product}</TableCell>
+                                          <TableCell className="px-2 text-center text-sm">{item.quantity}</TableCell>
+                                          <TableCell className="px-2 text-center text-sm">{item.unitPrice}</TableCell>
+                                          <TableCell className="px-2 text-center text-sm">{item.total}</TableCell>
                                         </TableRow>
                                       ))
-                                    ) : (
+                                    : (
                                       <TableRow>
                                         <TableCell colSpan={7} className="text-center text-gray-500">
                                           No products found for this delivery
                                         </TableCell>
                                       </TableRow>
-                                    );
-                                  })()}
+                                    )
+                                  }
                                 </TableBody>
                               </Table>
-
                             </div>
+                            
                           </div>
                         </DialogContent>
                       </Dialog>
