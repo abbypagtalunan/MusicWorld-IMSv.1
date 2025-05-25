@@ -26,6 +26,7 @@ const OrderDashboard = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [orderQuantity, setOrderQuantity] = useState(1);
+  const [discountPercentInput, setDiscountPercentInput] = useState("");
   const [orderDiscount, setOrderDiscount] = useState(0);
   const [productDiscounts, setProductDiscounts] = useState([]);
   const [selectedProductDiscount, setSelectedProductDiscount] = useState(null);
@@ -167,7 +168,7 @@ const OrderDashboard = () => {
       "Product": selectedProduct.name,
       "Price": sellingPrice,
       "Quantity": quantity,
-      "Discount Type": selectedProductDiscount?.D_discountType || "",
+      "Discount Type": selectedDiscountType || "",
       "Discount": discountAmount,
       "Discount Value": discountAmount,
       "Total": netSales,
@@ -213,10 +214,12 @@ const OrderDashboard = () => {
     setOrderQuantity(1);
     setOrderDiscount(0);
     setSelectedProductDiscount(null);
+    setSelectedDiscountType("");
+    setDiscountPercentInput("");
     setIsEditMode(false);
   };
   
-  const handleEdit = (row) => {
+const handleEdit = (row) => {
     const {
       "Product Code": code,
       Quantity: quantity,
@@ -230,12 +233,9 @@ const OrderDashboard = () => {
     setSelectedProduct(matchedProduct);
     setOrderQuantity(quantity);
     setOrderDiscount(parseFloat(discount));
-  
-    const matchedDiscount = productDiscounts.find(
-      (d) => d.D_discountType === discountType
-    );
-  
-    setSelectedProductDiscount(matchedDiscount);
+    setSelectedDiscountType(discountType);
+    setSelectedDiscountType(discountType);
+    setDiscountPercentInput(discountType.toString());
     setIsEditMode(true);
   };
 
@@ -266,14 +266,14 @@ const OrderDashboard = () => {
     
   
   const handleProductSelect = (product) => {
-    console.log("Selected Product:", product);
-    setSelectedProduct(product);  
-    setOpenProduct(false); 
+    setSelectedProduct(product);
+    setOpenProduct(false);
 
-    setSelectedProductDiscount(null);
     setOrderDiscount(0);
     setSelectedDiscountType("");
+    setSelectedProductDiscount(null);
   };
+
 
   
   const handleAddFreebie = () => {
@@ -538,6 +538,7 @@ const OrderDashboard = () => {
                   if (isEditMode) {
                     setIsEditMode(false);
                     setSelectedProduct(null);
+                    setSelectedDiscountType(" ")
                     setOrderQuantity(1);
                     setOrderDiscount(0);
                   }
@@ -617,10 +618,18 @@ const OrderDashboard = () => {
                 max={selectedProduct?.stock ?? Infinity}
                 onChange={(e) => {
                   const value = e.target.valueAsNumber;
+                  const maxStock = selectedProduct?.stock ?? Infinity;
+
                   if (!isNaN(value)) {
-                    setOrderQuantity(value);
+                    const clampedValue = Math.min(value, maxStock);
+                    setOrderQuantity(clampedValue);
                   } else {
-                    setOrderQuantity(''); 
+                    setOrderQuantity('');
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === '.' || e.key === '-' || e.key === 'e' || e.key === '+') {
+                    e.preventDefault(); 
                   }
                 }}
                 className={`w-full border rounded-md px-5 py-2 text-sm ${
@@ -629,6 +638,7 @@ const OrderDashboard = () => {
                     : 'border-gray-300'
                 }`}
               />
+
               {(orderQuantity <= 0 || orderQuantity > selectedProduct?.stock) && (
                 <p className="text-red-500 text-xs">
                   Quantity must be greater than 0 and cannot exceed the available stock.
@@ -636,77 +646,112 @@ const OrderDashboard = () => {
               )}
             </div>
 
-
+            {/* Discount Type Dropdown */}
+            <div className="mb-3">
+              <label className="block text-sm mb-1">Discount Type</label>
               <DropdownMenu>
-                <label className="block text-sm mb-1">With Product Discount?</label>
                 <DropdownMenuTrigger asChild>
                   <Button
+                    disabled={isEditMode}
                     variant="outline"
-                    className={`w-full justify-start text-sm ${
-                      isEditMode ? "pointer-events-none opacity-50 text-gray" : ""
-                    }`}
+                    className="w-full justify-between items-center"
                   >
-                    {selectedProductDiscount?.D_discountType || " "}
+                    <span>{selectedDiscountType || "Select Discount Type"}</span>
+                    <ChevronDown className="ml-2 h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-full">
-                  <DropdownMenuSeparator />
-                  {productDiscounts.map((itemDiscount) => (
-                    <DropdownMenuItem
-                      key={itemDiscount.D_productDiscountID}
-                      disabled={isEditMode}
-                      onClick={() => {
-                        const discountType = itemDiscount.D_discountType;
-                        setSelectedDiscountType(discountType);
-                        const currentPrice = parseFloat(selectedProduct?.price || "0");
-                        const currentQuantity = parseInt(orderQuantity || "1");
-
-                        setSelectedProductDiscount(itemDiscount);
-                        if (discountType.includes("%")) {
-                          const percent = parseFloat(discountType);
-                          const computed = currentPrice * currentQuantity * (percent / 100);
-                          setOrderDiscount(computed.toFixed(2));
-                        } else if (discountType.toLowerCase().includes("specific")) {
-                          setOrderDiscount("");
-                        } else {
-                          setOrderDiscount("0");
-                        }
-                      }}
-                    >
-                      {itemDiscount.D_discountType}
-                    </DropdownMenuItem>
-                  ))}
+                <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width] font-normal">
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setSelectedDiscountType("Percentage");
+                      setOrderDiscount(null);
+                      setDiscountPercentInput("");
+                    }}
+                  >
+                    Percentage
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setSelectedDiscountType("Specific Amount");
+                      setOrderDiscount(null);
+                      setDiscountPercentInput("");
+                    }}
+                  >
+                    Specific Amount
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+            </div>
 
-              <label className="block text-sm">Discount Amount</label>
-              <input
-                type="text"
-                disabled={
-                  !selectedProductDiscount?.D_discountType
-                    ?.toLowerCase()
-                    .includes("specific")
-                }
-                value={orderDiscount === 0 ? "" : orderDiscount}
-                onFocus={(e) => {
-                  if (orderDiscount === 0) e.target.select();
-                }}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  if (/^(\d+(\.\d{0,2})?)?$/.test(value)) {
-                    setOrderDiscount(value === "" ? 0 : parseFloat(value));
-                  }
-                }}                  
-                className={`w-full pl-6 border rounded-md px-3 py-2 text-sm ${
-                  selectedProductDiscount?.D_discountType?.toLowerCase().includes(
-                    "specific"
-                  )
-                    ? "border-gray-300"
-                    : "bg-gray-100 text-gray-500 border-gray-200 cursor-not-allowed"
-                }`}
-              />
+            {/* Percentage Input */}
+            {selectedDiscountType.toLowerCase() === "percentage" && (
+              <div className="mb-3">
+                <label className="block text-sm">Enter Product Discount (%)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={discountPercentInput}
+                  onChange={(e) => {
+                    const input = e.target.value;
+                    setDiscountPercentInput(input);
+                    const percent = parseFloat(input);
 
-              <label className="block text-sm">Total</label>
+                    if (!isNaN(percent) && percent >= 0 && percent <= 100) {
+                      setSelectedDiscountType("Percentage");
+                      const price = parseFloat(selectedProduct?.price || "0");
+                      const quantity = parseInt(orderQuantity || "1");
+                      const discountAmount = price * quantity * (percent / 100);
+                      setOrderDiscount(discountAmount.toFixed(2));
+                    } else {
+                      setOrderDiscount(0);
+                    }
+                  }}
+                  onMouseLeave={() => {
+                    const percent = parseFloat(discountPercentInput);
+                    if (!isNaN(percent)) {
+                      setSelectedDiscountType(percent + "%");
+                    }
+                  }}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                />
+              </div>
+            )}
+
+            {/* Specific Amount Input */}
+            {selectedDiscountType.toLowerCase() === "specific amount" && (
+              <div className="mb-3">
+                <label className="block text-sm">Enter Specific Discount Amount</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={orderDiscount === 0 ? "" : orderDiscount}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (/^(\d+(\.\d{0,2})?)?$/.test(value)) {
+                      setOrderDiscount(value === "" ? 0 : parseFloat(value));
+                    }
+                  }}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                />
+              </div>
+            )}
+
+            {selectedDiscountType.toLowerCase() != "specific amount" && (
+              <div className="mb-3">
+                <label className="block text-sm">Discount Amount</label>
+                <input
+                  type="text"
+                  readOnly
+                  value={orderDiscount === 0 ? "" : orderDiscount}
+                  className="w-full pl-6 border border-gray-200 bg-gray-100 text-gray-700 rounded-md px-3 py-2 text-sm cursor-default"
+                />
+              </div>
+            )}
+
+            <label className="block text-sm">Total</label>
               <input
                 type="text"
                 value={(() => {
@@ -726,11 +771,16 @@ const OrderDashboard = () => {
 
               <button
                 type="button"
-                className="w-full mt-4 bg-blue-400 text-white py-2 rounded-md"
+                className={`w-full mt-4 py-2 rounded-md text-white 
+                  ${!selectedProduct 
+                    ? "bg-gray-400 cursor-not-allowed" 
+                    : "bg-blue-400 hover:bg-blue-700"}`}
                 onClick={handleAddOrderItem}
+                disabled={!selectedProduct} 
               >
                 {isEditMode ? "Update Item" : "Add Product"}
               </button>
+
             </form>
           </div>
 
@@ -783,9 +833,13 @@ const OrderDashboard = () => {
 
               <button
                 type="button"
-                className="w-full mt-4 bg-blue-400 text-white py-2 rounded-md"
+                className={`w-full mt-4 py-2 rounded-md text-white 
+                  ${!selectedFreebie 
+                    ? "bg-gray-400 cursor-not-allowed" 
+                    : "bg-blue-400 hover:bg-blue-700"}`}
                 onClick={handleAddFreebie}
-              >
+                disabled={!selectedFreebie}
+              > 
                 Add Freebie
               </button>
             </form>

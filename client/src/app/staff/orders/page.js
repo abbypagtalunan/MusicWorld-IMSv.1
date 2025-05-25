@@ -710,7 +710,7 @@ export default function OrdersPage() {
                   <TableHead onClick={() => handleSort("wholeOrderDiscount")} className="cursor-pointer select-none"> Whole Order Discount <SortIcon column="wholeOrderDiscount" /></TableHead>
                   <TableHead onClick={() => handleSort("orderPayment")} className="cursor-pointer select-none"> Payment <SortIcon column="orderPayment" /></TableHead>
                   <TableHead onClick={() => handleSort("totalAmount")} className="cursor-pointer select-none"> Total Amount <SortIcon column="totalAmount" /></TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead>View/Delete</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -721,11 +721,11 @@ export default function OrdersPage() {
                     <TableCell>{formatDate(order.transacDate)}</TableCell>
                     <TableCell>{formatTime(order.transacDate)}</TableCell>
                     <TableCell>{order.receiptNo || "0"}</TableCell>
-                    <TableCell>{formatPeso(order.totalAmount)}</TableCell>
+                    <TableCell>{formatPeso(order.originalTotal)}</TableCell>
                     <TableCell>{formatPeso(order.totalProductDiscount)}</TableCell>
                     <TableCell>{formatPeso(order.wholeOrderDiscount)}</TableCell>
                     <TableCell>{formatPeso(order.orderPayment)}</TableCell>
-                    <TableCell>{formatPeso(order.originalTotal)}</TableCell>
+                    <TableCell>{formatPeso(order.totalAmount)}</TableCell>
 
                 {/*Details toggle button with modal pop-up */}              
                     <TableCell className="flex space-x-2">              

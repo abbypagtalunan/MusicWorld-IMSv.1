@@ -27,6 +27,14 @@ import {
   SidebarMenuItem,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { usePathname } from "next/navigation";
 
 // Import the logout handler
@@ -42,6 +50,8 @@ export function AppSidebar({ ...props }) {
   // fix:
   // 🔄 Get real user data from localStorage (client-only)
   const [userFromStorage, setUserFromStorage] = React.useState({})
+
+  const [showLogoutDialog, setShowLogoutDialog] = React.useState(false);
 
   React.useEffect(() => {
     const stored = localStorage.getItem("user")
@@ -129,8 +139,7 @@ export function AppSidebar({ ...props }) {
         <SidebarHeader className="bg-white">
           <SidebarMenu>
             <SidebarMenuItem>
-              {/* ✅ Now wrapped in Link */}
-              <Link href="/">
+              <Link href="products">
                 <SidebarMenuButton size="xl" tooltip="Home">
                   <div className="flex justify-center items-center">
                     <img
@@ -155,11 +164,35 @@ export function AppSidebar({ ...props }) {
               <SidebarMenuButton
                 size="lg"
                 tooltip="Log Out"
-                onClick={handleSignOut}
+                onClick={() => setShowLogoutDialog(true)}
               >
                 <LogOutIcon className="w-5 h-5" />
                 <span className="ml-2">Log Out</span>
               </SidebarMenuButton>
+              <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+              <DialogContent className="max-w-md p-6">
+                <DialogHeader>
+                  <DialogTitle>Confirm Logout</DialogTitle>
+                </DialogHeader>
+                <p className="text-gray-700 mt-2">
+                  Are you sure you want to log out?
+                </p>
+                <DialogFooter className="mt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowLogoutDialog(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    className="bg-red-500 text-white"
+                    onClick={handleSignOut}
+                  >
+                    Log Out
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
             </SidebarMenuItem>
           </SidebarMenu>
           <NavUser user={user} /> 

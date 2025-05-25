@@ -283,13 +283,13 @@ export default function DeletedPage() {
                 ))}
               </TabsList>
             </div>
-            <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-4">
+            <div className="flex flex-col w-full h-full gap-4 items-stretch">
               {Object.entries(configMap).map(([key, cfg]) => (
-                <TabsContent key={key} value={key}>
+                <TabsContent key={key} value={key} className="h-full">
                   {/* Table */}
-                    <Card className="overflow-hidden">
+                    <Card className="w-full h-full flex flex-col overflow-hidden">
                     <div className="max-h-[600px] overflow-y-auto relative">
-                      <CardContent className="p-0">
+                      <CardContent className="p-0 overflow">
                         {/* Search */}
                         <div className=" bg-white p-4 flex justify-between items-center">
                             <div className="relative w-80">
@@ -344,7 +344,7 @@ export default function DeletedPage() {
                                   <TableHead onClick={() => handleSort(config.dateField)} className="cursor-pointer">
                                     Order Date <SortIcon column={config.dateField} />
                                   </TableHead>
-                                  <TableHead>Details</TableHead>
+                                  <TableHead>View Details</TableHead>
                                 </>
                               )}
                               {activeTab === "return" && (
@@ -367,7 +367,7 @@ export default function DeletedPage() {
                                   <TableHead onClick={() => handleSort(config.dateField)} className="cursor-pointer">
                                     Return Date <SortIcon column={config.dateField} />
                                   </TableHead>
-                                  <TableHead>Details</TableHead>
+                                  <TableHead>View Details</TableHead>
                                 </>
                               )}
                               {activeTab === "delivery" && (
@@ -390,7 +390,7 @@ export default function DeletedPage() {
                                   <TableHead onClick={() => handleSort(config.dateField)} className="cursor-pointer">
                                     Delivery Date <SortIcon column={config.dateField} />
                                   </TableHead>
-                                  <TableHead>Details</TableHead>
+                                  <TableHead>View Details</TableHead>
                                 </>
                               )}
                               {activeTab === "product" && (

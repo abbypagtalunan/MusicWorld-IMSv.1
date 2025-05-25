@@ -6,7 +6,7 @@ import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
-import { Search, ListFilter, Trash2, Eye, CalendarDays, Download, ChevronsUpDown, ChevronUp, ChevronDown, RotateCcw, Ellipsis } from "lucide-react";
+import { Search, ListFilter, Trash2, CalendarDays, Download, ChevronsUpDown, ChevronUp, ChevronDown, RotateCcw, Ellipsis } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -33,13 +33,104 @@ export default function OrdersPage() {
   const [orderDetails, setOrderDetails] = useState([]);
   const [selectedOrderID, setSelectedOrderID] = useState(null);
 
+  // Return order states
+  const [selectedTransactions, setSelectedTransactions] = useState([]);
+  const [isReturnDialogOpen, setReturnDialogOpen] = useState(false);
+  const [itemReturnReasons, setItemReturnReasons] = useState({}); 
+
   // Sort state
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "ascending" });
 
-  // Add the missing handleFilterSelect function
+  // Client-side hydration fix 
+  const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+
+  // handleFilterSelect function
   const handleFilterSelect = (filter, subFilter) => {
     setSelectedFilter(filter);
     setSelectedSubFilter(subFilter);
+  };
+
+  // Return order handler functions
+
+  // for single or multiple selects
+  const handleSelectTransaction = (transactionId) => {
+    setSelectedTransactions(prev => 
+      prev.includes(transactionId) 
+        ? prev.filter(id => id !== transactionId)
+        : [...prev, transactionId]
+    );
+  };
+
+  // when selected all
+  const handleSelectAll = () => {
+    const currentOrderDetails = orderDetails.filter(detail => detail.orderID === selectedOrderID);
+    const allTransactionIds = currentOrderDetails.map(detail => `${detail.orderID}-${detail.orderDetailID}`);
+    
+    if (selectedTransactions.length === allTransactionIds.length && selectedTransactions.length > 0) {
+      setSelectedTransactions([]);
+    } else {
+      setSelectedTransactions(allTransactionIds);
+    }
+  };
+
+  const getFilteredTransactions = () => {
+    return orderDetails.filter(detail => detail.orderID === selectedOrderID);
+  };
+
+  // Handle return with individual item reasons
+  const handleReturnOrder = () => {
+    if (selectedTransactions.length === 0) {
+      toast.error("Please select at least one item to return");
+      return;
+    }
+    
+    // Check if all selected items have return reasons
+    const missingReasons = selectedTransactions.filter(transactionId => 
+      !itemReturnReasons[transactionId]?.trim()
+    );
+    
+    if (missingReasons.length > 0) {
+      toast.error("Please provide a reason for all selected items");
+      return;
+    }
+    
+    console.log("Returning items with individual reasons:");
+    selectedTransactions.forEach(transactionId => {
+      const [orderID, orderDetailID] = transactionId.split('-');
+      const detail = orderDetails.find(d => d.orderDetailID.toString() === orderDetailID);
+      console.log(`Item: ${detail?.productName}, Reason: ${itemReturnReasons[transactionId]}`);
+    });
+    
+    toast.success("Return processed successfully!");
+    setReturnDialogOpen(false);
+    setSelectedTransactions([]);
+    setItemReturnReasons({});
+  };
+
+  // Function to update individual item return reason
+  const updateItemReturnReason = (transactionId, reason) => {
+    // Only allow letters and spaces
+    let filtered = reason.replace(/[^a-zA-Z\s]/g, '');
+    // Enforce 50 character limit strictly
+    if (filtered.length > 50) {
+      filtered = filtered.substring(0, 50);
+    }
+
+    setItemReturnReasons(prev => ({
+      ...prev,
+      [transactionId]: filtered
+    }));
+  };
+
+  // Reset function when Return dialog closes
+  const resetReturnDialog = () => {
+    setReturnDialogOpen(false);
+    setItemReturnReasons({});
   };
 
   // Amount filters
@@ -441,7 +532,12 @@ Object.entries(amountRanges).forEach(([key, range]) => {
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
-};
+  };
+
+  // Prevent hydration errors
+  if (!isMounted) {
+    return null;
+  }
 
   return (
     <SidebarProvider>
@@ -861,20 +957,27 @@ Object.entries(amountRanges).forEach(([key, range]) => {
                     <TableCell>{formatDate(order.transacDate)}</TableCell>
                     <TableCell>{formatTime(order.transacDate)}</TableCell>
                     <TableCell>{order.receiptNo || "0"}</TableCell>
-                    <TableCell>{formatPeso(order.totalAmount)}</TableCell>
+                    <TableCell>{formatPeso(order.originalTotal)}</TableCell>
                     <TableCell>{formatPeso(order.totalProductDiscount)}</TableCell>
                     <TableCell>{formatPeso(order.wholeOrderDiscount)}</TableCell>
                     <TableCell>{formatPeso(order.orderPayment)}</TableCell>
-                    <TableCell>{formatPeso(order.originalTotal)}</TableCell>
+                    <TableCell>{formatPeso(order.totalAmount)}</TableCell>
 
                 {/* View/Return toggle button with modal pop-up */}              
                     <TableCell className="flex justify-center items-center">              
-                      <Dialog>
+                      <Dialog onOpenChange={(open) => {
+                        if (!open) {
+                          // Reset selection when dialog closes
+                          setSelectedTransactions([]);
+                          setSelectedOrderID(null);
+                        }
+                      }}>
                         <DialogTrigger asChild>
                           <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600" onClick={() => setSelectedOrderID(order.orderID)} >
                             <Ellipsis size={16} />
                           </Button>
                         </DialogTrigger>
+
                         <DialogContent className="w-full max-w-screen-lg sm:max-w-screen-md md:max-w-screen-lg lg:max-w-screen-xl max-h-[95vh] overflow-y-auto p-6">
                         <DialogHeader>
                             <DialogTitle>Order Details</DialogTitle>
@@ -884,6 +987,14 @@ Object.entries(amountRanges).forEach(([key, range]) => {
                           <Table>
                             <TableHeader>
                               <TableRow>
+                                {/* checkbox select ALL function for customer returns */}
+                                <TableHead className="sticky top-0 z-10 bg-white">
+                                  <input type="checkbox" 
+                                  onChange={handleSelectAll} 
+                                  checked={selectedTransactions.length === getFilteredTransactions().length && 
+                                  selectedTransactions.length > 0}
+                                  />
+                                </TableHead>
                                 <TableHead>Order ID</TableHead>
                                 <TableHead>Order Detail ID</TableHead>
                                 <TableHead>Product Code</TableHead>
@@ -903,7 +1014,15 @@ Object.entries(amountRanges).forEach(([key, range]) => {
                             {orderDetails
                               .filter((detail) => detail.orderID === selectedOrderID)
                               .map((detail) => (
+                              // checkbox select NO. OF ITEMS ONLY function for customer returns 
                               <TableRow key={detail.orderDetailID}>
+                                <TableCell>
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedTransactions.includes(`${detail.orderID}-${detail.orderDetailID}`)}
+                                    onChange={() => handleSelectTransaction(`${detail.orderID}-${detail.orderDetailID}`)}
+                                  />
+                                </TableCell> 
                                 <TableCell>{detail.orderID}</TableCell>
                                 <TableCell>{detail.orderDetailID}</TableCell>
                                 <TableCell>{detail.productCode}</TableCell>
@@ -924,6 +1043,25 @@ Object.entries(amountRanges).forEach(([key, range]) => {
                           ) : (
                             <p className="text-gray-500">Product details not found.</p>
                           )}
+                            {/* Return items function */}
+                            <div className="flex justify-between items-center mb-4">
+                            <div className="text-sm text-gray-600">
+                              {selectedTransactions.length > 0 && (
+                                <span>{selectedTransactions.length} item(s) selected</span>
+                              )}
+                            </div>
+                            <Button
+                              variant="outline"
+                              className="bg-indigo-500 hover:bg-indigo-700 hover:text-white text-white"
+                              onClick={() => {
+                              setItemReturnReasons("");
+                              setReturnDialogOpen(true);
+                            }}
+                              disabled={selectedTransactions.length === 0}
+                            >
+                              Return Selected Items
+                            </Button>
+                          </div>
                         </DialogContent>
                       </Dialog>            
                     </TableCell>
@@ -947,13 +1085,108 @@ Object.entries(amountRanges).forEach(([key, range]) => {
                 })}
               </TableBody>
             </Table>
+
+   {/* Return Dialog with Individual Item Reasons */}
+            <Dialog open={isReturnDialogOpen} onOpenChange={(open) => {
+              if (!open) {
+                resetReturnDialog();
+              } else {
+                setReturnDialogOpen(open);
+              }
+            }}>
+              <DialogContent className="w-[90vw] max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+                <DialogHeader>
+                  <DialogTitle>
+                    <span className="text-lg text-indigo-900">Return Order Items</span>
+                    <span className="text-lg text-gray-400 font-normal italic ml-2">
+                      ({selectedTransactions.length} item/s)
+                    </span>
+                  </DialogTitle>
+                  <DialogClose />
+                </DialogHeader>
+                
+                <div className="space-y-4">
+                  <p className="text-sm text-gray-800">
+                    You are about to return {selectedTransactions.length} item/s from 
+                    <span className="font-semibold ml-2">Order ID: {selectedOrderID}</span>
+                  </p>
+                  
+                  {/* Individual items with own return reason inputs */}
+                  <div className="space-y-4">
+                    <h4 className="font-semibold text-sm mb-2">Return Reasons for Each Item:</h4>
+                    
+                    <div className="max-h-96 overflow-y-auto space-y-4 border rounded p-4">
+                      {selectedTransactions.map(transactionId => {
+                        const [orderID, orderDetailID] = transactionId.split('-');
+                        const detail = orderDetails.find(d => d.orderDetailID.toString() === orderDetailID);
+                        
+                        return (
+                          <div key={transactionId} className="border-b pb-4 last:border-b-0">
+                            {/* Item details */}
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="flex-1">
+                                <div className="font-medium text-sm text-gray-800">
+                                  {detail?.productName}
+                                </div>
+                                <div className="text-xs text-gray-600">
+                                  Detail ID: {detail?.orderDetailID} | Code: {detail?.productCode} | Qty: {detail?.quantity}
+                                </div>
+                                <div className="text-xs text-gray-600">
+                                  Price: {detail?.unitPrice === 0.00 ? "Freebie" : formatPeso(detail?.unitPrice)} | 
+                                  Brand: {detail?.brandName} | Supplier: {detail?.supplierName}
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Return reason input for this specific item */}
+                            <div className="mt-2">
+                              <label className="text-sm font-medium text-red-600 block mb-1">
+                                Return Reason *
+                              </label>
+                              <Input
+                                required
+                                type="text"
+                                placeholder="Provide a reason for returning this item..."
+                                className="w-full p-2 border rounded text-sm"
+                                value={itemReturnReasons[transactionId] || ''}
+                                onChange={(e) => updateItemReturnReason(transactionId, e.target.value)}
+                              />
+                              <div className="text-xs text-gray-500 mt-1">
+                                {(itemReturnReasons[transactionId] || '').length}/50 characters (letters and spaces only)
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex justify-end mt-6 gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={resetReturnDialog}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    className="bg-indigo-500 hover:bg-indigo-600 text-white"
+                    onClick={handleReturnOrder}
+                    disabled={selectedTransactions.some(id => !itemReturnReasons[id]?.trim())}
+                  >
+                    Process Return ({selectedTransactions.length} items)
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* Delete Dialog for deleting transactions */}
             <Dialog open={isDDOpen} onOpenChange={(open) => {
               setDDOpen(open);
               if (!open) {
                 setAdminPW("");
               }
             }}>
-              {/* For deleting transactions */}
               <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
                 <DialogHeader>
                   <DialogTitle>

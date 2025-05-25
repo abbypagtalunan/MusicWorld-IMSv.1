@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
+import { Eye, EyeOff } from "lucide-react"
 
 export default function LoginForm({
   className,
@@ -22,6 +23,7 @@ export default function LoginForm({
   const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -93,19 +95,28 @@ export default function LoginForm({
                   onChange={(e) => setUsername(e.target.value)}
                 />
               </div>
-              <div className="grid gap-2">
+              <div className="grid gap-2 relative">
                 <Label htmlFor="password">Password</Label>
-                <Input 
-                  id="password" 
-                  type="password" 
-                  placeholder="Enter your password"
-                  required 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
+                <div className="relative">
+                  <Input 
+                    id="password" 
+                    type={showPassword ? "text" : "password"} 
+                    placeholder="Enter your password"
+                    required 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pr-10" // space for the icon
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2 top-2.5 text-muted-foreground"
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
               </div>
 
-              {/* Show error message */}
               {error && <p className="text-red-500 text-sm">{error}</p>}
 
               <Button type="submit" className="w-full" disabled={isLoading}>

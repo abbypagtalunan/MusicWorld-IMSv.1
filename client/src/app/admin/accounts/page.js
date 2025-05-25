@@ -17,7 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Eye, Copy, FilePen, Trash2, EyeOff } from "lucide-react";
+import { Eye, Copy, FilePen, Trash2, EyeOff, ChevronsUpDown, ChevronUp, ChevronDown } from "lucide-react";
 import {
   Dialog,
   DialogTrigger,
@@ -99,6 +99,7 @@ export default function ManageAccountsPage() {
   const [showAdminDeletePassword, setShowAdminDeletePassword] = useState(false);
   const [showStaffNewPassword, setShowStaffNewPassword] = useState(false);
   const [showStaffConfirmPassword, setShowStaffConfirmPassword] = useState(false);
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
 
 
   // Load current user + staff data
@@ -249,54 +250,115 @@ export default function ManageAccountsPage() {
     setSelectedSubFilter(subFilter);
   };
 
-const getFilteredStaffs = () => {
-  let filtered = [...staffs];
-  // Remove the current user from the staff list
-  if (currentUser?.accountID) {
-    filtered = filtered.filter((staff) => staff.accountID !== currentUser.accountID);
-  }
+  // Sort
+  const handleSort = (key) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        if (prev.direction === "ascending") {
+          return { key, direction: "descending" };
+        } else if (prev.direction === "descending") {
+          return { key: null, direction: null }; // reset
+        }
+      }
+      return { key, direction: "ascending" };
+    });
+  };
 
-  if (searchQuery) {
-    const query = searchQuery.toLowerCase();
-    filtered = filtered.filter((staff) =>
-      `${staff.firstName} ${staff.lastName} ${staff.accountID}`
-        .toLowerCase()
-        .includes(query)
+  const getFilteredStaffs = () => {
+    let filtered = [...staffs];
+
+    // Remove current user from the list
+    if (currentUser?.accountID) {
+      filtered = filtered.filter(staff => staff.accountID !== currentUser.accountID);
+    }
+
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter((staff) =>
+        `${staff.firstName} ${staff.lastName} ${staff.accountID}`
+          .toLowerCase()
+          .includes(query)
+      );
+    }
+
+    // Apply dropdown filters (selectedFilter & selectedSubFilter)
+    if (selectedFilter && selectedSubFilter) {
+      switch (selectedFilter) {
+        case "Name":
+          filtered.sort((a, b) => {
+            const nameA = `${a.firstName} ${a.lastName}`.toLowerCase();
+            const nameB = `${b.firstName} ${b.lastName}`.toLowerCase();
+            return selectedSubFilter === "Ascending"
+              ? nameA.localeCompare(nameB)
+              : nameB.localeCompare(nameA);
+          });
+          break;
+
+        case "Role":
+          if (selectedSubFilter === "All") break;
+          const selectedRole = roles.find(
+            (r) => r.roleName.toLowerCase() === selectedSubFilter.toLowerCase()
+          );
+          if (selectedRole) {
+            filtered = filtered.filter((s) => s.roleID === selectedRole.roleID);
+          }
+          break;
+
+        case "User Code":
+          filtered.sort((a, b) =>
+            selectedSubFilter === "Low to High"
+              ? a.accountID - b.accountID
+              : b.accountID - a.accountID
+          );
+          break;
+
+        case "Date Created":
+          filtered.sort((a, b) => {
+            const dateA = new Date(a.dateCreated);
+            const dateB = new Date(b.dateCreated);
+            return selectedSubFilter === "Oldest" ? dateA - dateB : dateB - dateA;
+          });
+          break;
+
+        default:
+          break;
+      }
+    }
+
+    // Apply sort from table header clicks
+    if (sortConfig.key) {
+      filtered.sort((a, b) => {
+        let aValue, bValue;
+
+        if (sortConfig.key === "name") {
+          aValue = `${a.firstName} ${a.lastName}`.toLowerCase();
+          bValue = `${b.firstName} ${b.lastName}`.toLowerCase();
+        } else if (sortConfig.key === "dateCreated") {
+          aValue = new Date(a.dateCreated);
+          bValue = new Date(b.dateCreated);
+        } else {
+          aValue = a[sortConfig.key];
+          bValue = b[sortConfig.key];
+        }
+
+        if (aValue < bValue) return sortConfig.direction === "ascending" ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === "ascending" ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return filtered;
+  };
+
+    function SortIcon({ column }) {
+    if (sortConfig.key !== column) return <ChevronsUpDown className="inline ml-1 w-4 h-4 text-gray-400" />;
+    return sortConfig.direction === "ascending" ? (
+      <ChevronUp className="inline ml-1 w-4 h-4 text-blue-500" />
+    ) : (
+      <ChevronDown className="inline ml-1 w-4 h-4 text-blue-500" />
     );
   }
-  if (!selectedFilter || !selectedSubFilter) return filtered;
-  switch (selectedFilter) {
-    case "Name":
-      return filtered.sort((a, b) =>
-        selectedSubFilter === "Ascending"
-          ? `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`)
-          : `${b.firstName} ${b.lastName}`.localeCompare(`${a.firstName} ${a.lastName}`)
-      );
-    case "Role":
-      const selectedRole = roles.find(
-        (r) => r.roleName.toLowerCase() === selectedSubFilter.toLowerCase()
-      );
-      if (selectedRole) {
-        return filtered.filter((s) => s.roleID === selectedRole.roleID);
-      } else if (selectedSubFilter === "All") {
-        return [...filtered];
-      }
-      break;
-    case "User Code":
-      return filtered.sort((a, b) =>
-        selectedSubFilter === "Low to High" ? a.accountID - b.accountID : b.accountID - a.accountID
-      );
-    case "Date Created":
-      return filtered.sort((a, b) => {
-        const dateA = new Date(a.dateCreated);
-        const dateB = new Date(b.dateCreated);
-        return selectedSubFilter === "Oldest" ? dateA - dateB : dateB - dateA;
-      });
-    default:
-      return filtered;
-  }
-  return filtered;
-};
 
   // Submit add staff
   const handleAddStaff = async () => {
@@ -697,65 +759,18 @@ const getFilteredStaffs = () => {
                     <DropdownMenuTrigger asChild>
                       <Button variant="outline" className="flex items-center space-x-2">
                         <ListFilter className="w-4 h-4" />
-                        <span>Filter/Sort</span>
+                        <span>Filter Role</span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start">
-                      <DropdownMenuSub>
-                        <DropdownMenuSubTrigger>Date Created</DropdownMenuSubTrigger>
-                        <DropdownMenuSubContent>
-                          <DropdownMenuItem onClick={() => handleFilterSelect("Date Created", "Oldest")}>
-                            Oldest First
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleFilterSelect("Date Created", "Newest")}>
-                            Newest First
-                          </DropdownMenuItem>
-                        </DropdownMenuSubContent>
-                      </DropdownMenuSub>
-                      <DropdownMenuSub>
-                        <DropdownMenuSubTrigger>Name</DropdownMenuSubTrigger>
-                        <DropdownMenuSubContent>
-                          <DropdownMenuItem onClick={() => handleFilterSelect("Name", "Ascending")}>
-                            Ascending
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleFilterSelect("Name", "Descending")}>
-                            Descending
-                          </DropdownMenuItem>
-                        </DropdownMenuSubContent>
-                      </DropdownMenuSub>
-                      <DropdownMenuSub>
-                        <DropdownMenuSubTrigger>Role</DropdownMenuSubTrigger>
-                        <DropdownMenuSubContent>
-                          <DropdownMenuItem onClick={() => handleFilterSelect("Role", "Admin")}>
-                            Admin
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleFilterSelect("Role", "Staff")}>
-                            Staff
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleFilterSelect("Role", "All")}>
-                            All
-                          </DropdownMenuItem>
-                        </DropdownMenuSubContent>
-                      </DropdownMenuSub>
-                      <DropdownMenuSub>
-                        <DropdownMenuSubTrigger>User Code</DropdownMenuSubTrigger>
-                        <DropdownMenuSubContent>
-                          <DropdownMenuItem onClick={() => handleFilterSelect("User Code", "Low to High")}>
-                            Low to High
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleFilterSelect("User Code", "High to Low")}>
-                            High to Low
-                          </DropdownMenuItem>
-                        </DropdownMenuSubContent>
-                      </DropdownMenuSub>
-                      <DropdownMenuItem
-                        onClick={() => {
-                          handleFilterSelect(null, null);
-                          setSearchQuery("");
-                        }}
-                        className="text-red-500 font-medium"
-                      >
-                        Reset Filters
+                      <DropdownMenuItem onClick={() => handleFilterSelect("Role", "Admin")}>
+                        Admin
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleFilterSelect("Role", "Staff")}>
+                        Staff
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleFilterSelect("Role", "All")}>
+                        All
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -874,10 +889,18 @@ const getFilteredStaffs = () => {
                     <Table>
                       <TableHeader className="sticky top-0 z-10 bg-white">
                         <TableRow>
-                          <TableHead>Date Created</TableHead>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Role</TableHead>
-                          <TableHead>User Code</TableHead>
+                          <TableHead onClick={() => handleSort("dateCreated")} className="cursor-pointer">
+                            Date Created <SortIcon column="dateCreated" />
+                          </TableHead>
+                          <TableHead onClick={() => handleSort("name")} className="cursor-pointer">
+                            Name <SortIcon column="name" />
+                          </TableHead>
+                          <TableHead onClick={() => handleSort("roleID")} className="cursor-pointer">
+                            Role <SortIcon column="roleID" />
+                          </TableHead>
+                          <TableHead onClick={() => handleSort("accountID")} className="cursor-pointer">
+                            User Code <SortIcon column="accountID" />
+                          </TableHead>
                           <TableHead>Reset Password</TableHead>
                           <TableHead>Actions</TableHead>
                         </TableRow>

@@ -13,6 +13,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "@/components/ui/select"
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogFooter } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
+import { useRef } from "react";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function ProductsPage() {
   const config = {
@@ -161,10 +163,14 @@ export default function ProductsPage() {
     setSearchTerm("");
   }, []);
 
-  const refreshTable = () => {
+  const refreshTable = (callback) => {
     axios
       .get(config.product.api.fetch)
-      .then((res) => setData(normalizedData(res)))
+      .then((res) => {
+        const newData = normalizedData(res);
+        setData(newData);
+        if (callback) callback(newData);
+      })
       .catch((error) => console.error("Error fetching data:", error));
   };
 
@@ -197,7 +203,15 @@ export default function ProductsPage() {
   const [selectedSubFilter, setSelectedSubFilter] = useState(null);
 
   // Sort
-   const [sortConfig, setSortConfig] = useState({ key: null, direction: "ascending" });
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: "ascending" });
+
+  // Row references for highlighting
+  const rowRefs = useRef({});
+
+  // Highlight selected row
+  const [highlightedCode, setHighlightedCode] = useState(null);
+
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSort = (key) => {
     setSortConfig((prev) => {
@@ -230,7 +244,8 @@ export default function ProductsPage() {
       sortedTransactions = sortedTransactions.filter(
         (item) =>
           (item.productName?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
-          (item.category?.toLowerCase() || "").includes(searchTerm.toLowerCase())
+          (item.category?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+          (item.productCode?.toString().toLowerCase() || "").includes(searchTerm.toLowerCase())
       );
     }
 
@@ -364,7 +379,25 @@ export default function ProductsPage() {
       .post(config.product.api.add, payload)
       .then(() => {
         toast.success(`${config.product.label} added successfully`);
-        refreshTable();
+        refreshTable((updatedData) => {
+            // Find the product with the latest dateAdded
+            const newest = [...updatedData].sort((a, b) =>
+              new Date(b.dateAdded) - new Date(a.dateAdded)
+            )[0];
+
+            if (newest?.productCode) {
+              setHighlightedCode(newest.productCode);
+
+              // Scroll into view if the row ref exists
+              setTimeout(() => {
+                const row = rowRefs.current[newest.productCode];
+                if (row) {
+                  row.scrollIntoView({ behavior: "smooth", block: "center" });
+                }
+              }, 300);
+            }
+          });
+
         resetForm();
         setAddSheetOpen(false);
       })
@@ -417,6 +450,7 @@ export default function ProductsPage() {
         toast.success(`${config.product.label} edited successfully`);
         refreshTable();
         setEditSheetOpen(false);
+        setHighlightedCode(values[config.product.codeField]);
       })
       .catch((err) => {
         console.error("Error response:", err.response);
@@ -461,6 +495,7 @@ export default function ProductsPage() {
         setPSearchTerm("");
         setSelectedProductforPU(null);
         setPDopen(false);
+        setHighlightedCode(productCode);
       })  
       .catch((err) => {
         console.error("Update error:", err?.response?.data || err.message || err);
@@ -655,6 +690,24 @@ export default function ProductsPage() {
   URL.revokeObjectURL(url);
 };
 
+  // Highlight Timeout
+  useEffect(() => {
+    if (highlightedCode) {
+      const timeout = setTimeout(() => setHighlightedCode(null), 8000);
+      return () => clearTimeout(timeout);
+    }
+  }, [highlightedCode]);
+
+  useEffect(() => {
+    if (highlightedCode && rowRefs.current[highlightedCode]) {
+      rowRefs.current[highlightedCode].scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
+  }, [highlightedCode]);
+
+
   return (
     <SidebarProvider>
       <div className="flex h-screen w-screen">
@@ -666,7 +719,7 @@ export default function ProductsPage() {
                 {/* Search */}
                 <Input
                   type="text"
-                  placeholder="Search product, category"
+                  placeholder="Search product code, product, category"
                   className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -1074,18 +1127,32 @@ export default function ProductsPage() {
                     Deleting these transactions will reflect on Void Transactions. Enter the admin password to delete the selected products.
                   </p>
                   <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">
-                    <div className="flex-1">
-                      <label htmlFor="password" className="text-base font-medium text-gray-700 block mb-2">
+                    <div className="w-full">
+                      <label className="text-base font-medium text-gray-700 block mb-2">
                         Admin Password
                       </label>
-                      <Input
-                        type="password"
-                        required
-                        placeholder="Enter admin password"
-                        className="w-full"
-                        value={adminPW}
-                        onChange={(e) => setAdminPW(e.target.value)}
-                      />
+                      <div className="relative w-full">
+                        <Input
+                          type={showPassword ? "text" : "password"}
+                          required
+                          placeholder="Enter valid password"
+                          className="w-full pr-10"
+                          value={adminPW}
+                          onChange={(e) => setAdminPW(e.target.value)}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword((prev) => !prev)}
+                          className="absolute inset-y-0 right-3 flex items-center text-gray-500"
+                          tabIndex={-1}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="w-5 h-5" />
+                          ) : (
+                            <Eye className="w-5 h-5" />
+                          )}
+                        </button>
+                      </div>
                     </div>
                     <Button
                       className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
@@ -1126,9 +1193,14 @@ export default function ProductsPage() {
               <TableBody>
               {getFilteredTransactions().filter(item =>
                 (item.productName?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
-                (item.category?.toLowerCase() || "").includes(searchTerm.toLowerCase())                
+                (item.category?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+                (item.productCode?.toString().toLowerCase() || "").includes(searchTerm.toLowerCase())        
               ).map((item) => (
-                  <TableRow key={item.productCode} className={getStatusColor(item.status)}>
+                  <TableRow
+                    key={item.productCode}
+                    ref={(el) => (rowRefs.current[item.productCode] = el)}
+                    className={`${getStatusColor(item.status)} ${item.productCode === highlightedCode ? 'bg-blue-200 animate-pulse' : ''}`}
+                  >
                     <TableCell>
                       <input
                         type="checkbox"
@@ -1324,20 +1396,33 @@ export default function ProductsPage() {
             Deleting this transaction will reflect on Void Transactions. Enter the admin password to delete this transaction.
           </p>
           <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">
-            <div className="flex-1">
+            <div className="w-full">
               <label className="text-base font-medium text-gray-700 block mb-2">
                 Admin Password
               </label>
-              <Input
-                type="password"
-                required
-                placeholder="Enter valid password"
-                className="w-full"
-                value={adminPW}
-                onChange={(e) => setAdminPW(e.target.value)}
-              />
+              <div className="relative w-full">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  placeholder="Enter valid password"
+                  className="w-full pr-10"
+                  value={adminPW}
+                  onChange={(e) => setAdminPW(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute inset-y-0 right-3 flex items-center text-gray-500"
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
             </div>
-
             <Button
               className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
               onClick={() => {

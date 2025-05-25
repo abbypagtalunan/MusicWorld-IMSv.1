@@ -23,6 +23,14 @@ import {
   SidebarMenuItem,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { usePathname } from "next/navigation";
 
 // Import the logout function
@@ -33,6 +41,8 @@ export function AppSidebar({ ...props }) {
   const [collapsed, setCollapsed] = React.useState(false);
 
   const userFromStorage = JSON.parse(localStorage.getItem("user")) || {};
+  
+  const [showLogoutDialog, setShowLogoutDialog] = React.useState(false);
 
   // Format the user object for the sidebar
   const user = {
@@ -100,7 +110,7 @@ export function AppSidebar({ ...props }) {
         <SidebarHeader className="bg-white">
           <SidebarMenu>
             <SidebarMenuItem>
-              <Link href="/">
+              <Link href="OrderDashboard">
                 <SidebarMenuButton size="xl" tooltip="Home">
                   <div className="flex justify-center items-center p-1 cursor-default">
                     <img
@@ -122,15 +132,41 @@ export function AppSidebar({ ...props }) {
         <SidebarFooter className="bg-white">
           <SidebarMenu className="bg-white items-left justify-center">
             <SidebarMenuItem>
-              <button onClick={handleSignOut}>
-                <SidebarMenuButton size="lg" tooltip="Log Out">
-                  <LogOutIcon className="w-5 h-5" />
-                  <span className="ml-2">Log Out</span>
-                </SidebarMenuButton>
-              </button>
+              <SidebarMenuButton
+                size="lg"
+                tooltip="Log Out"
+                onClick={() => setShowLogoutDialog(true)}
+              >
+                <LogOutIcon className="w-5 h-5" />
+                <span className="ml-2">Log Out</span>
+              </SidebarMenuButton>
+              <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+              <DialogContent className="max-w-md p-6">
+                <DialogHeader>
+                  <DialogTitle>Confirm Logout</DialogTitle>
+                </DialogHeader>
+                <p className="text-gray-700 mt-2">
+                  Are you sure you want to log out?
+                </p>
+                <DialogFooter className="mt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowLogoutDialog(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    className="bg-red-500 text-white"
+                    onClick={handleSignOut}
+                  >
+                    Log Out
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
             </SidebarMenuItem>
           </SidebarMenu>
-          <NavUser user={user} role={role} />
+          <NavUser user={user} /> 
         </SidebarFooter>
       </Sidebar>
     </>

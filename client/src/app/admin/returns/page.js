@@ -43,7 +43,7 @@ import {
   TabsTrigger,
   TabsContent,
 } from "@/components/ui/tabs";
-import { Trash2, Eye, ChevronsUpDown, ChevronUp, ChevronDown } from "lucide-react";
+import { Trash2, Eye, ChevronsUpDown, ChevronUp, ChevronDown, EyeOff } from "lucide-react";
 // Toast Notifications
 import { toast, Toaster } from "react-hot-toast";
 // Helper function to format PHP currency
@@ -145,6 +145,7 @@ export default function ReturnsPage() {
   // Sort
   const [customerSortConfig, setCustomerSortConfig] = useState({ key: null, direction: "ascending" });
   const [supplierSortConfig, setSupplierSortConfig] = useState({ key: null, direction: "ascending" });
+  const [showPassword, setShowPassword] = useState(false);
   // Fetch Data on Load
   useEffect(() => {
     const fetchData = async () => {
@@ -531,12 +532,26 @@ export default function ReturnsPage() {
                                           <Label htmlFor={`password-${item.R_returnID}`} className="block mb-2 text-base font-medium text-gray-700">
                                             Admin Password
                                           </Label>
+                                          <div className="relative w-full">
                                           <Input
                                             id={`password-${item.R_returnID}`}
-                                            type="password"
+                                             type={showPassword ? "text" : "password"} required
                                             placeholder="Enter valid password"
                                             className="w-full"
                                           />
+                                          <button
+                                            type="button"
+                                            onClick={() => setShowPassword((prev) => !prev)}
+                                            className="absolute inset-y-0 right-3 flex items-center text-gray-500"
+                                            tabIndex={-1}
+                                          >
+                                            {showPassword ? (
+                                              <EyeOff className="w-5 h-5" />
+                                            ) : (
+                                              <Eye className="w-5 h-5" />
+                                            )}
+                                        </button>
+                                        </div>
                                         </div>
                                         <Button
                                           className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
@@ -779,13 +794,26 @@ export default function ReturnsPage() {
                                           <Label htmlFor={`password-${item.R_returnID}`} className="text-base font-medium text-gray-700 block mb-2">
                                             Admin Password
                                           </Label>
+                                          <div className="relative w-full">
                                           <Input
                                             id={`password-${item.R_returnID}`}
-                                            type="password"
-                                            required
+                                            type={showPassword ? "text" : "password"} required
                                             placeholder="Enter valid password"
                                             className="w-full"
                                           />
+                                           <button
+                                            type="button"
+                                            onClick={() => setShowPassword((prev) => !prev)}
+                                            className="absolute inset-y-0 right-3 flex items-center text-gray-500"
+                                            tabIndex={-1}
+                                          >
+                                            {showPassword ? (
+                                              <EyeOff className="w-5 h-5" />
+                                            ) : (
+                                              <Eye className="w-5 h-5" />
+                                            )}
+                                          </button>
+                                          </div>
                                         </div>
                                         <Button
                                           className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
