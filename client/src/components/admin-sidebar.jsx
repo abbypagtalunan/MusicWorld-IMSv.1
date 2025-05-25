@@ -36,8 +36,17 @@ export function AppSidebar({ ...props }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = React.useState(false);
 
-  // 🔄 Get real user data from localStorage
-  const userFromStorage = JSON.parse(localStorage.getItem("user")) || {};
+  // 🔄 Get real user data from localStorage (bugged)
+  // const userFromStorage = JSON.parse(localStorage.getItem("user")) || {};
+  
+  // fix:
+  // 🔄 Get real user data from localStorage (client-only)
+  const [userFromStorage, setUserFromStorage] = React.useState({})
+
+  React.useEffect(() => {
+    const stored = localStorage.getItem("user")
+    setUserFromStorage(stored ? JSON.parse(stored) : {})
+  }, [])
 
   // ✅ Format the user object for the sidebar
   const user = {
@@ -137,12 +146,14 @@ export function AppSidebar({ ...props }) {
         <SidebarFooter className="bg-white">
           <SidebarMenu className="bg-white items-left justify-center">
             <SidebarMenuItem>
-              <button onClick={handleSignOut}>
-                <SidebarMenuButton size="lg" tooltip="Log Out">
-                  <LogOutIcon className="w-5 h-5" />
-                  <span className="ml-2">Log Out</span>
-                </SidebarMenuButton>
-              </button>
+              <SidebarMenuButton
+                size="lg"
+                tooltip="Log Out"
+                onClick={handleSignOut}
+              >
+                <LogOutIcon className="w-5 h-5" />
+                <span className="ml-2">Log Out</span>
+              </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
           <NavUser user={user} /> 

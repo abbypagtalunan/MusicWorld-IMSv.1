@@ -300,6 +300,25 @@ export default function DeliveriesPage() {
       return { key, direction: "ascending" };
     });
   };
+  
+  const getSortedProducts = (deliveryNumber) => {
+    const items = deliveryProducts[deliveryNumber] || [];
+    if (!productSortConfig.key) return items;
+    return [...items].sort((a, b) => {
+      const valA = a[productSortConfig.key];
+      const valB = b[productSortConfig.key];
+      // Try numeric compare first
+      const numA = parseFloat(valA.toString().replace(/[₱,]/g, ""));
+      const numB = parseFloat(valB.toString().replace(/[₱,]/g, ""));
+      if (!isNaN(numA) && !isNaN(numB)) {
+        return productSortConfig.direction === "ascending" ? numA - numB : numB - numA;
+      }
+      // Fallback to string compare
+      return productSortConfig.direction === "ascending"
+        ? valA.toString().localeCompare(valB.toString())
+        : valB.toString().localeCompare(valA.toString());
+    });
+  };
 
   const handleSort = (key) => {
     setSortConfig((prev) => {
@@ -814,8 +833,8 @@ export default function DeliveriesPage() {
                                   <col className="w-[14.2857%]" />
                                 </colgroup>
                                 <TableBody>
-                                  {(deliveryProducts[d.deliveryNum]?.length ?? 0) > 0
-                                    ? deliveryProducts[d.deliveryNum].map((item, idx) => (
+                                  {(getSortedProducts(d.deliveryNum).length) > 0
+                                    ? getSortedProducts(d.deliveryNum).map((item, idx) => (
                                         <TableRow key={idx}>
                                           <TableCell className="px-2 text-left pl-10">{item.productCode}</TableCell>
                                           <TableCell className="px-2 text-sm pl-6">{item.supplier}</TableCell>
