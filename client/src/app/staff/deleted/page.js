@@ -24,7 +24,7 @@ export default function DeletedPage() {
     order: {
       label: "Orders",
       idField: "O_orderID",
-      codeField: "P_productCode",
+      idField: "P_productCode",
       receiptField: "O_receiptNumber",
       nameField: "P_productName",
       totalamtField: "T_totalAmount",
@@ -44,7 +44,7 @@ export default function DeletedPage() {
     return: {
       label: "Returns",
       idField: "R_returnID",
-      codeField: "P_productCode",
+      idField: "P_productCode",
       typeField: "RT_returnTypeDescription",
       nameField: "P_productName",
       totalamtField: "R_TotalPrice",
@@ -63,7 +63,7 @@ export default function DeletedPage() {
     delivery: {
       label: "Deliveries",
       idField: "D_deliveryNumber",
-      codeField: "P_productCode",
+      idField: "P_productCode",
       nameField: "P_productName",
       dateField: "D_deliveryDate",
       supplierField: "supplier",
@@ -77,20 +77,18 @@ export default function DeletedPage() {
     },
 
     product: {
-      label: "Products",
+      label: "Product",
       idField: "P_productCode",
-      codeField: "P_productCode",
       categoryField: "category",
-      skuField: "P_SKU",
       nameField: "P_productName",
       brandField: "brand",
       supplierField: "supplier",
-      stockField: "stockAmt",
-      stockID: "P_StockDetailsID",
+      stockField: "stock",
+      lastRestockField: "P_lastRestockDateTime",
+      lastUpdateField: "P_lastEditedDateTime",
       unitpriceField: "P_unitPrice",
       sellingpriceField: "P_sellingPrice",
-      statusField: "P_productStatusName",
-      statusId: "P_productStatusID",
+      statusField: "status",
       dateField: "P_dateAdded",
       setter: setDeletedProducts,
       api: {
@@ -170,7 +168,7 @@ export default function DeletedPage() {
             matches.push(
               String(item[config.idField] || '').toLowerCase().includes(search),
               String(item[config.nameField] || '').toLowerCase().includes(search),
-              String(item[config.codeField] || '').toLowerCase().includes(search)
+              String(item[config.idField] || '').toLowerCase().includes(search)
             );
             break;
           case "return":
@@ -182,14 +180,14 @@ export default function DeletedPage() {
             break;
           case "delivery":
             matches.push(
-              String(item[config.codeField] || '').toLowerCase().includes(search),
+              String(item[config.idField] || '').toLowerCase().includes(search),
               String(item[config.nameField] || '').toLowerCase().includes(search),
               String(item[config.supplierField] || '').toLowerCase().includes(search)
             );
             break;
           case "product":
             matches.push(
-              String(item[config.codeField] || '').toLowerCase().includes(search),
+              String(item[config.idField] || '').toLowerCase().includes(search),
               String(item[config.nameField] || '').toLowerCase().includes(search),
               String(item[config.categoryField] || '').toLowerCase().includes(search),
               String(item[config.brandField] || '').toLowerCase().includes(search),
@@ -362,8 +360,8 @@ export default function DeletedPage() {
                                       <TableHead onClick={() => handleSort(config.idField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
                                         Order ID <SortIcon column={config.idField} />
                                       </TableHead>
-                                      <TableHead onClick={() => handleSort(config.codeField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
-                                        Product Code <SortIcon column={config.codeField} />
+                                      <TableHead onClick={() => handleSort(config.idField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
+                                        Product Code <SortIcon column={config.idField} />
                                       </TableHead>
                                       <TableHead onClick={() => handleSort(config.receiptField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
                                         Receipt Number <SortIcon column={config.receiptField} />
@@ -385,8 +383,8 @@ export default function DeletedPage() {
                                       <TableHead onClick={() => handleSort(config.idField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
                                         Return ID <SortIcon column={config.idField} />
                                       </TableHead>
-                                      <TableHead onClick={() => handleSort(config.codeField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
-                                        Product Code <SortIcon column={config.codeField} />
+                                      <TableHead onClick={() => handleSort(config.idField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
+                                        Product Code <SortIcon column={config.idField} />
                                       </TableHead>
                                       <TableHead onClick={() => handleSort(config.typeField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
                                         Reason of Return <SortIcon column={config.typeField} />
@@ -408,8 +406,8 @@ export default function DeletedPage() {
                                       <TableHead onClick={() => handleSort(config.idField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
                                         Delivery ID <SortIcon column={config.idField} />
                                       </TableHead>
-                                      <TableHead onClick={() => handleSort(config.codeField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
-                                        Product Code <SortIcon column={config.codeField} />
+                                      <TableHead onClick={() => handleSort(config.idField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
+                                        Product Code <SortIcon column={config.idField} />
                                       </TableHead>
                                       <TableHead onClick={() => handleSort(config.nameField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
                                         Product <SortIcon column={config.nameField} />
@@ -428,14 +426,11 @@ export default function DeletedPage() {
                                   )}
                                   {activeTab === "product" && (
                                     <>
-                                      <TableHead onClick={() => handleSort(config.codeField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
-                                        Product Code <SortIcon column={config.codeField} />
+                                      <TableHead onClick={() => handleSort(config.idField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
+                                        Product Code <SortIcon column={config.idField} />
                                       </TableHead>
                                       <TableHead onClick={() => handleSort(config.categoryField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
                                         Category <SortIcon column={config.categoryField} />
-                                      </TableHead>
-                                      <TableHead onClick={() => handleSort(config.skuField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
-                                        SKU <SortIcon column={config.skuField} />
                                       </TableHead>
                                       <TableHead onClick={() => handleSort(config.nameField)} className="sticky top-0 z-30 bg-white cursor-pointer px-4 py-3 font-semibold text-gray-900 hover:bg-gray-50">
                                         Name <SortIcon column={config.nameField} />
@@ -479,7 +474,7 @@ export default function DeletedPage() {
                                       {activeTab === "order" && (
                                         <>
                                           <TableCell className="px-4 py-3">{item[config.idField]}</TableCell>
-                                          <TableCell className="px-4 py-3">{item[config.codeField]}</TableCell>
+                                          <TableCell className="px-4 py-3">{item[config.idField]}</TableCell>
                                           <TableCell className="px-4 py-3">{item[config.receiptField]}</TableCell>
                                           <TableCell className="px-4 py-3">{item[config.nameField]}</TableCell>
                                           <TableCell className="px-4 py-3">{item[config.totalamtField]}</TableCell>
@@ -511,7 +506,7 @@ export default function DeletedPage() {
                                                   </TableHeader>
                                                   <TableBody>
                                                     <TableRow>
-                                                      <TableCell>{item[config.codeField]}</TableCell>
+                                                      <TableCell>{item[config.idField]}</TableCell>
                                                       <TableCell>{item[config.supplierField]}</TableCell>
                                                       <TableCell>{item[config.brandField]}</TableCell>
                                                       <TableCell>{item[config.categoryField]}</TableCell>
@@ -530,7 +525,7 @@ export default function DeletedPage() {
                                       {activeTab === "return" && (
                                         <>
                                           <TableCell className="px-4 py-3">{item[config.idField]}</TableCell>
-                                          <TableCell className="px-4 py-3">{item[config.codeField]}</TableCell>
+                                          <TableCell className="px-4 py-3">{item[config.idField]}</TableCell>
                                           <TableCell className="px-4 py-3">{item[config.typeField]}</TableCell>
                                           <TableCell className="px-4 py-3">{item[config.nameField]}</TableCell>
                                           <TableCell className="px-4 py-3">{item[config.totalamtField]}</TableCell>
@@ -561,7 +556,7 @@ export default function DeletedPage() {
                                                   </TableHeader>
                                                   <TableBody>
                                                     <TableRow>
-                                                      <TableCell>{item[config.codeField]}</TableCell>
+                                                      <TableCell>{item[config.idField]}</TableCell>
                                                       <TableCell>{item[config.supplierField]}</TableCell>
                                                       <TableCell>{item[config.brandField]}</TableCell>
                                                       <TableCell>{item[config.categoryField]}</TableCell>
@@ -579,7 +574,7 @@ export default function DeletedPage() {
                                       {activeTab === "delivery" && (
                                         <>
                                           <TableCell className="px-4 py-3">{item[config.idField]}</TableCell>
-                                          <TableCell className="px-4 py-3">{item[config.codeField]}</TableCell>
+                                          <TableCell className="px-4 py-3">{item[config.idField]}</TableCell>
                                           <TableCell className="px-4 py-3">{item[config.nameField]}</TableCell>
                                           <TableCell className="px-4 py-3">{item[config.supplierField]}</TableCell>
                                           <TableCell className="px-4 py-3">{item[config.quantityField]}</TableCell>
@@ -609,7 +604,7 @@ export default function DeletedPage() {
                                                   </TableHeader>
                                                   <TableBody>
                                                     <TableRow>
-                                                      <TableCell>{item[config.codeField]}</TableCell>
+                                                      <TableCell>{item[config.idField]}</TableCell>
                                                       <TableCell>{item[config.supplierField]}</TableCell>
                                                       <TableCell>{item[config.brandField]}</TableCell>
                                                       <TableCell>{item[config.categoryField]}</TableCell>
@@ -625,9 +620,8 @@ export default function DeletedPage() {
                                       )}
                                       {activeTab === "product" && (
                                         <>
-                                          <TableCell className="px-4 py-3">{item[config.codeField]}</TableCell>
+                                          <TableCell className="px-4 py-3">{item[config.idField]}</TableCell>
                                           <TableCell className="px-4 py-3">{item[config.categoryField]}</TableCell>
-                                          <TableCell className="px-4 py-3">{item[config.skuField]}</TableCell>
                                           <TableCell className="px-4 py-3">{item[config.nameField]}</TableCell>
                                           <TableCell className="px-4 py-3">{item[config.brandField]}</TableCell>
                                           <TableCell className="px-4 py-3">{item[config.supplierField]}</TableCell>

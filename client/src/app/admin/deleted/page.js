@@ -201,14 +201,14 @@ export default function DeletedPage() {
             break;
           case "delivery":
             matches.push(
-              String(item[config.codeField] || '').toLowerCase().includes(search),
+              String(item[config.idField] || '').toLowerCase().includes(search),
               String(item[config.nameField] || '').toLowerCase().includes(search),
               String(item[config.supplierField] || '').toLowerCase().includes(search)
             );
             break;
           case "product":
             matches.push(
-              String(item[config.codeField] || '').toLowerCase().includes(search),
+              String(item[config.idField] || '').toLowerCase().includes(search),
               String(item[config.nameField] || '').toLowerCase().includes(search),
               String(item[config.categoryField] || '').toLowerCase().includes(search),
               String(item[config.brandField] || '').toLowerCase().includes(search),
@@ -897,7 +897,6 @@ return (
                                     <TableHead onClick={() => handleSort(config.dateField)} className="sticky top-0 z-20 bg-white cursor-pointer px-4 py-3 border-b">
                                       Date Added <SortIcon column={config.dateField} />
                                     </TableHead>
-                                    <TableHead className="sticky top-0 z-20 bg-white px-4 py-3 border-b">ViewDetails</TableHead>
                                     <TableHead className="sticky top-0 z-20 bg-white px-4 py-3 border-b">Retrieve/Delete</TableHead>
                                   </>
                                 )}
@@ -1141,55 +1140,6 @@ return (
                                         <TableCell className="px-4 py-3">{item[config.sellingpriceField]}</TableCell>
                                         <TableCell className="px-4 py-3">{item[config.statusField]}</TableCell>
                                         <TableCell className="px-4 py-3">{new Date(item[config.dateField]).toLocaleDateString()}</TableCell>
-                                        <TableCell className="px-4 py-3">
-                                          <Dialog>
-                                            <DialogTrigger asChild>
-                                              <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600">
-                                                <Eye size={16} />
-                                              </Button>
-                                            </DialogTrigger>
-                                            <DialogContent className="w-[90vw] max-w-3xl sm:max-w-lg md:max-w-3xl max-h-[90vh] overflow-y-auto p-6">
-                                              <DialogHeader>
-                                                <DialogTitle>Product Details</DialogTitle>
-                                                <DialogClose />
-                                              </DialogHeader>
-                                              <Table>
-                                                <TableHeader>
-                                                  <TableRow>
-                                                    <TableHead>Product Code</TableHead>
-                                                    <TableHead>Product Name</TableHead>
-                                                    <TableHead>Category</TableHead>
-                                                    <TableHead>Supplier</TableHead>
-                                                    <TableHead>Brand</TableHead>
-                                                    <TableHead>Stock ID</TableHead>
-                                                    <TableHead>Stock Amount</TableHead>
-                                                    <TableHead>Unit Price</TableHead>
-                                                    <TableHead>Selling Price</TableHead>
-                                                    <TableHead>Status ID</TableHead>
-                                                    <TableHead>Status</TableHead>
-                                                    <TableHead>Date Added</TableHead>
-                                                  </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
-                                                  <TableRow>
-                                                    <TableCell>{item[config.codeField]}</TableCell>
-                                                    <TableCell>{item[config.nameField]}</TableCell>
-                                                    <TableCell>{item[config.categoryField]}</TableCell>
-                                                    <TableCell>{item[config.supplierField]}</TableCell>
-                                                    <TableCell>{item[config.brandField]}</TableCell>
-                                                    <TableCell>{item[config.stockID]}</TableCell>
-                                                    <TableCell>{item[config.stockField]}</TableCell>
-                                                    <TableCell>{item[config.unitpriceField]}</TableCell>
-                                                    <TableCell>{item[config.sellingpriceField]}</TableCell>
-                                                    <TableCell>{item[config.statusId]}</TableCell>
-                                                    <TableCell>{item[config.statusField]}</TableCell>
-                                                    <TableCell>{new Date(item[config.dateField]).toLocaleDateString()}</TableCell>
-                                                  </TableRow>
-                                                </TableBody>
-                                              </Table>
-                                            </DialogContent>
-                                          </Dialog>
-                                        </TableCell>
                                         <TableCell className="px-4 py-3">
                                           <RDaction
                                             item={item}
