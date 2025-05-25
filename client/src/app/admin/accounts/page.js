@@ -17,7 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Eye, Copy, FilePen, Trash2 } from "lucide-react";
+import { Eye, Copy, FilePen, Trash2, EyeOff } from "lucide-react";
 import {
   Dialog,
   DialogTrigger,
@@ -58,7 +58,6 @@ import { toast, Toaster } from "react-hot-toast";
 
 export default function ManageAccountsPage() {
   const router = useRouter();
-  const [showPassword, setShowPassword] = useState(false);
   const [activeTab, setActiveTab] = useState("my-account");
   const [currentUser, setCurrentUser] = useState(null);
   const [staffs, setStaffs] = useState([]);
@@ -90,6 +89,17 @@ export default function ManageAccountsPage() {
   const [adminPW, setAdminPW] = useState("");
   const [editSource, setEditSource] = useState(""); // "my-account" or "staff"
   const [passwordResetSource, setPasswordResetSource] = useState("");
+
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
+  const [showAddPassword, setShowAddPassword] = useState(false);
+  const [showAddConfirmPassword, setShowAddConfirmPassword] = useState(false);
+  const [showAdminDeletePassword, setShowAdminDeletePassword] = useState(false);
+  const [showStaffNewPassword, setShowStaffNewPassword] = useState(false);
+  const [showStaffConfirmPassword, setShowStaffConfirmPassword] = useState(false);
+
 
   // Load current user + staff data
   const fetchData = async () => {
@@ -548,83 +558,113 @@ export default function ManageAccountsPage() {
                         <Label>Password</Label>
                         <div className="flex items-center gap-2">
                           <Input
-                            type={showPassword ? "text" : "password"}
+                            type={showCurrentPassword ? "text" : "password"}
                             value={currentUser.password}
                             disabled
+                            className="pr-10"
                           />
                           <Button
                             size="icon"
                             variant="ghost"
-                            onClick={() => setShowPassword(!showPassword)}
+                            onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                           >
-                            <Eye size={16} />
+                            {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                           </Button>
                         </div>
                       </div>
                       <Dialog>
                         <DialogTrigger asChild>
-                          <Button
-                            className="bg-blue-400 text-white"
-                            onClick={() => {
-                              if (currentUser && currentUser.accountID) {
-                                setIsResetOpen(true);
+                            <Button
+                              className="bg-blue-400 text-white"
+                              onClick={() => {
                                 setResetStaff(currentUser);
                                 setPasswordResetSource("my-account");
-                              } else {
-                                toast.error("User data not available.");
-                              }
-                            }}
-                          >
-                            Change Password
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent aria-describedby="change-password-dialog" className="w-[30vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
-                          <DialogHeader>
-                            <DialogTitle className="text-blue-400 text-xl font-bold">
-                              Change Password
-                            </DialogTitle>
-                            <DialogClose />
-                          </DialogHeader>
-                          <div className="flex flex-col gap-4 mt-4 text-gray-700">
-                            {/* Show old password only when it's "my-account" */}
-                            <Label>Old Password</Label>
-                            <Input
-                              type="password"
-                              placeholder="Enter old password"
-                              value={passwordData.oldPassword}
-                              onChange={(e) =>
-                                setPasswordData({ ...passwordData, oldPassword: e.target.value })
-                              }
-                            />
-                            <Label>New Password</Label>
-                            <Input
-                              type="password"
-                              placeholder="Enter new password"
-                              value={passwordData.newPassword}
-                              onChange={(e) =>
-                                setPasswordData({ ...passwordData, newPassword: e.target.value })
-                              }
-                            />
-                            <Label>Confirm New Password</Label>
-                            <Input
-                              type="password"
-                              placeholder="Confirm new password"
-                              value={passwordData.confirmPassword}
-                              onChange={(e) =>
-                                setPasswordData({ ...passwordData, confirmPassword: e.target.value })
-                              }
-                            />
-                          </div>
-                          <DialogFooter>
-                            <Button
-                              className="w-full bg-blue-400 text-white"
-                              onClick={handleResetPassword}
+                              }}
                             >
-                              Update Password
+                              Change Password
                             </Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
+                          </DialogTrigger>
+                          <DialogContent className="w-[30vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
+                            <DialogHeader>
+                              <DialogTitle className="text-blue-400 text-xl font-bold">
+                                Change Your Password
+                              </DialogTitle>
+                              <DialogClose />
+                            </DialogHeader>
+                            <div className="flex flex-col gap-4 mt-4 text-gray-700">
+                              <Label>Old Password</Label>
+                              <div className="relative">
+                                <Input
+                                  type={showOldPassword ? "text" : "password"}
+                                  placeholder="Enter old password"
+                                  value={passwordData.oldPassword}
+                                  onChange={(e) =>
+                                    setPasswordData({ ...passwordData, oldPassword: e.target.value })
+                                  }
+                                  className="pr-10"
+                                />
+                                <button
+                                  type="button"
+                                  className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500"
+                                  onClick={() => setShowOldPassword(!showOldPassword)}
+                                >
+                                  {showOldPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                </button>
+                              </div>
+
+                              <Label>New Password</Label>
+                              <div className="relative">
+                                <Input
+                                  type={showNewPassword ? "text" : "password"}
+                                  placeholder="Enter new password"
+                                  value={passwordData.newPassword}
+                                  onChange={(e) =>
+                                    setPasswordData({ ...passwordData, newPassword: e.target.value })
+                                  }
+                                  className="pr-10"
+                                />
+                                <button
+                                  type="button"
+                                  className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500"
+                                  onClick={() => setShowNewPassword(!showNewPassword)}
+                                >
+                                  {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                </button>
+                              </div>
+
+                              <Label>Confirm New Password</Label>
+                              <div className="relative">
+                                <Input
+                                  type={showConfirmNewPassword ? "text" : "password"}
+                                  placeholder="Confirm new password"
+                                  value={passwordData.confirmPassword}
+                                  onChange={(e) =>
+                                    setPasswordData({
+                                      ...passwordData,
+                                      confirmPassword: e.target.value,
+                                    })
+                                  }
+                                  className="pr-10"
+                                />
+                                <button
+                                  type="button"
+                                  className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500"
+                                  onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}
+                                >
+                                  {showConfirmNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                </button>
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <Button
+                                className="w-full bg-blue-400 text-white"
+                                onClick={handleResetPassword}
+                              >
+                                Update Password
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
                     </CardContent>
                   </Card>
                 </div>
@@ -776,21 +816,43 @@ export default function ManageAccountsPage() {
                         </div>
                         <div>
                           <Label>Password</Label>
-                          <Input
-                            type="password"
-                            value={newStaff.password}
-                            onChange={(e) => setNewStaff({ ...newStaff, password: e.target.value })}
-                            placeholder="Enter password"
-                          />
+                          <div className="relative">
+                            <Input
+                              type={showAddPassword ? "text" : "password"}
+                              value={newStaff.password}
+                              onChange={(e) => setNewStaff({ ...newStaff, password: e.target.value })}
+                              placeholder="Enter password"
+                              className="pr-10"
+                            />
+                            <button
+                              type="button"
+                              className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500"
+                              onClick={() => setShowAddPassword(!showAddPassword)}
+                            >
+                              {showAddPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                            </button>
+                          </div>
                         </div>
                         <div>
                           <Label>Confirm Password</Label>
-                          <Input
-                            type="password"
-                            value={newStaff.confirmPassword}
-                            onChange={(e) => setNewStaff({ ...newStaff, confirmPassword: e.target.value })}
-                            placeholder="Confirm new password"
-                          />
+                          <div className="relative">
+                            <Input
+                              type={showAddConfirmPassword ? "text" : "password"}
+                              value={newStaff.confirmPassword}
+                              onChange={(e) =>
+                                setNewStaff({ ...newStaff, confirmPassword: e.target.value })
+                              }
+                              placeholder="Confirm new password"
+                              className="pr-10"
+                            />
+                            <button
+                              type="button"
+                              className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500"
+                              onClick={() => setShowAddConfirmPassword(!showAddConfirmPassword)}
+                            >
+                              {showAddConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                            </button>
+                          </div>
                         </div>
                       </div>
                       <DialogFooter className="mt-6">
@@ -954,24 +1016,46 @@ export default function ManageAccountsPage() {
               </>
             )}
             <Label>New Password</Label>
-            <Input
-              type="password"
-              placeholder="Enter new password"
-              value={passwordData.newPassword}
-              onChange={(e) =>
-                setPasswordData({ ...passwordData, newPassword: e.target.value })
-              }
-            />
+            <div className="relative">
+              <Input
+                type={showStaffNewPassword ? "text" : "password"}
+                placeholder="Enter new password"
+                value={passwordData.newPassword}
+                onChange={(e) =>
+                  setPasswordData({ ...passwordData, newPassword: e.target.value })
+                }
+                className="pr-10"
+              />
+              <button
+                type="button"
+                className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500"
+                onClick={() => setShowStaffNewPassword(!showStaffNewPassword)}
+              >
+                {showStaffNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
             <Label>Confirm New Password</Label>
-            <Input
-              type="password"
-              placeholder="Confirm new password"
-              value={passwordData.confirmPassword}
-              onChange={(e) =>
-                setPasswordData({ ...passwordData, confirmPassword: e.target.value })
-              }
-            />
-          </div>
+              <div className="relative">
+                <Input
+                  type={showStaffConfirmPassword ? "text" : "password"}
+                  placeholder="Confirm new password"
+                  value={passwordData.confirmPassword}
+                  onChange={(e) =>
+                    setPasswordData({ ...passwordData, confirmPassword: e.target.value })
+                  }
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500"
+                  onClick={() =>
+                    setShowStaffConfirmPassword(!showStaffConfirmPassword)
+                  }
+                >
+                  {showStaffConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
           <DialogFooter>
             <Button
               className="w-full bg-blue-400 text-white"
@@ -1000,17 +1084,27 @@ export default function ManageAccountsPage() {
           </p>
           <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">
             <div className="flex-1 w-full">
-              <Label htmlFor="admin-password" className="block font-medium text-gray-700">
+              <Label htmlFor="admin-password" className="block font-medium text-gray-700 mb-3">
                 Admin Password
               </Label>
-              <Input
-                id="admin-password"
-                type="password"
-                required
-                placeholder="Enter admin password"
-                value={adminPW}
-                onChange={(e) => setAdminPW(e.target.value)}
-              />
+              <div className="relative">
+                <Input
+                  id="admin-password"
+                  type={showAdminDeletePassword ? "text" : "password"}
+                  required
+                  placeholder="Enter admin password"
+                  value={adminPW}
+                  onChange={(e) => setAdminPW(e.target.value)}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500"
+                  onClick={() => setShowAdminDeletePassword(!showAdminDeletePassword)}
+                >
+                  {showAdminDeletePassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
             <Button
               className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm whitespace-nowrap mt-7"
