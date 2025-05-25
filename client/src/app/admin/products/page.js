@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "@/components/ui/select"
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogFooter } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
+import { useRef } from "react";
 
 export default function ProductsPage() {
   const config = {
@@ -161,10 +162,14 @@ export default function ProductsPage() {
     setSearchTerm("");
   }, []);
 
-  const refreshTable = () => {
+  const refreshTable = (callback) => {
     axios
       .get(config.product.api.fetch)
-      .then((res) => setData(normalizedData(res)))
+      .then((res) => {
+        const newData = normalizedData(res);
+        setData(newData);
+        if (callback) callback(newData);
+      })
       .catch((error) => console.error("Error fetching data:", error));
   };
 
@@ -198,6 +203,9 @@ export default function ProductsPage() {
 
   // Sort
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "ascending" });
+
+  // Row references for highlighting
+  const rowRefs = useRef({});
 
   // Highlight selected row
   const [highlightedCode, setHighlightedCode] = useState(null);
@@ -368,10 +376,27 @@ export default function ProductsPage() {
       .post(config.product.api.add, payload)
       .then(() => {
         toast.success(`${config.product.label} added successfully`);
-        refreshTable();
+        refreshTable((updatedData) => {
+            // Find the product with the latest dateAdded
+            const newest = [...updatedData].sort((a, b) =>
+              new Date(b.dateAdded) - new Date(a.dateAdded)
+            )[0];
+
+            if (newest?.productCode) {
+              setHighlightedCode(newest.productCode);
+
+              // Scroll into view if the row ref exists
+              setTimeout(() => {
+                const row = rowRefs.current[newest.productCode];
+                if (row) {
+                  row.scrollIntoView({ behavior: "smooth", block: "center" });
+                }
+              }, 300);
+            }
+          });
+
         resetForm();
         setAddSheetOpen(false);
-        setHighlightedCode(values[config.product.codeField]);
       })
       .catch((err) => {
         console.error("Error response:", err.response);
@@ -467,6 +492,7 @@ export default function ProductsPage() {
         setPSearchTerm("");
         setSelectedProductforPU(null);
         setPDopen(false);
+        setHighlightedCode(productCode);
       })  
       .catch((err) => {
         console.error("Update error:", err?.response?.data || err.message || err);
@@ -668,6 +694,16 @@ export default function ProductsPage() {
       return () => clearTimeout(timeout);
     }
   }, [highlightedCode]);
+
+  useEffect(() => {
+    if (highlightedCode && rowRefs.current[highlightedCode]) {
+      rowRefs.current[highlightedCode].scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
+  }, [highlightedCode]);
+
 
   return (
     <SidebarProvider>
@@ -1143,8 +1179,11 @@ export default function ProductsPage() {
                 (item.category?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
                 (item.productCode?.toString().toLowerCase() || "").includes(searchTerm.toLowerCase())        
               ).map((item) => (
-                  <TableRow key={item.productCode}
-                    className={`${getStatusColor(item.status)} ${item.productCode === highlightedCode ? 'bg-blue-200 animate-pulse' : ''}`}>
+                  <TableRow
+                    key={item.productCode}
+                    ref={(el) => (rowRefs.current[item.productCode] = el)}
+                    className={`${getStatusColor(item.status)} ${item.productCode === highlightedCode ? 'bg-blue-200 animate-pulse' : ''}`}
+                  >
                     <TableCell>
                       <input
                         type="checkbox"
