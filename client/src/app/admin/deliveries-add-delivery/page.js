@@ -320,15 +320,15 @@ export default function BatchDeliveriesPage() {
       return;
     }
     
-    // 5) Quantity must be a non‐zero positive integer (1,2,3…)
-    if (!/^[1-9]\d*$/.test(newProduct.quantity)) {
-      toast.error("Quantity is not a positive integer");
+    // 5) Quantity field must not be empty
+    if (!newProduct.quantity) {
+      toast.error("Quantity field is empty");
       return;
     }
     
-    // 6) Quantity field must not be empty
-    if (!newProduct.quantity) {
-      toast.error("Quantity field is empty");
+    // 6) Quantity must be a non‐zero positive integer (1,2,3…)
+    if (!/^[1-9]\d*$/.test(newProduct.quantity)) {
+      toast.error("Quantity is not a positive integer");
       return;
     }
 
@@ -544,6 +544,14 @@ export default function BatchDeliveriesPage() {
         quantity: ""
       });
       
+      // reset global variables
+      setSelectedPaymentType(-1);
+      setSelectedPaymentStatus1(-1);
+      setSelectedPaymentStatus2(-1);
+      
+      // go back to main deliveries page
+      router.push("./deliveries");
+      
     } catch (error) {
       console.error("Error saving delivery:", error);
       const errorMessage = error.response?.data?.message || 
@@ -554,11 +562,7 @@ export default function BatchDeliveriesPage() {
     } finally {
       setLoading(false);
     }
-    
-    // reset global variables
-    setSelectedPaymentType(-1);
-    setSelectedPaymentStatus1(-1);
-    setSelectedPaymentStatus2(-1);
+
   };
 
   // Save payment details separately
@@ -715,12 +719,20 @@ export default function BatchDeliveriesPage() {
                   </div>
                   <div className="w-1/3">
                     <Label htmlFor="deliveryNumber" className="mb-1 block">Delivery Number</Label>
-                    <Input 
-                      id="deliveryNumber" 
+                    <Input
+                      id="deliveryNumber"
+                      type="text"
                       placeholder="Enter number only"
                       className="text-center"
                       value={deliveryNumber}
-                      onChange={(e) => setDeliveryNumber(e.target.value)}
+                      onChange={e => {
+                        let val = e.target.value;
+                        // strip all non-digits
+                        val = val.replace(/\D/g, '');
+                        // remove leading zeros
+                        val = val.replace(/^0+/, '');
+                        setDeliveryNumber(val);
+                      }}
                       autoComplete="off"
                     />
                   </div>
@@ -918,28 +930,45 @@ export default function BatchDeliveriesPage() {
                       </SelectContent>
                     </Select>   
                   </div>
-                  
+                                    
                   <div>
                     <Label htmlFor="unitPrice">Unit Price</Label>
                     <Input 
                       id="unitPrice" 
-                      type="number" 
+                      type="text" 
                       placeholder="Enter unit price" 
                       className="mt-1"
                       value={newProduct.unitPrice}
-                      onChange={(e) => handleInputChange('unitPrice', e.target.value)}
+                      onChange={e => {
+                        let val = e.target.value;
+                        // 1) strip any non-digit/non-dot
+                        val = val.replace(/[^0-9.]/g, '');
+                        // 2) allow only one dot
+                        const parts = val.split('.');
+                        val = parts.shift() + (parts.length ? '.' + parts.join('') : '');
+                        // 3) remove leading zeros (but allow "0" or "0.xxx")
+                        val = val.replace(/^0+([1-9])/, '$1').replace(/^0+$/, '0');
+                        handleInputChange('unitPrice', val);
+                      }}
                     />
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="quantity">Quantity</Label>
                     <Input 
                       id="quantity" 
-                      type="number" 
+                      type="text" 
                       placeholder="Enter quantity" 
                       className="mt-1"
                       value={newProduct.quantity}
-                      onChange={(e) => handleInputChange('quantity', e.target.value)}
+                      onChange={e => {
+                        const val = e.target.value;
+                        // strip any non-digit
+                        const digitsOnly = val.replace(/\D/g, '');
+                        // remove leading zeros
+                        const sanitized = digitsOnly.replace(/^0+/, '');
+                        handleInputChange('quantity', sanitized);
+                      }}
                     />
                   </div>
                   
