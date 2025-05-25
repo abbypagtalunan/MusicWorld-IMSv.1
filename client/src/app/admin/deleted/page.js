@@ -87,19 +87,18 @@ export default function DeletedPage() {
     },
 
     product: {
-      label: "Products",
+      label: "Product",
       idField: "P_productCode",
-      codeField: "P_productCode",
       categoryField: "category",
       nameField: "P_productName",
       brandField: "brand",
       supplierField: "supplier",
-      stockField: "stockAmt",
-      stockID: "P_StockDetailsID",
+      stockField: "stock",
+      lastRestockField: "P_lastRestockDateTime",
+      lastUpdateField: "P_lastEditedDateTime",
       unitpriceField: "P_unitPrice",
       sellingpriceField: "P_sellingPrice",
-      statusField: "P_productStatusName",
-      statusId: "P_productStatusID",
+      statusField: "status",
       dateField: "P_dateAdded",
       setter: setDeletedProducts,
       api: {
@@ -202,14 +201,14 @@ export default function DeletedPage() {
             break;
           case "delivery":
             matches.push(
-              String(item[config.codeField] || '').toLowerCase().includes(search),
+              String(item[config.idField] || '').toLowerCase().includes(search),
               String(item[config.nameField] || '').toLowerCase().includes(search),
               String(item[config.supplierField] || '').toLowerCase().includes(search)
             );
             break;
           case "product":
             matches.push(
-              String(item[config.codeField] || '').toLowerCase().includes(search),
+              String(item[config.idField] || '').toLowerCase().includes(search),
               String(item[config.nameField] || '').toLowerCase().includes(search),
               String(item[config.categoryField] || '').toLowerCase().includes(search),
               String(item[config.brandField] || '').toLowerCase().includes(search),
@@ -452,16 +451,16 @@ const handleDownloadCSV = (data) => {
           "Date Product Added"
         ];
         rows = currentTabD.map(item => [
-          item.productCode,
-          item.productName,
-          item.category,
-          item.supplier,
-          item.brand,
-          item.stockNumber,
-          item.lastRestock,
-          item.price,
-          item.sellingPrice,
-          item.status,
+          item[config.idField],
+          item[config.nameField],
+          item[config.categoryField],
+          item[config.supplierField],
+          item[config.brandField],
+          item[config.stockField],
+          item[config.lastRestockField],
+          item[config.unitpriceField],
+          item[config.sellingpriceField],
+          item[config.statusField],
           new Date(item[config.dateField]).toLocaleDateString()
         ]);
         break;
@@ -560,71 +559,73 @@ const handleDownloadCSV = (data) => {
         setSelectedTransactions([]);
       });
   };  
- const [currentPage, setCurrentPage] = useState(1);
+
+const [currentPage, setCurrentPage] = useState(1);
 const itemsPerPage = 12;
 
-// Pagination logic functions
-const getPaginatedData = () => {
-  const filteredData = getFilteredTransactions();
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  return filteredData.slice(startIndex, endIndex);
-};
+  // Pagination logic functions
+  const getPaginatedData = () => {
+    const filteredData = getFilteredTransactions();
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredData.slice(startIndex, endIndex);
+  };
 
-const getTotalPages = () => {
-  return Math.ceil(getFilteredTransactions().length / itemsPerPage);
-};
+  const getTotalPages = () => {
+    return Math.ceil(getFilteredTransactions().length / itemsPerPage);
+  };
 
-const goToPage = (page) => {
-  setCurrentPage(page);
-};
+  const goToPage = (page) => {
+    setCurrentPage(page);
+  };
 
-const goToPreviousPage = () => {
-  if (currentPage > 1) {
-    setCurrentPage(currentPage - 1);
-  }
-};
+  const goToPreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
 
-const goToNextPage = () => {
-  if (currentPage < getTotalPages()) {
-    setCurrentPage(currentPage + 1);
-  }
-};
+  const goToNextPage = () => {
+    if (currentPage < getTotalPages()) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
 
-// Reset to page 1 when search term changes
-const handleSearchChange = (e) => {
-  setSearchTerm(e.target.value);
-  setSelectedTransactions([]);
-  setCurrentPage(1); // Reset to first page
-};
+  // Reset to page 1 when search term changes
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+    setSelectedTransactions([]);
+    setCurrentPage(1); // Reset to first page
+  };
 
-  return (
-    <SidebarProvider>
-      <div className="flex h-screen w-screen">
-        <AppSidebar />
-        <div className="flex-1 p-4 flex flex-col w-full">
-          <div className="z-10 sticky top-0 mb-4 bg-blue-950 p-4 rounded-sm">
-            <h1 className="text-2xl text-blue-50 font-bold">Deleted Transaction</h1>
-          </div>
+return (
+  <SidebarProvider>
+    <div className="flex h-screen w-screen">
+      <AppSidebar />
+      <div className="flex-1 p-4 flex flex-col w-full">
+        <div className="z-10 sticky top-0 mb-4 bg-blue-950 p-4 rounded-sm">
+          <h1 className="text-2xl text-blue-50 font-bold">Deleted Transaction</h1>
+        </div>
 
-          <Tabs defaultValue="order" onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-            <TabsList className="w-full flex justify-start bg-white rounded-md shadow-md px-6 py-3 space-x-4 flex-shrink-0 h-16">
-              {Object.entries(configMap).map(([key, cfg]) => (
-                <TabsTrigger
-                  key={key}
-                  value={key}
-                  className="data-[state=active]:text-indigo-600 h-10"
-                >
-                  {`${cfg.label.toUpperCase()}`}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+        <Tabs defaultValue="order" onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+          <TabsList className="w-full flex justify-start bg-white rounded-md shadow-md px-6 py-3 space-x-4 flex-shrink-0 h-16">
+            {Object.entries(configMap).map(([key, cfg]) => (
+              <TabsTrigger
+                key={key}
+                value={key}
+                className="data-[state=active]:text-indigo-600 h-10"
+              >
+                {`${cfg.label.toUpperCase()}`}
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-            <div className="flex-1 flex flex-col overflow-hidden">
-              {Object.entries(configMap).map(([key, cfg]) => (
-                <TabsContent key={key} value={key} className="flex-1 flex-col overflow-hidden m-0 data-[state=active]:flex data-[state=inactive]:hidden">
-                  {/* Table */}
-                  <Card className="w-full flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {Object.entries(configMap).map(([key, cfg]) => (
+              <TabsContent key={key} value={key} className="flex-1 flex-col overflow-hidden m-0 data-[state=active]:flex data-[state=inactive]:hidden">
+                {/* Table */}
+                <Card className="w-full flex-1 flex flex-col overflow-hidden">
+                  <div className="p-0 flex-1 flex flex-col overflow-hidden min-h-0">
                     <CardContent className="p-0 flex-1 flex flex-col overflow-hidden min-h-0">
                       {/* Search - Fixed height */}
                       <div className="bg-white p-4 flex justify-between items-center border-b flex-shrink-0">
@@ -773,10 +774,10 @@ const handleSearchChange = (e) => {
                       
                       {/* Table Container - Flexible height with sticky headers */}
                       <div className="flex-1 overflow-hidden relative min-h-0">
-                        <div className="h-full overflow-y-auto">
-                          <Table className="min-w-full table-fixed w-full">
-                            <TableHeader className="sticky top-0 z-20 bg-white shadow-sm border-b">
-                              <TableRow className="bg-white">
+                        <div className="h-full overflow-auto">
+                          <Table className="min-w-full w-full">
+                            <TableHeader className="sticky top-0 z-20 bg-white shadow-sm">
+                              <TableRow className="bg-white border-b">
                                 {activeTab === "order" && (
                                   <>
                                     <TableHead className="sticky top-0 z-20 bg-white px-4 py-3 border-b">
@@ -866,7 +867,7 @@ const handleSearchChange = (e) => {
                                     <TableHead className="sticky top-0 z-20 bg-white px-4 py-3 border-b">
                                       <input type="checkbox" onChange={handleSelectAll} checked={selectedTransactions.length === getPaginatedData().length && getPaginatedData().length > 0} />
                                     </TableHead>
-                                    <TableHead onClick={() => handleSort(config.codeField)} className="sticky top-0 z-20 bg-white cursor-pointer px-4 py-3 border-b">
+                                    <TableHead onClick={() => handleSort(config.idField)} className="sticky top-0 z-20 bg-white cursor-pointer px-4 py-3 border-b">
                                       Product Code <SortIcon column={config.codeField} />
                                     </TableHead>
                                     <TableHead onClick={() => handleSort(config.categoryField)} className="sticky top-0 z-20 bg-white cursor-pointer px-4 py-3 border-b">
@@ -896,12 +897,12 @@ const handleSearchChange = (e) => {
                                     <TableHead onClick={() => handleSort(config.dateField)} className="sticky top-0 z-20 bg-white cursor-pointer px-4 py-3 border-b">
                                       Date Added <SortIcon column={config.dateField} />
                                     </TableHead>
-                                    <TableHead className="sticky top-0 z-20 bg-white px-4 py-3 border-b">View Details</TableHead>
                                     <TableHead className="sticky top-0 z-20 bg-white px-4 py-3 border-b">Retrieve/Delete</TableHead>
                                   </>
                                 )}
                               </TableRow>
                             </TableHeader>
+                            
                             <TableBody>
                               {getPaginatedData().length === 0 ? (
                                 <TableRow>
@@ -1129,7 +1130,7 @@ const handleSearchChange = (e) => {
                                             onChange={() => handleSelectTransaction(`${item[config.idField]}-${item[config.codeField]}`)}
                                           />
                                         </TableCell>
-                                        <TableCell className="px-4 py-3">{item[config.codeField]}</TableCell>
+                                        <TableCell className="px-4 py-3">{item[config.idField]}</TableCell>
                                         <TableCell className="px-4 py-3">{item[config.categoryField]}</TableCell>
                                         <TableCell className="px-4 py-3">{item[config.nameField]}</TableCell>
                                         <TableCell className="px-4 py-3">{item[config.brandField]}</TableCell>
@@ -1139,55 +1140,6 @@ const handleSearchChange = (e) => {
                                         <TableCell className="px-4 py-3">{item[config.sellingpriceField]}</TableCell>
                                         <TableCell className="px-4 py-3">{item[config.statusField]}</TableCell>
                                         <TableCell className="px-4 py-3">{new Date(item[config.dateField]).toLocaleDateString()}</TableCell>
-                                        <TableCell className="px-4 py-3">
-                                          <Dialog>
-                                            <DialogTrigger asChild>
-                                              <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600">
-                                                <Eye size={16} />
-                                              </Button>
-                                            </DialogTrigger>
-                                            <DialogContent className="w-[90vw] max-w-3xl sm:max-w-lg md:max-w-3xl max-h-[90vh] overflow-y-auto p-6">
-                                              <DialogHeader>
-                                                <DialogTitle>Product Details</DialogTitle>
-                                                <DialogClose />
-                                              </DialogHeader>
-                                              <Table>
-                                                <TableHeader>
-                                                  <TableRow>
-                                                    <TableHead>Product Code</TableHead>
-                                                    <TableHead>Product Name</TableHead>
-                                                    <TableHead>Category</TableHead>
-                                                    <TableHead>Supplier</TableHead>
-                                                    <TableHead>Brand</TableHead>
-                                                    <TableHead>Stock ID</TableHead>
-                                                    <TableHead>Stock Amount</TableHead>
-                                                    <TableHead>Unit Price</TableHead>
-                                                    <TableHead>Selling Price</TableHead>
-                                                    <TableHead>Status ID</TableHead>
-                                                    <TableHead>Status</TableHead>
-                                                    <TableHead>Date Added</TableHead>
-                                                  </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
-                                                  <TableRow>
-                                                    <TableCell>{item[config.codeField]}</TableCell>
-                                                    <TableCell>{item[config.nameField]}</TableCell>
-                                                    <TableCell>{item[config.categoryField]}</TableCell>
-                                                    <TableCell>{item[config.supplierField]}</TableCell>
-                                                    <TableCell>{item[config.brandField]}</TableCell>
-                                                    <TableCell>{item[config.stockID]}</TableCell>
-                                                    <TableCell>{item[config.stockField]}</TableCell>
-                                                    <TableCell>{item[config.unitpriceField]}</TableCell>
-                                                    <TableCell>{item[config.sellingpriceField]}</TableCell>
-                                                    <TableCell>{item[config.statusId]}</TableCell>
-                                                    <TableCell>{item[config.statusField]}</TableCell>
-                                                    <TableCell>{new Date(item[config.dateField]).toLocaleDateString()}</TableCell>
-                                                  </TableRow>
-                                                </TableBody>
-                                              </Table>
-                                            </DialogContent>
-                                          </Dialog>
-                                        </TableCell>
                                         <TableCell className="px-4 py-3">
                                           <RDaction
                                             item={item}
@@ -1265,14 +1217,15 @@ const handleSearchChange = (e) => {
                         </div>
                       </div>
                     </CardContent>
-                  </Card>
-                </TabsContent>                            
-              ))}
-            </div>
-          </Tabs>
-        </div>
+                  </div>
+                </Card>
+              </TabsContent>                            
+            ))}
+          </div>
+        </Tabs>
       </div>
-      <Toaster position="top-center"/>
-    </SidebarProvider>
-  );
+    </div>
+    <Toaster position="top-center"/>
+  </SidebarProvider>
+);
 }
