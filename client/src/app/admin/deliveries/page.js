@@ -733,9 +733,9 @@ export default function DeliveriesPage() {
                   <TableHead onClick={() => handleSort("totalCost")} className="pl-10 cursor-pointer select-none">
                     Total Cost <SortIcon column="totalCost" sortConfig={sortConfig} />
                   </TableHead>
-                  <TableHead className="pl-0">View Products</TableHead>
+                  <TableHead className="pl-0">View Details</TableHead>
                   <TableHead className="pl-0">Edit Payment</TableHead>
-                  <TableHead className="pl-6"></TableHead>
+                  <TableHead className="pl-6">Delete</TableHead>
                 </TableRow>
               </TableHeader>
               
