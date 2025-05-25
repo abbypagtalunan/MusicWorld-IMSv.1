@@ -31,6 +31,7 @@ export default function DeliveriesPage() {
   const [deliveries, setDeliveries] = useState([]);
   const [deliveryProducts, setDeliveryProducts] = useState({});
   const [paymentDetails, setPaymentDetails] = useState({});
+  const [modifiedPayments, setModifiedPayments] = useState({}); 
   const [suppliers, setSuppliers] = useState([]);
   const [paymentTypes, setPaymentTypes] = useState([]);
   const [paymentModes, setPaymentModes] = useState([]);
@@ -461,7 +462,10 @@ export default function DeliveriesPage() {
       )
       .then(() => {
         toast.success("Payment details updated successfully!");
-        // optionally reload the details or full data here
+        setModifiedPayments(prev => ({
+          ...prev,
+          [deliveryNum]: false
+        }));
       })
       .catch(err => {
         console.error("Error updating payment details:", err.response?.data || err);
@@ -542,6 +546,10 @@ export default function DeliveriesPage() {
       }
     };
     setPaymentDetails(updatedDetails);
+    setModifiedPayments(prev => ({
+      ...prev,
+      [deliveryNum]: true
+    }));
   };
 
   // Delete
@@ -1236,7 +1244,10 @@ export default function DeliveriesPage() {
                           )}
 
                           <div className="mt-4 flex justify-end space-x-2">
-                            <Button onClick={() => handleSavePaymentDetails(d.deliveryNum)}>
+                            <Button
+                              disabled={!modifiedPayments[d.deliveryNum]}         // disabled until a change
+                              onClick={() => handleSavePaymentDetails(d.deliveryNum)}
+                            >
                               <Save size={16} className="mr-2" />
                               Save
                             </Button>

@@ -35,7 +35,7 @@ export default function BatchDeliveriesPage() {
   const [products, setProducts] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [brands, setBrands] = useState([]);
-  const [deliveryNumber, setDeliveryNumber] = useState("10013");
+  const [deliveryNumber, setDeliveryNumber] = useState("");
   const [deliveryDate, setDeliveryDate] = useState("");
   const [loading, setLoading] = useState(true);
   const [selectedSupplier, setSelectedSupplier] = useState("");
@@ -68,10 +68,10 @@ export default function BatchDeliveriesPage() {
   // State for new product form
   const [newProduct, setNewProduct] = useState({
     product: "",
-    supplier: "2",
+    supplier: "",
     brand: "",
     unitPrice: "",
-    quantity: "6"
+    quantity: ""
   });
 
   // API endpoints
@@ -412,11 +412,6 @@ export default function BatchDeliveriesPage() {
 
   // Save the delivery to the database
   const handleSaveDelivery = async () => {
-    // reset global variables
-    setSelectedPaymentType(-1);
-    setSelectedPaymentStatus1(-1);
-    setSelectedPaymentStatus2(-1);
-    
     const raw = deliveryNumber.trim();
 
     // 1) Error if the field is completely empty:
@@ -524,11 +519,8 @@ export default function BatchDeliveriesPage() {
         }
       };
 
-      // console.log("Sending comprehensive delivery payload:", deliveryPayload);
-
       // Send all delivery data in a single request to the complete delivery endpoint
       const deliveryResponse = await axios.post(API_CONFIG.deliveries, deliveryPayload);
-      // console.log("Delivery created:", deliveryResponse.data);
       
       toast.success("Delivery and payment details successfully saved!");
       
@@ -562,6 +554,11 @@ export default function BatchDeliveriesPage() {
     } finally {
       setLoading(false);
     }
+    
+    // reset global variables
+    setSelectedPaymentType(-1);
+    setSelectedPaymentStatus1(-1);
+    setSelectedPaymentStatus2(-1);
   };
 
   // Save payment details separately
