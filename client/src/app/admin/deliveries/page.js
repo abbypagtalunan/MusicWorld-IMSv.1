@@ -638,13 +638,13 @@ export default function DeliveriesPage() {
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen w-screen">
+      <div className="flex h-screen overflow-hidden">
         <AppSidebar />
-        <div className="flex-1 p-4 flex flex-col w-full">
-          <div className="flex items-center justify-between mb-4 bg-white shadow-sm p-4 rounded-lg">
-            <div className="flex items-center space-x-2">
-              <div className="relative flex items-center space-x-2 w-64">
-                <div className="relative flex-1">
+        <div className="flex-1 p-4 flex flex-col overflow-x-hidden">
+          <div className="flex flex-wrap gap-4 justify-between mb-4 bg-white shadow-sm p-4 rounded-lg">
+            <div className="flex flex-wrap items-center gap-2 min-w-[250px]">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="relative w-full sm:w-64">
                   {/* Search */}
                   <Input
                     type="text"
@@ -659,7 +659,7 @@ export default function DeliveriesPage() {
                     }}
                     autoComplete="off"
                     placeholder="Search by delivery number"
-                    className="w-64 pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <div className="absolute left-3 top-2.5 text-gray-500">
                     <Search className="w-5 h-5" />
@@ -724,7 +724,7 @@ export default function DeliveriesPage() {
                 <Button
                   variant="outline"
                   className={cn(
-                    "w-[180px] flex items-center justify-between px-3 py-2 border rounded-md font-normal",
+                    "flex items-center gap-2 w-[150px] border rounded-md font-normal",
                     !fromDate && "text-muted-foreground"
                   )}
                 >
@@ -759,7 +759,7 @@ export default function DeliveriesPage() {
                 <Button
                   variant="outline"
                   className={cn(
-                    "w-[180px] flex items-center justify-between px-3 py-2 border rounded-md font-normal",
+                    "flex items-center gap-2 w-[150px] border rounded-md font-normal",
                     !toDate && "text-muted-foreground"
                   )}
                 >
@@ -798,13 +798,13 @@ export default function DeliveriesPage() {
                   }}
                   className="text-sm border-gray-300 hover:text-red-600 "
                 >
-                  <RotateCcw className="w-4 h-4" />
+                  <RotateCcw className="w-4 h-4 mr-1" />
                     <span>Reset Date</span>
               </Button>
             </div>
                             
             {/* Button to navigate to Add Delivery form page */}
-            <div className="flex space-x-2">
+            <div className="flex justify-end">
               <Button className="bg-blue-400 text-white" onClick={() => router.push("./deliveries-add-delivery")}>
                 <PackagePlus size={16} className="mr-2" />
                 Add Delivery
