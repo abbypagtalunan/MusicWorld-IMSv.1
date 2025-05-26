@@ -225,7 +225,7 @@ const OrderDashboard = () => {
     setIsEditMode(false);
   };
   
-const handleEdit = (row) => {
+  const handleEdit = (row) => {
     const {
       "Product Code": code,
       Quantity: quantity,
@@ -270,7 +270,6 @@ const handleEdit = (row) => {
       }
     };
     
-  
   const handleProductSelect = (product) => {
     setSelectedProduct(product);
     setOpenProduct(false);
@@ -353,12 +352,14 @@ const handleEdit = (row) => {
             
             {/* TABLE */}
             <div className="lg:col-span-2 space-y-4 min-w-0">
-              <div className="h-[50%] text-xl bg-white shadow-md p-4 rounded-xl">
+              <div className="min-h-[30%] max-h-[50%] overflow-y-auto text-xl bg-white shadow-md p-4 rounded-xl">
               <DataTable 
                 columns={getColumns(handleDelete, handleEdit)} 
                 data={data}
               />
               </div>
+
+              
 
               {/* TOTAL AMOUNT - PAYMENT */}
               <div className="bg-white shadow-lg p-6 text-center rounded-xl">
@@ -398,7 +399,7 @@ const handleEdit = (row) => {
                       setIsModalOpen(true);
                     }}
                     className={`px-4 py-1 mt-5 rounded-md text-[13px] transition-colors ${
-                      data.length === 0
+                      data.length === 0 || isInvalidDiscount
                         ? "bg-gray-400 text-white cursor-not-allowed"
                         : "bg-blue-400 text-white hover:bg-blue-700"
                     }`}
