@@ -1002,7 +1002,7 @@ const handleAddProduct = () => {
               </div>
               
               {/* Save All Details button */}
-              <div className="flex justify-end gap-2 mt-6">
+              {/* <div className="flex justify-end gap-2 mt-6">
                 <Button 
                   className="bg-green-600 text-white"
                   onClick={handleSaveDelivery}
@@ -1010,7 +1010,7 @@ const handleAddProduct = () => {
                 >
                   SAVE ALL DETAILS
                 </Button>
-              </div>
+              </div> */}
               
             </CardContent>
           </Card>
