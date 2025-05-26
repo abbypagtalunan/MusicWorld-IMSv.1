@@ -13,6 +13,7 @@ import { Search, Download, Eye, X, ChevronsUpDown, ChevronUp, ChevronDown,EyeOff
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogDescription } from "@/components/ui/dialog";
 import RDaction from "@/components/deleted-actions";
+import MinimumScreenGuard from "@/components/MinimumScreenGuard";
 
 export default function DeletedPage() {
   const [activeTab, setActiveTab] = useState("order");
@@ -600,6 +601,7 @@ const itemsPerPage = 12;
   };
 
 return (
+  <MinimumScreenGuard>
   <SidebarProvider>
     <div className="flex h-screen w-screen overflow-hidden">
       <AppSidebar />
@@ -1242,5 +1244,6 @@ return (
     </div>
     <Toaster position="top-center"/>
   </SidebarProvider>
+  </MinimumScreenGuard>
 );
 }

@@ -46,6 +46,8 @@ import {
 import { Trash2, Eye, ChevronsUpDown, ChevronUp, ChevronDown, EyeOff, Search } from "lucide-react";
 // Toast Notifications
 import { toast, Toaster } from "react-hot-toast";
+import MinimumScreenGuard from "@/components/MinimumScreenGuard";
+
 // Helper function to format PHP currency
 const formatToPHP = (amount) => {
   return `₱${Number(amount).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`;
@@ -455,6 +457,7 @@ export default function ReturnsPage() {
   };
 
   return (
+    <MinimumScreenGuard>
     <SidebarProvider>
       <div className="flex h-screen w-screen overflow-hidden">
         <AppSidebar />
@@ -474,7 +477,7 @@ export default function ReturnsPage() {
             {/* Customer Returns Tab */}
             <TabsContent value="customer">
               <div className="flex flex-col lg:flex-row gap-4 items-stretch">
-                <Card className="w-full lg:w-2/3 flex flex-col">
+                <Card className="w-full flex-1 flex flex-col overflow-hidden">
                   <CardContent className="p-4 flex flex-col justify-between flex-grow">
                     {/* Search Filter for Customer Returns */}
                     <div className="mb-4">
@@ -657,147 +660,12 @@ export default function ReturnsPage() {
                     </div>
                   </CardContent>
                 </Card>
-                <Card className="w-full lg:w-1/3 flex flex-col justify-between text-gray-700">
-                  <CardHeader className="pb-0">
-                    <CardTitle className="text-center text-xl">Add Customer Product Return</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-4 flex flex-col flex-1 justify-between">
-                    <div className="space-y-3">
-                      <div>
-                        <Label htmlFor="productName">Product Name</Label>
-                        <Select onValueChange={handleProductSelect}>
-                          <SelectTrigger id="productName">
-                            <SelectValue placeholder="Select product" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <div className="px-2 py-1 border-b">
-                              <Input
-                                placeholder="Search product..."
-                                value={productSearchTerm}
-                                onChange={(e) => setProductSearchTerm(e.target.value)}
-                                className="w-full text-sm"
-                              />
-                            </div>
-                            {products
-                              .filter((product) =>
-                                product[config.products.nameField]
-                                  .toLowerCase()
-                                  .includes(productSearchTerm.toLowerCase())
-                              )
-                              .map((product) => (
-                                <SelectItem 
-                                  key={product[config.products.codeField]} 
-                                  value={product[config.products.nameField]}
-                                >
-                                  {`${product[config.products.nameField]} - ${product.brand} - ${product.supplier}`}
-                                </SelectItem>
-                              ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label htmlFor="supplier">Supplier</Label>
-                        <Input
-                          id="supplier"
-                          placeholder="Select supplier"
-                          value={selectedSupplierName}
-                          readOnly
-                          className="mt-1 bg-gray-100"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="brand">Brand</Label>
-                        <Input
-                          id="brand"
-                          placeholder="Select brand"
-                          value={selectedBrand}
-                          readOnly
-                          className="mt-1 bg-gray-100"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="quantity">Quantity</Label>
-                        <Input
-                          id="quantity"
-                          type="number"
-                          placeholder="Enter quantity"
-                          onChange={calculateTotalPrice}
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="returnType">Return Type</Label>
-                        <Input
-                          id="returnType"
-                          type="text"
-                          placeholder="Type return type"
-                          value={returnType}
-                          onChange={(e) => {
-                            // Filter out any numeric characters before updating state
-                            const filteredValue = e.target.value.replace(/[0-9]/g, "");
-                            setReturnType(filteredValue);
-                          }}
-                          onKeyDown={(e) => {
-                            // Prevent keyboard input of numeric characters
-                            if (!/[a-zA-Z\s]/.test(e.key)) {
-                              e.preventDefault();
-                            }
-                          }}
-                          onPaste={(e) => {
-                            // Prevent pasting of numeric characters
-                            const text = e.clipboardData.getData("text");
-                            if (/\d/.test(text)) {
-                              e.preventDefault();
-                            }
-                          }}
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="discount">Discount (%)</Label>
-                        <Input
-                          id="discount"
-                          type="number"
-                          placeholder="Enter discount percentage"
-                          value={selectedDiscount}
-                          onChange={(e) => setSelectedDiscount(e.target.value)}
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="price"> Price </Label>
-                        <Input
-                          id="price"
-                          type="text"
-                          value={formatToPHP(productPrice * selectedQuantity * (1 - selectedDiscount / 100))}
-                          readOnly
-                          className="mt-1 bg-gray-100"
-                        />
-                      </div>
-                      <div className="flex justify-center mt-6">
-                        <Button
-                          className="w-2/3 bg-blue-500 text-white"
-                          disabled={
-                            !productName ||
-                            !selectedSupplierID ||
-                            !selectedBrand ||
-                            !selectedQuantity ||
-                            !returnType
-                          }
-                          onClick={handleAddCustomerReturn}
-                        >
-                          ADD RETURN
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
               </div>
             </TabsContent>
             {/* Supplier Returns Tab */}
             <TabsContent value="supplier">
               <div className="flex flex-col lg:flex-row gap-4 items-stretch">
-                <Card className="w-full lg:w-2/3 flex flex-col">
+                <Card className="w-full flex-1 flex flex-col overflow-hidden">
                   <CardContent className="p-4 flex flex-col justify-between flex-grow">
                     {/* Search Filter for Supplier Returns */}
                     <div className="mb-4">
@@ -933,132 +801,6 @@ export default function ReturnsPage() {
                     </div>
                   </CardContent>
                 </Card>
-                <Card className="w-full lg:w-1/3 flex flex-col justify-between text-gray-700">
-                  <CardHeader className="pb-0">
-                    <CardTitle className="text-center text-xl">Add Product Return to Supplier</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-4 flex flex-col flex-1 justify-between">
-                    <div className="space-y-3">
-                      <div>
-                        <Label htmlFor="deliveryNumber">Delivery Number</Label>
-                        <Select onValueChange={(value) => {
-                          const selected = deliveryNumbers.find(d => d.D_deliveryNumber === value);
-                          if (selected) {
-                            setDeliveryNumber(selected.D_deliveryNumber);
-                            setSupplierName(selected.S_supplierID);
-                            setSupplierID(selected.S_supplierID);
-                          }
-                        }}>
-                          <SelectTrigger id="deliveryNumber" className="mt-1">
-                            <SelectValue placeholder="Select delivery number" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {deliveryNumbers.map((d) => (
-                              <SelectItem 
-                                key={d.D_deliveryNumber} 
-                                value={d.D_deliveryNumber}
-                              >
-                                {d.D_deliveryNumber}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label htmlFor="productName">Product Name</Label>
-                        <Select onValueChange={handleSupplierProductSelect}>
-                          <SelectTrigger id="productName">
-                            <SelectValue placeholder="Select product" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <div className="px-2 py-1 border-b">
-                              <Input
-                                placeholder="Search product..."
-                                value={productSearchTerm2}
-                                onChange={(e) => setProductSearchTerm2(e.target.value)}
-                                className="w-full text-sm"
-                              />
-                            </div>
-                            {products
-                              .filter((product) =>
-                                product.P_productName
-                                  .toLowerCase()
-                                  .includes(productSearchTerm2.toLowerCase())
-                              )
-                              .map((product) => (
-                                <SelectItem 
-                                  key={product.P_productCode} 
-                                  value={product.P_productName}
-                                >
-                                  {`${product.P_productName} - ${product.brand} - ${product.supplier}`}
-                                </SelectItem>
-                              ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label htmlFor="supplier2">Supplier</Label>
-                        <Input
-                          id="supplier2"
-                          placeholder="Select supplier"
-                          value={supplierName}
-                          readOnly
-                          className="mt-1 bg-gray-100"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="brand">Brand</Label>
-                        <Input
-                          id="brand"
-                          placeholder="Select brand"
-                          value={brand}
-                          readOnly
-                          className="mt-1 bg-gray-100"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="quantity">Quantity</Label>
-                        <Input
-                          id="quantity"
-                          type="number"
-                          placeholder="Enter quantity"
-                          value={quantity}
-                          onChange={(e) => {
-                            setQuantity(e.target.value);
-                            calculateSupplierTotalPrice(e);
-                          }}
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="total">Price</Label>
-                        <Input
-                          id="total"
-                          type="text"
-                          placeholder="Calculated total"
-                          value={amount}
-                          readOnly
-                          className="mt-1 bg-gray-100"
-                        />
-                      </div>
-                      <div className="flex justify-center mt-6">
-                        <Button
-                          className="w-2/3 bg-blue-500 text-white"
-                          disabled={
-                            !deliveryNumber ||
-                            !supplierID ||
-                            !productItem ||
-                            !brand ||
-                            !quantity
-                          }
-                          onClick={handleAddSupplierReturn}
-                        >
-                          ADD RETURN
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>  
               </div>
             </TabsContent>
           </Tabs>
@@ -1066,5 +808,6 @@ export default function ReturnsPage() {
       </div>
       <Toaster />
     </SidebarProvider>
+    </MinimumScreenGuard>
   );
 }

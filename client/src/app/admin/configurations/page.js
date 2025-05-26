@@ -26,6 +26,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Search, ListFilter, FilePen, Trash } from "lucide-react";
 import { toast, Toaster } from "react-hot-toast";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
+import MinimumScreenGuard from "@/components/MinimumScreenGuard";
 
 export default function ConfigurationsPage() {
   const configMap = {
@@ -317,6 +318,7 @@ export default function ConfigurationsPage() {
   };
 
   return (
+    <MinimumScreenGuard>
     <SidebarProvider>
       <div className="flex h-screen w-screen">
         <AppSidebar />
@@ -620,6 +622,7 @@ export default function ConfigurationsPage() {
         </DialogContent>
       </Dialog>
     </SidebarProvider>
+    </MinimumScreenGuard>
   );
 }
 

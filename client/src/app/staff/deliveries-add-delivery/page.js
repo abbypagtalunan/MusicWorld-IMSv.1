@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { Trash2, Undo2, Filter } from "lucide-react";
+import MinimumScreenGuard from "@/components/MinimumScreenGuard";
 
 // Sample product data for the batch deliveries
 const productItems = [
@@ -46,6 +47,7 @@ export default function BatchDeliveriesPage() {
   });
 
   return (
+    <MinimumScreenGuard>
     <SidebarProvider>
       <div className="flex h-screen w-screen overflow-hidden">
         <AppSidebar />
@@ -348,5 +350,6 @@ export default function BatchDeliveriesPage() {
         </div>
       </div>
     </SidebarProvider>
+    </MinimumScreenGuard>
   );
 }

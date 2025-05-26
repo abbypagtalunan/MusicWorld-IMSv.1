@@ -12,6 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Search, Eye, X, ChevronsUpDown, ChevronUp, ChevronDown } from "lucide-react";
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
+import MinimumScreenGuard from "@/components/MinimumScreenGuard";
 
 export default function DeletedPage() {
   const [activeTab, setActiveTab] = useState("order");
@@ -294,6 +295,7 @@ export default function DeletedPage() {
   };
    
   return (
+    <MinimumScreenGuard>
     <SidebarProvider>
       <div className="flex h-screen w-screen overflow-hidden">
         <AppSidebar />
@@ -708,5 +710,6 @@ export default function DeletedPage() {
       </div>
       <Toaster position="top-center"/>
     </SidebarProvider>
+    </MinimumScreenGuard>
   );
 }

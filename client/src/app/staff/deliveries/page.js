@@ -12,6 +12,7 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@
 import { Search, ListFilter, Trash2, Eye, PackagePlus, ChevronsUpDown, ChevronUp, ChevronDown, EyeOff} from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
+import MinimumScreenGuard from "@/components/MinimumScreenGuard";
 
 // Sample data mapping for deliveries with their associated products
 const deliveryProducts = {
@@ -101,6 +102,7 @@ export default function DeliveriesPage() {
 }
 
   return (
+    <MinimumScreenGuard>
     <SidebarProvider>
       <div className="flex h-screen w-screen overflow-hidden">
         <AppSidebar />
@@ -366,5 +368,6 @@ export default function DeliveriesPage() {
         </div>
       </div>
     </SidebarProvider>
+  </MinimumScreenGuard>
   );
 }

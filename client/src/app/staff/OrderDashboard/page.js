@@ -15,6 +15,7 @@ import { ChevronDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import axios from "axios";
 import { toast, Toaster } from "react-hot-toast";
+import MinimumScreenGuard from "@/components/MinimumScreenGuard";
 
 const OrderDashboard = () => {
   const [data, setData] = useState([]);
@@ -339,6 +340,7 @@ const OrderDashboard = () => {
   };
   
   return (
+    <MinimumScreenGuard>
     <SidebarProvider>
       <div className="flex h-screen w-screen">
         <AppSidebar />
@@ -918,6 +920,7 @@ const OrderDashboard = () => {
       </div>
       <Toaster position="top-right" />
     </SidebarProvider>
+  </MinimumScreenGuard>
   );
 };
 

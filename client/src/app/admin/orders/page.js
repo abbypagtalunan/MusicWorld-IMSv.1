@@ -51,6 +51,7 @@ import { toast, Toaster } from "react-hot-toast";
 import axios from "axios";
 import { cn } from "@/lib/utils";
 import { Eye, EyeOff } from "lucide-react";
+import MinimumScreenGuard from "@/components/MinimumScreenGuard";
 
 export default function OrdersPage() {
   // Search state
@@ -92,10 +93,11 @@ export default function OrdersPage() {
     setSelectedSubFilter(subFilter);
   };
 
-  // Show Password
+  // Eye Toggle - Show Password
   const [showPassword, setShowPassword] = useState(false);
 
   // Return order handler functions
+  // for single or multiple selects
   const handleSelectTransaction = (transactionId) => {
     setSelectedTransactions((prev) =>
       prev.includes(transactionId)
@@ -104,6 +106,16 @@ export default function OrdersPage() {
     );
   };
 
+  // Row click handler 
+  const handleRowClick = (transactionId, event) => {
+    // Prevent row click when clicking directly on checkbox or input elements
+    if (event.target.type === 'checkbox' || event.target.tagName === 'INPUT') {
+      return;
+    }
+    handleSelectTransaction(transactionId);
+  };
+
+  // when selected all
   const handleSelectAll = () => {
     const currentOrderDetails = orderDetails.filter(
       (detail) => detail.orderID === selectedOrderID
@@ -161,7 +173,7 @@ export default function OrdersPage() {
         R_returnQuantity: detail.quantity,
         R_discountAmount: detail.discountAmount || 0,
         R_TotalPrice: detail.itemTotal, 
-        D_deliveryNumber: "0",
+        D_deliveryNumber: "1",
         S_supplierName: detail.supplierName
       };
     });
@@ -642,6 +654,7 @@ export default function OrdersPage() {
   }
 
   return (
+    <MinimumScreenGuard>
     <SidebarProvider>
       <div className="flex h-screen w-screen overflow-hidden">
         <AppSidebar />
@@ -1169,162 +1182,163 @@ export default function OrdersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredOrders.map((order) => (
-                  <TableRow key={order.orderID}>
-                    <TableCell>{order.orderID}</TableCell>
-                    <TableCell>{formatDate(order.transacDate)}</TableCell>
-                    <TableCell>{formatTime(order.transacDate)}</TableCell>
-                    <TableCell>{order.receiptNo || "0"}</TableCell>
-                    <TableCell>{formatPeso(order.originalTotal)}</TableCell>
-                    <TableCell>{formatPeso(order.totalProductDiscount)}</TableCell>
-                    <TableCell>{formatPeso(order.wholeOrderDiscount)}</TableCell>
-                    <TableCell>{formatPeso(order.orderPayment)}</TableCell>
-                    <TableCell>{formatPeso(order.totalAmount)}</TableCell>
-                    <TableCell className="flex justify-center items-center">
-                      <Dialog
-                        onOpenChange={(open) => {
-                          if (!open) {
-                            setSelectedTransactions([]);
-                            setSelectedOrderID(null);
-                          }
-                        }}
-                      >
-                        <DialogTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-blue-900 hover:text-white hover:bg-blue-900 border-blue-900 transition-colors duration-200 flex items-center gap-2"
-                            onClick={() => setSelectedOrderID(order.orderID)}
-                          >
-                            <span className="hidden sm:inline">View/Return</span>
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="w-full max-w-screen-lg sm:max-w-screen-md md:max-w-screen-lg lg:max-w-screen-xl max-h-[95vh] overflow-y-auto p-6">
-                          <DialogHeader>
-                            <DialogTitle>Order Details</DialogTitle>
-                            <DialogClose />
-                          </DialogHeader>
-                          {orders ? (
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead className="sticky top-0 z-10 bg-white">
-                                    <input
-                                      type="checkbox"
-                                      onChange={handleSelectAll}
-                                      checked={
-                                        selectedTransactions.length ===
-                                          getFilteredTransactions().length &&
-                                        selectedTransactions.length > 0
-                                      }
-                                    />
-                                  </TableHead>
-                                  <TableHead>Order ID</TableHead>
-                                  <TableHead>Order Detail ID</TableHead>
-                                  <TableHead>Product Code</TableHead>
-                                  <TableHead>Product</TableHead>
-                                  <TableHead>Supplier</TableHead>
-                                  <TableHead>Brand</TableHead>
-                                  <TableHead>Price</TableHead>
-                                  <TableHead>Quantity</TableHead>
-                                  <TableHead>Discount Type</TableHead>
-                                  <TableHead>Discount Amount</TableHead>
-                                  <TableHead>NET Sale</TableHead>
-                                  <TableHead>Gross Sale</TableHead>
-                                  <TableHead>Gross Profit</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {orderDetails
-                                  .filter(
-                                    (detail) => detail.orderID === selectedOrderID
-                                  )
-                                  .map((detail) => (
-                                    <TableRow key={detail.orderDetailID}>
-                                      <TableCell>
-                                        <input
-                                          type="checkbox"
-                                          checked={selectedTransactions.includes(
-                                            `${detail.orderID}-${detail.orderDetailID}`
-                                          )}
-                                          onChange={() =>
-                                            handleSelectTransaction(
-                                              `${detail.orderID}-${detail.orderDetailID}`
-                                            )
-                                          }
-                                        />
-                                      </TableCell>
-                                      <TableCell>{detail.orderID}</TableCell>
-                                      <TableCell>{detail.orderDetailID}</TableCell>
-                                      <TableCell>{detail.productCode}</TableCell>
-                                      <TableCell>{detail.productName}</TableCell>
-                                      <TableCell>{detail.supplierName}</TableCell>
-                                      <TableCell>{detail.brandName}</TableCell>
-                                      <TableCell>
-                                        {detail.unitPrice === 0.0
-                                          ? "Freebie"
-                                          : formatPeso(detail.unitPrice)}
-                                      </TableCell>
-                                      <TableCell>{detail.quantity}</TableCell>
-                                      <TableCell>
-                                        {detail.discountType || "---"}
-                                      </TableCell>
-                                      <TableCell>
-                                        {formatPeso(detail.discountAmount)}
-                                      </TableCell>
-                                      <TableCell>{formatPeso(detail.itemTotal)}</TableCell>
-                                      <TableCell>{formatPeso(detail.itemGross)}</TableCell>
-                                      <TableCell>
-                                        {formatPeso(detail.itemGrossProfit)}
-                                      </TableCell>
-                                    </TableRow>
-                                  ))}
-                              </TableBody>
-                            </Table>
-                          ) : (
-                            <p className="text-gray-500">
-                              Product details not found.
-                            </p>
-                          )}
-
-                          <div className="flex justify-between items-center mb-4">
-                            <div className="text-sm text-gray-600">
-                              {selectedTransactions.length > 0 && (
-                                <span>
-                                  {selectedTransactions.length} item(s) selected
-                                </span>
-                              )}
-                            </div>
+                {filteredOrders.map((order) => {
+                  return (
+                    <TableRow key={order.orderID}>
+                      <TableCell>{order.orderID}</TableCell>
+                      <TableCell>{formatDate(order.transacDate)}</TableCell>
+                      <TableCell>{formatTime(order.transacDate)}</TableCell>
+                      <TableCell>{order.receiptNo || "0"}</TableCell>
+                      <TableCell>{formatPeso(order.originalTotal)}</TableCell>
+                      <TableCell>{formatPeso(order.totalProductDiscount)}</TableCell>
+                      <TableCell>{formatPeso(order.wholeOrderDiscount)}</TableCell>
+                      <TableCell>{formatPeso(order.orderPayment)}</TableCell>
+                      <TableCell>{formatPeso(order.totalAmount)}</TableCell>
+                      {/* View/Return toggle button with modal pop-up */}{" "}
+                      <TableCell className="flex justify-center items-center">
+                        <Dialog
+                          onOpenChange={(open) => {
+                            if (!open) {
+                              // Reset selection when dialog closes
+                              setSelectedTransactions([]);
+                              setSelectedOrderID(null);
+                            }
+                          }}
+                        >
+                          <DialogTrigger asChild>
                             <Button
                               variant="outline"
-                              className="bg-indigo-500 hover:bg-indigo-700 hover:text-white text-white"
-                              onClick={() => {
-                                setItemReturnReasons({});
-                                setReturnDialogOpen(true);
-                              }}
-                              disabled={selectedTransactions.length === 0}
+                              size="sm"
+                              className="text-blue-900 hover:text-white hover:bg-blue-900 border-blue-900 transition-colors duration-200 flex items-center gap-2"
+                              onClick={() => setSelectedOrderID(order.orderID)}
                             >
-                              Return Selected Items
+                              <span className="hidden sm:inline">View/Return</span>
                             </Button>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-gray-500 hover:text-red-600"
-                        onClick={() => {
-                          setSelectedProduct(order);
-                          setDDOpen(true);
-                        }}
-                      >
-                        <Trash2 size={16} />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                          </DialogTrigger>
+                          <DialogContent className="w-full max-w-screen-lg sm:max-w-screen-md md:max-w-screen-lg lg:max-w-screen-xl max-h-[95vh] overflow-y-auto p-6">
+                            <DialogHeader>
+                              <DialogTitle>Order Details</DialogTitle>
+                              <DialogClose />
+                            </DialogHeader>
+                            {orders ? (
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    {/* checkbox select ALL function for customer returns */}
+                                    <TableHead className="sticky top-0 z-10 bg-white">
+                                      <input
+                                        type="checkbox"
+                                        onChange={handleSelectAll}
+                                        checked={
+                                          selectedTransactions.length ===
+                                            getFilteredTransactions().length &&
+                                          selectedTransactions.length > 0
+                                        }
+                                      />
+                                    </TableHead>
+                                    <TableHead>Order ID</TableHead>
+                                    <TableHead>Order Detail ID</TableHead>
+                                    <TableHead>Product Code</TableHead>
+                                    <TableHead>Product</TableHead>
+                                    <TableHead>Supplier</TableHead>
+                                    <TableHead>Brand</TableHead>
+                                    <TableHead>Price</TableHead>
+                                    <TableHead>Quantity</TableHead>
+                                    <TableHead>Discount Type</TableHead>
+                                    <TableHead>Discount Amount</TableHead>
+                                    <TableHead>NET Sale</TableHead>
+                                    <TableHead>Gross Sale</TableHead>
+                                    <TableHead>Gross Profit</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {orderDetails
+                                    .filter(
+                                      (detail) => detail.orderID === selectedOrderID
+                                    )
+                                    .map((detail) => (
+                                      // checkbox select NO. OF ITEMS ONLY function for customer returns
+                                      <TableRow key={detail.orderDetailID}>
+                                        <TableCell>
+                                          <input
+                                            type="checkbox"
+                                            checked={selectedTransactions.includes(
+                                              `${detail.orderID}-${detail.orderDetailID}`
+                                            )}
+                                            onChange={() =>
+                                              handleSelectTransaction(
+                                                `${detail.orderID}-${detail.orderDetailID}`
+                                              )
+                                            }
+                                          />
+                                        </TableCell>
+                                        <TableCell>{detail.orderID}</TableCell>
+                                        <TableCell>{detail.orderDetailID}</TableCell>
+                                        <TableCell>{detail.productCode}</TableCell>
+                                        <TableCell>{detail.productName}</TableCell>
+                                        <TableCell>{detail.supplierName}</TableCell>
+                                        <TableCell>{detail.brandName}</TableCell>
+                                        <TableCell>
+                                          {detail.unitPrice === 0.00
+                                            ? "Freebie"
+                                            : formatPeso(detail.unitPrice)}
+                                        </TableCell>
+                                        <TableCell>{detail.quantity}</TableCell>
+                                        <TableCell>{detail.discountType || "---"}</TableCell>
+                                        <TableCell>{formatPeso(detail.discountAmount)}</TableCell>
+                                        <TableCell>{formatPeso(detail.itemTotal)}</TableCell>
+                                        <TableCell>{formatPeso(detail.itemGross)}</TableCell>
+                                        <TableCell>{formatPeso(detail.itemGrossProfit)}</TableCell>
+                                      </TableRow>
+                                    ))}
+                                </TableBody>
+                              </Table>
+                            ) : (
+                              <p className="text-gray-500">
+                                Product details not found.
+                              </p>
+                            )}
+                            {/* Return items function */}
+                            <div className="flex justify-between items-center mb-4">
+                              <div className="text-sm text-gray-600">
+                                {selectedTransactions.length > 0 && (
+                                  <span>
+                                    {selectedTransactions.length} item(s) selected
+                                  </span>
+                                )}
+                              </div>
+                              <Button
+                                variant="outline"
+                                className="bg-indigo-500 hover:bg-indigo-700 hover:text-white text-white"
+                                onClick={() => {
+                                  setItemReturnReasons("");
+                                  setReturnDialogOpen(true);
+                                }}
+                                disabled={selectedTransactions.length === 0}
+                              >
+                                Return Selected Items
+                              </Button>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      </TableCell>
+                      {/* For delete button */}
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-gray-500 hover:text-red-600"
+                          onClick={() => {
+                            setSelectedProduct(order);
+                            setDDOpen(true);
+                          }}
+                        >
+                          <Trash2 size={16} />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
 
@@ -1517,5 +1531,6 @@ export default function OrdersPage() {
       </div>
       <Toaster position="top-center" />
     </SidebarProvider>
+    </MinimumScreenGuard>
   );
 }
