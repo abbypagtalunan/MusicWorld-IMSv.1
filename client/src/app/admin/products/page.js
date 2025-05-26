@@ -7,14 +7,13 @@ import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast, Toaster } from "react-hot-toast";
-import { Search, ListFilter, Download, FilePen, Trash2, ChevronsUpDown, ChevronUp, ChevronDown } from "lucide-react";
+import { Eye, EyeOff, X, Search, ListFilter, Download, FilePen, Trash2, ChevronsUpDown, ChevronUp, ChevronDown } from "lucide-react";
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "@/components/ui/select"
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogFooter } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
 import { useRef } from "react";
-import { Eye, EyeOff } from "lucide-react";
 import MinimumScreenGuard from "@/components/MinimumScreenGuard";
 
 export default function ProductsPage() {
@@ -122,14 +121,23 @@ export default function ProductsPage() {
     dateAdded: item.P_dateAdded ? formatDate(item.P_dateAdded) : ""
   }));
 
-  const isAddValid =
+/*  const isAddValid =
       values[config.product.categoryField] &&    
       values[config.product.nameField] &&
       values[config.product.brandField] &&
       values[config.product.supplierField] &&
       values[config.product.stockField] &&
       values[config.product.unitpriceField] &&
-      values[config.product.sellingpriceField];
+      values[config.product.sellingpriceField]; */
+
+const isAddValid =
+  values[config.product.categoryField] !== "" &&    
+  values[config.product.nameField].trim() !== "" &&
+  values[config.product.brandField] !== "" &&
+  values[config.product.supplierField] !== "" &&
+  values[config.product.stockField] !== "" &&
+  values[config.product.unitpriceField] !== "" &&
+  values[config.product.sellingpriceField] !== "";
 
 
   
@@ -179,13 +187,15 @@ export default function ProductsPage() {
       .catch((error) => console.error("Error fetching data:", error));
   };
 
+  const [initialProductValues, setInitialProductValues] = useState(null);
+
   const openEditSheet = (item) => {
     const selectedSupplier = suppliers.find(s => s.S_supplierName === item.supplier);
     const selectedBrand = brands.find(b => b.B_brandName === item.brand);
     const selectedCategory = categories.find(c => c.C_categoryName === item.category);
     const selectedStatus = pStatus.find(p => p.P_productStatusName === item.status);
   
-    setValues({
+    const initialValues = {
       [config.product.codeField]: item.productCode,
       [config.product.categoryField]: selectedCategory?.C_categoryID?.toString() || "",
       [config.product.nameField]: item.productName,
@@ -197,10 +207,20 @@ export default function ProductsPage() {
       [config.product.sellingpriceField]: item.sellingPrice,
       [config.product.statusID]: selectedStatus?.P_productStatusID?.toString() || "",
       [config.product.dateField]: item.dateAdded,
-    });
+    };
   
+    setValues(initialValues);
+    setInitialProductValues(initialValues);
     setSelectedProduct(item);
     setEditSheetOpen(true);
+  };
+
+  const edited = () => {
+    if(!initialProductValues) return false;
+
+    return Object.keys(initialProductValues).some(key => {
+      return String(values[key]) !== String(initialProductValues[key]);
+    });
   };
 
   // Search
@@ -366,32 +386,73 @@ export default function ProductsPage() {
       .catch((err) => console.error("Failed to fetch product status options:", err));
   }, []);
  
+const[validationErr, setValidationErr] = useState({
+  stockField: false,
+  unitpriceField: false,
+  sellingpriceField: false
+});
+
   // Submit
   const handleSubmit = (e) => {
     e.preventDefault();
 
+    setValidationErr({
+      stockField: false,
+      unitpriceField: false,
+      sellingpriceField: false
+    });
+
+    let err = false;
+    const errs = {
+      stockField: false,
+      unitpriceField: false,
+      sellingpriceField: false
+    }
+
     if(values[config.product.stockField] > 1000) {
+      errs.stockField = true;
+      err = true;
       toast.error("Stock amount exceeds allowed amount (1000)")
       return;
     }
     if(values[config.product.stockField] <= 0) {
+      errs.stockField = true;
+      err = true;
       toast.error("Stock amount must be greater than 0")
       return;
     }
     if(values[config.product.unitpriceField] > 500000) {
+      errs.unitpriceField = true;
+      err = true;
       toast.error("Price exceeds allowed amount (500000)")
       return;
     }
     if(values[config.product.unitpriceField] <= 0) {
+      errs.unitpriceField = true;
+      err = true;
       toast.error("Price must be greater than 0")
       return;
     }
     if(values[config.product.sellingpriceField] > 500000) {
+      errs.sellingpriceField = true;
+      err = true;
       toast.error("Selling price exceeds allowed amount (500000)")
       return;
     }
     if(values[config.product.sellingpriceField] <= 0) {
+      errs.sellingpriceField = true;
+      err = true;
       toast.error("Selling price must be greater than 0")
+      return;
+    }
+    if(parseFloat(values[config.product.sellingpriceField]) <= parseFloat(values[config.product.unitpriceField])) {
+      errs.sellingpriceField = true;
+      err = true;
+      toast.error("Selling price must be greater than unit price")
+      return;
+    }
+    setValidationErr(errs);
+    if (err) {
       return;
     }
 
@@ -462,31 +523,67 @@ export default function ProductsPage() {
     });
   };
 
-  // Edit  
+  // Edit
   const [isEditSheetOpen, setEditSheetOpen] = useState(false);
   const handleEdit = () => {
+
+    setValidationErr({
+      stockField: false,
+      unitpriceField: false,
+      sellingpriceField: false
+    });
+
+    let err = false;
+    const errs = {
+      stockField: false,
+      unitpriceField: false,
+      sellingpriceField: false
+    }
+
     if(values[config.product.stockField] > 1000) {
+      errs.stockField = true;
+      err = true;
       toast.error("Stock amount exceeds allowed amount (1000)")
       return;
     }
     if(values[config.product.stockField] <= 0) {
+      errs.stockField = true;
+      err = true;
       toast.error("Stock amount must be greater than 0")
       return;
     }
     if(values[config.product.unitpriceField] > 500000) {
+      errs.unitpriceField = true;
+      err = true;
       toast.error("Price exceeds allowed amount (500000)")
       return;
     }
     if(values[config.product.unitpriceField] <= 0) {
+      errs.unitpriceField = true;
+      err = true;
       toast.error("Price must be greater than 0")
       return;
     }
     if(values[config.product.sellingpriceField] > 500000) {
+      errs.sellingpriceField = true;
+      err = true;
       toast.error("Selling price exceeds allowed amount (500000)")
       return;
     }
     if(values[config.product.sellingpriceField] <= 0) {
+      errs.sellingpriceField = true;
+      err = true;
       toast.error("Selling price must be greater than 0")
+      return;
+    }
+    if(parseFloat(values[config.product.sellingpriceField]) <= parseFloat(values[config.product.unitpriceField])) {
+      errs.sellingpriceField = true;
+      err = true;
+      toast.error("Selling price must be greater than unit price")
+      return;
+    }
+    setValidationErr(errs);
+    if (err) {
       return;
     }
 
@@ -529,32 +626,55 @@ export default function ProductsPage() {
   };
 
   // Price edit
+  const [originalSP, setOriginalSP] = useState(null);
   const [PSearchTerm, setPSearchTerm] = useState("");
   const [isPDOpen, setPDopen] = useState(false);
   const handlePriceUpdate = async () => {
     const productCode = values[config.product.codeField];;
     const P_sellingPrice = values[config.product.sellingpriceField];
 
+    setValidationErr({...validationErr, sellingpriceField: false});
+    let err = false;
+
     if (!productCode) {
       toast.error("No product selected");
       return;
     }
     if (!P_sellingPrice || P_sellingPrice <= 0) {
+      setValidationErr({...validationErr, sellingpriceField: true});
+      err = true;
       toast.error("No price entered");
       return;
     }
     if (selectedProductforPU && parseFloat(P_sellingPrice) === parseFloat(selectedProductforPU.sellingPrice)) {
+      setValidationErr({...validationErr, sellingpriceField: true});
+      err = true;
       toast.error("Price must be different from current price");
       return;
     }
     if(values[config.product.sellingpriceField] > 500000) {
+      setValidationErr({...validationErr, sellingpriceField: true});
+      err = true;
       toast.error("Selling price exceeds allowed amount (500000)")
       return;
     }
     if(values[config.product.sellingpriceField] <= 0) {
+      setValidationErr({...validationErr, sellingpriceField: true});
+      err = true;
       toast.error("Selling price must be greater than 0")
       return;
     }
+    const unitPrice = selectedProductforPU?.price;
+    if(unitPrice && parseFloat(P_sellingPrice) <= parseFloat(unitPrice)) {
+      setValidationErr({...validationErr, sellingpriceField: true});
+      err = true;
+      err = true;
+      toast.error("Selling price must be greater than unit price")
+      return;
+    }
+    if (err) {
+      return;
+    };
 
     axios
       .put(`http://localhost:8080/products/update-price/${productCode}`, { P_sellingPrice })
@@ -567,6 +687,7 @@ export default function ProductsPage() {
         });
         setPSearchTerm("");
         setSelectedProductforPU(null);
+        setOriginalSP(null);
         setPDopen(false);
         setHighlightedCode(productCode);
       })  
@@ -575,6 +696,17 @@ export default function ProductsPage() {
         toast.error("Failed to update price");
       });
   };
+
+  const clearSP = () => {
+    setValues({
+      ...values,
+      [config.product.codeField]: "",
+      [config.product.sellingpriceField]: "",
+    });
+    setSelectedProductforPU(null);
+    setOriginalSP(null);
+    setPSearchTerm("");
+  }
 
   // Delete
   const [adminPW, setAdminPW] = useState("");
@@ -952,6 +1084,7 @@ export default function ProductsPage() {
                       required
                       min="1"
                       max="1000"
+                      className={validationErr.stockField ? "border-2 border-red-500 focus-visible:ring-red-500" : ""}
                       onKeyDown={(e) => {
                         if(e.key === 'e' || e.key === '-' || e.key === '+') {
                           e.preventDefault();
@@ -959,15 +1092,14 @@ export default function ProductsPage() {
                       }} 
                       onChange={(e) => {
                         const value = parseFloat(e.target.value);
-                        if(!isNaN(value) && value >= 0 && value <= 1000) {
-                          setValues({...values, [config.product.stockField]:value});
-                        } else if (e.target.value === '') {
-                          setValues({...values, [config.product.stockField]:''});    
+                        setValues({ ...values, [config.product.stockField]: e.target.value });
+                        if (!isNaN(value)) {
+                          setValidationErr({ ...validationErr, stockField: false });
                         }
                       }}
                     />
 
-                    <Label>Price</Label>
+                    <Label>Unit Price</Label>
                     <Input  
                       type="number" 
                       placeholder="Enter price" 
@@ -975,6 +1107,7 @@ export default function ProductsPage() {
                       min="0.01"
                       step="0.01"
                       max="500000.00"
+                      className={validationErr.unitpriceField ? "border-2 border-red-500 focus-visible:ring-red-500" : ""}
                       onKeyDown={(e) => {
                         if(e.key === 'e' || e.key === '-' || e.key === '+') {
                           e.preventDefault();
@@ -982,10 +1115,9 @@ export default function ProductsPage() {
                       }} 
                       onChange={(e) => {
                         const value = parseFloat(e.target.value);
-                        if(!isNaN(value) && value > 0 && value <= 500000) {
-                          setValues({...values, [config.product.unitpriceField]:value});
-                        } else if (e.target.value === '') {
-                          setValues({...values, [config.product.unitpriceField]:''});    
+                        setValues({ ...values, [config.product.unitpriceField]: e.target.value });
+                        if (!isNaN(value)) {
+                          setValidationErr({ ...validationErr, unitpriceField: false });
                         }
                       }}
                     />
@@ -998,6 +1130,7 @@ export default function ProductsPage() {
                       min="0.01"
                       step="0.01"
                       max="500000.00"
+                      className={validationErr.sellingpriceField ? "border-2 border-red-500 focus-visible:ring-red-500" : ""}
                       onKeyDown={(e) => {
                         if(e.key === 'e' || e.key === '-' || e.key === '+') {
                           e.preventDefault();
@@ -1005,10 +1138,9 @@ export default function ProductsPage() {
                       }} 
                       onChange={(e) => {
                         const value = parseFloat(e.target.value);
-                        if(!isNaN(value) && value > 0 && value <= 500000) {
-                          setValues({...values, [config.product.sellingpriceField]:value});
-                        } else if (e.target.value === '') {
-                          setValues({...values, [config.product.sellingpriceField]:''});    
+                        setValues({ ...values, [config.product.sellingpriceField]: e.target.value });
+                        if (!isNaN(value)) {
+                          setValidationErr({ ...validationErr, sellingpriceField: false });
                         }
                       }}
                     />
@@ -1034,6 +1166,8 @@ export default function ProductsPage() {
                       [config.product.codeField]: "",
                       [config.product.sellingpriceField]: "",
                     });
+                    setSelectedProductforPU(null);
+                    setOriginalSP(null);
                   }
                 }}>
                 <DialogTrigger asChild>
@@ -1065,7 +1199,7 @@ export default function ProductsPage() {
                         }}
                         className="w-full pr-8"
                       />
-                      <Search className="absolute right-3 top-3 w-4 h-4 text-gray-400"/>
+                      <X className="absolute right-3 top-3 w-4 h-4 text-gray-400 cursor-pointer hover:text-gray-600" onClick={clearSP}/>
                     </div>
                     <div className="border rounded-md max-h-60 overflow-y-auto">
                       {data
@@ -1095,9 +1229,10 @@ export default function ProductsPage() {
                               setValues({
                                 ...values,
                                 [config.product.codeField]: product.productCode,
-                                [config.product.sellingpriceField]: product.sellingPrice,
+                                [config.product.sellingpriceField]: "",
                               });
                               setSelectedProductforPU(product);
+                              setOriginalSP(product.sellingPrice);
                               setPSearchTerm(`${product.productName} (${product.productCode})`);
                             }}
                           >
@@ -1108,14 +1243,14 @@ export default function ProductsPage() {
                             <div className="flex justify-between text-sm text-gray-500">
                               <span>Supplier: {product.supplier}</span>
                               <span>Brand: {product.brand}</span>
-                              <span>Price: {product.sellingPrice}</span>
+                              <span>Selling Price: {product.sellingPrice}</span>
                             </div>
                           </div>
                         ))}
                     </div> 
 
-                    <Label>Price</Label>
-                    <Input disabled placeholder={values[config.product.sellingpriceField] ?? ""} className="bg-gray-300" />
+                    <Label>Current Selling Price</Label>
+                    <Input disabled className="bg-gray-300" value={originalSP ?? ""}/>
 
                     <Label>Updated Price</Label>
                     <Input  
@@ -1125,6 +1260,7 @@ export default function ProductsPage() {
                       min="0.01"
                       step="0.01"
                       max="500000.00"
+                      className={validationErr.sellingpriceField ? "border-2 border-red-500 focus-visible:ring-red-500" : ""}
                       onKeyDown={(e) => {
                         if(e.key === 'e' || e.key === '-' || e.key === '+') {
                           e.preventDefault();
@@ -1132,10 +1268,9 @@ export default function ProductsPage() {
                       }} 
                       onChange={(e) => {
                         const value = parseFloat(e.target.value);
-                        if(!isNaN(value) && value > 0 && value <= 500000) {
-                          setValues({...values, [config.product.sellingpriceField]:value});
-                        } else if (e.target.value === '') {
-                          setValues({...values, [config.product.sellingpriceField]:''});    
+                        setValues({ ...values, [config.product.sellingpriceField]: e.target.value });
+                        if (!isNaN(value)) {
+                          setValidationErr({ ...validationErr, sellingpriceField: false });
                         }
                       }}
                     />
@@ -1262,8 +1397,8 @@ export default function ProductsPage() {
                   <TableHead onClick={() => handleSort("brand")} className="cursor-pointer select-none">Brand <SortIcon column="brand" /></TableHead>
                   <TableHead onClick={() => handleSort("supplier")} className="cursor-pointer select-none">Supplier <SortIcon column="supplier" /></TableHead>
                   <TableHead onClick={() => handleSort("stockNumber")} className="cursor-pointer select-none">Stock amount <SortIcon column="stockNumber" /></TableHead>
-                  <TableHead onClick={() => handleSort("lastRestock")} className="cursor-pointer select-none">Last Restock<SortIcon column="lastRestock" /></TableHead>
-                  <TableHead onClick={() => handleSort("price")} className="cursor-pointer select-none">Price <SortIcon column="price" /></TableHead>
+                  <TableHead onClick={() => handleSort("lastRestock")} className="cursor-pointer select-none">Last Stock Update<SortIcon column="lastRestock" /></TableHead>
+                  <TableHead onClick={() => handleSort("price")} className="cursor-pointer select-none">Unit Price <SortIcon column="price" /></TableHead>
                   <TableHead onClick={() => handleSort("sellingPrice")} className="cursor-pointer select-none">Selling Price <SortIcon column="sellingPrice" /></TableHead>
                   <TableHead onClick={() => handleSort("status")} className="cursor-pointer select-none">Status <SortIcon column="status" /></TableHead>
                   <TableHead onClick={() => handleSort("dateAdded")} className="cursor-pointer select-none">Date Added <SortIcon column="dateAdded" /></TableHead>
@@ -1393,6 +1528,7 @@ export default function ProductsPage() {
                 required
                 min="1"
                 max="1000"
+                className={validationErr.stockField ? "border-2 border-red-500 focus-visible:ring-red-500" : ""}
                 onKeyDown={(e) => {
                   if(e.key === 'e' || e.key === '-' || e.key === '+') {
                     e.preventDefault();
@@ -1400,15 +1536,14 @@ export default function ProductsPage() {
                 }} 
                 onChange={(e) => {
                   const value = parseFloat(e.target.value);
-                  if(!isNaN(value) && value >= 0 && value <= 1000) {
-                    setValues({...values, [config.product.stockField]:value});
-                  } else if (e.target.value === '') {
-                    setValues({...values, [config.product.stockField]:''});    
+                  setValues({ ...values, [config.product.stockField]: e.target.value });
+                  if (!isNaN(value)) {
+                    setValidationErr({ ...validationErr, stockField: false });
                   }
                 }}
               />
 
-              <label className="text-black font-semibold text-sm">Price</label>
+              <label className="text-black font-semibold text-sm">Unit Price</label>
               <Input 
                 type="number" 
                 value={values[config.product.unitpriceField]  ?? ""}
@@ -1416,6 +1551,7 @@ export default function ProductsPage() {
                 min="0.01"
                 step="0.01"
                 max="500000.00"
+                className={validationErr.unitpriceField ? "border-2 border-red-500 focus-visible:ring-red-500" : ""}
                 onKeyDown={(e) => {
                   if(e.key === 'e' || e.key === '-' || e.key === '+') {
                     e.preventDefault();
@@ -1423,10 +1559,9 @@ export default function ProductsPage() {
                 }} 
                 onChange={(e) => {
                   const value = parseFloat(e.target.value);
-                  if(!isNaN(value) && value > 0 && value <= 500000) {
-                    setValues({...values, [config.product.unitpriceField]:value});
-                  } else if (e.target.value === '') {
-                    setValues({...values, [config.product.unitpriceField]:''});    
+                  setValues({ ...values, [config.product.unitpriceField]: e.target.value });
+                  if (!isNaN(value)) {
+                    setValidationErr({ ...validationErr, unitpriceField: false });
                   }
                 }}
               />
@@ -1439,6 +1574,7 @@ export default function ProductsPage() {
                 min="0.01"
                 step="0.01"
                 max="500000.00"
+                className={validationErr.sellingpriceField ? "border-2 border-red-500 focus-visible:ring-red-500" : ""}
                 onKeyDown={(e) => {
                   if(e.key === 'e' || e.key === '-' || e.key === '+') {
                     e.preventDefault();
@@ -1446,10 +1582,9 @@ export default function ProductsPage() {
                 }} 
                 onChange={(e) => {
                   const value = parseFloat(e.target.value);
-                  if(!isNaN(value) && value > 0 && value <= 500000) {
-                    setValues({...values, [config.product.sellingpriceField]:value});
-                  } else if (e.target.value === '') {
-                    setValues({...values, [config.product.sellingpriceField]:''});    
+                  setValues({ ...values, [config.product.sellingpriceField]: e.target.value });
+                  if (!isNaN(value)) {
+                    setValidationErr({ ...validationErr, sellingpriceField: false });
                   }
                 }}
               />
@@ -1457,7 +1592,7 @@ export default function ProductsPage() {
               <label className="text-black font-semibold text-sm">Date Added</label>
               <Input value={selectedProduct.dateAdded} disabled className="bg-gray-200" />
 
-              <Button className="bg-blue-400 text-white w-full mt-4" onClick={handleEdit}>Save Edit</Button>
+              <Button className="bg-blue-400 text-white w-full mt-4" onClick={handleEdit} disabled={!edited()}>Save Edit</Button>
             </div>
           )}
         </SheetContent>

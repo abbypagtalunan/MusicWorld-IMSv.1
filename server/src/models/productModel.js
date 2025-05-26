@@ -55,7 +55,7 @@ const addProduct = (productData, callback) => {
 
 // Update an existing brand
 const updateProduct = (productCode, productData, callback) => {
-  const { C_categoryID, P_productName, B_brandID, S_supplierID, P_stockNum, P_unitPrice, P_sellingPrice, P_productStatusID } = productData;
+  const { C_categoryID, P_productName, B_brandID, S_supplierID, P_stockNum, P_unitPrice, P_sellingPrice } = productData;
 
     const currentStockQuery = `SELECT P_stockNum FROM Products WHERE P_productCode = ?`;
 
