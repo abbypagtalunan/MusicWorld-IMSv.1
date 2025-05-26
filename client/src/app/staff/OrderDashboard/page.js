@@ -28,7 +28,6 @@ const OrderDashboard = () => {
   const [orderQuantity, setOrderQuantity] = useState(1);
   const [discountPercentInput, setDiscountPercentInput] = useState("");
   const [orderDiscount, setOrderDiscount] = useState(0);
-  const [productDiscounts, setProductDiscounts] = useState([]);
   const [selectedProductDiscount, setSelectedProductDiscount] = useState(null);
   const [originalTotal, setOriginalTotal] = useState(0); 
 
@@ -90,7 +89,6 @@ const OrderDashboard = () => {
     try {
       // Create order
       const response = await axios.post("http://localhost:8080/orders", orderPayload);
-      
       if (!data || data.length === 0) {
         toast.error("No products or freebies to save. Please add items to the order.");
         return;
@@ -106,7 +104,7 @@ const OrderDashboard = () => {
         const detailPayload = {
           O_orderID: response.data.id.orderId,
           P_productCode: item["Product Code"],
-          D_discountType: isFreebie ? "Freebie" : selectedDiscountType,
+          D_discountType: isFreebie ? "Freebie" : item["Discount Type"],
           OD_quantity: quantity,
           OD_sellingPrice: isFreebie ? 0.00 : price,
           OD_unitPrice: isFreebie ? 0.00 : unitPrice,
@@ -132,7 +130,6 @@ const OrderDashboard = () => {
           console.log(`Stock did not update for product ${item["Product Code"]} with Quantity:`, quantity);
         }
       }
-  
       toast.success("Payment confirmed and order successfully added!");
       setIsModalOpen(false);
   
@@ -160,9 +157,9 @@ const OrderDashboard = () => {
       const percent = parseFloat(discountPercentInput);
       discountType = isNaN(percent) ? "" : `${percent}%`;
     } else if (selectedDiscountType.toLowerCase() === "specific amount") {
-      discountType = "Specific Amount"
+      discountType = "Specific Amount";
     }
-  
+    setSelectedDiscountType(discountType);
     const sellingPrice = parseFloat(selectedProduct.price) || 0;
     const unitPrice = parseFloat(selectedProduct.unitPrice) || 0;
     const quantity = parseInt(orderQuantity) || 1;
@@ -207,7 +204,7 @@ const OrderDashboard = () => {
     setTotalProductDiscounted(totalProductDiscount);
     setNetItemSale(netSales);
     setUnitPrice(unitPrice);
-    setSelectedDiscountType(selectedDiscountType);
+    setSelectedDiscountType(discountType);
     console.log("Details upon adding a order item: ")
     console.log('Unit Price: ', unitPrice);
     console.log('Selling Price: ', sellingPrice);
@@ -276,13 +273,10 @@ const handleEdit = (row) => {
   const handleProductSelect = (product) => {
     setSelectedProduct(product);
     setOpenProduct(false);
-
     setOrderDiscount(0);
     setSelectedDiscountType("");
     setSelectedProductDiscount(null);
   };
-
-
   
   const handleAddFreebie = () => {
   if (!selectedFreebie || freebieQuantity <= 0) return;
@@ -311,18 +305,6 @@ const handleEdit = (row) => {
   const handleDelete = (productCode) => {
     setData((prevData) => prevData.filter(item => item["Product Code"] !== productCode));
   };
-  
-  useEffect(() => {
-    const fetchProductDiscounts = async () => {
-      try {
-        const response = await axios.get("http://localhost:8080/discounts");
-        setProductDiscounts(response.data);
-      } catch (error) {
-        console.error("Failed to fetch product discounts", error);
-      }
-    };
-    fetchProductDiscounts();
-  }, []);
 
   const refreshAll = async () => {
     fetchProductsCombobox();
@@ -336,7 +318,6 @@ const handleEdit = (row) => {
     setIsEditMode(false);
     setOrderQuantity(1);
     setOrderDiscount(0);
-    setProductDiscounts([]);
     setSelectedProductDiscount(null);
   
     // Freebies
@@ -742,7 +723,6 @@ const handleEdit = (row) => {
               />
             </div>
           )}
-
 
           {/* Specific Amount Input */}
           {selectedDiscountType.toLowerCase() === "specific amount" && (
