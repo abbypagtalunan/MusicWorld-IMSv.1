@@ -26,10 +26,29 @@ export default function LoginForm({
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({
+    username: false,
+    password: false
+  });
 
   const handleLogin = async (event) => {
     event.preventDefault();
     setIsLoading(true);
+    setError('');
+
+    // Check for empty fields
+    const usernameEmpty = username.trim() === '';
+    const passwordEmpty = password.trim() === '';
+    
+    if (usernameEmpty || passwordEmpty) {
+      setFieldErrors({
+        username: usernameEmpty,
+        password: passwordEmpty
+      });
+      setError('Please fill out all required fields');
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const response = await fetch("http://localhost:8080/accounts/login", {
@@ -46,6 +65,10 @@ export default function LoginForm({
       const data = await response.json();
 
       if (!response.ok) {
+        setFieldErrors({
+          username: true,
+          password: true
+        });
         setError(data.message || "Invalid credentials");
         return;
       }
@@ -54,15 +77,33 @@ export default function LoginForm({
       localStorage.setItem("user", JSON.stringify(user));
 
       if (user.roleID === 1) {
-        router.push("/admin/products"); // Admin dashboard
+        router.push("/admin/products"); // admin dashboard
       } else if (user.roleID === 2) {
-        router.push("/staff/OrderDashboard"); // Staff dashboard
+        router.push("/staff/OrderDashboard"); // staff dashboard
       }
     } catch (err) {
       console.error("Login error:", err);
       setError("Something went wrong. Please try again.");
+      setFieldErrors({
+        username: true,
+        password: true
+      });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleUsernameChange = (e) => {
+    setUsername(e.target.value);
+    if (fieldErrors.username || fieldErrors.password) {
+      setFieldErrors({ username: false, password: false });
+    }
+  };
+
+  const handlePasswordChange = (e) => {
+    setPassword(e.target.value);
+    if (fieldErrors.username || fieldErrors.password) {
+      setFieldErrors({ username: false, password: false });
     }
   };
 
@@ -90,9 +131,11 @@ export default function LoginForm({
                   id="username"
                   type="text"
                   placeholder="Enter your User Code"
-                  required
                   value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  onChange={handleUsernameChange}
+                  className={cn(
+                    fieldErrors.username && "border-red-500 focus:border-red-500 focus:ring-red-500"
+                  )}
                 />
               </div>
               <div className="grid gap-2 relative">
@@ -102,10 +145,12 @@ export default function LoginForm({
                     id="password" 
                     type={showPassword ? "text" : "password"} 
                     placeholder="Enter your password"
-                    required 
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pr-10" // space for the icon
+                    onChange={handlePasswordChange}
+                    className={cn(
+                      "pr-10", // space for the icon
+                      fieldErrors.password && "border-red-500 focus:border-red-500 focus:ring-red-500"
+                    )}
                   />
                   <button
                     type="button"
