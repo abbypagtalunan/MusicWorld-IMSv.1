@@ -90,7 +90,7 @@ export default function OrdersPage() {
     setSelectedSubFilter(subFilter);
   };
 
-  // Show Password
+  // Eye Toggle - Show Password
   const [showPassword, setShowPassword] = useState(false);
 
   // Return order handler functions

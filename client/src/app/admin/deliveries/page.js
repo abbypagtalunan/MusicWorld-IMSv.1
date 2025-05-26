@@ -41,14 +41,108 @@ export default function DeliveriesPage() {
   const [paymentTypes, setPaymentTypes] = useState([]);
   const [paymentModes, setPaymentModes] = useState([]);
   const [paymentStatuses, setPaymentStatuses] = useState([]);
+
+  // Client-side hydration fix 
+  const [isMounted, setIsMounted] = useState(false);
   
   // Date filter states - updated to use fromDate/toDate
   const [fromDate, setFromDate] = useState(null);
   const [toDate, setToDate] = useState(null);
 
-  // Eye Toggle
+  // Eye Toggle - Show Password
   const [showPassword, setShowPassword] = useState(false);
   
+  // Return product states
+  const [selectedTransactions, setSelectedTransactions] = useState([]);
+  const [itemReturnReasons, setItemReturnReasons] = useState({});
+  const [isReturnDialogOpen, setReturnDialogOpen] = useState(false);
+  const [selectedDeliveryNumber, setSelectedDeliveryNumber] = useState(null);
+
+  // Client-side hydration effect
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+// Return order handler functions
+
+  // Handle select all products for return
+  const handleSelectAll = (deliveryNumber) => {
+    const products = deliveryProducts[deliveryNumber] || [];
+    const allProductIds = products.map((_, idx) => `${deliveryNumber}-${idx}`);
+    
+    if (selectedTransactions.length === allProductIds.length && selectedTransactions.length > 0) {
+      setSelectedTransactions([]);
+    } else {
+      setSelectedTransactions(allProductIds);
+    }
+  };
+
+  // for single or multiple selects
+  const handleSelectTransaction = (transactionId) => {
+    setSelectedTransactions(prev => 
+      prev.includes(transactionId) 
+        ? prev.filter(id => id !== transactionId)
+        : [...prev, transactionId]
+    );
+  };
+
+  // Get filtered transactions for current delivery
+  const getFilteredTransaction = (deliveryNumber) => {
+    return deliveryProducts[deliveryNumber] || [];
+  };
+
+  // Handle return with individual item reasons
+  const handleReturnOrder = () => {
+    if (selectedTransactions.length === 0) {
+      toast.error("Please select at least one item to return");
+      return;
+    }
+    
+    // Check if all selected items have return reasons
+    const missingReasons = selectedTransactions.filter(transactionId => 
+      !itemReturnReasons[transactionId]?.trim()
+    );
+    
+    if (missingReasons.length > 0) {
+      toast.error("Please provide a reason for all selected items");
+      return;
+    }
+    
+    console.log("Returning items with individual reasons:");
+    selectedTransactions.forEach(transactionId => {
+      const [deliveryNum, productIndex] = transactionId.split('-');
+      const product = deliveryProducts[deliveryNum]?.[parseInt(productIndex)];
+      console.log(`Item: ${product?.product}, Reason: ${itemReturnReasons[transactionId]}`);
+    });
+    
+    toast.success("Return processed successfully!");
+    setReturnDialogOpen(false);
+    setSelectedTransactions([]);
+    setItemReturnReasons({});
+  };
+
+  // Function to update individual item return reason
+  const updateItemReturnReason = (transactionId, reason) => {
+    // Only allow letters and spaces
+    let filtered = reason.replace(/[^a-zA-Z\s]/g, '');
+    // Enforce 50 character limit strictly
+    if (filtered.length > 50) {
+      filtered = filtered.substring(0, 50);
+    }
+
+    setItemReturnReasons(prev => ({
+      ...prev,
+      [transactionId]: filtered
+    }));
+  };
+
+  // Reset function when Return dialog closes
+  const resetReturnDialog = () => {
+    setReturnDialogOpen(false);
+    setSelectedTransactions([]);
+    setItemReturnReasons({});
+  };
+
   // API config
   const config = {
     deliveries: {
@@ -103,6 +197,12 @@ export default function DeliveriesPage() {
     return `${yyyy}-${mm}-${dd}`;
   };
   const todayDate = getTodayDate();
+
+  // Format peso function
+  const formatPeso = (value) => {
+    const num = parseFloat(value.toString().replace(/[₱,]/g, ""));
+    return isNaN(num) ? "₱0.00" : `₱${num.toFixed(2)}`;
+  };
   
   // Load data from DB on component mount
   useEffect(() => {
@@ -640,6 +740,11 @@ export default function DeliveriesPage() {
     )
   );
 
+   // Prevent hydration errors
+  if (!isMounted) {
+    return null;
+  }
+
   return (
     <MinimumScreenGuard>
     <SidebarProvider>
@@ -835,7 +940,7 @@ export default function DeliveriesPage() {
                   <TableHead onClick={() => handleSort("totalCost")} className="pl-10 cursor-pointer select-none">
                     Total Cost <SortIcon column="totalCost" sortConfig={sortConfig} />
                   </TableHead>
-                  <TableHead className="pl-0">View Details</TableHead>
+                  <TableHead>Manage</TableHead>
                   <TableHead className="pl-0">Edit Payment</TableHead>
                   <TableHead className="pl-0">Delete</TableHead>
                 </TableRow>
@@ -853,20 +958,33 @@ export default function DeliveriesPage() {
                     </TableCell>
                     <TableCell className="pl-10">{d.totalCost}</TableCell>
                     
-                    {/* View delivery products */}
+                    {/* View details */}
                     <TableCell className="pl-6">
-                      <Dialog>
+                      <Dialog onOpenChange={(open) => {
+                        if (!open) {
+                          // Reset selection when dialog closes
+                          setSelectedTransactions([]);
+                          setSelectedDeliveryNumber(null);
+                        }
+                      }}>
                         <DialogTrigger asChild>
                           <Button 
-                            variant="ghost" 
+                            variant="outline" 
                             size="sm" 
-                            className="text-gray-500 hover:text-blue-600"
-                            onClick={() => loadDeliveryProducts(d.deliveryNum)}
+                            className="text-blue-900 hover:text-white hover:bg-blue-900 border-blue-900 
+                            transition-colors duration-200 flex items-center gap-2" 
+                            onClick={() => {
+                              loadDeliveryProducts(d.deliveryNum);
+                              setSelectedDeliveryNumber(d.deliveryNum);
+                              // Reset return states when opening view details
+                              setSelectedTransactions([]);
+                              setItemReturnReasons({});
+                            }}
                           >
-                            <Eye size={16} />
+                          <span className="hidden sm:inline">View/Return</span>
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="w-[90vw] sm:w-[600px] md:w-[750px] lg:w-[900px] xl:w-[1100px] max-w-[95vw] p-4 sm:p-6 overflow-y-auto max-h-[90vh]">
+                        <DialogContent className="w-full max-w-screen-lg sm:max-w-screen-md md:max-w-screen-lg lg:max-w-screen-xl max-h-[95vh] overflow-y-auto p-6">
                           <DialogHeader>
                             <DialogTitle>Delivery Product Details</DialogTitle>
                             <DialogDescription>View delivery products</DialogDescription>
@@ -884,95 +1002,93 @@ export default function DeliveriesPage() {
                                 <label className="text-sm font-medium">Delivery Number</label>
                                 <Input value={`DR-${d.deliveryNum}`} className="text-center" readOnly />
                               </div>
-                            </div>                            
+                            </div>
                             
-                            {/* Products table header (static) */}
-                            <Table className="min-w-full table-fixed">
-                              <colgroup>
-                                <col className="w-[14.2857%]" />
-                                <col className="w-[14.2857%]" />
-                                <col className="w-[14.2857%]" />
-                                <col className="w-[14.2857%]" />
-                                <col className="w-[14.2857%]" />
-                                <col className="w-[14.2857%]" />
-                                <col className="w-[14.2857%]" />
-                              </colgroup>
-                              <TableHeader className="bg-white">
-                                <TableRow className="border-b border-gray-200">
-                                  <TableHead
-                                    onClick={() => handleProductSort("productCode")}
-                                    className="cursor-pointer select-none"
-                                  >
-                                    Code <SortIcon column="productCode" sortConfig={productSortConfig} />
-                                  </TableHead>
-                                  <TableHead
-                                    onClick={() => handleProductSort("supplier")}
-                                    className="cursor-pointer select-none"
-                                  >
-                                    Supplier <SortIcon column="supplier" sortConfig={productSortConfig} />
-                                  </TableHead>
-                                  <TableHead
-                                    onClick={() => handleProductSort("brand")}
-                                    className="cursor-pointer select-none"
-                                  >
-                                    Brand <SortIcon column="brand" sortConfig={productSortConfig} />
-                                  </TableHead>
-                                  <TableHead
-                                    onClick={() => handleProductSort("product")}
-                                    className="cursor-pointer select-none"
-                                  >
-                                    Product <SortIcon column="product" sortConfig={productSortConfig} />
-                                  </TableHead>
-                                  <TableHead
-                                    onClick={() => handleProductSort("quantity")}
-                                    className="cursor-pointer select-none text-center"
-                                  >
-                                    Quantity <SortIcon column="quantity" sortConfig={productSortConfig} />
-                                  </TableHead> 
-                                  <TableHead
-                                    onClick={() => handleProductSort("unitPrice")}
-                                    className="cursor-pointer select-none text-center"
-                                  >
-                                    Unit Price <SortIcon column="unitPrice" sortConfig={productSortConfig} />
-                                  </TableHead>
-                                  <TableHead
-                                    onClick={() => handleProductSort("total")}
-                                    className="cursor-pointer select-none text-center"
-                                  >
-                                    Total <SortIcon column="total" sortConfig={productSortConfig} />
-                                  </TableHead>
-                                </TableRow>
-                              </TableHeader>
-                            </Table>
-
-                            {/* Products table body */}
-                            <div className="relative w-full max-h-[60vh] overflow-y-auto overflow-x-auto">
-                              <Table className="min-w-full table-fixed">
-                                <colgroup>
-                                  <col className="w-[14.2857%]" />
-                                  <col className="w-[14.2857%]" />
-                                  <col className="w-[14.2857%]" />
-                                  <col className="w-[14.2857%]" />
-                                  <col className="w-[14.2857%]" />
-                                  <col className="w-[14.2857%]" />
-                                  <col className="w-[14.2857%]" />
-                                </colgroup>
+                            {/* Products table */}
+                            {deliveryProducts[d.deliveryNum] ? (
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    {/* checkbox select ALL function for returns */}
+                                    <TableHead className="sticky top-0 z-10 bg-white">
+                                      <input type="checkbox" 
+                                      onChange={() => handleSelectAll(d.deliveryNum)} 
+                                      checked={selectedTransactions.length === getFilteredTransaction(d.deliveryNum).length && 
+                                      selectedTransactions.length > 0}
+                                      />
+                                    </TableHead>
+                                    <TableHead
+                                      onClick={() => handleProductSort("productCode")}
+                                      className="cursor-pointer select-none"
+                                    >
+                                      Code <SortIcon column="productCode" sortConfig={productSortConfig} />
+                                    </TableHead>
+                                    <TableHead
+                                      onClick={() => handleProductSort("supplier")}
+                                      className="cursor-pointer select-none"
+                                    >
+                                      Supplier <SortIcon column="supplier" sortConfig={productSortConfig} />
+                                    </TableHead>
+                                    <TableHead
+                                      onClick={() => handleProductSort("brand")}
+                                      className="cursor-pointer select-none"
+                                    >
+                                      Brand <SortIcon column="brand" sortConfig={productSortConfig} />
+                                    </TableHead>
+                                    <TableHead
+                                      onClick={() => handleProductSort("product")}
+                                      className="cursor-pointer select-none"
+                                    >
+                                      Product <SortIcon column="product" sortConfig={productSortConfig} />
+                                    </TableHead>
+                                    <TableHead
+                                      onClick={() => handleProductSort("quantity")}
+                                      className="cursor-pointer select-none text-center"
+                                    >
+                                      Quantity <SortIcon column="quantity" sortConfig={productSortConfig} />
+                                    </TableHead> 
+                                    <TableHead
+                                      onClick={() => handleProductSort("unitPrice")}
+                                      className="cursor-pointer select-none text-center"
+                                    >
+                                      Unit Price <SortIcon column="unitPrice" sortConfig={productSortConfig} />
+                                    </TableHead>
+                                    <TableHead
+                                      onClick={() => handleProductSort("total")}
+                                      className="cursor-pointer select-none text-center"
+                                    >
+                                      Total <SortIcon column="total" sortConfig={productSortConfig} />
+                                    </TableHead>
+                                  </TableRow>
+                                </TableHeader>
                                 <TableBody>
-                                  {(getSortedProducts(d.deliveryNum).length) > 0
-                                    ? getSortedProducts(d.deliveryNum).map((item, idx) => (
-                                        <TableRow key={idx}>
-                                          <TableCell className="px-2 text-left pl-10">{item.productCode}</TableCell>
-                                          <TableCell className="px-2 text-sm pl-6">{item.supplier}</TableCell>
-                                          <TableCell className="px-2 text-sm">{item.brand}</TableCell>
-                                          <TableCell className="px-2 text-sm">{item.product}</TableCell>
-                                          <TableCell className="px-2 text-center text-sm">{item.quantity}</TableCell>
-                                          <TableCell className="px-2 text-center text-sm">{item.unitPrice}</TableCell>
-                                          <TableCell className="px-2 text-center text-sm">{item.total}</TableCell>
-                                        </TableRow>
-                                      ))
+                                  {getSortedProducts(d.deliveryNum).length > 0
+                                    ? getSortedProducts(d.deliveryNum).map((item, idx) => {
+                                        const transactionId = `${d.deliveryNum}-${idx}`;
+                                        const isSelected = selectedTransactions.includes(transactionId);
+                                        
+                                        return (
+                                          <TableRow key={idx} className={isSelected ? "bg-blue-50" : ""}>
+                                            <TableCell>
+                                              <input
+                                                type="checkbox"
+                                                checked={isSelected}
+                                                onChange={() => handleSelectTransaction(transactionId)}
+                                              />
+                                            </TableCell>
+                                            <TableCell className="text-left">{item.productCode}</TableCell>
+                                            <TableCell className="text-sm">{item.supplier}</TableCell>
+                                            <TableCell className="text-sm">{item.brand}</TableCell>
+                                            <TableCell className="text-sm">{item.product}</TableCell>
+                                            <TableCell className="text-center text-sm">{item.quantity}</TableCell>
+                                            <TableCell className="text-center text-sm">{item.unitPrice}</TableCell>
+                                            <TableCell className="text-center text-sm">{item.total}</TableCell>
+                                          </TableRow>
+                                        );
+                                      })
                                     : (
                                       <TableRow>
-                                        <TableCell colSpan={7} className="text-center text-gray-500">
+                                        <TableCell colSpan={8} className="text-center text-gray-500">
                                           No products found for this delivery
                                         </TableCell>
                                       </TableRow>
@@ -980,6 +1096,28 @@ export default function DeliveriesPage() {
                                   }
                                 </TableBody>
                               </Table>
+                            ) : (
+                              <p className="text-gray-500">Product details not found.</p>
+                            )}
+                            
+                            {/* Return items function */}
+                            <div className="flex justify-between items-center mb-4">
+                              <div className="text-sm text-gray-600">
+                                {selectedTransactions.length > 0 && (
+                                  <span>{selectedTransactions.length} item(s) selected</span>
+                                )}
+                              </div>
+                              <Button
+                                variant="outline"
+                                className="bg-indigo-500 hover:bg-indigo-700 hover:text-white text-white"
+                                onClick={() => {
+                                  setItemReturnReasons({});
+                                  setReturnDialogOpen(true);
+                                }}
+                                disabled={selectedTransactions.length === 0}
+                              >
+                                Return Selected Items
+                              </Button>
                             </div>
                             
                           </div>
@@ -1242,7 +1380,7 @@ export default function DeliveriesPage() {
                                     id="paymentDate2"
                                     type="date"
                                     value={paymentDetails[d.deliveryNum]?.datePayment2 || ""}
-                                    onChange={(e) => updatePaymentDetail(d.deliveryNum, 'paymentDate2', e.target.value)}
+                                    onChange={(e) => updatePaymentDetail(d.deliveryNum, 'datePayment2', e.target.value)}
                                     min={d.rawDate}
                                     max={todayDate}
                                     disabled={
@@ -1408,6 +1546,101 @@ export default function DeliveriesPage() {
               </TableBody>
               
             </Table>
+
+            {/* Return Dialog with Individual Item Reasons - Following Orders Page Format */}
+            <Dialog open={isReturnDialogOpen} onOpenChange={(open) => {
+              if (!open) {
+                resetReturnDialog();
+              } else {
+                setReturnDialogOpen(open);
+              }
+            }}>
+              <DialogContent className="w-[90vw] max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+                <DialogHeader>
+                  <DialogTitle>
+                    <span className="text-lg text-indigo-900">Return Delivery Items</span>
+                    <span className="text-lg text-gray-400 font-normal italic ml-2">
+                      ({selectedTransactions.length} item/s)
+                    </span>
+                  </DialogTitle>
+                  <DialogClose />
+                </DialogHeader>
+                
+                <div className="space-y-4">
+                  <p className="text-sm text-gray-800">
+                    You are about to return {selectedTransactions.length} item/s from 
+                    <span className="font-semibold ml-2">Delivery: DR-{selectedDeliveryNumber}</span>
+                  </p>
+                  
+                  {/* Individual items with own return reason inputs */}
+                  <div className="space-y-4">
+                    <h4 className="font-semibold text-sm mb-2">Return Reasons for Each Item:</h4>
+                    
+                    <div className="max-h-96 overflow-y-auto space-y-4 border rounded p-4">
+                      {selectedTransactions.map(transactionId => {
+                        const [deliveryNum, productIndex] = transactionId.split('-');
+                        const product = deliveryProducts[deliveryNum]?.[parseInt(productIndex)];
+                        
+                        return (
+                          <div key={transactionId} className="border-b pb-4 last:border-b-0">
+                            {/* Item details */}
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="flex-1">
+                                <div className="font-medium text-sm text-gray-800">
+                                  {product?.product}
+                                </div>
+                                <div className="text-xs text-gray-600">
+                                  Product Code: {product?.productCode} | Qty: {product?.quantity}
+                                </div>
+                                <div className="text-xs text-gray-600">
+                                  Price: {product?.unitPrice} | 
+                                  Brand: {product?.brand} | Supplier: {product?.supplier}
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Return reason input for this specific item */}
+                            <div className="mt-2">
+                              <label className="text-sm font-medium text-red-600 block mb-1">
+                                Return Reason *
+                              </label>
+                              <Input
+                                required
+                                type="text"
+                                placeholder="Provide a reason for returning this item..."
+                                className="w-full p-2 border rounded text-sm"
+                                value={itemReturnReasons[transactionId] || ''}
+                                onChange={(e) => updateItemReturnReason(transactionId, e.target.value)}
+                              />
+                              <div className="text-xs text-gray-500 mt-1">
+                                {(itemReturnReasons[transactionId] || '').length}/50 characters (letters and spaces only)
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex justify-end mt-6 gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={resetReturnDialog}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    className="bg-indigo-500 hover:bg-indigo-600 text-white"
+                    onClick={handleReturnOrder}
+                    disabled={selectedTransactions.some(id => !itemReturnReasons[id]?.trim())}
+                  >
+                    Process Return ({selectedTransactions.length} items)
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+            
           </div>
         </div>
       </div>
