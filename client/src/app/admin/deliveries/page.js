@@ -292,12 +292,12 @@ export default function DeliveriesPage() {
 
   const handleProductSort = (key) => {
     setProductSortConfig((prev) => {
-      if (prev.key === key) {
-        return {
-          key,
-          direction: prev.direction === "ascending" ? "descending" : "ascending",
-        };
-      }
+      if (prev.direction === "ascending") {
+          return { key, direction: "descending" };
+        } else if (prev.direction === "descending") {
+          return { key: null, direction: null }; // reset sort
+        }
+      
       return { key, direction: "ascending" };
     });
   };
@@ -833,13 +833,13 @@ export default function DeliveriesPage() {
                                     onClick={() => handleProductSort("quantity")}
                                     className="cursor-pointer select-none text-center"
                                   >
-                                    Quantity
-                                  </TableHead>
+                                    Quantity <SortIcon column="quantity" sortConfig={productSortConfig} />
+                                  </TableHead> 
                                   <TableHead
                                     onClick={() => handleProductSort("unitPrice")}
                                     className="cursor-pointer select-none text-center"
                                   >
-                                    Unit Price
+                                    Unit Price <SortIcon column="unitPrice" sortConfig={productSortConfig} />
                                   </TableHead>
                                   <TableHead
                                     onClick={() => handleProductSort("total")}
