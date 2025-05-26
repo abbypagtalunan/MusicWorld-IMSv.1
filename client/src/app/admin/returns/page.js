@@ -379,7 +379,7 @@ export default function ReturnsPage() {
       const supplierName = suppliers.find(s => s.S_supplierID === item.S_supplierID)?.S_supplierName?.toLowerCase() || "";
       const returnId = item.R_returnID?.toString().toLowerCase() || "";
       const returnType = item.R_reasonOfReturn?.toLowerCase() || "";
-      const productCode = item.P_productCode?.toLowerCase() || "";
+      const productCode = item.P_productCode?.toString().toLowerCase() || "";
       const date = new Date(item.R_dateOfReturn).toLocaleDateString().toLowerCase();
       
       const search = searchTerm.toLowerCase();
@@ -404,7 +404,7 @@ export default function ReturnsPage() {
     const filtered = data.filter((item) => {
       const productName = products.find(p => p.P_productCode === item.P_productCode)?.P_productName?.toLowerCase() || "";
       const supplierName = suppliers.find(s => s.S_supplierID === item.S_supplierID)?.S_supplierName?.toLowerCase() || "";
-      const productCode = item.P_productCode?.toLowerCase() || "";
+      const productCode = item.P_productCode?.toString().toLowerCase() || "";
       const deliveryNum = item.D_deliveryNumber?.toString().toLowerCase() || "";
       const date = new Date(item.R_dateOfReturn).toLocaleDateString().toLowerCase();
       
