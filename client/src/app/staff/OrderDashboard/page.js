@@ -48,6 +48,7 @@ const OrderDashboard = () => {
   const [netItemSale, setNetItemSale] = useState(0);
   const [unitPrice, setUnitPrice] = useState(0);
 
+  const [paymentInput, setPaymentInput] = useState("");
   const totalAmount = data.reduce((sum, item) => sum + parseFloat(item.Total), 0); //Total after discount
   const discountedTotal = Math.max(totalAmount - wholeOrderDiscount, 0); //Total after whole order discount and product discount
   const parsedPayment = parseFloat(payment.toString().replace(/,/g, "")) || 0;
@@ -430,33 +431,37 @@ const handleEdit = (row) => {
 
                         <input
                           type="text"
-                          value={payment === 0 ? "" : payment.toLocaleString("en-PH")}
+                          inputMode="decimal"
+                          value={paymentInput}
                           onChange={(e) => {
+                            const raw = e.target.value.replace(/[^0-9.]/g, "");
+                            
+                            // Allow only 6 digits before decimal, and max 2 digits after
+                            const isValid = /^\d{0,6}(\.\d{0,2})?$/.test(raw);
+                            if (!isValid) return;
+
+                            const numeric = parseFloat(raw);
+                            if (!isNaN(numeric) && numeric > 999999.99) return;
+                            setPaymentInput(raw);
+
+                            // Only update payment if valid number
+                            setPayment(isNaN(numeric) ? 0 : numeric);
                             setHasInteractedWithPayModal(true);
-                            const rawValue = e.target.value.replace(/[^0-9.]/g, ""); 
-                            const updatedPayment = rawValue === "" ? 0 : parseFloat(rawValue);
-                            setPayment(updatedPayment);
-                            console.log("Payment: ", payment)
                           }}
                           onBlur={() => {
-                            if (!payment || parseFloat(payment.toString().replace(/,/g, "")) < discountedTotal) {
+                            const numeric = parseFloat(paymentInput.replace(/,/g, "")) || 0;
+                            if (numeric < discountedTotal) {
                               setHasInteractedWithPayModal(true);
                             }
+                            // Format with commas on blur
+                            setPaymentInput(numeric === 0 ? "" : numeric.toLocaleString("en-PH", { minimumFractionDigits: 2 }));
                           }}
-                          onMouseLeave={(e) => {
-                            if (!payment || parseFloat(payment.toString().replace(/,/g, "")) < discountedTotal) {
-                              setHasInteractedWithPayModal(true);
-                            }
-                            const rawValue = e.target.value.replace(/[^0-9.]/g, ""); 
-                            const updatedPayment = rawValue === "" ? 0 : parseFloat(rawValue);
-                            setPayment(updatedPayment);
-                            console.log("Payment: ", payment)
+                          onFocus={() => {
+                            setPaymentInput(paymentInput.replace(/,/g, ""));
                           }}
                           className={`w-[80%] px-2 py-1 border rounded-md text-center focus:outline-none ${
-                            hasInteractedWithPayModal && !payment 
-                              ? "border-red-600 text-red-600" 
-                              : hasInteractedWithPayModal && payment < discountedTotal 
-                              ? "border-red-600 text-red-600" 
+                            hasInteractedWithPayModal && (payment <= 0 || payment < discountedTotal)
+                              ? "border-red-600 text-red-600"
                               : "border-gray-300 text-black"
                           }`}
                         />
