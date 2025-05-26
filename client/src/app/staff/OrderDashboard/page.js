@@ -876,6 +876,7 @@ const OrderDashboard = () => {
                           >
                             <Check className={cn("mr-2 h-4 w-4", selectedFreebie?.code === product.code ? "opacity-100" : "opacity-0")} />
                             {product.label}
+                            <span className="text-xs text-gray-500 ml-6">Stock: {product.stock}</span>
                           </CommandItem>
                       ))}
                     </CommandGroup>
