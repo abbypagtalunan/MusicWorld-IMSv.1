@@ -713,8 +713,9 @@ export default function ProductsPage() {
       <div className="flex h-screen overflow-hidden">
         <AppSidebar />
         <div className="flex-1 p-4 flex flex-col overflow-x-hidden">
-          <div className="flex items-center justify-between mb-4 bg-white shadow-sm p-4 rounded-lg">
-            <div className="flex items-center space-x-2">
+
+          <div className="flex flex-wrap gap-4 justify-between mb-4 bg-white shadow-sm p-4 rounded-lg">
+            <div className="flex flex-wrap items-center gap-2 min-w-[250px]">
               <div className="relative w-80">
                 {/* Search */}
                 <Input
@@ -808,7 +809,7 @@ export default function ProductsPage() {
             </div>
 
             {/* Addd Product Sheet */}
-            <div className="flex space-x-2">
+            <div className="flex flex-wrap justify-end gap-2 min-w-[250px]">
               <Sheet open={isAddSheetOpen} onOpenChange={setAddSheetOpen}>
                 <SheetTrigger asChild>
                   <Button className="bg-blue-400 text-white">Add Product</Button>
