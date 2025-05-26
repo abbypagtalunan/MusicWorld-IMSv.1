@@ -638,7 +638,7 @@ export default function DeliveriesPage() {
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen overflow-hidden">
+      <div className="flex h-screen w-screen overflow-hidden">
         <AppSidebar />
         <div className="flex-1 p-4 flex flex-col overflow-x-hidden">
           <div className="flex flex-wrap gap-4 justify-between mb-4 bg-white shadow-sm p-4 rounded-lg">

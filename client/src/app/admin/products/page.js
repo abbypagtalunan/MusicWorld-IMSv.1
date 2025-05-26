@@ -710,7 +710,7 @@ export default function ProductsPage() {
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen overflow-hidden">
+      <div className="flex h-screen w-screen overflow-hidden">
         <AppSidebar />
         <div className="flex-1 p-4 flex flex-col overflow-x-hidden">
 
