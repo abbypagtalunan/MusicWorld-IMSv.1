@@ -104,24 +104,29 @@ const addReturn = (req, res) => {
 
         placeholders.push('(?, ?, ?, ?, ?, ?, ?, ?, ?)');
 
-        // 🔁 Increase Product Stock Here
-        const updateStockQuery = `
-          UPDATE Products 
-          SET P_stockNum = P_stockNum + ?
-          WHERE P_productCode = ? AND isDeleted = 0
-        `;
+        // Only update inventory if return type is 1 ("Stock Return", for example)
+        if (item.R_returnTypeID === 1) {
+          const updateStockQuery = `
+            UPDATE Products 
+            SET 
+              P_stockNum = P_stockNum + ?,
+              P_lastRestockDateTime = CURRENT_TIMESTAMP,
+              P_lastEditedDateTime = CURRENT_TIMESTAMP
+            WHERE P_productCode = ? AND isDeleted = 0
+          `;
 
-        db.query(updateStockQuery, [item.R_returnQuantity, item.P_productCode], (err, result) => {
-          if (err) {
-            console.error('Error updating stock for product:', item.P_productCode, err);
-            return res.status(500).json({ message: 'Failed to update inventory' });
-          }
+          db.query(updateStockQuery, [item.R_returnQuantity, item.P_productCode], (err, result) => {
+            if (err) {
+              console.error('Error updating stock for product:', item.P_productCode, err);
+              return res.status(500).json({ message: 'Failed to update inventory' });
+            }
 
-          if (result.affectedRows === 0) {
-            console.warn(`Product not found or is deleted: ${item.P_productCode}`);
-            // Optionally continue or fail
-          }
-        });
+            if (result.affectedRows === 0) {
+              console.warn(`Product not found or is deleted: ${item.P_productCode}`);
+              // Optionally continue or fail
+            }
+          });
+        }
 
       } catch (error) {
         return res.status(400).json({ message: error.message });
