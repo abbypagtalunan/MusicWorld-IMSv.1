@@ -130,7 +130,7 @@ const markDeliveryAsDeleted = (req, res) => {
   const deliveryNumber = req.params.deliveryNumber;
   const { adminPW } = req.body;
 
-  if (adminPW !== "2095") {
+  if (adminPW !== "12345") {
     return res.status(403).json({ message: "Authentication failed: Invalid admin password provided" });
   }
 
