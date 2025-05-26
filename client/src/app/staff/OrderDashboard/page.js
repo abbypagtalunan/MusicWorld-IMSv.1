@@ -879,9 +879,12 @@ const handleEdit = (row) => {
                 <label className="block text-sm">Quantity</label>
                 <input
                   type="number"
-                  value={freebieQuantity}
-                  onChange={(e) => setFreebieQuantity(parseInt(e.target.value) || 1)}
-                  className="w-full border rounded-md px-5 py-2 text-sm border-gray-300"
+                  min={1}
+                  max={1}
+                  step={1}
+                  value={1}
+                  readOnly
+                  className="w-full border rounded-md px-5 py-2 text-sm border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed"
                 />
               </div>
 
