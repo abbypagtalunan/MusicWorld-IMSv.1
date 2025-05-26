@@ -14,6 +14,7 @@ import { format } from "date-fns";
 import { toast, Toaster } from "react-hot-toast";
 import axios from "axios";
 import { cn } from "@/lib/utils";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function OrdersPage() {
   // Search state
@@ -54,6 +55,9 @@ export default function OrdersPage() {
     setSelectedFilter(filter);
     setSelectedSubFilter(subFilter);
   };
+
+  // Show Password
+  const [showPassword, setShowPassword] = useState(false);
 
   // Return order handler functions
 
@@ -1201,18 +1205,32 @@ Object.entries(amountRanges).forEach(([key, range]) => {
                   Deleting this transaction will reflect on Void Transactions. Enter the admin password to delete this transaction.
                 </p>
                 <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">
-                  <div className="flex-1">
+                  <div className="w-full">
                     <label className="text-base font-medium text-gray-700 block mb-2">
                       Admin Password
                     </label>
+                    <div className="relative w-full">
                     <Input
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       required
                       placeholder="Enter valid password"
-                      className="w-full"
+                      className="w-full pr-10"
                       value={adminPW}
                       onChange={(e) => setAdminPW(e.target.value)}
                     />
+                    <button
+                          type="button"
+                          onClick={() => setShowPassword((prev) => !prev)}
+                          className="absolute inset-y-0 right-3 flex items-center text-gray-500"
+                          tabIndex={-1}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="w-5 h-5" />
+                          ) : (
+                            <Eye className="w-5 h-5" />
+                          )}
+                        </button>
+                    </div>
                   </div>
 
                   <Button
