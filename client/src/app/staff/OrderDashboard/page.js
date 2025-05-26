@@ -816,11 +816,11 @@ const handleEdit = (row) => {
               <button
                 type="button"
                 className={`w-full mt-4 py-2 rounded-md text-white 
-                  ${!selectedProduct 
+                  ${!selectedProduct || (selectedDiscountType == "Percentage" && discountPercentInput == 0 ) || (selectedDiscountType == "Specific Amount" && orderDiscount == null)
                     ? "bg-gray-400 cursor-not-allowed" 
                     : "bg-blue-400 hover:bg-blue-700"}`}
                 onClick={handleAddOrderItem}
-                disabled={!selectedProduct} 
+                disabled={!selectedFreebie || (selectedDiscountType == "Percentage" && discountPercentInput == 0 ) || (selectedDiscountType == "Specific Amount" && orderDiscount == 0.00)}
               >
                 {isEditMode ? "Update Item" : "Add Product"}
               </button>
