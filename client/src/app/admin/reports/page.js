@@ -242,7 +242,7 @@ export default function ReportsPage() {
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen overflow-hidden">
+      <div className="flex h-screen w-screen overflow-hidden">
         <AppSidebar />
         <div className="flex-1 p-4 flex flex-col overflow-x-hidden">
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 mb-4 bg-white shadow-sm p-4 rounded-lg">

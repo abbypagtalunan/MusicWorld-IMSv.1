@@ -456,7 +456,7 @@ export default function ReturnsPage() {
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen overflow-hidden">
+      <div className="flex h-screen w-screen overflow-hidden">
         <AppSidebar />
         <div className="flex-1 p-4 flex flex-col overflow-x-hidden">
           <div className="z-10 sticky top-0 mb-4 bg-blue-950 p-4 rounded-sm">
