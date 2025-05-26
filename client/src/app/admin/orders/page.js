@@ -179,20 +179,21 @@ export default function OrdersPage() {
       };
     });
 
-    axios
-      .post("http://localhost:8080/returns", { returnItems })
-      .then((response) => {
-        toast.success("Returns processed successfully!");
-        resetReturnDialog();
-      })
-      .catch((error) => {
-        const errorMessage =
-          error.response?.data?.message ||
-          error.message ||
-          "Unknown error occurred";
-        toast.error(`Failed to process returns: ${errorMessage}`);
-      });
-  };
+   axios
+  .post("http://localhost:8080/returns", { returnItems })
+  .then((response) => {
+      toast.success("Returns processed successfully!");
+      resetReturnDialog();
+      handleDelete(selectedOrderID, true, true); 
+    })
+  .catch((error) => {
+    const errorMessage =
+      error.response?.data?.message ||
+      error.message ||
+      "Unknown error occurred";
+    toast.error(`Failed to process returns: ${errorMessage}`);
+  });
+  }
 
   const updateItemReturnReason = (transactionId, reason) => {
     let filtered = reason.replace(/[^a-zA-Z\s]/g, "");
@@ -462,32 +463,36 @@ export default function OrdersPage() {
   const [adminPW, setAdminPW] = useState("");
   const [isDDOpen, setDDOpen] = useState(false);
 
-  const handleDelete = (orderID) => {
-    axios
-      .delete(`http://localhost:8080/orders/${orderID}`, {
-        data: { adminPW },
-      })
-      .then((response) => {
+ const handleDelete = (orderID, bypassPassword = false) => {
+  const url = bypassPassword 
+    ? `http://localhost:8080/orders/${orderID}?bypassPassword=true`
+    : `http://localhost:8080/orders/${orderID}`;
+
+  axios
+    .delete(url, { data: bypassPassword ? {} : { adminPW } }) // Only send adminPW if needed
+    .then((response) => {
+      if (!bypassPassword) {
         toast.success("Item deleted successfully");
-        refreshTable();
-        setDDOpen(false);
-        setAdminPW("");
-        setSelectedOrderID([]);
-      })
-      .catch((err) => {
-        if (err.response?.status === 403) {
-          toast.error("Invalid admin password");
-        } else {
-          toast.error(
-            "Deletion failed: " +
-              (err.response?.data?.message || err.message)
-          );
-        }
-        setDDOpen(false);
-        setAdminPW("");
-        setSelectedOrderID([]);
-      });
-  };
+      }
+      refreshTable();
+      setDDOpen(false);
+      setAdminPW("");
+      setSelectedOrderID([]);
+    })
+    .catch((err) => {
+      if (err.response?.status === 403) {
+        toast.error("Invalid admin password");
+      } else {
+        toast.error(
+          "Deletion failed: " +
+            (err.response?.data?.message || err.message)
+        );
+      }
+      setDDOpen(false);
+      setAdminPW("");
+      setSelectedOrderID([]);
+    });
+};
 
   const refreshTable = () => {
     axios

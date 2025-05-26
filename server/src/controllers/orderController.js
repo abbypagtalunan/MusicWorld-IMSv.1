@@ -14,7 +14,7 @@ const getAllOrders = (req, res) => {
 
 // Add a new order
 const addOrder = (req, res) => {
-  const { O_receiptNumber, T_totalAmount, D_wholeOrderDiscount, D_totalProductDiscount, T_transactionDate, isTemporarilyDeleted, O_orderPayment, O_originalTotal} = req.body;
+  const { O_receiptNumber, T_totalAmount, D_wholeOrderDiscount, D_totalProductDiscount, T_transactionDate, isTemporarilyDeleted, O_orderPayment, O_originalTotal } = req.body;
 
   // Validate receipt number
   if (!O_receiptNumber || isNaN(O_receiptNumber)) {
@@ -38,12 +38,21 @@ const addOrder = (req, res) => {
     }
 
     // No duplicates, insert the order
-    ordersModel.addOrder({ O_receiptNumber, T_totalAmount, D_wholeOrderDiscount, D_totalProductDiscount, T_transactionDate, isTemporarilyDeleted, O_orderPayment, O_originalTotal }, (err, orderId) => {
+    ordersModel.addOrder({
+      O_receiptNumber,
+      T_totalAmount,
+      D_wholeOrderDiscount,
+      D_totalProductDiscount,
+      T_transactionDate,
+      isTemporarilyDeleted,
+      O_orderPayment,
+      O_originalTotal
+    }, (err, orderId) => {
       if (err) {
         console.error('Error inserting order:', err);
         return res.status(500).json({ message: 'Error inserting order' });
       }
-      return res.status(201).json({id: orderId});
+      return res.status(201).json({ id: orderId });
     });
   });
 };
@@ -51,7 +60,16 @@ const addOrder = (req, res) => {
 // Update an existing order
 const updateOrder = (req, res) => {
   const orderId = req.params.id;
-  const { O_receiptNumber, T_totalAmount, D_wholeOrderDiscount, D_totalProductDiscount, T_transactionDate, isTemporarilyDeleted, O_orderPayment, O_originalTotal } = req.body;
+  const {
+    O_receiptNumber,
+    T_totalAmount,
+    D_wholeOrderDiscount,
+    D_totalProductDiscount,
+    T_transactionDate,
+    isTemporarilyDeleted,
+    O_orderPayment,
+    O_originalTotal
+  } = req.body;
 
   if (!O_receiptNumber || isNaN(O_receiptNumber)) {
     return res.status(400).json({ message: 'Invalid or missing receipt number' });
@@ -61,7 +79,16 @@ const updateOrder = (req, res) => {
     return res.status(400).json({ message: 'Invalid total amount' });
   }
 
-  ordersModel.updateOrder(orderId, { O_receiptNumber, T_totalAmount, D_wholeOrderDiscount, D_totalProductDiscount, T_transactionDate, isTemporarilyDeleted, O_orderPayment, O_originalTotal}, (err, results) => {
+  ordersModel.updateOrder(orderId, {
+    O_receiptNumber,
+    T_totalAmount,
+    D_wholeOrderDiscount,
+    D_totalProductDiscount,
+    T_transactionDate,
+    isTemporarilyDeleted,
+    O_orderPayment,
+    O_originalTotal
+  }, (err, results) => {
     if (err) {
       console.error('Error updating order:', err);
       return res.status(500).json({ message: 'Error updating order' });
@@ -75,34 +102,13 @@ const updateOrder = (req, res) => {
   });
 };
 
-// DELETE order
-
+// DELETE order - Soft delete
 const softDeleteOrder = (req, res) => {
   const orderId = req.params.id;
-  const { adminPW } = req.body;
+  const bypassPassword = req.query.bypassPassword === 'true'; // Check if bypass flag is enabled
 
-  if (!adminPW) {
-    return res.status(400).json({ message: "Password is required" });
-  }
-
-  // Check if an admin with that password exists
-  const query = `
-    SELECT * FROM UserAccounts 
-    WHERE roleID = 1 AND password = ? 
-  `;
-
-  db.query(query, [adminPW], (err, results) => {
-    if (err) {
-      console.error('Error checking admin credentials:', err);
-      return res.status(500).json({ message: 'Internal server error' });
-    }
-    console.log('Admin lookup result:', results);
-
-    if (results.length === 0) {
-      return res.status(403).json({ message: "Invalid admin credentials" });
-    }
-
-    // Admin validated — proceed to delete order
+  // If bypass is enabled, skip password check and delete directly
+  if (bypassPassword) {
     ordersModel.softDeleteOrder(orderId, (err, results) => {
       if (err) {
         console.error('Error deleting order:', err);
@@ -113,16 +119,52 @@ const softDeleteOrder = (req, res) => {
         return res.status(404).json({ message: 'Order not found' });
       }
 
-      res.status(200).json({ message: 'Order deleted successfully' });
+      return res.status(200).json({ message: 'Order deleted successfully' });
     });
-  });
-};
 
+    return;
+  }
+
+  // Otherwise, require admin password
+  const { adminPW } = req.body;
+
+  if (!adminPW) {
+    return res.status(400).json({ message: "Password is required" });
+  }
+
+  db.query(
+    `SELECT * FROM UserAccounts WHERE roleID = 1 AND password = ?`,
+    [adminPW],
+    (err, results) => {
+      if (err) {
+        console.error('Error checking admin credentials:', err);
+        return res.status(500).json({ message: 'Internal server error' });
+      }
+
+      if (results.length === 0) {
+        return res.status(403).json({ message: "Invalid admin credentials" });
+      }
+
+      // Admin authenticated — proceed to delete
+      ordersModel.softDeleteOrder(orderId, (err, results) => {
+        if (err) {
+          console.error('Error deleting order:', err);
+          return res.status(500).json({ message: 'Error deleting order' });
+        }
+
+        if (results.affectedRows === 0) {
+          return res.status(404).json({ message: 'Order not found' });
+        }
+
+        return res.status(200).json({ message: 'Order deleted successfully' });
+      });
+    }
+  );
+};
 
 module.exports = {
   getAllOrders,
   addOrder,
   updateOrder,
-  // deleteOrder,
   softDeleteOrder
 };
