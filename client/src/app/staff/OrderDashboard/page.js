@@ -813,17 +813,28 @@ const handleEdit = (row) => {
                 className="w-full pl-6 border border-gray-300 rounded-md px-3 py-2 text-sm bg-gray-100 text-gray-500"
               />
 
-              <button
-                type="button"
-                className={`w-full mt-4 py-2 rounded-md text-white 
-                  ${!selectedProduct || (selectedDiscountType == "Percentage" && discountPercentInput == 0 ) || (selectedDiscountType == "Specific Amount" && orderDiscount == null)
-                    ? "bg-gray-400 cursor-not-allowed" 
-                    : "bg-blue-400 hover:bg-blue-700"}`}
-                onClick={handleAddOrderItem}
-                disabled={!selectedFreebie || (selectedDiscountType == "Percentage" && discountPercentInput == 0 ) || (selectedDiscountType == "Specific Amount" && orderDiscount == 0.00)}
-              >
-                {isEditMode ? "Update Item" : "Add Product"}
-              </button>
+            <button
+              type="button"
+              className={`w-full mt-4 py-2 rounded-md text-white 
+                ${!selectedProduct ||
+                  orderQuantity <= 0 ||
+                  orderQuantity > (selectedProduct?.stock ?? 0) ||
+                  (selectedDiscountType.toLowerCase() === "percentage" && (!discountPercentInput || parseFloat(discountPercentInput) <= 0)) ||
+                  (selectedDiscountType.toLowerCase() === "specific amount" && (orderDiscount === null || orderDiscount === "" || isNaN(orderDiscount)))
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-blue-400 hover:bg-blue-700"
+                }`}
+              onClick={handleAddOrderItem}
+              disabled={
+                !selectedProduct ||
+                orderQuantity <= 0 ||
+                orderQuantity > (selectedProduct?.stock ?? 0) ||
+                (selectedDiscountType.toLowerCase() === "percentage" && (!discountPercentInput || parseFloat(discountPercentInput) <= 0)) ||
+                (selectedDiscountType.toLowerCase() === "specific amount" && (orderDiscount === null || orderDiscount === "" || isNaN(orderDiscount)))
+              }
+            >
+              {isEditMode ? "Update Item" : "Add Product"}
+            </button>
             </form>
           </div>
 
