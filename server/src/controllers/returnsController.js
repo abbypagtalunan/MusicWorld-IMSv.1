@@ -38,7 +38,8 @@ const getAllReturns = (req, res) => {
   });
 };
 
-// Route to add new returns (batch insert)
+// addReturn function to handle adding new return records
+
 const addReturn = (req, res) => {
   const { returnItems } = req.body;
 
@@ -75,13 +76,13 @@ const addReturn = (req, res) => {
     }
   }
 
-  // Process each item to resolve supplier name → supplier ID
   const processReturnItems = async () => {
     const values = [];
     const placeholders = [];
 
     for (let item of returnItems) {
       try {
+        // Get Supplier ID
         const supplierId = await new Promise((resolve, reject) => {
           getSupplierIdByName(item.S_supplierName, (err, id) => {
             if (err) reject(err);
@@ -102,6 +103,26 @@ const addReturn = (req, res) => {
         );
 
         placeholders.push('(?, ?, ?, ?, ?, ?, ?, ?, ?)');
+
+        // 🔁 Increase Product Stock Here
+        const updateStockQuery = `
+          UPDATE Products 
+          SET P_stockNum = P_stockNum + ?
+          WHERE P_productCode = ? AND isDeleted = 0
+        `;
+
+        db.query(updateStockQuery, [item.R_returnQuantity, item.P_productCode], (err, result) => {
+          if (err) {
+            console.error('Error updating stock for product:', item.P_productCode, err);
+            return res.status(500).json({ message: 'Failed to update inventory' });
+          }
+
+          if (result.affectedRows === 0) {
+            console.warn(`Product not found or is deleted: ${item.P_productCode}`);
+            // Optionally continue or fail
+          }
+        });
+
       } catch (error) {
         return res.status(400).json({ message: error.message });
       }
@@ -126,6 +147,7 @@ const addReturn = (req, res) => {
         console.error('Error inserting returns:', err);
         return res.status(500).json({ message: 'Error inserting returns' });
       }
+
       res.status(201).json({
         message: 'Returns added successfully',
         insertId: results.insertId,
