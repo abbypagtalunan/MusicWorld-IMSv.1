@@ -42,8 +42,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   Popover,
-  PopoverContent,
   PopoverTrigger,
+  PopoverContent,
 } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format } from "date-fns";
@@ -56,28 +56,31 @@ import MinimumScreenGuard from "@/components/MinimumScreenGuard";
 export default function OrdersPage() {
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
+
   // Filter states
   const [selectedFilter, setSelectedFilter] = useState(null);
   const [selectedSubFilter, setSelectedSubFilter] = useState(null);
-  // Date filter states - updated to use fromDate/toDate
+
+  // Date filter states
   const [fromDate, setFromDate] = useState(null);
   const [toDate, setToDate] = useState(null);
+
   // Order and Order Details
   const [orders, setOrders] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [orderDetails, setOrderDetails] = useState([]);
   const [selectedOrderID, setSelectedOrderID] = useState(null);
+
   // Return order states
   const [selectedTransactions, setSelectedTransactions] = useState([]);
   const [isReturnDialogOpen, setReturnDialogOpen] = useState(false);
   const [itemReturnReasons, setItemReturnReasons] = useState({});
-
-  // NEW STATE FOR RETURN TYPE
   const [returnTypes, setReturnTypes] = useState([]);
   const [selectedReturnType, setSelectedReturnType] = useState("");
 
   // Sort state
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "ascending" });
+
   // Client-side hydration fix
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
@@ -121,6 +124,7 @@ export default function OrdersPage() {
     const allTransactionIds = currentOrderDetails.map(
       (detail) => `${detail.orderID}-${detail.orderDetailID}`
     );
+
     if (
       selectedTransactions.length === allTransactionIds.length &&
       selectedTransactions.length > 0
@@ -130,6 +134,7 @@ export default function OrdersPage() {
       setSelectedTransactions(allTransactionIds);
     }
   };
+
   const getFilteredTransactions = () => {
     return orderDetails.filter((detail) => detail.orderID === selectedOrderID);
   };
@@ -146,40 +151,79 @@ export default function OrdersPage() {
       return;
     }
 
-    // Check if all selected items have return reasons
     const missingReasons = selectedTransactions.filter((transactionId) =>
       !itemReturnReasons[transactionId]?.trim()
     );
+
     if (missingReasons.length > 0) {
       toast.error("Please provide a reason for all selected items");
       return;
     }
 
-    console.log("Returning items with individual reasons:");
-    selectedTransactions.forEach((transactionId) => {
+    const returnItems = selectedTransactions.map((transactionId) => {
       const [orderID, orderDetailID] = transactionId.split("-");
       const detail = orderDetails.find(
         (d) => d.orderDetailID.toString() === orderDetailID
       );
-      console.log(
-        `Item: ${detail?.productName}, Reason: ${
-          itemReturnReasons[transactionId]
-        }`
-      );
+
+      return {
+        P_productCode: detail.productCode,
+        R_returnTypeID: parseInt(selectedReturnType),
+        R_reasonOfReturn: itemReturnReasons[transactionId],
+        R_dateOfReturn: format(new Date(), "yyyy-MM-dd HH:mm:ss"),
+        R_returnQuantity: detail.quantity,
+        R_discountAmount: detail.discountAmount || 0,
+        R_TotalPrice: detail.itemTotal, 
+        D_deliveryNumber: "1",
+        S_supplierName: detail.supplierName
+      };
     });
 
-    toast.success("Return processed successfully!");
-    setReturnDialogOpen(false);
-    setSelectedTransactions([]);
-    setItemReturnReasons({});
-    setSelectedReturnType(""); // Reset after submission
-  };
+ axios
+  .post("http://localhost:8080/returns", { returnItems })
+  .then((response) => {
+    toast.success("Returns processed successfully!");
+    resetReturnDialog();
 
-  // Function to update individual item return reason
+    // Get the current order details
+    const currentDetails = [...orderDetails];
+
+    // Extract orderDetailIDs of returned items
+    const returnedDetailIDs = selectedTransactions.map(id => {
+      const [_, detailId] = id.split("-");
+      return parseInt(detailId);
+    });
+
+    // Filter out only the returned items
+    const updatedOrderDetails = currentDetails.filter(
+      detail => !returnedDetailIDs.includes(detail.orderDetailID)
+    );
+
+    // Update state to remove returned items
+    setOrderDetails(updatedOrderDetails);
+
+    // Optional: Check if there are no items left in the order
+    const remainingItems = updatedOrderDetails.filter(
+      detail => detail.orderID === selectedOrderID
+    );
+
+    if (remainingItems.length === 0) {
+      // No items left, delete the order
+      handleDelete(selectedOrderID, true, true);
+    }
+
+  })
+  .catch((error) => {
+    const errorMessage =
+      error.response?.data?.message ||
+      error.message ||
+      "Unknown error occurred";
+    toast.error(`Failed to process returns: ${errorMessage}`);
+  });
+  }
+
   const updateItemReturnReason = (transactionId, reason) => {
-    // Only allow letters and spaces
     let filtered = reason.replace(/[^a-zA-Z\s]/g, "");
-    // Enforce 50 character limit strictly
     if (filtered.length > 50) {
       filtered = filtered.substring(0, 50);
     }
@@ -189,11 +233,10 @@ export default function OrdersPage() {
     }));
   };
 
-  // Reset function when Return dialog closes
   const resetReturnDialog = () => {
     setReturnDialogOpen(false);
     setItemReturnReasons({});
-    setSelectedReturnType(""); // Reset return type
+    setSelectedReturnType(""); // Reset after submission
   };
 
   // Amount filters
@@ -204,6 +247,7 @@ export default function OrdersPage() {
     originalTotal: { min: "", max: "" },
     payment: { min: "", max: "" },
   });
+
   const [amountErrors, setAmountErrors] = useState({
     totalAmount: false,
     totalProductDiscount: false,
@@ -211,6 +255,7 @@ export default function OrdersPage() {
     originalTotal: false,
     payment: false,
   });
+
   const [aboveOnly, setAboveOnly] = useState({
     totalAmount: false,
     totalProductDiscount: false,
@@ -254,12 +299,14 @@ export default function OrdersPage() {
           discountType: o.D_discountType,
           quantity: o.OD_quantity,
           unitPrice: o.OD_unitPrice,
+          sellingPrice: o.OD_sellingPrice,
           discountAmount: o.OD_discountAmount,
           itemTotal: o.OD_netSale,
           itemGross: o.OD_grossSale,
           itemGrossProfit: o.OD_grossProfit,
           brandName: o.B_brandName,
           supplierName: o.S_supplierName,
+          supplierID: o.S_supplierID,
         }));
         setOrderDetails(mappedOrderDetails);
       })
@@ -270,23 +317,23 @@ export default function OrdersPage() {
 
   // Fetch Return Types
   useEffect(() => {
-  axios
-    .get("http://localhost:8080/returnTypes")
-    .then((res) => {
-      const mappedReturnTypes = res.data.map((type) => ({
-        id: type.RT_returnTypeID,
-        name: type.RT_returnTypeDescription,
-        description: type.RT_returnTypeDescription || "",
-      }));
-      setReturnTypes(mappedReturnTypes);
-    })
-    .catch((err) => console.error("Failed to fetch return types:", err));
-}, []);
+    axios
+      .get("http://localhost:8080/returnTypes")
+      .then((res) => {
+        const mappedReturnTypes = res.data.map((type) => ({
+          id: type.RT_returnTypeID,
+          name: type.RT_returnTypeDescription,
+          description: type.RT_returnTypeDescription || "",
+        }));
+        setReturnTypes(mappedReturnTypes);
+      })
+      .catch((err) => console.error("Failed to fetch return types:", err));
+  }, []);
 
   // Apply search and filters to orders
   useEffect(() => {
     let result = [...orders];
-    // Apply search filter
+
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       result = result.filter(
@@ -298,16 +345,16 @@ export default function OrdersPage() {
       );
     }
 
-    // Date range filter
     if (fromDate || toDate) {
+      const from = fromDate
+        ? new Date(fromDate).setHours(0, 0, 0, 0)
+        : null;
+      const to = toDate
+        ? new Date(toDate).setHours(23, 59, 59, 999)
+        : null;
+
       result = result.filter((order) => {
         const transactionTime = new Date(order.transacDate).getTime();
-        const from = fromDate
-          ? new Date(fromDate).setHours(0, 0, 0, 0)
-          : null;
-        const to = toDate
-          ? new Date(toDate).setHours(23, 59, 59, 999)
-          : null;
         if (from && to) return transactionTime >= from && transactionTime <= to;
         if (from) return transactionTime >= from;
         if (to) return transactionTime <= to;
@@ -315,11 +362,11 @@ export default function OrdersPage() {
       });
     }
 
-    // Apply price range filters
     Object.entries(amountRanges).forEach(([key, range]) => {
       const min = parseFloat(range.min);
       const max = parseFloat(range.max);
       if (amountErrors[key]) return;
+
       result = result.filter((order) => {
         const value = parseFloat(order[key]);
         if (!isNaN(min) && !isNaN(max)) {
@@ -338,25 +385,25 @@ export default function OrdersPage() {
       });
     });
 
-    // Column header sort
     if (sortConfig.key) {
       result.sort((a, b) => {
         const valA = a[sortConfig.key] ?? "";
         const valB = b[sortConfig.key] ?? "";
         const dateA = new Date(valA);
         const dateB = new Date(valB);
+
         if (!isNaN(dateA) && !isNaN(dateB)) {
           return sortConfig.direction === "ascending"
             ? dateA - dateB
             : dateB - dateA;
         }
+
         const numA = parseFloat(valA);
         const numB = parseFloat(valB);
         if (!isNaN(numA) && !isNaN(numB)) {
-          return sortConfig.direction === "ascending"
-            ? numA - numB
-            : numB - numA;
+          return sortConfig.direction === "ascending" ? numA - numB : numB - numA;
         }
+
         return sortConfig.direction === "ascending"
           ? valA.toString().localeCompare(valB.toString())
           : valB.toString().localeCompare(valA.toString());
@@ -438,47 +485,41 @@ export default function OrdersPage() {
     }
   };
 
-  // Delete
+  // Delete Transaction
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [adminPW, setAdminPW] = useState("");
   const [isDDOpen, setDDOpen] = useState(false);
-  const config = {
-    order: {
-      label: "Order",
-      idField: "orderID",
-      api: {
-        fetch: "http://localhost:8080/orders",
-        delete: "http://localhost:8080/orders",
-      },
-    },
-  };
 
-  const handleDelete = (orderID) => {
-    axios
-      .delete(`${config.order.api.delete}/${orderID}`, {
-        data: { adminPW },
-      })
-      .then((response) => {
+ const handleDelete = (orderID, bypassPassword = false) => {
+  const url = bypassPassword 
+    ? `http://localhost:8080/orders/${orderID}?bypassPassword=true`
+    : `http://localhost:8080/orders/${orderID}`;
+
+  axios
+    .delete(url, { data: bypassPassword ? {} : { adminPW } }) // Only send adminPW if needed
+    .then((response) => {
+      if (!bypassPassword) {
         toast.success("Item deleted successfully");
-        refreshTable();
-        setDDOpen(false);
-        setAdminPW("");
-        setSelectedOrderID([]);
-      })
-      .catch((err) => {
-        if (err.response?.status === 403) {
-          toast.error("Invalid admin password");
-        } else {
-          toast.error(
-            "Deletion failed: " +
-              (err.response?.data?.message || err.message)
-          );
-        }
-        setDDOpen(false);
-        setAdminPW("");
-        setSelectedOrderID([]);
-      });
-  };
+      }
+      refreshTable();
+      setDDOpen(false);
+      setAdminPW("");
+      setSelectedOrderID([]);
+    })
+    .catch((err) => {
+      if (err.response?.status === 403) {
+        toast.error("Invalid admin password");
+      } else {
+        toast.error(
+          "Deletion failed: " +
+            (err.response?.data?.message || err.message)
+        );
+      }
+      setDDOpen(false);
+      setAdminPW("");
+      setSelectedOrderID([]);
+    });
+};
 
   const refreshTable = () => {
     axios
@@ -510,12 +551,14 @@ export default function OrdersPage() {
           discountType: o.D_discountType,
           quantity: o.OD_quantity,
           unitPrice: o.OD_unitPrice,
+          sellingPrice: o.OD_sellingPrice,
           discountAmount: o.OD_discountAmount,
           itemTotal: o.OD_netSale,
           itemGross: o.OD_grossSale,
           itemGrossProfit: o.OD_grossProfit,
           brandName: o.B_brandName,
           supplierName: o.S_supplierName,
+          supplierID: o.S_supplierID,
         }));
         setOrderDetails(mappedOrderDetails);
       })
@@ -524,22 +567,21 @@ export default function OrdersPage() {
       );
   };
 
-  // Download
+  // Download CSV
   const [isDownloadConfirmOpen, setDownloadConfirmOpen] = useState("");
   const handleDownloadCSV = () => {
-    // Get current date and time in Philippine Time
     const now = new Date();
     const phLocale = "en-PH";
     const phTimeZone = "Asia/Manila";
-    // Format timestamp for filename (no slashes/colons)
     const formattedDate = now
       .toLocaleString(phLocale, { timeZone: phTimeZone })
       .replace(/[/:, ]/g, "-")
       .replace(/--+/g, "-");
-    // Format timestamp for CSV content
+
     const downloadTimestamp = `Downloaded At:, "${now.toLocaleString(phLocale, {
       timeZone: phTimeZone,
     })}"`;
+
     const headers = [
       "Receipt Number",
       "Order ID",
@@ -562,32 +604,24 @@ export default function OrdersPage() {
       "Item Net Sale",
       "Item Gross Profit",
     ];
+
     const rows = [];
+
     filteredOrders.forEach((order) => {
       const detailsForOrder = orderDetails.filter(
         (detail) => detail.orderID === order.orderID
       );
+
       if (detailsForOrder.length === 0) {
         rows.push([
           order.receiptNo,
-          order.orderID,
-          order.transacDate,
-          order.orderPayment,
-          order.totalAmount,
-          order.wholeOrderDiscount,
-          order.totalProductDiscount,
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
+        order.orderID,
+        order.transacDate,
+        order.orderPayment,
+        order.totalAmount,
+        order.wholeOrderDiscount,
+        order.totalProductDiscount,
+        "", "", "", "", "", "", "", "", "", "", "", ""
         ]);
       } else {
         detailsForOrder.forEach((detail) => {
@@ -606,7 +640,7 @@ export default function OrdersPage() {
             detail.supplierName,
             detail.quantity,
             detail.unitPrice,
-            detail.sellingPrice,
+            "",
             detail.discountType,
             detail.discountAmount,
             detail.itemGross,
@@ -616,6 +650,7 @@ export default function OrdersPage() {
         });
       }
     });
+
     const csvContent = [
       downloadTimestamp,
       headers.join(","),
@@ -648,10 +683,10 @@ export default function OrdersPage() {
       <div className="flex h-screen w-screen overflow-hidden">
         <AppSidebar />
         <div className="flex-1 p-4 flex flex-col overflow-x-hidden">
+          {/* Your full table and dialog JSX here */}
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 mb-4 bg-white shadow-sm p-4 rounded-lg">
             <div className="flex flex-wrap items-center gap-3">
               <div className="relative w-full sm:w-64">
-                {/* Search */}
                 <Input
                   type="text"
                   placeholder="Search order id, receipt number"
@@ -663,6 +698,7 @@ export default function OrdersPage() {
                   <Search className="w-5 h-5" />
                 </div>
               </div>
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="flex items-center gap-2">
@@ -704,10 +740,7 @@ export default function OrdersPage() {
                             const min = amountRanges.originalTotal.min;
                             setAmountRanges((prev) => ({
                               ...prev,
-                              originalTotal: {
-                                ...prev.originalTotal,
-                                max: newMax,
-                              },
+                              originalTotal: { ...prev.originalTotal, max: newMax },
                             }));
                             setAmountErrors((prev) => ({
                               ...prev,
@@ -919,7 +952,8 @@ export default function OrdersPage() {
                             }));
                             setAmountErrors((prev) => ({
                               ...prev,
-                              totalAmount: max && parseFloat(newMin) > parseFloat(max),
+                              totalAmount:
+                                max && parseFloat(newMin) > parseFloat(max),
                             }));
                           }}
                           className={
@@ -939,7 +973,8 @@ export default function OrdersPage() {
                             }));
                             setAmountErrors((prev) => ({
                               ...prev,
-                              totalAmount: min && parseFloat(min) > parseFloat(newMax),
+                              totalAmount:
+                                min && parseFloat(min) > parseFloat(newMax),
                             }));
                           }}
                           className={
@@ -956,7 +991,7 @@ export default function OrdersPage() {
                   </DropdownMenuSub>
                 </DropdownMenuContent>
               </DropdownMenu>
-              {/* Date Range Filter - From and To */}
+
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -969,7 +1004,7 @@ export default function OrdersPage() {
                     <CalendarDays className="mr-2 h-4 w-4" />
                     {fromDate
                       ? format(fromDate, "MMM dd, yyyy")
-                      : <span>From</span>}
+                      : "From"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -993,6 +1028,7 @@ export default function OrdersPage() {
                   )}
                 </PopoverContent>
               </Popover>
+
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -1003,9 +1039,7 @@ export default function OrdersPage() {
                     )}
                   >
                     <CalendarDays className="mr-2 h-4 w-4" />
-                    {toDate
-                      ? format(toDate, "MMM dd, yyyy")
-                      : <span>To</span>}
+                    {toDate ? format(toDate, "MMM dd, yyyy") : "To"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -1030,19 +1064,21 @@ export default function OrdersPage() {
                   )}
                 </PopoverContent>
               </Popover>
+
               <Button
                 variant="outline"
                 onClick={() => {
                   setFromDate(null);
                   setToDate(null);
                 }}
-                className="text-sm border-gray-300 hover:text-red-600 "
+                className="text-sm border-gray-300 hover:text-red-600"
               >
                 <RotateCcw className="w-4 h-4 mr-1" />
                 <span>Reset Date</span>
               </Button>
             </div>
-            {/* DOWNLOAD */}
+
+            {/* DOWNLOAD BUTTON */}
             <div className="flex justify-end">
               <Dialog
                 open={isDownloadConfirmOpen}
@@ -1066,7 +1102,7 @@ export default function OrdersPage() {
                     <DialogClose />
                   </DialogHeader>
                   <p className="text-medium text-gray-800 mt-2 pl-4">
-                    You are about to download the Orders.csv file. Click the button below to proceed.
+                    You are about to download the Orders.csv file. Click below to proceed.
                   </p>
                   <div className="flex justify-end mt-4 text-gray-700 items-center pl-4">
                     <Button
@@ -1084,10 +1120,12 @@ export default function OrdersPage() {
               </Dialog>
             </div>
           </div>
+
           {/* TABLE */}
           <h1 className="text-2xl mb-4 p-4 rounded-sm text-blue-50 bg-blue-950 font-bold">
             Customer Orders
           </h1>
+
           <div className="p-4 bg-white shadow-md rounded-lg flex flex-col overflow-auto w-full">
             <Table>
               <TableHeader className="sticky top-0 z-10 bg-white shadow-sm border-b">
@@ -1125,7 +1163,7 @@ export default function OrdersPage() {
                     <SortIcon column="receiptNo" />
                   </TableHead>
                   <TableHead
-                    onClick={() => handleSort("totalAmount")}
+                    onClick={() => handleSort("originalTotal")}
                     className="cursor-pointer select-none"
                   >
                     Original Total{" "}
@@ -1228,7 +1266,8 @@ export default function OrdersPage() {
                                     <TableHead>Product</TableHead>
                                     <TableHead>Supplier</TableHead>
                                     <TableHead>Brand</TableHead>
-                                    <TableHead>Price</TableHead>
+                                    <TableHead>Unit Price</TableHead>
+                                    <TableHead>Selling Price</TableHead>
                                     <TableHead>Quantity</TableHead>
                                     <TableHead>Discount Type</TableHead>
                                     <TableHead>Discount Amount</TableHead>
@@ -1272,10 +1311,12 @@ export default function OrdersPage() {
                                           <TableCell className="font-medium">{detail.productName}</TableCell>
                                           <TableCell>{detail.supplierName}</TableCell>
                                           <TableCell>{detail.brandName}</TableCell>
+                                          <TableCell className="font-medium"> {formatPeso(detail.unitPrice)}
+                                          </TableCell>
                                           <TableCell className="font-medium">
-                                            {detail.unitPrice === 0.00
+                                            {detail.sellingPrice == 0.00
                                               ? <span className="text-green-600 font-semibold">Freebie</span>
-                                              : formatPeso(detail.unitPrice)}
+                                              : formatPeso(detail.sellingPrice)}
                                           </TableCell>
                                           <TableCell className="text-center font-medium">{detail.quantity}</TableCell>
                                           <TableCell>{detail.discountType || <span className="text-gray-400">---</span>}</TableCell>
@@ -1341,15 +1382,12 @@ export default function OrdersPage() {
               </TableBody>
             </Table>
 
-            {/* Return Dialog with Individual Item Reasons */}
+            {/* Return Dialog */}
             <Dialog
               open={isReturnDialogOpen}
               onOpenChange={(open) => {
-                if (!open) {
-                  resetReturnDialog();
-                } else {
-                  setReturnDialogOpen(open);
-                }
+                if (!open) resetReturnDialog();
+                setReturnDialogOpen(open);
               }}
             >
               <DialogContent className="w-[90vw] max-w-2xl max-h-[90vh] overflow-y-auto p-6">
@@ -1370,37 +1408,33 @@ export default function OrdersPage() {
                     <strong>{selectedTransactions.length}</strong> item/s from{" "}
                     <strong>Order ID: {selectedOrderID}</strong>
                   </p>
-
-                  {/* RETURN TYPE DROPDOWN */}
                   <div className="mt-4">
                     <label className="text-sm font-medium text-gray-700 block mb-2">
                       Return Type *
                     </label>
-                    <select
-                      className="w-full p-2 border rounded text-sm"
-                      value={selectedReturnType}
-                      onChange={(e) => setSelectedReturnType(e.target.value)}
-                      required
-                    >
-                      <option value="">-- Select Return Type --</option>
-                      {returnTypes.map((type) => (
-                        <option key={type.id} value={type.id}>
-                          {type.name}{" "}
-                          {type.description ? `(${type.description})` : ""}
-                        </option>
-                      ))}
-                    </select>
+                   <select
+                    className="w-full p-2 border rounded text-sm"
+                    value={selectedReturnType}
+                    onChange={(e) => setSelectedReturnType(e.target.value)}
+                    required
+                  >
+                    <option value="">-- Select Return Type --</option>
+                    {returnTypes.map((type) => (
+                      <option key={type.id} value={type.id}>
+                        {type.name === type.description
+                          ? type.name 
+                          : `${type.name} (${type.description})`}
+                      </option>
+                    ))}
+                  </select>
                   </div>
-
-                  {/* Individual items with own return reason inputs */}
                   <div className="space-y-4">
                     <h4 className="font-semibold text-sm mb-2">
                       Return Reasons for Each Item:
                     </h4>
                     <div className="max-h-96 overflow-y-auto space-y-4 border rounded p-4">
                       {selectedTransactions.map((transactionId) => {
-                        const [orderID, orderDetailID] =
-                          transactionId.split("-");
+                        const [orderID, orderDetailID] = transactionId.split("-");
                         const detail = orderDetails.find(
                           (d) =>
                             d.orderDetailID.toString() === orderDetailID
@@ -1410,7 +1444,6 @@ export default function OrdersPage() {
                             key={transactionId}
                             className="border-b pb-4 last:border-b-0"
                           >
-                            {/* Item details */}
                             <div className="flex justify-between items-start mb-2">
                               <div className="flex-1">
                                 <div className="font-medium text-sm text-gray-800">
@@ -1422,17 +1455,14 @@ export default function OrdersPage() {
                                 </div>
                                 <div className="text-xs text-gray-600">
                                   Price:{" "}
-                                  {detail?.unitPrice === 0.00
+                                  {detail?.unitPrice === 0.0
                                     ? "Freebie"
-                                    : formatPeso(detail?.unitPrice)}{" "} | Discount: {detail?.discountAmount}
-                                </div>
-                                <div className="text-xs text-gray-600">
-                                  Brand: {detail?.brandName} | Supplier:{" "}
+                                    : formatPeso(detail?.unitPrice)}{" "}
+                                  | Brand: {detail?.brandName} | Supplier:{" "}
                                   {detail?.supplierName}
                                 </div>
                               </div>
                             </div>
-                            {/* Return reason input for this specific item */}
                             <div className="mt-2">
                               <label className="text-sm font-medium text-red-600 block mb-1">
                                 Return Reason *
@@ -1442,9 +1472,7 @@ export default function OrdersPage() {
                                 type="text"
                                 placeholder="Provide a reason for returning this item..."
                                 className="w-full p-2 border rounded text-sm"
-                                value={
-                                  itemReturnReasons[transactionId] || ""
-                                }
+                                value={itemReturnReasons[transactionId] || ""}
                                 onChange={(e) =>
                                   updateItemReturnReason(
                                     transactionId,
@@ -1453,10 +1481,7 @@ export default function OrdersPage() {
                                 }
                               />
                               <div className="text-xs text-gray-500 mt-1">
-                                {(
-                                  itemReturnReasons[transactionId] || ""
-                                ).length}
-                                /50 characters (letters and spaces only)
+                                {(itemReturnReasons[transactionId] || "").length}/50 characters
                               </div>
                             </div>
                           </div>
@@ -1486,22 +1511,18 @@ export default function OrdersPage() {
               </DialogContent>
             </Dialog>
 
-            {/* Delete Dialog for deleting transactions */}
+            {/* Delete Dialog */}
             <Dialog
               open={isDDOpen}
               onOpenChange={(open) => {
                 setDDOpen(open);
-                if (!open) {
-                  setAdminPW("");
-                }
+                if (!open) setAdminPW("");
               }}
             >
               <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
                 <DialogHeader>
                   <DialogTitle>
-                    <span className="text-lg text-red-900">
-                      Delete Transaction
-                    </span>{" "}
+                    <span className="text-lg text-red-900">Delete Transaction</span>{" "}
                     <span className="text-lg text-gray-400 font-normal italic">
                       {selectedProduct?.orderID}
                     </span>
@@ -1509,8 +1530,7 @@ export default function OrdersPage() {
                   <DialogClose />
                 </DialogHeader>
                 <p className="text-sm text-gray-800 mt-2 pl-4">
-                  Deleting this transaction will reflect on Void Transactions.
-                  Enter the admin password to delete this transaction.
+                  Deleting this transaction will reflect on Void Transactions. Enter the admin password to delete this transaction.
                 </p>
                 <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">
                   <div className="w-full">
@@ -1528,11 +1548,8 @@ export default function OrdersPage() {
                       />
                       <button
                         type="button"
-                        onClick={() =>
-                          setShowPassword((prev) => !prev)
-                        }
+                        onClick={() => setShowPassword((prev) => !prev)}
                         className="absolute inset-y-0 right-3 flex items-center text-gray-500"
-                        tabIndex={-1}
                       >
                         {showPassword ? (
                           <EyeOff className="w-5 h-5" />
@@ -1544,9 +1561,7 @@ export default function OrdersPage() {
                   </div>
                   <Button
                     className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
-                    onClick={() => {
-                      handleDelete(selectedProduct?.orderID);
-                    }}
+                    onClick={() => handleDelete(selectedProduct?.orderID)}
                   >
                     DELETE TRANSACTION
                   </Button>

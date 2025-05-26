@@ -1,5 +1,4 @@
 "use client";
-
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
@@ -10,7 +9,6 @@ import {
 import { 
   Table, TableBody, TableHead, TableHeader, TableRow, TableCell 
 } from "@/components/ui/table";
-
 import {
     Card,
     CardContent,
@@ -18,13 +16,15 @@ import {
     CardTitle,
 } from "@/components/ui/card"
 
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose, } from "@/components/ui/dialog";
-
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { ChevronDown, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
-import { X, Trash2, Undo2, Filter } from "lucide-react";
+import { Trash2, Undo2, FilePen } from "lucide-react";
 import { toast, Toaster } from "react-hot-toast";
 import MinimumScreenGuard from "@/components/MinimumScreenGuard";
 
@@ -40,6 +40,19 @@ export default function BatchDeliveriesPage() {
   const [deliveryDate, setDeliveryDate] = useState("");
   const [loading, setLoading] = useState(true);
   const [selectedSupplier, setSelectedSupplier] = useState("");
+
+  const [data, setData] = useState([]);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [openProduct, setOpenProduct] = useState(false);
+  const [quantity, setQuantity] = useState(1);
+  const [unitPrice, setUnitPrice] = useState('');
+  const [isEditMode, setIsEditMode] = useState(false);
+  const computedTotal = (() => {
+  const price = parseFloat(unitPrice) || 0;
+  const qty = parseInt(quantity) || 0;
+  return (price * qty).toFixed(2);
+})();
+
   
   // State for payment details
   const [paymentTypes, setPaymentTypes] = useState([]);
@@ -74,6 +87,121 @@ export default function BatchDeliveriesPage() {
     unitPrice: "",
     quantity: ""
   });
+
+const newHandleSaveDelivery = async () => {
+  const raw = deliveryNumber.trim();
+  if (!raw) {
+    toast.error("Delivery number field is empty");
+    return;
+  }
+
+  if (!deliveryDate) {
+    toast.error("Delivery date is missing");
+    return;
+  }
+
+  if (productItems.length === 0) {
+    toast.error("Add at least one product to save delivery.");
+    return;
+  }
+
+  // Validate required payment fields if paymentDetails exist
+  if (paymentDetails) {
+    if (!paymentDetails.paymentType || !paymentDetails.paymentStatus) {
+      toast.error("Payment Type and Payment Status are required");
+      return;
+    }
+  }
+
+  try {
+    setLoading(true);
+
+    const deliveryPayload = {
+      D_deliveryNumber: parseInt(raw, 10),
+      D_deliveryDate: deliveryDate,
+      products: productItems.map(item => ({
+        P_productCode: parseInt(item.productCode, 10),
+        DPD_quantity: parseInt(item.quantity, 10),
+        P_unitPrice: parseFloat(item.unitPrice),
+      })),
+      payment: paymentDetails ? {
+        D_paymentTypeID: parseInt(paymentDetails.paymentType, 10),
+        D_paymentStatusID: parseInt(paymentDetails.paymentStatus, 10),
+        D_modeOfPaymentID: paymentDetails.paymentMode ? parseInt(paymentDetails.paymentMode, 10) : null,
+      } : null
+    };
+
+    console.log("Submitting delivery payload:", JSON.stringify(deliveryPayload, null, 2));
+
+    const res = await axios.post("http://localhost:8080/deliveries", deliveryPayload);
+    toast.success("Delivery and product details successfully saved!");
+    console.log("Server response:", res.data);
+
+    setDeliveryNumber("");
+    setProductItems([]);
+    setPaymentDetails(null); 
+
+  } catch (error) {
+    console.error("Error saving delivery:", error);
+    toast.error(error.response?.data?.message || "Failed to save delivery");
+  } finally {
+    setLoading(false);
+  }
+};
+
+const handleAddProduct = () => {
+  const productToAdd = {
+    productCode: selectedProduct.code,
+    supplier: selectedProduct.supplier,
+    brand: selectedProduct.brand,
+    product: selectedProduct.name,
+    quantity: quantity,
+    unitPrice: unitPrice,
+    total: computedTotal
+  };
+
+  let updatedData = [];
+  if (isEditMode) {
+    updatedData = data.map((item) =>
+      item["Product Code"] === selectedProduct.code
+        ? { ...item, ...productToAdd }
+        : item
+    );
+    setData(updatedData);
+
+    setProductItems(productItems.map(item =>
+      item.productCode === selectedProduct.code ? { ...item, ...productToAdd } : item
+    ));
+  } else {
+    updatedData = [...data, productToAdd];
+    setData(updatedData);
+    setProductItems([...productItems, productToAdd]);
+  }
+
+  // Reset form
+  setSelectedProduct(null);
+  setQuantity(1);
+  setIsEditMode(false);
+  setUnitPrice(' ');
+};
+
+
+  const handleEditProduct = (row) => {
+    const {
+      productCode: code,
+      quantity,
+      unitPrice
+    } = row;
+
+    const matchedProduct = products.find((p) => p.code === code);
+    if (!matchedProduct) return;
+
+    // Autofill fields
+    setSelectedProduct(matchedProduct);
+    setQuantity(quantity);
+    setUnitPrice(unitPrice);
+    setIsEditMode(true);
+  };
 
   // API endpoints
   const API_CONFIG = {
@@ -162,35 +290,6 @@ export default function BatchDeliveriesPage() {
     minimumFractionDigits: 0,
   });
 
-  // Handle form input changes for new product
-  const handleInputChange = (field, value) => {
-    setNewProduct({
-      ...newProduct,
-      [field]: value
-    });
-    
-    // If product is selected, automatically fill unit price
-    if (field === 'product') {
-      const selectedProduct = products.find(p => p.P_productName === value);
-      if (selectedProduct) {
-        setNewProduct(prev => ({
-          ...prev,
-          unitPrice: selectedProduct.P_unitPrice || ""
-        }));
-      }
-    }
-    
-    // If supplier is selected, filter brands and products
-    if (field === 'supplier') {
-      // Find the supplier ID based on the selected supplier name
-      const supplierObj = suppliers.find(s => s.S_supplierName === value);
-      setSelectedSupplier(supplierObj ? supplierObj.S_supplierID : "");
-    }
-    
-    if (field === 'brand') {
-    }
-  };
-
   // Handle payment details input changes
   const handlePaymentDetailChange = (field, value) => {
     setPaymentDetails(prev => {
@@ -274,7 +373,6 @@ export default function BatchDeliveriesPage() {
         const statusName2 = statusObj2?.D_statusName.toLowerCase();
         setSelectedPaymentStatus2(statusName2 === 'paid' ? 1 : statusName2 === 'unpaid' ? 2 : -1);
       }
-
       return next;
     });
   };
@@ -295,118 +393,11 @@ export default function BatchDeliveriesPage() {
     return (maxCode + 1).toString();
   };
 
-  // Add new product to the list
-  const handleAddProduct = () => {
-    // Validate form inputs
-    // 1) Supplier
-    if (!newProduct.supplier) {
-      toast.error("Supplier field is empty");
-      return;
-    }
-    // 2) Brand
-    if (!newProduct.brand) {
-      toast.error("Brand field is empty");
-      return;
-    }
-    // 3) Product name
-    if (!newProduct.product) {
-      toast.error("Product name field is empty");
-      return;
-    }
-    // 4) Unit price
-    if (!newProduct.unitPrice) {
-      toast.error("Unit price field is empty");
-      return;
-    }
-    
-    // 5) Quantity field must not be empty
-    if (!newProduct.quantity) {
-      toast.error("Quantity field is empty");
-      return;
-    }
-    
-    // 6) Quantity must be a non‐zero positive integer (1,2,3…)
-    if (!/^[1-9]\d*$/.test(newProduct.quantity)) {
-      toast.error("Quantity is not a positive integer");
-      return;
-    }
-
-    // Find the selected product in the products array
-    const selectedProduct = products.find(p => p.P_productName === newProduct.product);
-    
-    if (!selectedProduct) {
-      toast.error("Product not found");
-      return;
-    }
-    
-    // Find the selected brand
-    const selectedBrand = brands.find(b => b.B_brandName === newProduct.brand);
-    
-    if (!selectedBrand) {
-      toast.error("Brand not found");
-      return;
-    }
-    
-    // Find the expected brand for this product
-    const productBrand = brands.find(b => b.B_brandID === selectedProduct.B_brandID);
-    
-    // Only check supplier match since we have an issue with product's brand ID
-    if (String(selectedProduct.S_supplierID) !== String(newProduct.supplier)) {
-      toast.error("Product with the given supplier not found");
-      return;
-    }
-    
-    // Check if selected brand name matches the product's expected brand name
-    if (productBrand && productBrand.B_brandName !== newProduct.brand) {
-      toast.error(`Product is associated with brand "${productBrand.B_brandName}", not "${newProduct.brand}"`);
-      return;
-    }
-
-    // Format the values
-    const quantity = `${newProduct.quantity} ${parseInt(newProduct.quantity) > 1 ? 'pcs' : 'pc'}`;
-    const unitPrice = parseInt(newProduct.unitPrice).toLocaleString();
-    const total = (parseInt(newProduct.unitPrice) * parseInt(newProduct.quantity)).toLocaleString();
-
-    // Create new product object
-    const productToAdd = {
-      productCode: selectedProduct.P_productCode || generateProductCode(),
-      supplier: suppliers.find(s => s.S_supplierID === newProduct.supplier)?.S_supplierName || newProduct.supplier,
-      supplierID: newProduct.supplier,
-      brand: newProduct.brand,
-      product: newProduct.product,
-      quantity: quantity,
-      unitPrice: unitPrice,
-      total: total
-    };
-
-    // Add to product items list
-    setProductItems([...productItems, productToAdd]);
-
-    // Clear form fields
-    setNewProduct({
-      product: "",
-      supplier: "",
-      brand: "",
-      unitPrice: "",
-      quantity: ""
-    });
-    
-    toast.success("Product added to delivery");
-  };
-
   // Handle deleting a product from the list
   const handleCancelProduct = (index) => {
     const updatedItems = [...productItems];
     updatedItems.splice(index, 1);
     setProductItems(updatedItems);
-    toast.success("Product removed from delivery");
-  };
-
-  // Format date for input fields
-  const formatDateForInput = (dateString) => {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    return date.toISOString().split('T')[0];
   };
 
   // Save the delivery to the database
@@ -418,13 +409,6 @@ export default function BatchDeliveriesPage() {
       toast.error("Delivery number field is empty");
       return;
     }
-
-    // 2) Then enforce integer-only
-    if (!/^\d+$/.test(raw)) {
-      toast.error("Delivery number not an integer");
-      return;
-    }
-    const dnInt = Number(raw);
 
     try {
       if (productItems.length === 0) {
@@ -472,41 +456,37 @@ export default function BatchDeliveriesPage() {
         }
       }
 
-      setLoading(true);
-      
-      const supplierForDelivery = String(
-        selectedSupplier || (productItems.length > 0 ? productItems[0].supplierID : null)
-      );    
-      if (!supplierForDelivery) {
-        toast.error("Missing supplier information");
-        return;
-      }
+    // Create comprehensive delivery payload using the format expected
+    const deliveryPayload = {
+      D_deliveryNumber: parseInt(deliveryNumber.trim(), 10),
+      D_deliveryDate: deliveryDate,
 
-      // Create comprehensive delivery payload using the format expected
-      const deliveryPayload = {
-        D_deliveryNumber: parseInt(deliveryNumber.trim(), 10),
-        D_deliveryDate: deliveryDate,
-        products: productItems.map(item => ({
-          P_productCode: String(item.productCode),
-          DPD_quantity: parseInt(item.quantity, 10)
-        })),
-        payment: {
-          D_paymentTypeID: parseInt(paymentDetails.paymentType, 10),
-          D_modeOfPaymentID: parseInt(paymentDetails.paymentMode, 10),
-          D_paymentStatusID: parseInt(paymentDetails.paymentStatus, 10),
-          DPD_dateOfPaymentDue: paymentDetails.dateDue || null,
-          DPD_dateOfPayment1: paymentDetails.datePayment1 || null,
-          // for 2nd payment
-          D_modeOfPaymentID2: showSecondPayment
-            ? parseInt(paymentDetails.paymentMode2, 10) : null,
-          D_paymentStatusID2: showSecondPayment
-            ? parseInt(paymentDetails.paymentStatus2, 10) : null,
-          DPD_dateOfPaymentDue2: showSecondPayment
-            ? paymentDetails.dateDue2 : null,
-          DPD_dateOfPayment2: showSecondPayment
-            ? paymentDetails.datePayment2 : null
-        }
-      };
+      products: productItems.map(({ productCode, quantity, unitPrice, total }) => ({
+        P_productCode: String(productCode),
+        DPD_quantity: parseInt(quantity, 10),
+        DPD_unitPrice: parseFloat(unitPrice),
+        DPD_total: parseFloat(total),
+      })),
+
+      payment: {
+        D_paymentTypeID: parseInt(paymentDetails.paymentType, 10),
+        D_modeOfPaymentID: paymentDetails.paymentMode ? parseInt(paymentDetails.paymentMode, 10) : null,
+        D_paymentStatusID: parseInt(paymentDetails.paymentStatus, 10),
+        DPD_dateOfPaymentDue: paymentDetails.dateDue || null,
+        DPD_dateOfPayment1: paymentDetails.datePayment1 || null,
+
+        // 2nd payment (conditional)
+        D_modeOfPaymentID2: showSecondPayment && paymentDetails.paymentMode2
+          ? parseInt(paymentDetails.paymentMode2, 10)
+          : null,
+        D_paymentStatusID2: showSecondPayment && paymentDetails.paymentStatus2
+          ? parseInt(paymentDetails.paymentStatus2, 10)
+          : null,
+        DPD_dateOfPaymentDue2: showSecondPayment ? paymentDetails.dateDue2 || null : null,
+        DPD_dateOfPayment2: showSecondPayment ? paymentDetails.datePayment2 || null : null
+      }
+    };
+
 
       // Send all delivery data in a single request to the complete delivery endpoint
       const deliveryResponse = await axios.post(API_CONFIG.deliveries, deliveryPayload);
@@ -557,112 +537,6 @@ export default function BatchDeliveriesPage() {
     }
 
   };
-
-  // Save payment details separately
-  const handleSavePaymentDetails = (deliveryNum) => {
-    const detail = paymentDetails[deliveryNum];
-    if (!detail) {
-      toast.error("No payment details to save");
-      return;
-    }
-    setIsLoading(true);
-
-    const payload = {
-      D_paymentTypeID:    parseInt(detail.paymentType, 10),
-      D_modeOfPaymentID:  parseInt(detail.paymentMode, 10),
-      D_paymentStatusID:  parseInt(detail.paymentStatus, 10),
-      DPD_dateOfPaymentDue: detail.dateDue,
-      DPD_dateOfPayment1:   detail.datePayment1,
-      D_modeOfPaymentID2:   detail.paymentMode2  ? parseInt(detail.paymentMode2, 10)  : null,
-      D_paymentStatusID2:   detail.paymentStatus2 ? parseInt(detail.paymentStatus2, 10) : null,
-      DPD_dateOfPaymentDue2: detail.dateDue2      || null,
-      DPD_dateOfPayment2:   detail.datePayment2   || null,
-    };
-
-    axios
-      .put(
-        `${API_CONFIG.paymentDetails.update}/${deliveryNum}/payment-details`,
-        payload
-      )
-      .then(() => {
-        toast.success("Payment details updated successfully!");
-        // optionally re-load or refresh here
-      })
-      .catch(err => {
-        console.error("Error updating payment details:", err.response?.data || err);
-        toast.error("Failed to update payment details");
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
-  };
-  
-  // Handle delivery deletion
-  const handleDeleteDelivery = async (password) => {
-    try {
-      if (!password) {
-        toast.error("Admin password is required");
-        return;
-      }
-      
-      await axios({
-        method: 'put', // Change from 'delete' to 'put'
-        url: `${API_CONFIG.deliveries}/${deliveryNumber}/mark-deleted`, // Update endpoint
-        data: { adminPW: password },
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-      
-      toast.success("Delivery marked as deleted");
-      
-      // Reset form
-      setDeliveryNumber("");
-      setProductItems([]);
-      setPaymentDetails({
-        paymentType: "",
-        paymentMode: "",
-        paymentStatus: "",
-        dateDue: "",
-        datePayment1: "",
-        datePayment2: ""
-      });
-      
-    } catch (error) {
-      console.error("Error marking delivery as deleted:", error);
-      toast.error(error.response?.data?.message || "Failed to delete delivery");
-    }
-  };
-  
-  // Search handler for suppliers
-  const handleSupplierSearch = (searchTerm) => {
-    if (!searchTerm) {
-      return suppliers;
-    }
-    return suppliers.filter(supplier => 
-      supplier.S_supplierName.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  };
-
-  // Search handler for brands
-  const handleBrandSearch = (searchTerm) => {
-    if (!searchTerm) {
-      return brands;
-    }
-    return brands.filter(brand => 
-      brand.B_brandName.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  };
-
-  // Search handler for products
-  const handleProductSearch = (searchTerm) => {
-    if (!searchTerm) {
-      return products;
-    }
-    return products.filter(product => 
-      product.P_productName.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  };
     
   // disable 2nd panel Date of Payment if its status is "Unpaid"
   const status2Obj = paymentStatuses
@@ -678,6 +552,44 @@ export default function BatchDeliveriesPage() {
   };
   const todayDate = getTodayDate();
 
+  // NEW PRODUCT SEARCH
+  useEffect(() => {
+        fetchProductsCombobox();
+      }, []);
+  
+    const fetchProductsCombobox = async () => {
+      try {
+        const res = await axios.get("http://localhost:8080/products");
+        const mappedProducts = res.data.map((p) => ({
+          code: p.P_productCode,
+          name: p.P_productName,
+          brand: p.brand,
+          supplier: p.supplier,
+          price: p.P_sellingPrice,
+          unitPrice: p.P_unitPrice,
+          stock: p.stock,
+          label: `${p.P_productName} - S${p.supplier} - B${p.brand}`,
+        }));
+        setProducts(mappedProducts);
+        console.log("Products fetched and mapped for product chooser.");
+      } catch (err) {
+        console.error("Failed to fetch products for product chooser:", err);
+      }
+    };
+
+  const handleProductSelect = (product) => {
+    setSelectedProduct(product);
+    setOpenProduct(false);
+    setQuantity(1);
+  };
+
+  // Autofill unit price when product is selected
+  useEffect(() => {
+    if (selectedProduct?.unitPrice) {
+      setUnitPrice(selectedProduct.unitPrice.toString());
+    }
+  }, [selectedProduct]);
+  
   return (
     <MinimumScreenGuard>
     <SidebarProvider>
@@ -751,7 +663,7 @@ export default function BatchDeliveriesPage() {
                         <TableHead>Product</TableHead>
                         <TableHead>Quantity</TableHead>
                         <TableHead>Unit Price</TableHead>
-                        <TableHead>Total (QxUP)</TableHead>
+                        <TableHead>Total</TableHead>
                         <TableHead></TableHead>
                       </TableRow>
                     </TableHeader>
@@ -766,14 +678,24 @@ export default function BatchDeliveriesPage() {
                           <TableCell>{item.unitPrice}</TableCell>
                           <TableCell>{item.total}</TableCell>
                           <TableCell>
-                            {/* For cancelling a product */}
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="text-white bg-red-500 hover:text-red-800 hover:bg-red-300"
+                              className="text-gray-500 hover:text-red-800"
+                              onClick={() => handleEditProduct(item)}
+                            >
+                              <FilePen size={16} />
+                            </Button>
+                          </TableCell>
+
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-gray-500 hover:text-red-800"
                               onClick={() => handleCancelProduct(index)}
                             >
-                              <X size={16} />
+                              <Trash2 size={16} />
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -788,6 +710,16 @@ export default function BatchDeliveriesPage() {
                     </TableBody>
                   </Table>
                 </div>
+
+                <div className="flex justify-end gap-2 mt-6">
+                  <Button 
+                    className="bg-green-600 text-white px-3 py-1.5 text-xs uppercase"
+                    onClick={newHandleSaveDelivery}
+                    disabled={loading}
+                  >
+                    Save Delivery
+                   </Button>
+                </div>
               </CardContent>
             </Card>
 
@@ -797,190 +729,160 @@ export default function BatchDeliveriesPage() {
                 <CardTitle className="text-center text-xl">Add Product to Delivery Batch</CardTitle>
               </CardHeader>
               <CardContent className="p-4 flex flex-col flex-1 justify-between">
-                <div className="space-y-3">
-                  <div>
-                    <Label htmlFor="supplier">Supplier</Label>
-                    <Select 
-                      value={newProduct.supplier} 
-                      onValueChange={(value) => handleInputChange('supplier', value)}
-                    >
-                      <SelectTrigger id="supplier" className="mt-1">
-                        <SelectValue placeholder="Select supplier" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <div className="p-2">
-                          <Input
-                            placeholder="Search suppliers..."
-                            className="mb-2"
-                            id="supplierSearch"
-                            onChange={(e) => {
-                              const searchTerm = e.target.value;
-                              const results = handleSupplierSearch(searchTerm);
-                              // Hide/show options based on search results
-                              suppliers.forEach(supplier => {
-                                const element = document.getElementById(`supplier-${supplier.S_supplierID}`);
-                                if (element) {
-                                  element.style.display = results.some(s => s.S_supplierID === supplier.S_supplierID) ? 'block' : 'none';
-                                }
-                              });
-                            }}
-                          />
-                        </div>
-                        {suppliers.map(supplier => (
-                          <SelectItem 
-                            key={supplier.S_supplierID} 
-                            value={supplier.S_supplierID}
-                            id={`supplier-${supplier.S_supplierID}`}
-                          >
-                            {supplier.S_supplierName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                                 
-                  <div>
-                    <Label htmlFor="brand">Brand</Label>
-                    <Select 
-                      value={newProduct.brand} 
-                      onValueChange={(value) => handleInputChange('brand', value)}
-                    >
-                      <SelectTrigger id="brand" className="mt-1">
-                        <SelectValue placeholder="Select brand" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <div className="p-2">
-                          <Input
-                            placeholder="Search brands..."
-                            className="mb-2"
-                            id="brandSearch"
-                            onChange={(e) => {
-                              const searchTerm = e.target.value;
-                              const results = brands.filter(brand => 
-                                brand.B_brandName.toLowerCase().includes(searchTerm.toLowerCase())
-                              );
-                              // Hide/show options based on search results
-                              brands.forEach(brand => {
-                                const element = document.getElementById(`brand-${brand.B_brandID}`);
-                                if (element) {
-                                  element.style.display = results.some(b => b.B_brandID === brand.B_brandID) ? 'block' : 'none';
-                                }
-                              });
-                            }}
-                          />
-                        </div>
-                        {brands.map(brand => (
-                          <SelectItem 
-                            key={brand.B_brandID} 
-                            value={brand.B_brandName}
-                            id={`brand-${brand.B_brandID}`}
-                          >
-                            {brand.B_brandName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="productName">Product Name</Label>
-                    <Select 
-                      value={newProduct.product} 
-                      onValueChange={(value) => handleInputChange('product', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select product" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <div className="p-2">
-                          <Input
-                            placeholder="Search products..."
-                            className="mb-2"
-                            id="productSearch"
-                            onChange={(e) => {
-                              const searchTerm = e.target.value;
-                              const results = products.filter(product => 
-                                product.P_productName.toLowerCase().includes(searchTerm.toLowerCase())
-                              );
-                              // Hide/show options based on search results
-                              products.forEach(product => {
-                                const element = document.getElementById(`product-${product.P_productCode}`);
-                                if (element) {
-                                  element.style.display = results.some(p => p.P_productCode === product.P_productCode) ? 'block' : 'none';
-                                }
-                              });
-                            }}
-                          />
-                        </div>
-                        {products.map(product => (
-                          <SelectItem 
-                            key={product.P_productCode} 
-                            value={product.P_productName}
-                            id={`product-${product.P_productCode}`}
-                          >
-                            {product.P_productName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>   
-                  </div>
-                                    
-                  <div>
-                    <Label htmlFor="unitPrice">Unit Price</Label>
-                    <Input 
-                      id="unitPrice" 
-                      type="text" 
-                      placeholder="Enter unit price" 
-                      className="mt-1"
-                      value={newProduct.unitPrice}
-                      onChange={e => {
-                        let val = e.target.value;
-                        // 1) strip any non-digit/non-dot
-                        val = val.replace(/[^0-9.]/g, '');
-                        // 2) allow only one dot
-                        const parts = val.split('.');
-                        val = parts.shift() + (parts.length ? '.' + parts.join('') : '');
-                        // 3) remove leading zeros (but allow "0" or "0.xxx")
-                        val = val.replace(/^0+([1-9])/, '$1').replace(/^0+$/, '0');
-                        handleInputChange('unitPrice', val);
-                      }}
-                    />
-                  </div>
+              <div
+                onMouseLeave={() => {
+                  if (isEditMode) {
+                    setIsEditMode(false);
+                    setSelectedProduct(null);
+                    setQuantity(1);
+                    setIsEditMode(false);
+                    setUnitPrice(' ')
+                  }
+                }}
+              >
+              <div className="mb-3">
+              <label className="block mb-1 text-sm">Product</label>
+              <Popover open={openProduct} onOpenChange={setOpenProduct}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={openProduct}
+                    className="w-full justify-between"
+                  >
+                    {selectedProduct ? selectedProduct.label : "Select product..."}
+                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
 
-                  <div>
-                    <Label htmlFor="quantity">Quantity</Label>
-                    <Input 
-                      id="quantity" 
-                      type="text" 
-                      placeholder="Enter quantity" 
-                      className="mt-1"
-                      autoComplete="off"      // ← Disable autocomplete/history
-                      spellCheck={false}      // ← Disable spellcheck suggestions
-                      value={newProduct.quantity}
-                      onChange={e => {
-                        const val = e.target.value;
-                        // strip any non-digit
-                        const digitsOnly = val.replace(/\D/g, '');
-                        // remove leading zeros
-                        const sanitized = digitsOnly.replace(/^0+/, '');
-                        handleInputChange('quantity', sanitized);
-                      }}
-                    />
-                  </div>
-                  
-                  <div className="flex justify-center mt-6">
-                    <Button 
-                      className="w-2/3 bg-blue-400 text-white"
-                      onClick={handleAddProduct}
-                      disabled={loading}
-                    >
-                      ADD PRODUCT
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                <PopoverContent className="w-full p-0">
+                  <Command>
+                    <div className="sticky top-0 z-10 bg-white p-2 border-b">
+                      <CommandInput placeholder="Search product..." />
+                    </div>
+                    <CommandEmpty className="p-2 text-sm text-gray-500">
+                      No product found.
+                    </CommandEmpty>
+                    <div className="max-h-60 overflow-y-auto">
+                      <CommandGroup>
+                        {products.map((product) => (
+                          <CommandItem
+                            key={product.code}
+                            value={product.label}
+                            onSelect={() => {
+                              handleProductSelect(product);
+                              setOpenProduct(false);
+                            }}
+                            className={cn(
+                              product.stock === 0 && "bg-gray-200 text-gray-400",
+                              "cursor-default flex items-start flex-col gap-0.5"
+                            )}
+                          >
+                            <div className="flex items-center w-full">
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  selectedProduct?.code === product.code ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              <span className="font-medium">{product.label}</span>
+                            </div>
+                            <span className="text-xs text-gray-500 ml-6"> Stock: {product.stock}</span>
+                            <span className="text-xs text-gray-500 ml-6"> Unit Price: {product.unitPrice}</span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </div>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+
+              <div className="mb-3 mt-3">
+                <label className="block text-sm">Supplier</label>
+                  <input
+                    type="text"
+                    value={selectedProduct?.supplier || ''}
+                    disabled
+                    className="w-full pl-6 border border-gray-300 rounded-md px-3 py-2 text-sm bg-gray-100 text-gray-500"
+                  />
+              </div>
+
+              <div className="mb-3">
+                <label className="block text-sm">Brand</label>
+                  <input
+                    type="text"
+                    value={selectedProduct?.brand || ''}
+                    disabled
+                    className="w-full pl-6 border border-gray-300 rounded-md px-3 py-2 text-sm bg-gray-100 text-gray-500"
+                  />
+              </div>
+
+              <div className="mb-3">
+                <label className="block text-sm">Unit Price</label>
+                  <input
+                    type="text"
+                    value={unitPrice}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (/^\d*\.?\d{0,2}$/.test(value)) {
+                        setUnitPrice(value);
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      const invalidKeys = ['e', '+', '-', '='];
+                      if (invalidKeys.includes(e.key)) {
+                        e.preventDefault();
+                      }
+                    }}
+                    className="w-full border rounded-md px-5 py-2 text-sm"
+                    placeholder="0.00"
+                  />
+              </div>
+
+            <div className="mb-3">
+              <label className="block text-sm">Quantity</label>
+              <input
+                type="number"
+                value={quantity}
+                min={1}
+                onChange={(e) => setQuantity(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === '.' || e.key === '-' || e.key === 'e' || e.key === '+') {
+                    e.preventDefault();
+                  }
+                }}
+                className="w-full border rounded-md px-5 py-2 text-sm"
+              />
+            </div>
+          </div> 
+
+          <div className="mb-3">
+            <label className="block text-sm">Total</label>
+            <input
+              type="text"
+              value={computedTotal}
+              disabled
+              className="w-full pl-6 border border-gray-300 rounded-md px-3 py-2 text-sm bg-gray-100 text-gray-500"
+            />
           </div>
+ 
+            <div className="flex justify-center mt-6">
+              <Button 
+                className={`w-full mt-2 py-2 rounded-md text-white 
+                  ${!selectedProduct || !unitPrice || loading
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-blue-400 hover:bg-blue-700"
+                  }`}
+                onClick={handleAddProduct}
+                disabled={!selectedProduct || !unitPrice || loading}
+              >
+                {isEditMode ? "Update Product" : "Add Product"}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
 
           {/* Delivery Payment Details Section */}
           <div className="w-full mt-6 mb-4">
@@ -1100,7 +1002,7 @@ export default function BatchDeliveriesPage() {
               </div>
               
               {/* Save All Details button */}
-              <div className="flex justify-end gap-2 mt-6">
+              {/* <div className="flex justify-end gap-2 mt-6">
                 <Button 
                   className="bg-green-600 text-white"
                   onClick={handleSaveDelivery}
@@ -1108,7 +1010,7 @@ export default function BatchDeliveriesPage() {
                 >
                   SAVE ALL DETAILS
                 </Button>
-              </div>
+              </div> */}
               
             </CardContent>
           </Card>

@@ -519,9 +519,9 @@ export default function ReturnsPage() {
                         <TableBody>
                           {(() => {
                             const filteredData = getFilteredCustomerReturns(
-                              customerReturns.filter(item => item.R_returnTypeID === 6),
-                              customerSearchTerm
-                            );
+                            customerReturns, // No filter applied here — all return types are included
+                            customerSearchTerm
+                          );
                             const sortedData = getSortedReturns(filteredData, customerSortConfig);
                             
                             return sortedData.length > 0 ? (
@@ -706,10 +706,10 @@ export default function ReturnsPage() {
                         </TableHeader>
                         <TableBody>
                           {(() => {
-                            const filteredData = getFilteredSupplierReturns(
-                              supplierReturns.filter(item => item.R_returnTypeID === 7),
-                              supplierSearchTerm
-                            );
+                            const filteredData = getFilteredCustomerReturns(
+                            customerReturns, // No filter applied here — all return types are included
+                            customerSearchTerm
+                          );
                             const sortedData = getSortedReturns(filteredData, supplierSortConfig);
                             
                             return sortedData.length > 0 ? (
