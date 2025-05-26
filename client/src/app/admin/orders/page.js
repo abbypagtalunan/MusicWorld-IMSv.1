@@ -6,7 +6,7 @@ import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
-import { Search, ListFilter, Trash2, CalendarDays, Download, ChevronsUpDown, ChevronUp, ChevronDown, RotateCcw, Ellipsis } from "lucide-react";
+import { Search, ListFilter, Trash2, CalendarDays, Download, ChevronsUpDown, ChevronUp, ChevronDown, RotateCcw } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -949,7 +949,7 @@ Object.entries(amountRanges).forEach(([key, range]) => {
                   <TableHead onClick={() => handleSort("wholeOrderDiscount")} className="cursor-pointer select-none"> Whole Order Discount <SortIcon column="wholeOrderDiscount" /></TableHead>
                   <TableHead onClick={() => handleSort("orderPayment")} className="cursor-pointer select-none"> Payment <SortIcon column="orderPayment" /></TableHead>
                   <TableHead onClick={() => handleSort("totalAmount")} className="cursor-pointer select-none"> Total Amount <SortIcon column="totalAmount" /></TableHead>
-                  <TableHead>View/Return</TableHead>
+                  <TableHead>Manage</TableHead>
                   <TableHead>Delete</TableHead>
                 </TableRow>
               </TableHeader>
@@ -967,110 +967,115 @@ Object.entries(amountRanges).forEach(([key, range]) => {
                     <TableCell>{formatPeso(order.orderPayment)}</TableCell>
                     <TableCell>{formatPeso(order.totalAmount)}</TableCell>
 
-                {/* View/Return toggle button with modal pop-up */}              
-                    <TableCell className="flex justify-center items-center">              
-                      <Dialog onOpenChange={(open) => {
-                        if (!open) {
-                          // Reset selection when dialog closes
-                          setSelectedTransactions([]);
-                          setSelectedOrderID(null);
-                        }
-                      }}>
-                        <DialogTrigger asChild>
-                          <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600" onClick={() => setSelectedOrderID(order.orderID)} >
-                            <Ellipsis size={16} />
-                          </Button>
-                        </DialogTrigger>
+                  {/* View/Return toggle button with modal pop-up */}              
+                  <TableCell className="flex justify-center items-center">              
+                    <Dialog onOpenChange={(open) => {
+                      if (!open) {
+                        // Reset selection when dialog closes
+                        setSelectedTransactions([]);
+                        setSelectedOrderID(null);
+                      }
+                    }}>
+                      <DialogTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="text-blue-900 hover:text-white hover:bg-blue-900 border-blue-900 transition-colors duration-200 flex items-center gap-2" 
+                          onClick={() => setSelectedOrderID(order.orderID)}
+                        >
+                          <span className="hidden sm:inline">View/Return</span>
+                        </Button>
+                      </DialogTrigger>
 
-                        <DialogContent className="w-full max-w-screen-lg sm:max-w-screen-md md:max-w-screen-lg lg:max-w-screen-xl max-h-[95vh] overflow-y-auto p-6">
-                        <DialogHeader>
-                            <DialogTitle>Order Details</DialogTitle>
-                            <DialogClose />
-                          </DialogHeader>
-                          {orders ? (
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                {/* checkbox select ALL function for customer returns */}
-                                <TableHead className="sticky top-0 z-10 bg-white">
-                                  <input type="checkbox" 
-                                  onChange={handleSelectAll} 
-                                  checked={selectedTransactions.length === getFilteredTransactions().length && 
-                                  selectedTransactions.length > 0}
-                                  />
-                                </TableHead>
-                                <TableHead>Order ID</TableHead>
-                                <TableHead>Order Detail ID</TableHead>
-                                <TableHead>Product Code</TableHead>
-                                <TableHead>Product</TableHead>
-                                <TableHead>Supplier</TableHead>
-                                <TableHead>Brand</TableHead>
-                                <TableHead>Price</TableHead>
-                                <TableHead>Quantity</TableHead>
-                                <TableHead>Discount Type</TableHead>
-                                <TableHead>Discount Amount</TableHead>
-                                <TableHead>NET Sale</TableHead>
-                                <TableHead>Gross Sale</TableHead>
-                                <TableHead>Gross Profit</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                            {orderDetails
-                              .filter((detail) => detail.orderID === selectedOrderID)
-                              .map((detail) => (
-                              // checkbox select NO. OF ITEMS ONLY function for customer returns 
-                              <TableRow key={detail.orderDetailID}>
-                                <TableCell>
-                                  <input
-                                    type="checkbox"
-                                    checked={selectedTransactions.includes(`${detail.orderID}-${detail.orderDetailID}`)}
-                                    onChange={() => handleSelectTransaction(`${detail.orderID}-${detail.orderDetailID}`)}
-                                  />
-                                </TableCell> 
-                                <TableCell>{detail.orderID}</TableCell>
-                                <TableCell>{detail.orderDetailID}</TableCell>
-                                <TableCell>{detail.productCode}</TableCell>
-                                <TableCell>{detail.productName}</TableCell>
-                                <TableCell>{detail.supplierName}</TableCell>
-                                <TableCell>{detail.brandName}</TableCell>
-                                <TableCell>{detail.unitPrice === 0.00 ? "Freebie" : formatPeso(detail.unitPrice)}</TableCell>
-                                <TableCell>{detail.quantity}</TableCell>
-                                <TableCell>{detail.discountType || "---"}</TableCell>
-                                <TableCell>{formatPeso(detail.discountAmount)}</TableCell>
-                                <TableCell>{formatPeso(detail.itemTotal)}</TableCell>
-                                <TableCell>{formatPeso(detail.itemGross)}</TableCell>
-                                <TableCell>{formatPeso(detail.itemGrossProfit)}</TableCell>
-                              </TableRow>                            
-                              ))}
-                            </TableBody>
-                          </Table>
-                          ) : (
-                            <p className="text-gray-500">Product details not found.</p>
-                          )}
-                            {/* Return items function */}
-                            <div className="flex justify-between items-center mb-4">
-                            <div className="text-sm text-gray-600">
-                              {selectedTransactions.length > 0 && (
-                                <span>{selectedTransactions.length} item(s) selected</span>
-                              )}
-                            </div>
-                            <Button
-                              variant="outline"
-                              className="bg-indigo-500 hover:bg-indigo-700 hover:text-white text-white"
-                              onClick={() => {
-                              setItemReturnReasons("");
-                              setReturnDialogOpen(true);
-                            }}
-                              disabled={selectedTransactions.length === 0}
-                            >
-                              Return Selected Items
-                            </Button>
+                      <DialogContent className="w-full max-w-screen-lg sm:max-w-screen-md md:max-w-screen-lg lg:max-w-screen-xl max-h-[95vh] overflow-y-auto p-6">
+                      <DialogHeader>
+                          <DialogTitle>Order Details</DialogTitle>
+                          <DialogClose />
+                        </DialogHeader>
+                        {orders ? (
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              {/* checkbox select ALL function for customer returns */}
+                              <TableHead className="sticky top-0 z-10 bg-white">
+                                <input type="checkbox" 
+                                onChange={handleSelectAll} 
+                                checked={selectedTransactions.length === getFilteredTransactions().length && 
+                                selectedTransactions.length > 0}
+                                />
+                              </TableHead>
+                              <TableHead>Order ID</TableHead>
+                              <TableHead>Order Detail ID</TableHead>
+                              <TableHead>Product Code</TableHead>
+                              <TableHead>Product</TableHead>
+                              <TableHead>Supplier</TableHead>
+                              <TableHead>Brand</TableHead>
+                              <TableHead>Price</TableHead>
+                              <TableHead>Quantity</TableHead>
+                              <TableHead>Discount Type</TableHead>
+                              <TableHead>Discount Amount</TableHead>
+                              <TableHead>NET Sale</TableHead>
+                              <TableHead>Gross Sale</TableHead>
+                              <TableHead>Gross Profit</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                          {orderDetails
+                            .filter((detail) => detail.orderID === selectedOrderID)
+                            .map((detail) => (
+                            // checkbox select NO. OF ITEMS ONLY function for customer returns 
+                            <TableRow key={detail.orderDetailID}>
+                              <TableCell>
+                                <input
+                                  type="checkbox"
+                                  checked={selectedTransactions.includes(`${detail.orderID}-${detail.orderDetailID}`)}
+                                  onChange={() => handleSelectTransaction(`${detail.orderID}-${detail.orderDetailID}`)}
+                                />
+                              </TableCell> 
+                              <TableCell>{detail.orderID}</TableCell>
+                              <TableCell>{detail.orderDetailID}</TableCell>
+                              <TableCell>{detail.productCode}</TableCell>
+                              <TableCell>{detail.productName}</TableCell>
+                              <TableCell>{detail.supplierName}</TableCell>
+                              <TableCell>{detail.brandName}</TableCell>
+                              <TableCell>{detail.unitPrice === 0.00 ? "Freebie" : formatPeso(detail.unitPrice)}</TableCell>
+                              <TableCell>{detail.quantity}</TableCell>
+                              <TableCell>{detail.discountType || "---"}</TableCell>
+                              <TableCell>{formatPeso(detail.discountAmount)}</TableCell>
+                              <TableCell>{formatPeso(detail.itemTotal)}</TableCell>
+                              <TableCell>{formatPeso(detail.itemGross)}</TableCell>
+                              <TableCell>{formatPeso(detail.itemGrossProfit)}</TableCell>
+                            </TableRow>                            
+                            ))}
+                          </TableBody>
+                        </Table>
+                        ) : (
+                          <p className="text-gray-500">Product details not found.</p>
+                        )}
+                          {/* Return items function */}
+                          <div className="flex justify-between items-center mb-4">
+                          <div className="text-sm text-gray-600">
+                            {selectedTransactions.length > 0 && (
+                              <span>{selectedTransactions.length} item(s) selected</span>
+                            )}
                           </div>
-                        </DialogContent>
-                      </Dialog>            
-                    </TableCell>
+                          <Button
+                            variant="outline"
+                            className="bg-indigo-500 hover:bg-indigo-700 hover:text-white text-white"
+                            onClick={() => {
+                            setItemReturnReasons("");
+                            setReturnDialogOpen(true);
+                          }}
+                            disabled={selectedTransactions.length === 0}
+                          >
+                            Return Selected Items
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>            
+                  </TableCell>
                     
-                    {/* for delete button */}
+                    {/* For delete button */}
                     <TableCell>
                      <Button
                         variant="ghost"
@@ -1090,7 +1095,7 @@ Object.entries(amountRanges).forEach(([key, range]) => {
               </TableBody>
             </Table>
 
-   {/* Return Dialog with Individual Item Reasons */}
+            {/* Return Dialog with Individual Item Reasons */}
             <Dialog open={isReturnDialogOpen} onOpenChange={(open) => {
               if (!open) {
                 resetReturnDialog();
