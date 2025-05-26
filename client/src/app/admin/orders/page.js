@@ -1385,19 +1385,21 @@ export default function OrdersPage() {
                     <label className="text-sm font-medium text-gray-700 block mb-2">
                       Return Type *
                     </label>
-                    <select
-                      className="w-full p-2 border rounded text-sm"
-                      value={selectedReturnType}
-                      onChange={(e) => setSelectedReturnType(e.target.value)}
-                      required
-                    >
-                      <option value="">-- Select Return Type --</option>
-                      {returnTypes.map((type) => (
-                        <option key={type.id} value={type.id}>
-                          {type.name} {type.description ? `(${type.description})` : ""}
-                        </option>
-                      ))}
-                    </select>
+                   <select
+                    className="w-full p-2 border rounded text-sm"
+                    value={selectedReturnType}
+                    onChange={(e) => setSelectedReturnType(e.target.value)}
+                    required
+                  >
+                    <option value="">-- Select Return Type --</option>
+                    {returnTypes.map((type) => (
+                      <option key={type.id} value={type.id}>
+                        {type.name === type.description
+                          ? type.name 
+                          : `${type.name} (${type.description})`}
+                      </option>
+                    ))}
+                  </select>
                   </div>
                   <div className="space-y-4">
                     <h4 className="font-semibold text-sm mb-2">
