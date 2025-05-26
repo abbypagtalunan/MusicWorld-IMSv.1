@@ -382,7 +382,7 @@ export default function ProductsPage() {
         refreshTable((updatedData) => {
             // Find the product with the latest dateAdded
             const newest = [...updatedData].sort((a, b) =>
-              new Date(b.dateAdded) - new Date(a.dateAdded)
+              parseInt(b.productCode) - parseInt(a.productCode)
             )[0];
 
             if (newest?.productCode) {
@@ -448,9 +448,17 @@ export default function ProductsPage() {
       .put(`${config.product.api.update}/${values[config.product.codeField]}`, payload)
       .then(() => {
         toast.success(`${config.product.label} edited successfully`);
-        refreshTable();
+        refreshTable(() => {
+          setHighlightedCode(values[config.product.codeField]);
+
+          setTimeout(() => {
+            const row = rowRefs.current[config.product.productCode];
+            if (row) {
+              row.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+          }, 300);
+        });
         setEditSheetOpen(false);
-        setHighlightedCode(values[config.product.codeField]);
       })
       .catch((err) => {
         console.error("Error response:", err.response);
