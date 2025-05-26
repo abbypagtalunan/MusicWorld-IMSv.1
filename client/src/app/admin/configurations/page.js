@@ -29,19 +29,6 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 
 export default function ConfigurationsPage() {
   const configMap = {
-    status: {
-      label: "SBC Status",
-      idField: "SupBrdCatStatusID",
-      nameField: "SupBrdCatStatusName",
-      isAutoInc: true,
-      api: {
-        fetch: "http://localhost:8080/supBrdCatStatus",
-        add: "http://localhost:8080/supBrdCatStatus",
-        update: "http://localhost:8080/supBrdCatStatus",
-        delete: "http://localhost:8080/supBrdCatStatus",
-      },
-    },
-
     supplier: {
       label: "Supplier",
       idField: "S_supplierID",
@@ -87,70 +74,18 @@ export default function ConfigurationsPage() {
       },
     },
 
-    productStatus: {
-      label: "Product Status",
-      idField: "P_productStatusID",
-      nameField: "P_productStatusName",
+    returnType: {
+      label: "Return Type",
+      idField: "RT_returnTypeID",
+      nameField: "RT_returnTypeDescription",
       isAutoInc: true,
       api: {
-        fetch: "http://localhost:8080/productStatus",
-        add: "http://localhost:8080/productStatus",
-        update: "http://localhost:8080/productStatus",
-        delete: "http://localhost:8080/productStatus",
+        fetch: "http://localhost:8080/returnTypes",
+        add: "http://localhost:8080/returnTypes",
+        update: "http://localhost:8080/returnTypes",
+        delete: "http://localhost:8080/returnTypes",
       },
     },
-
-    // returnType: {
-    //   label: "Return Type",
-    //   idField: "RT_returnTypeID",
-    //   nameField: "RT_returnTypeDescription",
-    //   isAutoInc: true,
-    //   api: {
-    //     fetch: "http://localhost:8080/returnType",
-    //     add: "http://localhost:8080/returnType",
-    //     update: "http://localhost:8080/returnType",
-    //     delete: "http://localhost:8080/returnType",
-    //   },
-    // },
-
-    // deliveryModeOfPayment: {
-    //   label: "Delivery MOP",
-    //   idField: "D_modeOfPaymentID",
-    //   nameField: "D_mopName",
-    //   isAutoInc: true,
-    //   api: {
-    //     fetch: "http://localhost:8080/deliveryMOP",
-    //     add: "http://localhost:8080/deliveryMOP",
-    //     update: "http://localhost:8080/deliveryMOP",
-    //     delete: "http://localhost:8080/deliveryMOP",
-    //   },
-    // },
-
-    // deliveryPaymentTypes: {
-    //   label: "Delivery Payment Type",
-    //   idField: "D_paymentTypeID",
-    //   nameField: "D_paymentName",
-    //   isAutoInc: true,
-    //   api: {
-    //     fetch: "http://localhost:8080/deliveryPayTypes",
-    //     add: "http://localhost:8080/deliveryPayTypes",
-    //     update: "http://localhost:8080/deliveryPayTypes",
-    //     delete: "http://localhost:8080/deliveryPayTypes",
-    //   },
-    // },
-
-    // deliveryPaymentStatus: {
-    //   label: "Delivery Payment Status",
-    //   idField: "D_paymentStatusID",
-    //   nameField: "D_statusName",
-    //   isAutoInc: true,
-    //   api: {
-    //     fetch: "http://localhost:8080/deliveryPayStatus",
-    //     add: "http://localhost:8080/deliveryPayStatus",
-    //     update: "http://localhost:8080/deliveryPayStatus",
-    //     delete: "http://localhost:8080/deliveryPayStatus",
-    //   },
-    // },
   };
 
   const [activeTab, setActiveTab] = useState("supplier");
@@ -172,7 +107,7 @@ export default function ConfigurationsPage() {
   const [activeFilterValue, setActiveFilterValue] = useState(null);
 
   // Set tabs that only have the filter function
-  const showFilter = ["supplier", "brand", "category"].includes(activeTab);
+  const showFilter = ["supplier", "brand", "category", "returnType"].includes(activeTab);
 
   // Fetch
   useEffect(() => {
@@ -236,6 +171,20 @@ export default function ConfigurationsPage() {
     map[status.SupBrdCatStatusName] = status.SupBrdCatStatusID;
     return map;
   }, {});
+
+    useEffect(() => {
+  axios
+    .get("http://localhost:8080/returnTypes")
+    .then((res) => {
+      const mappedReturnTypes = res.data.map((type) => ({
+        id: type.RT_returnTypeID,
+        name: type.RT_returnTypeDescription,
+        description: type.RT_returnTypeDescription || "",
+      }));
+      setReturnTypes(mappedReturnTypes);
+    })
+    .catch((err) => console.error("Failed to fetch return types:", err));
+}, []);
 
   // Submit
   const handleSubmit = (e) => {
@@ -374,67 +323,71 @@ export default function ConfigurationsPage() {
                           />
                         </div>
                         {/* Filter */}
-                        {["supplier", "brand", "category"].includes(key) && (
-                        <div className="flex items-center space-x-2">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="outline" className="flex items-center space-x-2">
-                                <ListFilter className="w-4 h-4" />
-                                <span>Filter</span>
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start">
-                              <DropdownMenuSub>
-                              <DropdownMenuSubTrigger>Name</DropdownMenuSubTrigger>
-                                <DropdownMenuSubContent>
-                                  <DropdownMenuItem onClick={() => handleFilterSelect("Name", "Ascending")}>
-                                    Ascending
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleFilterSelect("Name", "Descending")}>
-                                    Descending
-                                  </DropdownMenuItem>
-                                </DropdownMenuSubContent>
-                              </DropdownMenuSub>
+                        {["supplier", "brand", "category", "returnType"].includes(key) && (
+                          <div className="flex items-center space-x-2">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="outline" className="flex items-center space-x-2">
+                                  <ListFilter className="w-4 h-4" />
+                                  <span>Filter</span>
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="start">
+                                {/* Name Filter */}
+                                <DropdownMenuSub>
+                                  <DropdownMenuSubTrigger>Name</DropdownMenuSubTrigger>
+                                  <DropdownMenuSubContent>
+                                    <DropdownMenuItem onClick={() => handleFilterSelect("Name", "Ascending")}>
+                                      Ascending
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleFilterSelect("Name", "Descending")}>
+                                      Descending
+                                    </DropdownMenuItem>
+                                  </DropdownMenuSubContent>
+                                </DropdownMenuSub>
 
-                              <DropdownMenuSub>
-                              <DropdownMenuSubTrigger>Code No.</DropdownMenuSubTrigger>
-                                <DropdownMenuSubContent>
-                                <DropdownMenuItem onClick={() => handleFilterSelect("Name", "Ascending")}>
-                                    Ascending
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleFilterSelect("Name", "Descending")}>
-                                    Descending
-                                  </DropdownMenuItem>
-                                </DropdownMenuSubContent>
-                              </DropdownMenuSub>
-                              
+                                {/* Code No. Filter */}
+                                <DropdownMenuSub>
+                                  <DropdownMenuSubTrigger>Code No.</DropdownMenuSubTrigger>
+                                  <DropdownMenuSubContent>
+                                    <DropdownMenuItem onClick={() => handleFilterSelect("Code No.", "Ascending")}>
+                                      Ascending
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleFilterSelect("Code No.", "Descending")}>
+                                      Descending
+                                    </DropdownMenuItem>
+                                  </DropdownMenuSubContent>
+                                </DropdownMenuSub>
 
+                                {/* Status Filter (Only if not returnType) */}
+                                {key !== "returnType" && (
+                                  <DropdownMenuSub>
+                                    <DropdownMenuSubTrigger>Status</DropdownMenuSubTrigger>
+                                    <DropdownMenuSubContent>
+                                      <DropdownMenuItem onClick={() => handleFilterSelect("Status", "Active")}>
+                                        Active
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleFilterSelect("Status", "Discontinued")}>
+                                        Discontinued
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleFilterSelect("Status", "Archived")}>
+                                        Archived
+                                      </DropdownMenuItem>
+                                    </DropdownMenuSubContent>
+                                  </DropdownMenuSub>
+                                )}
 
-                              <DropdownMenuSub>
-                                <DropdownMenuSubTrigger>Status</DropdownMenuSubTrigger>
-                                <DropdownMenuSubContent>
-                                  <DropdownMenuItem onClick={() => handleFilterSelect("Status", "Active")}>
-                                    Active
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleFilterSelect("Status", "Discontinued")}>
-                                    Discontinued
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleFilterSelect("Status", "Archived")}>
-                                    Archived
-                                  </DropdownMenuItem>
-                                </DropdownMenuSubContent>
-                              </DropdownMenuSub>
-
-                              <DropdownMenuItem 
-                                onClick={() => handleFilterSelect(null, null)} 
-                                className="text-red-500 font-medium"
+                                <DropdownMenuItem 
+                                  onClick={() => handleFilterSelect(null, null)} 
+                                  className="text-red-500 font-medium"
                                 >
                                   Reset Filters
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
                         )}
+
                       </div>
 
                         <Table>
@@ -635,49 +588,3 @@ export default function ConfigurationsPage() {
   );
 }
 
-
-// Displays status but does not update in db
-// {config.statusField ? (
-//   ["supplier", "brand", "category"].includes(activeTab) ? (
-//     <div className="mb-4">
-//       <Label>Status</Label>
-//       <Select
-//         value={values[config.statusField]?.toString() || ""}
-//         onValueChange={(selectedId) =>
-//           setValues({
-//             ...values,
-//             [config.statusField]: parseInt(selectedId),
-//           })
-//         }
-//       >
-//         <SelectTrigger>
-//           <SelectValue placeholder="Select Status" />
-//         </SelectTrigger>
-//         <SelectContent>
-//           {statusOptions.map((status) => (
-//             <SelectItem
-//               key={status.SupBrdCatStatusID}
-//               value={status.SupBrdCatStatusID.toString()}
-//             >
-//               {status.SupBrdCatStatusName}
-//             </SelectItem>
-//           ))}
-//         </SelectContent>
-//       </Select>
-//     </div>
-//   ) : (
-//     <div className="mb-4">
-//       <Label>Status</Label>
-//       <Input
-//         value={values[config.statusField]}
-//         onChange={(e) =>
-//           setValues({
-//             ...values,
-//             [config.statusField]: e.target.value,
-//           })
-//         }
-//         required
-//       />
-//     </div>
-//   )
-// ) : null}
