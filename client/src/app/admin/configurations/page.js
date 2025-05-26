@@ -148,15 +148,50 @@ export default function ConfigurationsPage() {
   };
 
   // Search
-  const filteredItems =
-    config?.nameField && config?.idField
-      ? data.filter(
-          (item) =>
-            (item[config.nameField]?.toLowerCase() || "").includes(
-              searchTerm.toLowerCase()
-            ) || (item[config.idField] || "").includes(searchTerm)
-        )
-      : [];
+  // Apply filtering and sorting logic
+  const filteredItems = (() => {
+    let result = [...data];
+
+    // Search Term Filter
+    if (searchTerm) {
+      result = result.filter(
+        (item) =>
+          (item[config.nameField]?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+          (item[config.idField]?.toString().toLowerCase() || "").includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Status Filter (only applicable for supplier, brand, category)
+    if (activeFilter === "Status" && activeFilterValue !== null) {
+      result = result.filter((item) => item[config.statusField] === activeFilterValue);
+    }
+
+    // Sort by Name, Code, or Status
+    if (activeFilter && activeFilterValue) {
+      const keyMap = {
+        Name: config.nameField,
+        "Code No.": config.idField,
+        Status: config.statusField,
+      };
+
+      const sortKey = keyMap[activeFilter];
+      if (sortKey) {
+        result.sort((a, b) => {
+          const valA = a[sortKey]?.toString().toLowerCase() ?? "";
+          const valB = b[sortKey]?.toString().toLowerCase() ?? "";
+
+          if (activeFilterValue === "Ascending") {
+            return valA > valB ? 1 : -1;
+          } else if (activeFilterValue === "Descending") {
+            return valA < valB ? 1 : -1;
+          }
+          return 0;
+        });
+      }
+    }
+
+    return result;
+    })();
 
   // For status dropdown
   const [statusOptions, setStatusOptions] = useState([]);
@@ -329,7 +364,7 @@ export default function ConfigurationsPage() {
                               <DropdownMenuTrigger asChild>
                                 <Button variant="outline" className="flex items-center space-x-2">
                                   <ListFilter className="w-4 h-4" />
-                                  <span>Filter</span>
+                                  <span>Filter/Sort</span>
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="start">
