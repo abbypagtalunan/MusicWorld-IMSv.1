@@ -1,87 +1,140 @@
-// controllers/returnsController.js
+// controllers/returnController.js
 
-const returnModel = require('../models/returnsModel');
-const { getOrCreateReturnTypeId } = require('./returnTypeController');
-const db = require('../../db'); // Import central DB connection
+const db = require('../../db');
 
-// Route to fetch all active returns
-const getAllReturns = (req, res) => {
-  returnModel.getAllActiveReturns((err, results) => {
-    if (err) {
-      console.error('Error fetching data from database:', err);
-      res.status(500).json({ error: 'Error fetching data' });
-    } else {
-      res.json(results);
-    }
+// Helper function to get supplier ID by name
+const getSupplierIdByName = (supplierName, callback) => {
+  const query = 'SELECT S_supplierID FROM Suppliers WHERE S_supplierName = ?';
+  db.query(query, [supplierName], (err, results) => {
+    if (err) return callback(err, null);
+    if (results.length === 0) return callback(new Error(`Supplier "${supplierName}" not found`), null);
+    callback(null, results[0].S_supplierID);
   });
 };
 
-// Route to add a new return
-const addReturn = (req, res) => {
-  const {
-    P_productCode,
-    returnTypeDescription,
-    R_reasonOfReturn,
-    R_dateOfReturn,
-    R_returnQuantity,
-    R_discountAmount,
-    D_deliveryNumber,
-    S_supplierID
-  } = req.body;
+// Route to fetch all active returns
+const getAllReturns = (req, res) => {
+  const query = `
+    SELECT 
+      R_returnID,
+      P_productCode,
+      R_returnTypeID,
+      R_reasonOfReturn,
+      R_dateOfReturn,
+      R_returnQuantity,
+      R_discountAmount,
+      R_TotalPrice,
+      D_deliveryNumber,
+      S_supplierID
+    FROM Returns
+    WHERE isTemporarilyDeleted = 0;
+  `;
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error('Error fetching data from database:', err);
+      return res.status(500).json({ error: 'Error fetching data' });
+    }
+    res.json(results);
+  });
+};
 
-  // Validate required fields
-  if (!P_productCode || !returnTypeDescription || !R_reasonOfReturn || !R_dateOfReturn || !R_returnQuantity || !D_deliveryNumber || !S_supplierID) {
-    return res.status(400).json({ message: 'Missing required fields' });
+// Route to add new returns (batch insert)
+const addReturn = (req, res) => {
+  const { returnItems } = req.body;
+
+  if (!Array.isArray(returnItems) || returnItems.length === 0) {
+    return res.status(400).json({ message: 'No return items provided' });
   }
 
-  // Get or create return type ID
-  getOrCreateReturnTypeId(returnTypeDescription, (err, RT_returnTypeID) => {
-    if (err) {
-      console.error('Error getting or creating return type:', err);
-      return res.status(500).json({ message: 'Error processing return type' });
+  // Validate required fields
+  for (let item of returnItems) {
+    const {
+      P_productCode,
+      R_returnTypeID,
+      R_reasonOfReturn,
+      R_dateOfReturn,
+      R_returnQuantity,
+      R_TotalPrice,
+      D_deliveryNumber,
+      S_supplierName
+    } = item;
+
+    if (
+      !P_productCode ||
+      !R_returnTypeID ||
+      !R_reasonOfReturn ||
+      !R_dateOfReturn ||
+      !R_returnQuantity ||
+      !R_TotalPrice ||
+      !D_deliveryNumber ||
+      !S_supplierName
+    ) {
+      return res.status(400).json({
+        message: 'Missing required fields in one or more return items'
+      });
+    }
+  }
+
+  // Process each item to resolve supplier name → supplier ID
+  const processReturnItems = async () => {
+    const values = [];
+    const placeholders = [];
+
+    for (let item of returnItems) {
+      try {
+        const supplierId = await new Promise((resolve, reject) => {
+          getSupplierIdByName(item.S_supplierName, (err, id) => {
+            if (err) reject(err);
+            else resolve(id);
+          });
+        });
+
+        values.push(
+          item.P_productCode,
+          item.R_returnTypeID,
+          item.R_reasonOfReturn,
+          item.R_dateOfReturn,
+          item.R_returnQuantity,
+          item.R_discountAmount || 0,
+          item.R_TotalPrice,
+          item.D_deliveryNumber,
+          supplierId
+        );
+
+        placeholders.push('(?, ?, ?, ?, ?, ?, ?, ?, ?)');
+      } catch (error) {
+        return res.status(400).json({ message: error.message });
+      }
     }
 
-    // Fetch product price using existing model method
-    const getProductPrice = (callback) => {
-      const query = 'SELECT P_sellingPrice FROM Products WHERE P_productCode = ?';
-      db.query(query, [P_productCode], (err, results) => {
-        if (err) return callback(err);
-        if (results.length === 0) return callback(new Error('Product not found'));
-        callback(null, results[0].P_sellingPrice);
-      });
-    };
+    const insertQuery = `
+      INSERT INTO Returns (
+        P_productCode,
+        R_returnTypeID,
+        R_reasonOfReturn,
+        R_dateOfReturn,
+        R_returnQuantity,
+        R_discountAmount,
+        R_TotalPrice,
+        D_deliveryNumber,
+        S_supplierID
+      ) VALUES ${placeholders.join(',')}
+    `;
 
-    getProductPrice((err, productPrice) => {
+    db.query(insertQuery, values, (err, results) => {
       if (err) {
-        console.error('Error fetching product price:', err);
-        return res.status(500).json({ message: 'Error calculating total price' });
+        console.error('Error inserting returns:', err);
+        return res.status(500).json({ message: 'Error inserting returns' });
       }
-
-      const baseTotal = productPrice * R_returnQuantity;
-      const discountedTotal = baseTotal * (1 - (R_discountAmount || 0) / 100);
-
-      returnModel.addReturn(
-        {
-          P_productCode,
-          R_returnTypeID: RT_returnTypeID,
-          R_reasonOfReturn,
-          R_dateOfReturn,
-          R_returnQuantity,
-          R_discountAmount: R_discountAmount || 0,
-          R_TotalPrice: discountedTotal,
-          D_deliveryNumber,
-          S_supplierID
-        },
-        (err, results) => {
-          if (err) {
-            console.error('Error inserting return:', err);
-            return res.status(500).json({ message: 'Error inserting return' });
-          }
-          res.status(201).json({ message: 'Return added successfully', id: results.insertId });
-        }
-      );
+      res.status(201).json({
+        message: 'Returns added successfully',
+        insertId: results.insertId,
+        affectedRows: results.affectedRows
+      });
     });
-  });
+  };
+
+  processReturnItems();
 };
 
 // Route to update a return record
@@ -120,25 +173,39 @@ const updateReturn = (req, res) => {
     const baseTotal = productPrice * R_returnQuantity;
     const discountedTotal = baseTotal * (1 - (R_discountAmount || 0) / 100);
 
-    returnModel.updateReturn(
-      returnID,
-      {
+    const updateQuery = `
+      UPDATE Returns SET
+        P_productCode = ?,
+        R_returnTypeID = ?,
+        R_reasonOfReturn = ?,
+        R_dateOfReturn = ?,
+        R_returnQuantity = ?,
+        R_discountAmount = ?,
+        R_TotalPrice = ?,
+        D_deliveryNumber = ?,
+        S_supplierID = ?
+      WHERE R_returnID = ?
+    `;
+
+    db.query(
+      updateQuery,
+      [
         P_productCode,
         R_returnTypeID,
         R_reasonOfReturn,
         R_dateOfReturn,
         R_returnQuantity,
-        R_discountAmount: R_discountAmount || 0,
-        R_TotalPrice: discountedTotal,
+        R_discountAmount,
+        discountedTotal,
         D_deliveryNumber,
-        S_supplierID
-      },
+        S_supplierID,
+        returnID
+      ],
       (err, results) => {
         if (err) {
           console.error('Error updating return:', err);
           return res.status(500).json({ message: 'Error updating return' });
         }
-
         if (results.affectedRows === 0) {
           return res.status(404).json({ message: 'Return not found' });
         }
@@ -157,12 +224,7 @@ const deleteReturn = (req, res) => {
     return res.status(400).json({ message: "Password is required" });
   }
 
-  // Check if an admin with that password exists
-  const query = `
-    SELECT * FROM UserAccounts 
-    WHERE roleID = 1 AND password = ?
-  `;
-
+  const query = `SELECT * FROM UserAccounts WHERE roleID = 1 AND password = ?`;
   db.query(query, [adminPW], (err, results) => {
     if (err) {
       console.error('Error checking admin credentials:', err);
@@ -173,8 +235,8 @@ const deleteReturn = (req, res) => {
       return res.status(403).json({ message: "Invalid admin credentials" });
     }
 
-    // Admin validated — proceed to delete return
-    returnModel.softDeleteReturn(returnID, (err, results) => {
+    const softDeleteQuery = `UPDATE Returns SET isTemporarilyDeleted = 1 WHERE R_returnID = ?`;
+    db.query(softDeleteQuery, [returnID], (err, results) => {
       if (err) {
         console.error('Error soft-deleting return:', err);
         return res.status(500).json({ message: 'Error deleting return' });

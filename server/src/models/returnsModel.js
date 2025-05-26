@@ -1,5 +1,3 @@
-// models/returnsModel.js
-
 const db = require('../../db');
 
 // Get all active returns (not temporarily deleted)
@@ -29,31 +27,24 @@ const getAllActiveReturns = (callback) => {
   });
 };
 
-// Add a new return
-const addReturn = (returnData, callback) => {
-  const {
-    P_productCode,
-    R_returnTypeID,
-    R_reasonOfReturn,
-    R_dateOfReturn,
-    R_returnQuantity,
-    R_discountAmount,
-    R_TotalPrice,
-    D_deliveryNumber,
-    S_supplierID
-  } = returnData;
+// Add multiple returns at once
+const addReturn = (returnItems, callback) => {
+  const values = returnItems.flatMap(item => [
+    item.P_productCode,
+    item.R_returnTypeID,
+    item.R_reasonOfReturn,
+    item.R_dateOfReturn,
+    item.R_returnQuantity,
+    item.R_discountAmount || 0,
+    item.R_TotalPrice,
+    item.D_deliveryNumber,
+    item.S_supplierID
+  ]);
 
-  const insertReturnQuery = `
+  const placeholders = returnItems.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
+
+  const insertQuery = `
     INSERT INTO Returns (
-      P_productCode, R_returnTypeID, R_reasonOfReturn, R_dateOfReturn,
-      R_returnQuantity, R_discountAmount, R_TotalPrice, D_deliveryNumber, S_supplierID
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `;
-
-  db.query(
-    insertReturnQuery,
-    [
       P_productCode,
       R_returnTypeID,
       R_reasonOfReturn,
@@ -63,12 +54,13 @@ const addReturn = (returnData, callback) => {
       R_TotalPrice,
       D_deliveryNumber,
       S_supplierID
-    ],
-    (err, results) => {
-      if (err) return callback(err);
-      callback(null, results);
-    }
-  );
+    ) VALUES ${placeholders}
+  `;
+
+  db.query(insertQuery, values, (err, results) => {
+    if (err) return callback(err);
+    callback(null, results);
+  });
 };
 
 // Update an existing return
