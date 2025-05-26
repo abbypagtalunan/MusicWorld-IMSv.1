@@ -1,5 +1,4 @@
 "use client";
-
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
@@ -10,7 +9,6 @@ import {
 import { 
   Table, TableBody, TableHead, TableHeader, TableRow, TableCell 
 } from "@/components/ui/table";
-
 import {
     Card,
     CardContent,
@@ -18,8 +16,10 @@ import {
     CardTitle,
 } from "@/components/ui/card"
 
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose, } from "@/components/ui/dialog";
-
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { ChevronDown, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +40,10 @@ export default function BatchDeliveriesPage() {
   const [deliveryDate, setDeliveryDate] = useState("");
   const [loading, setLoading] = useState(true);
   const [selectedSupplier, setSelectedSupplier] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [openProduct, setOpenProduct] = useState(false);
+  const [orderQuantity, setOrderQuantity] = useState(1);
+  const [unitPrice, setUnitPrice] = useState('');
   
   // State for payment details
   const [paymentTypes, setPaymentTypes] = useState([]);
@@ -678,6 +682,37 @@ export default function BatchDeliveriesPage() {
   };
   const todayDate = getTodayDate();
 
+  // NEW PRODUCT SEARCH
+  useEffect(() => {
+        fetchProductsCombobox();
+      }, []);
+  
+    const fetchProductsCombobox = async () => {
+      try {
+        const res = await axios.get("http://localhost:8080/products");
+        const mappedProducts = res.data.map((p) => ({
+          code: p.P_productCode,
+          name: p.P_productName,
+          brand: p.brand,
+          supplier: p.supplier,
+          price: p.P_sellingPrice,
+          unitPrice: p.P_unitPrice,
+          stock: p.stock,
+          label: `${p.P_productName} - S${p.supplier} - B${p.brand}`,
+        }));
+        setProducts(mappedProducts);
+        console.log("Products fetched and mapped for product chooser.");
+      } catch (err) {
+        console.error("Failed to fetch products for product chooser:", err);
+      }
+    };
+
+  const handleProductSelect = (product) => {
+    setSelectedProduct(product);
+    setOpenProduct(false);
+  };
+  
+
   return (
     <MinimumScreenGuard>
     <SidebarProvider>
@@ -798,8 +833,127 @@ export default function BatchDeliveriesPage() {
               </CardHeader>
               <CardContent className="p-4 flex flex-col flex-1 justify-between">
                 <div className="space-y-3">
-                  <div>
-                    <Label htmlFor="supplier">Supplier</Label>
+                  
+                  <div className="mb-3">
+                  <label className="block mb-1 text-sm">Product</label>
+                  <Popover open={openProduct} onOpenChange={setOpenProduct}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={openProduct}
+                        className="w-full justify-between"
+                      >
+                        {selectedProduct ? selectedProduct.label : "Select product..."}
+                        <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+
+                    <PopoverContent className="w-full p-0">
+                      <Command>
+                        <div className="sticky top-0 z-10 bg-white p-2 border-b">
+                          <CommandInput placeholder="Search product..." />
+                        </div>
+                        <CommandEmpty className="p-2 text-sm text-gray-500">
+                          No product found.
+                        </CommandEmpty>
+                        <div className="max-h-60 overflow-y-auto">
+                          <CommandGroup>
+                            {products.map((product) => (
+                              <CommandItem
+                                key={product.code}
+                                value={product.label}
+                                onSelect={() => {
+                                  handleProductSelect(product);
+                                  setOpenProduct(false);
+                                }}
+                                className={cn(
+                                  product.stock === 0 && "bg-gray-200 text-gray-400",
+                                  "cursor-default flex items-start flex-col gap-0.5"
+                                )}
+                              >
+                                <div className="flex items-center w-full">
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      selectedProduct?.code === product.code ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  <span className="font-medium">{product.label}</span>
+                                </div>
+                                <span className="text-xs text-gray-500 ml-6"> Stock: {product.stock}</span>
+                                <span className="text-xs text-gray-500 ml-6"> Price: {product.price}</span>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </div>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+
+
+              <div className="mb-3 mt-3">
+                <label className="block text-sm">Supplier</label>
+                  <input
+                    type="text"
+                    value={selectedProduct?.supplier}
+                    disabled
+                    className="w-full pl-6 border border-gray-300 rounded-md px-3 py-2 text-sm bg-gray-100 text-gray-500"
+                  />
+              </div>
+
+              <div className="mb-3">
+                <label className="block text-sm">Brand</label>
+                  <input
+                    type="text"
+                    value={selectedProduct?.brand}
+                    disabled
+                    className="w-full pl-6 border border-gray-300 rounded-md px-3 py-2 text-sm bg-gray-100 text-gray-500"
+                  />
+              </div>
+
+              <div className="mb-3">
+                <label className="block text-sm">Unit Price</label>
+                <input
+                  type="text"
+                  value={unitPrice}
+                  onChange={(e) => {
+                    const value = e.target.value;
+
+                    // Allow only numbers with optional one dot and up to 2 decimals
+                    if (/^\d*\.?\d{0,2}$/.test(value)) {
+                      setUnitPrice(value);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    const invalidKeys = ['e', '+', '-', '='];
+                    if (invalidKeys.includes(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
+                  className="w-full border rounded-md px-5 py-2 text-sm"
+                  placeholder="0.00"
+                />
+              </div>
+
+            <div className="mb-3">
+              <label className="block text-sm">Quantity</label>
+              <input
+                type="number"
+                value={orderQuantity}
+                min={1}
+                onChange={(e) => setOrderQuantity(e.target.value)} // <- this is key
+                onKeyDown={(e) => {
+                  if (e.key === '.' || e.key === '-' || e.key === 'e' || e.key === '+') {
+                    e.preventDefault();
+                  }
+                }}
+                className="w-full border rounded-md px-5 py-2 text-sm"
+              />
+
+            </div>
+
+                    {/* <Label htmlFor="supplier">Supplier</Label>
                     <Select 
                       value={newProduct.supplier} 
                       onValueChange={(value) => handleInputChange('supplier', value)}
@@ -965,14 +1119,18 @@ export default function BatchDeliveriesPage() {
                         const sanitized = digitsOnly.replace(/^0+/, '');
                         handleInputChange('quantity', sanitized);
                       }}
-                    />
-                  </div>
+                    />*/}
+                  </div> 
                   
                   <div className="flex justify-center mt-6">
                     <Button 
-                      className="w-2/3 bg-blue-400 text-white"
+                      className={`w-full mt-4 py-2 rounded-md text-white 
+                        ${!selectedProduct || !unitPrice || loading
+                          ? "bg-gray-400 cursor-not-allowed"
+                          : "bg-blue-400 hover:bg-blue-700"
+                        }`}
                       onClick={handleAddProduct}
-                      disabled={loading}
+                      disabled={!selectedProduct || !unitPrice || loading}
                     >
                       ADD PRODUCT
                     </Button>
