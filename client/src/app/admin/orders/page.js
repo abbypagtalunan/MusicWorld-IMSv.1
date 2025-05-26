@@ -548,14 +548,14 @@ Object.entries(amountRanges).forEach(([key, range]) => {
       <div className="flex h-screen overflow-hidden">
         <AppSidebar />
         <div className="flex-1 p-4 flex flex-col overflow-x-hidden">
-          <div className="flex items-center justify-between mb-4 bg-white shadow-sm p-4 rounded-lg">
-            <div className="flex items-center space-x-2">
-              <div className="relative w-80">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 mb-4 bg-white shadow-sm p-4 rounded-lg">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative w-full sm:w-64">
                 {/* Search */}
                 <Input
                   type="text"
                   placeholder="Search order id, receipt number"
-                  className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -563,10 +563,10 @@ Object.entries(amountRanges).forEach(([key, range]) => {
                   <Search className="w-5 h-5" />
                 </div>
               </div>
-              <div className="flex items-center space-x-2">
+              
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="flex items-center space-x-2">
+                    <Button variant="outline" className="flex items-center gap-2">
                       <ListFilter className="w-4 h-4" />
                       <span>Filter</span>
                     </Button>
@@ -816,7 +816,7 @@ Object.entries(amountRanges).forEach(([key, range]) => {
                     <Button
                       variant="outline"
                       className={cn(
-                        "w-[180px] flex items-center justify-between px-3 py-2 border rounded-md font-normal",
+                        "flex items-center gap-2 w-[150px] border rounded-md font-normal",
                         !fromDate && "text-muted-foreground"
                       )}
                     >
@@ -850,7 +850,7 @@ Object.entries(amountRanges).forEach(([key, range]) => {
                     <Button
                       variant="outline"
                       className={cn(
-                        "w-[180px] flex items-center justify-between px-3 py-2 border rounded-md font-normal",
+                        "flex items-center gap-2 w-[150px] border rounded-md font-normal",
                         !toDate && "text-muted-foreground"
                       )}
                     >
@@ -888,14 +888,14 @@ Object.entries(amountRanges).forEach(([key, range]) => {
                       }}
                       className="text-sm border-gray-300 hover:text-red-600 "
                     >
-                      <RotateCcw className="w-4 h-4" />
+                      <RotateCcw className="w-4 h-4 mr-1" />
                         <span>Reset Date</span>
                   </Button>
                 </div>
-                </div>
+
 
               {/* DOWNLOAD */}
-            <div className="flex space-x-2">
+             <div className="flex justify-end">
               <Dialog open={isDownloadConfirmOpen} onOpenChange={(open) => {
                 setDownloadConfirmOpen(open);
               }}>
