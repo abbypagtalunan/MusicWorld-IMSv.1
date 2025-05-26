@@ -577,16 +577,20 @@ const OrderDashboard = () => {
                                 }}
                                 className={cn(
                                   product.stock === 0 && "bg-gray-200 text-gray-400",
-                                  "cursor-default"
+                                  "cursor-default flex items-start flex-col gap-0.5"
                                 )}
                               >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    selectedProduct?.code === product.code ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                {product.label}
+                                <div className="flex items-center w-full">
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      selectedProduct?.code === product.code ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  <span className="font-medium">{product.label}</span>
+                                </div>
+                                <span className="text-xs text-gray-500 ml-6"> Stock: {product.stock}</span>
+                                <span className="text-xs text-gray-500 ml-6"> Price: {product.price}</span>
                               </CommandItem>
                             ))}
                           </CommandGroup>
