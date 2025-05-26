@@ -545,33 +545,43 @@ const handleEdit = (row) => {
                         variant="outline"
                         role="combobox"
                         aria-expanded={openProduct}
-                        className="w-full justify-between">
+                        className="w-full justify-between"
+                      >
                         {selectedProduct ? selectedProduct.label : "Select product..."}
                         <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
+
                     <PopoverContent className="w-full p-0">
                       <Command>
-                        <CommandInput placeholder="Search product..." />
-                        <CommandEmpty>No product found.</CommandEmpty>
-                        <CommandGroup>
-                          {products.map((product) => (
-                            <CommandItem
-                              key={product.code}
-                              value={product.label} 
-                              onSelect={() => {
-                                handleProductSelect(product); 
-                                setOpenProduct(false);
-                              }}>
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  selectedProduct?.code === product.code ? "opacity-100" : "opacity-0"
-                                )}/>
-                              {product.label}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
+                        <div className="sticky top-0 z-10 bg-white p-2 border-b">
+                          <CommandInput placeholder="Search product..." />
+                        </div>
+                        <CommandEmpty className="p-2 text-sm text-gray-500">
+                          No product found.
+                        </CommandEmpty>
+                        <div className="max-h-60 overflow-y-auto">
+                          <CommandGroup>
+                            {products.map((product) => (
+                              <CommandItem
+                                key={product.code}
+                                value={product.label}
+                                onSelect={() => {
+                                  handleProductSelect(product);
+                                  setOpenProduct(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    selectedProduct?.code === product.code ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {product.label}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </div>
                       </Command>
                     </PopoverContent>
                   </Popover>
@@ -824,6 +834,8 @@ const handleEdit = (row) => {
             <form className="text-[15px] space-y-2">
               <div className="text-left">
                 <label className="block mb-1 text-sm">Product</label>
+                
+                
                 <Popover open={openFreebie} onOpenChange={setOpenFreebie}>
                   <PopoverTrigger asChild>
                     <Button variant="outline" role="combobox" aria-expanded={openFreebie} className="w-full justify-between">
@@ -833,9 +845,13 @@ const handleEdit = (row) => {
                   </PopoverTrigger>
                   <PopoverContent className="w-full p-0">
                     <Command>
-                      <CommandInput placeholder="Search product..." />
+                      <div className="sticky top-0 z-10 bg-white p-2 border-b">
+                          <CommandInput placeholder="Search freebie..." />
+                        </div>
                       <CommandEmpty>No freebie found.</CommandEmpty>
+                      
                       {/* SHOW PRODUCT ONLY QUANTITY > 0 */}
+                      <div className="max-h-60 overflow-y-auto">
                       <CommandGroup>
                       {products
                         .filter(product => product.stock > 0)
@@ -850,6 +866,7 @@ const handleEdit = (row) => {
                           </CommandItem>
                       ))}
                     </CommandGroup>
+                    </div>
                     </Command>
                   </PopoverContent>
                 </Popover>
