@@ -821,7 +821,7 @@ Object.entries(amountRanges).forEach(([key, range]) => {
                       )}
                     >
                       <CalendarDays className="mr-2 h-4 w-4" />
-                      {fromDate ? format(fromDate, "PPP") : <span>From</span>}
+                      {fromDate ? format(fromDate, "MMM dd, yyyy") : <span>From</span>}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -855,7 +855,7 @@ Object.entries(amountRanges).forEach(([key, range]) => {
                       )}
                     >
                       <CalendarDays className="mr-2 h-4 w-4" />
-                      {toDate ? format(toDate, "PPP") : <span>To</span>}
+                      {toDate ? format(toDate, "MMM dd, yyyy") : <span>To</span>}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
