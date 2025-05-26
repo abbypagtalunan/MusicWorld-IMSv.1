@@ -6,7 +6,7 @@ import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
-import { Search, ListFilter, Trash2, Eye, CalendarDays, ChevronsUpDown, ChevronUp, ChevronDown, RotateCcw } from "lucide-react";
+import { Search, ListFilter, Trash2, Eye, CalendarDays, ChevronsUpDown, ChevronUp, ChevronDown, RotateCcw, EyeOff } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -35,6 +35,9 @@ export default function OrdersPage() {
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [orderDetails, setOrderDetails] = useState([]);
   const [selectedOrderID, setSelectedOrderID] = useState(null);
+
+  // Eye Toggle
+  const [showPassword, setShowPassword] = useState(false);
 
   // Add the missing handleFilterSelect function
   const handleFilterSelect = (filter, subFilter) => {
@@ -829,14 +832,27 @@ export default function OrdersPage() {
                     <label className="text-base font-medium text-gray-700 block mb-2">
                       Admin Password
                     </label>
+                    <div className="relative w-full">
                     <Input
-                      type="password"
+                       type={showPassword ? "text" : "password"}
                       required
                       placeholder="Enter valid password"
                       className="w-full"
                       value={adminPW}
                       onChange={(e) => setAdminPW(e.target.value)}
-                    />
+                    /> <button
+                          type="button"
+                          onClick={() => setShowPassword((prev) => !prev)}
+                          className="absolute inset-y-0 right-3 flex items-center text-gray-500"
+                          tabIndex={-1}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="w-5 h-5" />
+                          ) : (
+                            <Eye className="w-5 h-5" />
+                          )}
+                        </button>
+                    </div>
                   </div>
 
                   <Button
