@@ -512,20 +512,19 @@ const handleDownloadCSV = (data) => {
         setSelectedTransactions([]);
       })
       .catch(err => {
-        console.error("Delete error:", {
-          message: err.message,
-          response: err.response,
-          data: err.response?.data,
-          status: err.response?.status
-        });
+        const serverMessage = err.response?.data?.message || 
+                            err.message || 
+                            "Unknown error occurred";
         
-        const msg =
-          err.response?.data?.message ||
-          err.response?.statusText ||
-          err.message ||
-          "Unknown error deleting transaction";
-        
-        toast.error(msg);
+        const isReferenceError = serverMessage.includes('referenced') || 
+                               serverMessage.includes('foreign key') || 
+                               err.response?.status === 409;
+  
+        const userMessage = isReferenceError
+          ? "Cannot delete: Item is referenced in another transaction"
+          : `Cannot delete: Product is referenced in another transaction`;
+  
+        toast.error(userMessage);
         setMDDOpen(false);
         setAdminPW("");
         setSelectedTransactions([]);
@@ -555,8 +554,20 @@ const handleDownloadCSV = (data) => {
         setMDDOpen(false);
         setSelectedTransactions([]);
       })
-      .catch(() => { 
-        toast.error("Error deleting selected products.");
+      .catch(() => {
+        const serverMessage = err.response?.data?.message || 
+                            err.message || 
+                            "Unknown error occurred";
+        
+        const isReferenceError = serverMessage.includes('referenced') || 
+                               serverMessage.includes('foreign key') || 
+                               err.response?.status === 409;
+  
+        const userMessage = isReferenceError
+          ? "Cannot delete: One or more items are referenced in other transactions"
+          : `Cannot delete: A selected Product is referenced in another transaction`;
+  
+        toast.error(userMessage);
         setMDDOpen(false);
         setSelectedTransactions([]);
       });

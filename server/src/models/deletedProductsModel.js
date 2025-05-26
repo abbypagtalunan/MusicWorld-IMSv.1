@@ -52,7 +52,15 @@ const deletePermanently = (productCode, callback) => {
   const query = `DELETE FROM Products WHERE P_productCode = ?`;
 
   db.query(query, [productCode], (err, results) => {
-    if (err) return callback(err);
+    if (err) {
+      if (err.code === 'ER_ROW_IS_REFERENCED_2') {
+        return callback({
+          status: 409,
+          message: 'Product is referenced in another transaction.',
+        }, null);
+      }
+      return callback(err);
+    }
     callback(null, results);
   });  
 };
