@@ -55,6 +55,7 @@ import { ListFilter } from "lucide-react";
 import { AppSidebar } from "@/components/admin-sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { toast, Toaster } from "react-hot-toast";
+import MinimumScreenGuard from "@/components/MinimumScreenGuard";
 
 export default function ManageAccountsPage() {
   const router = useRouter();
@@ -471,17 +472,18 @@ export default function ManageAccountsPage() {
   }
 
   return (
+  <MinimumScreenGuard>
     <SidebarProvider>
-      <div className="flex h-screen w-screen">
+      <div className="flex h-screen w-screen overflow-hidden">
         <AppSidebar />
-        <div className="flex-1 p-4 flex flex-col overflow-hidden">
+        <div className="flex-1 p-4 flex flex-col overflow-x-hidden">
           <div className="z-10 sticky top-0 mb-4 bg-blue-950 p-4 rounded-sm">
             <h1 className="text-2xl text-blue-50 font-bold">Manage Accounts</h1>
           </div>
           <Tabs
             defaultValue="my-account"
             onValueChange={setActiveTab}
-            className="flex-1 flex flex-col overflow-hidden"
+            className="flex-1 flex flex-col overflow-scroll"
           >
             {/* TAB LIST */}
             <div className="w-full z-10 sticky">
@@ -1144,5 +1146,6 @@ export default function ManageAccountsPage() {
       </Dialog>
       <Toaster />
     </SidebarProvider>
+    </MinimumScreenGuard>
   );
 }
