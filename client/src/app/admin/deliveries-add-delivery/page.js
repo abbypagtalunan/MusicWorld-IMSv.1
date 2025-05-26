@@ -24,7 +24,7 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
-import { X, Trash2, Undo2, Filter } from "lucide-react";
+import { Trash2, Undo2, FilePen } from "lucide-react";
 import { toast, Toaster } from "react-hot-toast";
 import MinimumScreenGuard from "@/components/MinimumScreenGuard";
 
@@ -40,10 +40,19 @@ export default function BatchDeliveriesPage() {
   const [deliveryDate, setDeliveryDate] = useState("");
   const [loading, setLoading] = useState(true);
   const [selectedSupplier, setSelectedSupplier] = useState("");
+
+  const [data, setData] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [openProduct, setOpenProduct] = useState(false);
-  const [orderQuantity, setOrderQuantity] = useState(1);
+  const [quantity, setQuantity] = useState(1);
   const [unitPrice, setUnitPrice] = useState('');
+  const [isEditMode, setIsEditMode] = useState(false);
+  const computedTotal = (() => {
+  const price = parseFloat(unitPrice) || 0;
+  const qty = parseInt(quantity) || 0;
+  return (price * qty).toFixed(2);
+})();
+
   
   // State for payment details
   const [paymentTypes, setPaymentTypes] = useState([]);
@@ -78,6 +87,60 @@ export default function BatchDeliveriesPage() {
     unitPrice: "",
     quantity: ""
   });
+
+    // Add new product to the list
+  const handleAddProduct = () => {
+    // Create new product object
+    const productToAdd = {
+      productCode: selectedProduct.code,
+      supplier: selectedProduct.supplier,
+      brand: selectedProduct.brand,
+      product: selectedProduct.name,
+      quantity: quantity,
+      unitPrice: unitPrice,
+      total: computedTotal
+    };
+
+    let updatedData = [];
+    if (isEditMode) {
+      updatedData = data.map((item) =>
+        item["Product Code"] === selectedProduct.code
+          ? { ...item, ...productToAdd }
+          : item
+      );
+    } else {
+      updatedData = [...data, productToAdd];
+    }
+    setData(updatedData);
+
+    // Add to product items list
+    setProductItems([...productItems, productToAdd]);    
+    toast.success("Product added to delivery");
+
+    // Reset form
+    setSelectedProduct(null);
+    setQuantity(1);
+    setIsEditMode(false);
+    setUnitPrice(' ')
+  };
+
+const handleEditProduct = (row) => {
+  const {
+    productCode: code,
+    quantity,
+    unitPrice
+  } = row;
+
+  const matchedProduct = products.find((p) => p.code === code);
+  if (!matchedProduct) return;
+
+  // Autofill fields
+  setSelectedProduct(matchedProduct);
+  setQuantity(quantity);
+  setUnitPrice(unitPrice);
+  setIsEditMode(true);
+};
+
 
   // API endpoints
   const API_CONFIG = {
@@ -297,105 +360,6 @@ export default function BatchDeliveriesPage() {
     
     // Return the next code
     return (maxCode + 1).toString();
-  };
-
-  // Add new product to the list
-  const handleAddProduct = () => {
-    // Validate form inputs
-    // 1) Supplier
-    if (!newProduct.supplier) {
-      toast.error("Supplier field is empty");
-      return;
-    }
-    // 2) Brand
-    if (!newProduct.brand) {
-      toast.error("Brand field is empty");
-      return;
-    }
-    // 3) Product name
-    if (!newProduct.product) {
-      toast.error("Product name field is empty");
-      return;
-    }
-    // 4) Unit price
-    if (!newProduct.unitPrice) {
-      toast.error("Unit price field is empty");
-      return;
-    }
-    
-    // 5) Quantity field must not be empty
-    if (!newProduct.quantity) {
-      toast.error("Quantity field is empty");
-      return;
-    }
-    
-    // 6) Quantity must be a non‐zero positive integer (1,2,3…)
-    if (!/^[1-9]\d*$/.test(newProduct.quantity)) {
-      toast.error("Quantity is not a positive integer");
-      return;
-    }
-
-    // Find the selected product in the products array
-    const selectedProduct = products.find(p => p.P_productName === newProduct.product);
-    
-    if (!selectedProduct) {
-      toast.error("Product not found");
-      return;
-    }
-    
-    // Find the selected brand
-    const selectedBrand = brands.find(b => b.B_brandName === newProduct.brand);
-    
-    if (!selectedBrand) {
-      toast.error("Brand not found");
-      return;
-    }
-    
-    // Find the expected brand for this product
-    const productBrand = brands.find(b => b.B_brandID === selectedProduct.B_brandID);
-    
-    // Only check supplier match since we have an issue with product's brand ID
-    if (String(selectedProduct.S_supplierID) !== String(newProduct.supplier)) {
-      toast.error("Product with the given supplier not found");
-      return;
-    }
-    
-    // Check if selected brand name matches the product's expected brand name
-    if (productBrand && productBrand.B_brandName !== newProduct.brand) {
-      toast.error(`Product is associated with brand "${productBrand.B_brandName}", not "${newProduct.brand}"`);
-      return;
-    }
-
-    // Format the values
-    const quantity = `${newProduct.quantity} ${parseInt(newProduct.quantity) > 1 ? 'pcs' : 'pc'}`;
-    const unitPrice = parseInt(newProduct.unitPrice).toLocaleString();
-    const total = (parseInt(newProduct.unitPrice) * parseInt(newProduct.quantity)).toLocaleString();
-
-    // Create new product object
-    const productToAdd = {
-      productCode: selectedProduct.P_productCode || generateProductCode(),
-      supplier: suppliers.find(s => s.S_supplierID === newProduct.supplier)?.S_supplierName || newProduct.supplier,
-      supplierID: newProduct.supplier,
-      brand: newProduct.brand,
-      product: newProduct.product,
-      quantity: quantity,
-      unitPrice: unitPrice,
-      total: total
-    };
-
-    // Add to product items list
-    setProductItems([...productItems, productToAdd]);
-
-    // Clear form fields
-    setNewProduct({
-      product: "",
-      supplier: "",
-      brand: "",
-      unitPrice: "",
-      quantity: ""
-    });
-    
-    toast.success("Product added to delivery");
   };
 
   // Handle deleting a product from the list
@@ -710,9 +674,16 @@ export default function BatchDeliveriesPage() {
   const handleProductSelect = (product) => {
     setSelectedProduct(product);
     setOpenProduct(false);
+    setQuantity(1);
   };
-  
 
+  // Autofill unit price when product is selected
+  useEffect(() => {
+    if (selectedProduct?.unitPrice) {
+      setUnitPrice(selectedProduct.unitPrice.toString());
+    }
+  }, [selectedProduct]);
+  
   return (
     <MinimumScreenGuard>
     <SidebarProvider>
@@ -786,7 +757,7 @@ export default function BatchDeliveriesPage() {
                         <TableHead>Product</TableHead>
                         <TableHead>Quantity</TableHead>
                         <TableHead>Unit Price</TableHead>
-                        <TableHead>Total (QxUP)</TableHead>
+                        <TableHead>Total</TableHead>
                         <TableHead></TableHead>
                       </TableRow>
                     </TableHeader>
@@ -801,14 +772,24 @@ export default function BatchDeliveriesPage() {
                           <TableCell>{item.unitPrice}</TableCell>
                           <TableCell>{item.total}</TableCell>
                           <TableCell>
-                            {/* For cancelling a product */}
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="text-white bg-red-500 hover:text-red-800 hover:bg-red-300"
+                              className="text-gray-500 hover:text-red-800"
+                              onClick={() => handleEditProduct(item)}
+                            >
+                              <FilePen size={16} />
+                            </Button>
+                          </TableCell>
+
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-gray-500 hover:text-red-800"
                               onClick={() => handleCancelProduct(index)}
                             >
-                              <X size={16} />
+                              <Trash2 size={16} />
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -823,6 +804,15 @@ export default function BatchDeliveriesPage() {
                     </TableBody>
                   </Table>
                 </div>
+
+                <div className="flex justify-end gap-2 mt-6">
+                  <Button className="bg-green-600 text-white px-3 py-1.5 text-xs uppercase">
+                    Save Delivery
+                  </Button>
+                  <Button variant="outline" className="bg-gray-400 text-white px-3 py-1.5 text-xs uppercase">
+                    Delete Delivery
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
@@ -832,71 +822,79 @@ export default function BatchDeliveriesPage() {
                 <CardTitle className="text-center text-xl">Add Product to Delivery Batch</CardTitle>
               </CardHeader>
               <CardContent className="p-4 flex flex-col flex-1 justify-between">
-                <div className="space-y-3">
-                  
-                  <div className="mb-3">
-                  <label className="block mb-1 text-sm">Product</label>
-                  <Popover open={openProduct} onOpenChange={setOpenProduct}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={openProduct}
-                        className="w-full justify-between"
-                      >
-                        {selectedProduct ? selectedProduct.label : "Select product..."}
-                        <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
+              <div
+                onMouseLeave={() => {
+                  if (isEditMode) {
+                    setIsEditMode(false);
+                    setSelectedProduct(null);
+                    setQuantity(1);
+                    setIsEditMode(false);
+                    setUnitPrice(' ')
+                  }
+                }}
+              >
+              <div className="mb-3">
+              <label className="block mb-1 text-sm">Product</label>
+              <Popover open={openProduct} onOpenChange={setOpenProduct}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={openProduct}
+                    className="w-full justify-between"
+                  >
+                    {selectedProduct ? selectedProduct.label : "Select product..."}
+                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
 
-                    <PopoverContent className="w-full p-0">
-                      <Command>
-                        <div className="sticky top-0 z-10 bg-white p-2 border-b">
-                          <CommandInput placeholder="Search product..." />
-                        </div>
-                        <CommandEmpty className="p-2 text-sm text-gray-500">
-                          No product found.
-                        </CommandEmpty>
-                        <div className="max-h-60 overflow-y-auto">
-                          <CommandGroup>
-                            {products.map((product) => (
-                              <CommandItem
-                                key={product.code}
-                                value={product.label}
-                                onSelect={() => {
-                                  handleProductSelect(product);
-                                  setOpenProduct(false);
-                                }}
+                <PopoverContent className="w-full p-0">
+                  <Command>
+                    <div className="sticky top-0 z-10 bg-white p-2 border-b">
+                      <CommandInput placeholder="Search product..." />
+                    </div>
+                    <CommandEmpty className="p-2 text-sm text-gray-500">
+                      No product found.
+                    </CommandEmpty>
+                    <div className="max-h-60 overflow-y-auto">
+                      <CommandGroup>
+                        {products.map((product) => (
+                          <CommandItem
+                            key={product.code}
+                            value={product.label}
+                            onSelect={() => {
+                              handleProductSelect(product);
+                              setOpenProduct(false);
+                            }}
+                            className={cn(
+                              product.stock === 0 && "bg-gray-200 text-gray-400",
+                              "cursor-default flex items-start flex-col gap-0.5"
+                            )}
+                          >
+                            <div className="flex items-center w-full">
+                              <Check
                                 className={cn(
-                                  product.stock === 0 && "bg-gray-200 text-gray-400",
-                                  "cursor-default flex items-start flex-col gap-0.5"
+                                  "mr-2 h-4 w-4",
+                                  selectedProduct?.code === product.code ? "opacity-100" : "opacity-0"
                                 )}
-                              >
-                                <div className="flex items-center w-full">
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      selectedProduct?.code === product.code ? "opacity-100" : "opacity-0"
-                                    )}
-                                  />
-                                  <span className="font-medium">{product.label}</span>
-                                </div>
-                                <span className="text-xs text-gray-500 ml-6"> Stock: {product.stock}</span>
-                                <span className="text-xs text-gray-500 ml-6"> Price: {product.price}</span>
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </div>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-
+                              />
+                              <span className="font-medium">{product.label}</span>
+                            </div>
+                            <span className="text-xs text-gray-500 ml-6"> Stock: {product.stock}</span>
+                            <span className="text-xs text-gray-500 ml-6"> Unit Price: {product.unitPrice}</span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </div>
+                  </Command>
+                </PopoverContent>
+              </Popover>
 
               <div className="mb-3 mt-3">
                 <label className="block text-sm">Supplier</label>
                   <input
                     type="text"
-                    value={selectedProduct?.supplier}
+                    value={selectedProduct?.supplier || ''}
                     disabled
                     className="w-full pl-6 border border-gray-300 rounded-md px-3 py-2 text-sm bg-gray-100 text-gray-500"
                   />
@@ -906,7 +904,7 @@ export default function BatchDeliveriesPage() {
                 <label className="block text-sm">Brand</label>
                   <input
                     type="text"
-                    value={selectedProduct?.brand}
+                    value={selectedProduct?.brand || ''}
                     disabled
                     className="w-full pl-6 border border-gray-300 rounded-md px-3 py-2 text-sm bg-gray-100 text-gray-500"
                   />
@@ -914,35 +912,33 @@ export default function BatchDeliveriesPage() {
 
               <div className="mb-3">
                 <label className="block text-sm">Unit Price</label>
-                <input
-                  type="text"
-                  value={unitPrice}
-                  onChange={(e) => {
-                    const value = e.target.value;
-
-                    // Allow only numbers with optional one dot and up to 2 decimals
-                    if (/^\d*\.?\d{0,2}$/.test(value)) {
-                      setUnitPrice(value);
-                    }
-                  }}
-                  onKeyDown={(e) => {
-                    const invalidKeys = ['e', '+', '-', '='];
-                    if (invalidKeys.includes(e.key)) {
-                      e.preventDefault();
-                    }
-                  }}
-                  className="w-full border rounded-md px-5 py-2 text-sm"
-                  placeholder="0.00"
-                />
+                  <input
+                    type="text"
+                    value={unitPrice}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (/^\d*\.?\d{0,2}$/.test(value)) {
+                        setUnitPrice(value);
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      const invalidKeys = ['e', '+', '-', '='];
+                      if (invalidKeys.includes(e.key)) {
+                        e.preventDefault();
+                      }
+                    }}
+                    className="w-full border rounded-md px-5 py-2 text-sm"
+                    placeholder="0.00"
+                  />
               </div>
 
             <div className="mb-3">
               <label className="block text-sm">Quantity</label>
               <input
                 type="number"
-                value={orderQuantity}
+                value={quantity}
                 min={1}
-                onChange={(e) => setOrderQuantity(e.target.value)} // <- this is key
+                onChange={(e) => setQuantity(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === '.' || e.key === '-' || e.key === 'e' || e.key === '+') {
                     e.preventDefault();
@@ -950,195 +946,36 @@ export default function BatchDeliveriesPage() {
                 }}
                 className="w-full border rounded-md px-5 py-2 text-sm"
               />
-
             </div>
+          </div> 
 
-                    {/* <Label htmlFor="supplier">Supplier</Label>
-                    <Select 
-                      value={newProduct.supplier} 
-                      onValueChange={(value) => handleInputChange('supplier', value)}
-                    >
-                      <SelectTrigger id="supplier" className="mt-1">
-                        <SelectValue placeholder="Select supplier" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <div className="p-2">
-                          <Input
-                            placeholder="Search suppliers..."
-                            className="mb-2"
-                            id="supplierSearch"
-                            onChange={(e) => {
-                              const searchTerm = e.target.value;
-                              const results = handleSupplierSearch(searchTerm);
-                              // Hide/show options based on search results
-                              suppliers.forEach(supplier => {
-                                const element = document.getElementById(`supplier-${supplier.S_supplierID}`);
-                                if (element) {
-                                  element.style.display = results.some(s => s.S_supplierID === supplier.S_supplierID) ? 'block' : 'none';
-                                }
-                              });
-                            }}
-                          />
-                        </div>
-                        {suppliers.map(supplier => (
-                          <SelectItem 
-                            key={supplier.S_supplierID} 
-                            value={supplier.S_supplierID}
-                            id={`supplier-${supplier.S_supplierID}`}
-                          >
-                            {supplier.S_supplierName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                                 
-                  <div>
-                    <Label htmlFor="brand">Brand</Label>
-                    <Select 
-                      value={newProduct.brand} 
-                      onValueChange={(value) => handleInputChange('brand', value)}
-                    >
-                      <SelectTrigger id="brand" className="mt-1">
-                        <SelectValue placeholder="Select brand" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <div className="p-2">
-                          <Input
-                            placeholder="Search brands..."
-                            className="mb-2"
-                            id="brandSearch"
-                            onChange={(e) => {
-                              const searchTerm = e.target.value;
-                              const results = brands.filter(brand => 
-                                brand.B_brandName.toLowerCase().includes(searchTerm.toLowerCase())
-                              );
-                              // Hide/show options based on search results
-                              brands.forEach(brand => {
-                                const element = document.getElementById(`brand-${brand.B_brandID}`);
-                                if (element) {
-                                  element.style.display = results.some(b => b.B_brandID === brand.B_brandID) ? 'block' : 'none';
-                                }
-                              });
-                            }}
-                          />
-                        </div>
-                        {brands.map(brand => (
-                          <SelectItem 
-                            key={brand.B_brandID} 
-                            value={brand.B_brandName}
-                            id={`brand-${brand.B_brandID}`}
-                          >
-                            {brand.B_brandName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="productName">Product Name</Label>
-                    <Select 
-                      value={newProduct.product} 
-                      onValueChange={(value) => handleInputChange('product', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select product" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <div className="p-2">
-                          <Input
-                            placeholder="Search products..."
-                            className="mb-2"
-                            id="productSearch"
-                            onChange={(e) => {
-                              const searchTerm = e.target.value;
-                              const results = products.filter(product => 
-                                product.P_productName.toLowerCase().includes(searchTerm.toLowerCase())
-                              );
-                              // Hide/show options based on search results
-                              products.forEach(product => {
-                                const element = document.getElementById(`product-${product.P_productCode}`);
-                                if (element) {
-                                  element.style.display = results.some(p => p.P_productCode === product.P_productCode) ? 'block' : 'none';
-                                }
-                              });
-                            }}
-                          />
-                        </div>
-                        {products.map(product => (
-                          <SelectItem 
-                            key={product.P_productCode} 
-                            value={product.P_productName}
-                            id={`product-${product.P_productCode}`}
-                          >
-                            {product.P_productName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>   
-                  </div>
-                                    
-                  <div>
-                    <Label htmlFor="unitPrice">Unit Price</Label>
-                    <Input 
-                      id="unitPrice" 
-                      type="text" 
-                      placeholder="Enter unit price" 
-                      className="mt-1"
-                      value={newProduct.unitPrice}
-                      onChange={e => {
-                        let val = e.target.value;
-                        // 1) strip any non-digit/non-dot
-                        val = val.replace(/[^0-9.]/g, '');
-                        // 2) allow only one dot
-                        const parts = val.split('.');
-                        val = parts.shift() + (parts.length ? '.' + parts.join('') : '');
-                        // 3) remove leading zeros (but allow "0" or "0.xxx")
-                        val = val.replace(/^0+([1-9])/, '$1').replace(/^0+$/, '0');
-                        handleInputChange('unitPrice', val);
-                      }}
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="quantity">Quantity</Label>
-                    <Input 
-                      id="quantity" 
-                      type="text" 
-                      placeholder="Enter quantity" 
-                      className="mt-1"
-                      autoComplete="off"      // ← Disable autocomplete/history
-                      spellCheck={false}      // ← Disable spellcheck suggestions
-                      value={newProduct.quantity}
-                      onChange={e => {
-                        const val = e.target.value;
-                        // strip any non-digit
-                        const digitsOnly = val.replace(/\D/g, '');
-                        // remove leading zeros
-                        const sanitized = digitsOnly.replace(/^0+/, '');
-                        handleInputChange('quantity', sanitized);
-                      }}
-                    />*/}
-                  </div> 
-                  
-                  <div className="flex justify-center mt-6">
-                    <Button 
-                      className={`w-full mt-4 py-2 rounded-md text-white 
-                        ${!selectedProduct || !unitPrice || loading
-                          ? "bg-gray-400 cursor-not-allowed"
-                          : "bg-blue-400 hover:bg-blue-700"
-                        }`}
-                      onClick={handleAddProduct}
-                      disabled={!selectedProduct || !unitPrice || loading}
-                    >
-                      ADD PRODUCT
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          <div className="mb-3">
+            <label className="block text-sm">Total</label>
+            <input
+              type="text"
+              value={computedTotal}
+              disabled
+              className="w-full pl-6 border border-gray-300 rounded-md px-3 py-2 text-sm bg-gray-100 text-gray-500"
+            />
           </div>
+ 
+            <div className="flex justify-center mt-6">
+              <Button 
+                className={`w-full mt-2 py-2 rounded-md text-white 
+                  ${!selectedProduct || !unitPrice || loading
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-blue-400 hover:bg-blue-700"
+                  }`}
+                onClick={handleAddProduct}
+                disabled={!selectedProduct || !unitPrice || loading}
+              >
+                {isEditMode ? "Update Product" : "Add Product"}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
 
           {/* Delivery Payment Details Section */}
           <div className="w-full mt-6 mb-4">
