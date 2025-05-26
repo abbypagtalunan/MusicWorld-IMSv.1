@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { toast, Toaster } from "react-hot-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Search, Download, Eye, X, ChevronsUpDown, ChevronUp, ChevronDown  } from "lucide-react";
+import { Search, Download, Eye, X, ChevronsUpDown, ChevronUp, ChevronDown,EyeOff  } from "lucide-react";
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogDescription } from "@/components/ui/dialog";
 import RDaction from "@/components/deleted-actions";
@@ -20,6 +20,7 @@ export default function DeletedPage() {
   const [deletedReturns, setDeletedReturns] = useState([]);
   const [deletedDeliveries, setDeletedDeliveries] = useState([]);
   const [deletedProducts, setDeletedProducts] = useState([]);  
+  const [showPassword, setShowPassword] = useState(false);
 
   const configMap = {
     order: {
@@ -746,16 +747,30 @@ return (
                                 Deleting these transactions will reflect on Void Transactions. Enter the admin password to delete the selected products.
                               </p>
                               <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">
-                                <div className="flex-1">
+                                <div className="w-full">
                                   <label htmlFor="password" className="text-base font-medium text-gray-700 block mb-2">Admin Password</label>
+                                    <div className="relative w-full">
                                     <Input
-                                      type="password"
+                                      type={showPassword ? "text" : "password"}
                                       required
                                       placeholder="Enter admin password"
-                                      className="w-full"
+                                      className="w-full pr-10"
                                       value={adminPW}
                                       onChange={(e) => setAdminPW(e.target.value)}
                                     />
+                                    <button
+                                      type="button"
+                                      onClick={() => setShowPassword((prev) => !prev)}
+                                      className="absolute inset-y-0 right-3 flex items-center text-gray-500"
+                                      tabIndex={-1}
+                                    >
+                                      {showPassword ? (
+                                        <EyeOff className="w-5 h-5" />
+                                      ) : (
+                                        <Eye className="w-5 h-5" />
+                                      )}
+                                    </button>
+                                    </div>
                                 </div>
                                 <Button
                                   className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"

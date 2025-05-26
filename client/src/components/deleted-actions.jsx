@@ -1,7 +1,7 @@
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { RotateCcw, Trash2, Download } from "lucide-react";
+import { RotateCcw, Trash2, Download, Eye, EyeOff } from "lucide-react";
 import { useState, useEffect } from "react";
 
 const RDaction = ({ item, handleRetrieve, handleDelete, idField, codeField }) => {
@@ -9,6 +9,7 @@ const RDaction = ({ item, handleRetrieve, handleDelete, idField, codeField }) =>
     const [isDDOpen, setDDOpen] = useState(false);
     const [isRDOpen, setRDOpen] = useState(false);
     const [hideDownloadPrompt, setHideDownloadPrompt] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     
     // Load preference from localStorage on component mount
     useEffect(() => {
@@ -392,14 +393,28 @@ const RDaction = ({ item, handleRetrieve, handleDelete, idField, codeField }) =>
                         <label htmlFor={`password-${item[idField]}`} className="text-base font-medium text-gray-700 block mb-2">
                             Admin Password
                         </label>
-                        <Input
-                            type="password" 
-                            value={adminPW} 
-                            required 
-                            placeholder="Enter valid password" 
-                            className="w-full"
-                            onChange={(e) => setAdminPW(e.target.value)}
-                        />
+                        <div className="relative w-full">
+                            <Input
+                                type={showPassword ? "text" : "password"}
+                                value={adminPW}
+                                required
+                                placeholder="Enter valid password"
+                                className="w-full pr-10"
+                                onChange={(e) => setAdminPW(e.target.value)}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword((prev) => !prev)}
+                                className="absolute inset-y-0 right-3 flex items-center text-gray-500"
+                                tabIndex={-1}
+                                >
+                                {showPassword ? (
+                                    <EyeOff className="w-5 h-5" />
+                                ) : (
+                                    <Eye className="w-5 h-5" />
+                                )}
+                            </button>
+                        </div>
                         </div>
                         <Button
                         className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
