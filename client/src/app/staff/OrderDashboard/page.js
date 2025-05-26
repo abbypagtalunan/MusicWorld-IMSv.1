@@ -154,6 +154,14 @@ const OrderDashboard = () => {
     if (!selectedProduct || orderQuantity <= 0) {
       return; 
     }
+
+    let discountType = "";
+    if (selectedDiscountType.toLowerCase() === "percentage") {
+      const percent = parseFloat(discountPercentInput);
+      discountType = isNaN(percent) ? "" : `${percent}%`;
+    } else if (selectedDiscountType.toLowerCase() === "specific amount") {
+      discountType = "Specific Amount"
+    }
   
     const sellingPrice = parseFloat(selectedProduct.price) || 0;
     const unitPrice = parseFloat(selectedProduct.unitPrice) || 0;
@@ -168,7 +176,7 @@ const OrderDashboard = () => {
       "Product": selectedProduct.name,
       "Price": sellingPrice,
       "Quantity": quantity,
-      "Discount Type": selectedDiscountType || "",
+      "Discount Type": discountType || "--",
       "Discount": discountAmount,
       "Discount Value": discountAmount,
       "Total": netSales,
@@ -679,65 +687,101 @@ const handleEdit = (row) => {
                   >
                     Specific Amount
                   </DropdownMenuItem>
+
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setSelectedDiscountType("--");
+                        setOrderDiscount(0);
+                        setDiscountPercentInput("");
+                      }}
+                    >
+                      No Discount
+                    </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
 
-            {/* Percentage Input */}
-            {selectedDiscountType.toLowerCase() === "percentage" && (
-              <div className="mb-3">
-                <label className="block text-sm">Enter Product Discount (%)</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="1"
-                  value={discountPercentInput}
-                  onChange={(e) => {
-                    const input = e.target.value;
+          {/* Input Percentage */}
+          {selectedDiscountType.toLowerCase() === "percentage" && (
+            <div className="mb-3">
+              <label className="block text-sm">Enter Percentage Discount (%)</label>
+              <input
+                type="number"
+                min="1"
+                max="100"
+                step="1"
+                value={discountPercentInput}
+                onChange={(e) => {
+                  const input = e.target.value;
+
+                  // Allow empty input so user can erase
+                  if (input === "") {
+                    setDiscountPercentInput("");
+                    setOrderDiscount("0.00");
+                    return;
+                  }
+
+                  // Parse as number
+                  const percent = parseInt(input, 10);
+
+                  // Allow only digits (0-9) and limit from 1 to 100
+                  if (!isNaN(percent) && percent >= 1 && percent <= 100) {
                     setDiscountPercentInput(input);
-                    const percent = parseFloat(input);
+                    const price = parseFloat(selectedProduct?.price || "0");
+                    const quantity = parseInt(orderQuantity || "1");
+                    const discountAmount = price * quantity * (percent / 100);
+                    setOrderDiscount(discountAmount.toFixed(2));
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (["-", "+", "e"].includes(e.key)) {
+                    e.preventDefault();
+                  }
+                }}
+                className="w-full border border-gray-300 rounded-md px-5 py-2 text-sm"
+              />
+            </div>
+          )}
 
-                    if (!isNaN(percent) && percent >= 0 && percent <= 100) {
-                      setSelectedDiscountType("Percentage");
-                      const price = parseFloat(selectedProduct?.price || "0");
-                      const quantity = parseInt(orderQuantity || "1");
-                      const discountAmount = price * quantity * (percent / 100);
-                      setOrderDiscount(discountAmount.toFixed(2));
-                    } else {
+
+          {/* Specific Amount Input */}
+          {selectedDiscountType.toLowerCase() === "specific amount" && (
+            <div className="mb-3">
+              <label className="block text-sm">Enter Specific Discount Amount</label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={orderDiscount === 0 ? "" : orderDiscount}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  const parsedValue = parseFloat(value);
+
+                  if (/^(\d+(\.\d{0,2})?)?$/.test(value)) {
+                    if (
+                      value === "" ||
+                      isNaN(parsedValue)
+                    ) {
                       setOrderDiscount(0);
+                    } else if (
+                      selectedProduct &&
+                      parsedValue <= parseFloat(selectedProduct.price)
+                    ) {
+                      setOrderDiscount(parsedValue);
                     }
-                  }}
-                  onMouseLeave={() => {
-                    const percent = parseFloat(discountPercentInput);
-                    if (!isNaN(percent)) {
-                      setSelectedDiscountType(percent + "%");
-                    }
-                  }}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                />
-              </div>
-            )}
-
-            {/* Specific Amount Input */}
-            {selectedDiscountType.toLowerCase() === "specific amount" && (
-              <div className="mb-3">
-                <label className="block text-sm">Enter Specific Discount Amount</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={orderDiscount === 0 ? "" : orderDiscount}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (/^(\d+(\.\d{0,2})?)?$/.test(value)) {
-                      setOrderDiscount(value === "" ? 0 : parseFloat(value));
-                    }
-                  }}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                />
-              </div>
-            )}
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === '-' || e.key === 'e') {
+                    e.preventDefault(); 
+                  }
+                }}
+                max={selectedProduct ? selectedProduct.price : undefined}
+                className={`w-full pl-6 border border-gray-200 text-gray-700 rounded-md px-3 py-2 text-sm
+                  ${isEditMode ? "bg-gray-100" : "border-gray-200"}`}
+              />
+            </div>
+          )}
 
             {selectedDiscountType.toLowerCase() != "specific amount" && (
               <div className="mb-3">
@@ -746,7 +790,7 @@ const handleEdit = (row) => {
                   type="text"
                   readOnly
                   value={orderDiscount === 0 ? "" : orderDiscount}
-                  className="w-full pl-6 border border-gray-200 bg-gray-100 text-gray-700 rounded-md px-3 py-2 text-sm cursor-default"
+                  className="w-full pl-6 border border-gray-200 bg-gray-100 text-gray-700 rounded-md px-3 py-2 text-sm cursor-default focus:outline-none focus:border-transparent"
                 />
               </div>
             )}
@@ -780,7 +824,6 @@ const handleEdit = (row) => {
               >
                 {isEditMode ? "Update Item" : "Add Product"}
               </button>
-
             </form>
           </div>
 

@@ -628,7 +628,7 @@ return (
                 <Card className="w-full flex-1 flex flex-col overflow-hidden">
                   <div className="p-0 flex-1 flex flex-col overflow-hidden min-h-0">
                     <CardContent className="p-0 flex-1 flex flex-col overflow-hidden min-h-0">
-                      {/* Search - Fixed height */}
+                      {/* Search */}
                       <div className="bg-white p-4 flex justify-between items-center border-b flex-shrink-0">
                         <div className="relative w-80">
                           <Input

@@ -247,20 +247,21 @@ export default function ReportsPage() {
         <div className="flex-1 p-4 flex flex-col overflow-x-hidden">
           <div className="flex items-center justify-between mb-4 bg-white shadow-sm p-4 rounded-lg">
             <div className="flex items-center space-x-2">
+              {/* Date Range Filter - From and To */}
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       className={cn(
-                        "w-[150px] flex items-center justify-between px-3 py-2 border rounded-md font-normal",
+                        "w-[180px] flex items-center justify-between px-3 py-2 border rounded-md font-normal",
                         !fromDate && "text-muted-foreground"
                       )}
                     >
                       <CalendarDays className="mr-2 h-4 w-4" />
-                      {fromDate ? format(fromDate, "PPP") : <span>From</span>}
+                      {fromDate ? format(fromDate, "MMM dd, yyyy") : <span>From</span>}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[250px] p-0">
+                  <PopoverContent className="w-auto p-0" align="start">
                     <CalendarComponent
                       mode="single"
                       selected={fromDate}
@@ -286,15 +287,15 @@ export default function ReportsPage() {
                     <Button
                       variant="outline"
                       className={cn(
-                        "w-[150px] flex items-center justify-between px-3 py-2 border rounded-md font-normal",
+                        "w-[180px] flex items-center justify-between px-3 py-2 border rounded-md font-normal",
                         !toDate && "text-muted-foreground"
                       )}
                     >
                       <CalendarDays className="mr-2 h-4 w-4" />
-                      {toDate ? format(toDate, "PPP") : <span>To</span>}
+                      {toDate ? format(toDate, "MMM dd, yyyy") : <span>To</span>}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[250px] p-0">
+                  <PopoverContent className="w-auto p-0" align="start">
                     <CalendarComponent
                       mode="single"
                       selected={toDate}
