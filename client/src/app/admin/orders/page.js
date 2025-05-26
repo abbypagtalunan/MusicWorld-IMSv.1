@@ -1398,8 +1398,10 @@ export default function OrdersPage() {
                                   Price:{" "}
                                   {detail?.unitPrice === 0.00
                                     ? "Freebie"
-                                    : formatPeso(detail?.unitPrice)}{" "}
-                                  | Brand: {detail?.brandName} | Supplier:{" "}
+                                    : formatPeso(detail?.unitPrice)}{" "} | Discount: {detail?.discountAmount}
+                                </div>
+                                <div className="text-xs text-gray-600">
+                                  Brand: {detail?.brandName} | Supplier:{" "}
                                   {detail?.supplierName}
                                 </div>
                               </div>
