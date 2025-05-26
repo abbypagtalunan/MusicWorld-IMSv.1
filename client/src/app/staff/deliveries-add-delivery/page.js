@@ -47,9 +47,9 @@ export default function BatchDeliveriesPage() {
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen w-screen">
+      <div className="flex h-screen w-screen overflow-hidden">
         <AppSidebar />
-        <div className="flex-1 p-4 flex flex-col w-full">
+        <div className="flex-1 p-4 flex flex-col overflow-x-hidden">
           <div className="bg-blue-950 p-4 rounded-sm mb-2 shadow-md">
             <div className="flex items-center justify-between sticky top-2 z-10">
               <h1 className="text-2xl text-blue-50 font-bold">Batching of Deliveries</h1>
