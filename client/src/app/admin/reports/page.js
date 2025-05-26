@@ -245,15 +245,15 @@ export default function ReportsPage() {
       <div className="flex h-screen overflow-hidden">
         <AppSidebar />
         <div className="flex-1 p-4 flex flex-col overflow-x-hidden">
-          <div className="flex items-center justify-between mb-4 bg-white shadow-sm p-4 rounded-lg">
-            <div className="flex items-center space-x-2">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 mb-4 bg-white shadow-sm p-4 rounded-lg">
+            <div className="flex flex-wrap items-center gap-3">
               {/* Date Range Filter - From and To */}
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       className={cn(
-                        "w-[180px] flex items-center justify-between px-3 py-2 border rounded-md font-normal",
+                        "flex items-center gap-2 w-[150px] border rounded-md font-normal",
                         !fromDate && "text-muted-foreground"
                       )}
                     >
@@ -287,7 +287,7 @@ export default function ReportsPage() {
                     <Button
                       variant="outline"
                       className={cn(
-                        "w-[180px] flex items-center justify-between px-3 py-2 border rounded-md font-normal",
+                        "flex items-center gap-2 w-[150px] border rounded-md font-normal",
                         !toDate && "text-muted-foreground"
                       )}
                     >
@@ -325,13 +325,13 @@ export default function ReportsPage() {
                     }}
                     className="text-sm border-gray-300 hover:text-red-600"
                   >
-                    <RotateCcw className="w-4 h-4" />
+                    <RotateCcw className="w-4 h-4 mr-1" />
                       <span>Reset Date</span>
                 </Button>
             </div>
 
               {/* DOWNLOAD */}
-            <div className="flex space-x-2">
+            <div className="flex justify-end">
               <Dialog open={isDownloadConfirmOpen} onOpenChange={(open) => {
                 setDownloadConfirmOpen(open);
               }}>
