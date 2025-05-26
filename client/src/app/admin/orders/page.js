@@ -545,9 +545,9 @@ Object.entries(amountRanges).forEach(([key, range]) => {
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen w-screen">
+      <div className="flex h-screen overflow-hidden">
         <AppSidebar />
-        <div className="flex-1 p-4 flex flex-col w-full">
+        <div className="flex-1 p-4 flex flex-col overflow-x-hidden">
           <div className="flex items-center justify-between mb-4 bg-white shadow-sm p-4 rounded-lg">
             <div className="flex items-center space-x-2">
               <div className="relative w-80">
