@@ -1,4 +1,5 @@
-const deletedReturnsModel = require('../models/deletedReturnsModel'); // Import the product model
+const deletedReturnsModel = require('../models/deletedReturnsModel');  
+const db = require('../../db');
 
 // Route to fetch all products
 const getAllDeleted = (req, res) => {
