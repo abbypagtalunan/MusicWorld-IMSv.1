@@ -43,7 +43,7 @@ import {
   TabsTrigger,
   TabsContent,
 } from "@/components/ui/tabs";
-import { Trash2, Eye, ChevronsUpDown, ChevronUp, ChevronDown, EyeOff } from "lucide-react";
+import { Trash2, Eye, ChevronsUpDown, ChevronUp, ChevronDown, EyeOff, Search } from "lucide-react";
 // Toast Notifications
 import { toast, Toaster } from "react-hot-toast";
 // Helper function to format PHP currency
@@ -112,7 +112,8 @@ export default function ReturnsPage() {
   };
 
   // State
-  const [searchTerm, setSearchTerm] = useState("");
+  const [customerSearchTerm, setCustomerSearchTerm] = useState("");
+  const [supplierSearchTerm, setSupplierSearchTerm] = useState("");
   const [customerReturns, setCustomerReturns] = useState([]);
   const [supplierReturns, setSupplierReturns] = useState([]);
   const [activeTab, setActiveTab] = useState("customer");
@@ -146,6 +147,7 @@ export default function ReturnsPage() {
   const [customerSortConfig, setCustomerSortConfig] = useState({ key: null, direction: "ascending" });
   const [supplierSortConfig, setSupplierSortConfig] = useState({ key: null, direction: "ascending" });
   const [showPassword, setShowPassword] = useState(false);
+  
   // Fetch Data on Load
   useEffect(() => {
     const fetchData = async () => {
@@ -202,6 +204,9 @@ export default function ReturnsPage() {
       await axios.post(config.returns.api.add, newReturn);
       toast.success("Customer return added successfully!");
       resetCustomerForm();
+      // Refresh customer returns
+      const customerRes = await axios.get(`${config.returns.api.fetch}?source=customer`);
+      setCustomerReturns(customerRes.data);
     } catch (error) {
       console.error("Error adding customer return:", error);
       toast.error("Failed to add customer return.");
@@ -240,6 +245,9 @@ export default function ReturnsPage() {
       await axios.post(config.returns.api.add, newReturn);
       toast.success("Supplier return added successfully!");
       resetSupplierForm();
+      // Refresh supplier returns
+      const supplierRes = await axios.get(`${config.returns.api.fetch}?source=supplier`);
+      setSupplierReturns(supplierRes.data);
     } catch (error) {
       console.error("Error adding supplier return:", error);
       toast.error("Failed to add supplier return.");
@@ -362,6 +370,58 @@ export default function ReturnsPage() {
     );
   }
 
+  // Filter function for customer returns
+  const getFilteredCustomerReturns = (data, searchTerm) => {
+    if (!searchTerm.trim()) return data;
+    
+    const filtered = data.filter((item) => {
+      const productName = products.find(p => p.P_productCode === item.P_productCode)?.P_productName?.toLowerCase() || "";
+      const supplierName = suppliers.find(s => s.S_supplierID === item.S_supplierID)?.S_supplierName?.toLowerCase() || "";
+      const returnId = item.R_returnID?.toString().toLowerCase() || "";
+      const returnType = item.R_reasonOfReturn?.toLowerCase() || "";
+      const productCode = item.P_productCode?.toLowerCase() || "";
+      const date = new Date(item.R_dateOfReturn).toLocaleDateString().toLowerCase();
+      
+      const search = searchTerm.toLowerCase();
+      
+      return (
+        productName.includes(search) ||
+        supplierName.includes(search) ||
+        returnId.includes(search) ||
+        returnType.includes(search) ||
+        productCode.includes(search) ||
+        date.includes(search)
+      );
+    });
+    
+    return filtered;
+  };
+
+  // Filter function for supplier returns
+  const getFilteredSupplierReturns = (data, searchTerm) => {
+    if (!searchTerm.trim()) return data;
+    
+    const filtered = data.filter((item) => {
+      const productName = products.find(p => p.P_productCode === item.P_productCode)?.P_productName?.toLowerCase() || "";
+      const supplierName = suppliers.find(s => s.S_supplierID === item.S_supplierID)?.S_supplierName?.toLowerCase() || "";
+      const productCode = item.P_productCode?.toLowerCase() || "";
+      const deliveryNum = item.D_deliveryNumber?.toString().toLowerCase() || "";
+      const date = new Date(item.R_dateOfReturn).toLocaleDateString().toLowerCase();
+      
+      const search = searchTerm.toLowerCase();
+      
+      return (
+        productName.includes(search) ||
+        supplierName.includes(search) ||
+        productCode.includes(search) ||
+        deliveryNum.includes(search) ||
+        date.includes(search)
+      );
+    });
+    
+    return filtered;
+  };
+
   const getSortedReturns = (data, sortConfig) => {
     if (!sortConfig || !sortConfig.key) return data;
     const { key, direction } = sortConfig;
@@ -416,7 +476,19 @@ export default function ReturnsPage() {
               <div className="flex flex-col lg:flex-row gap-4 items-stretch">
                 <Card className="w-full lg:w-2/3 flex flex-col">
                   <CardContent className="p-4 flex flex-col justify-between flex-grow">
-                    <div className="flex flex-col overflow-auto max-h-screen w-full">
+                    {/* Search Filter for Customer Returns */}
+                    <div className="mb-4">
+                      <div className="relative w-80">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                        <Input
+                          placeholder="Search customer returns..."
+                          value={customerSearchTerm}
+                          onChange={(e) => setCustomerSearchTerm(e.target.value)}
+                          className="pl-10 w-full"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex-1 overflow-hidden relative min-h-0">
                       <Table>
                         <TableHeader className="sticky top-0 z-10 bg-white">
                           <TableRow>
@@ -442,142 +514,144 @@ export default function ReturnsPage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {getSortedReturns(
-                            customerReturns.filter(item => item.R_returnTypeID === 6), // Filter for customer returns
-                            customerSortConfig
-                          ).length > 0 ? (
-                            getSortedReturns(
-                              customerReturns.filter(item => item.R_returnTypeID === 6), // Filter for customer returns
-                              customerSortConfig
-                            ).map((item) => (
-                              <TableRow key={item.R_returnID}>
-                                <TableCell className="text-center">{new Date(item.R_dateOfReturn).toLocaleDateString()}</TableCell>
-                                <TableCell className="text-center">{item.R_returnID}</TableCell>
-                                <TableCell className="text-center">
-                                  {products.find(p => p.P_productCode === item.P_productCode)?.P_productName || "Unknown"}
-                                </TableCell>
-                                <TableCell className="text-center">{item.R_returnQuantity}</TableCell>
-                                <TableCell className="text-center">{formatToPHP(item.R_TotalPrice)}</TableCell>
-                                <TableCell className="text-center">{item.R_reasonOfReturn}</TableCell>
-                                <TableCell className="flex space-x-2">
-                                  <Dialog>
-                                    <DialogTrigger asChild>
-                                      <Button variant="ghost" size="sm" className="text-gray-500 hover:text-black">
-                                        <Eye size={16} />
-                                      </Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="w-[90vw] max-w-4xl sm:max-w-lg md:max-w-4xl max-h-[90vh] overflow-y-auto p-6">
-                                      <DialogHeader>
-                                        <DialogTitle>Return Details</DialogTitle>
-                                        <DialogClose />
-                                      </DialogHeader>
-                                      <Table>
-                                        <TableHeader>
-                                          <TableRow>
-                                            <TableHead>Date</TableHead>
-                                            <TableHead>Product Code</TableHead>
-                                            <TableHead>Supplier</TableHead>
-                                            <TableHead>Brand</TableHead>
-                                            <TableHead>Category</TableHead>
-                                            <TableHead>Product</TableHead>
-                                            <TableHead>Quantity</TableHead>
-                                            <TableHead>Discount</TableHead>
-                                            <TableHead>Total</TableHead>
-                                          </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                          <TableRow>
-                                            <TableCell>{new Date(item.R_dateOfReturn).toLocaleDateString()}</TableCell>
-                                            <TableCell>{item.P_productCode}</TableCell>
-                                            <TableCell>
-                                              {suppliers.find(s => s.S_supplierID === item.S_supplierID)?.S_supplierName || "Unknown"}
-                                            </TableCell>
-                                            <TableCell>
-                                              {products.find(p => p.P_productCode === item.P_productCode)?.brand || "N/A"}
-                                            </TableCell>
-                                            <TableCell>
-                                              {products.find(p => p.P_productCode === item.P_productCode)?.category || "N/A"}
-                                            </TableCell>
-                                            <TableCell>
-                                              {products.find(p => p.P_productCode === item.P_productCode)?.P_productName || "Unknown"}
-                                            </TableCell>
-                                            <TableCell>{item.R_returnQuantity}</TableCell>
-                                            <TableCell>{item.R_discountAmount}%</TableCell>
-                                            <TableCell>{formatToPHP(item.R_TotalPrice)}</TableCell>
-                                          </TableRow>
-                                        </TableBody>
-                                      </Table>
-                                    </DialogContent>
-                                  </Dialog>
-                                  <Dialog>
-                                    <DialogTrigger asChild>
-                                      <Button variant="ghost" size="sm" className="text-gray-500 hover:text-red-600">
-                                        <Trash2 size={16} />
-                                      </Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
-                                      <DialogHeader>
-                                        <DialogTitle>
-                                          <span className="text-lg text-red-900">Delete Transaction</span>{" "}
-                                          <span className="text-lg text-gray-400 italic">{item.R_returnID}</span>
-                                        </DialogTitle>
-                                        <DialogClose />
-                                      </DialogHeader>
-                                      <p className="mt-2 pl-4 text-sm text-gray-800">
-                                        Deleting this transaction will reflect on Void Transactions.
-                                        Enter the admin password to delete this transaction.
-                                      </p>
-                                      <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">
-                                        <div className="flex-1">
-                                          <Label htmlFor={`password-${item.R_returnID}`} className="block mb-2 text-base font-medium text-gray-700">
-                                            Admin Password
-                                          </Label>
-                                          <div className="relative w-full">
-                                          <Input
-                                            id={`password-${item.R_returnID}`}
-                                             type={showPassword ? "text" : "password"} required
-                                            placeholder="Enter valid password"
-                                            className="w-full"
-                                          />
-                                          <button
-                                            type="button"
-                                            onClick={() => setShowPassword((prev) => !prev)}
-                                            className="absolute inset-y-0 right-3 flex items-center text-gray-500"
-                                            tabIndex={-1}
-                                          >
-                                            {showPassword ? (
-                                              <EyeOff className="w-5 h-5" />
-                                            ) : (
-                                              <Eye className="w-5 h-5" />
-                                            )}
-                                        </button>
-                                        </div>
-                                        </div>
-                                        <Button
-                                          className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
-                                          onClick={() =>
-                                            handleDelete(
-                                              item.R_returnID,
-                                              document.getElementById(`password-${item.R_returnID}`).value,
-                                              "customer"
-                                            )
-                                          }
-                                        >
-                                          DELETE TRANSACTION
+                          {(() => {
+                            const filteredData = getFilteredCustomerReturns(
+                              customerReturns.filter(item => item.R_returnTypeID === 6),
+                              customerSearchTerm
+                            );
+                            const sortedData = getSortedReturns(filteredData, customerSortConfig);
+                            
+                            return sortedData.length > 0 ? (
+                              sortedData.map((item) => (
+                                <TableRow key={item.R_returnID}>
+                                  <TableCell className="text-center">{new Date(item.R_dateOfReturn).toLocaleDateString()}</TableCell>
+                                  <TableCell className="text-center">{item.R_returnID}</TableCell>
+                                  <TableCell className="text-center">
+                                    {products.find(p => p.P_productCode === item.P_productCode)?.P_productName || "Unknown"}
+                                  </TableCell>
+                                  <TableCell className="text-center">{item.R_returnQuantity}</TableCell>
+                                  <TableCell className="text-center">{formatToPHP(item.R_TotalPrice)}</TableCell>
+                                  <TableCell className="text-center">{item.R_reasonOfReturn}</TableCell>
+                                  <TableCell className="flex space-x-2">
+                                    <Dialog>
+                                      <DialogTrigger asChild>
+                                        <Button variant="ghost" size="sm" className="text-gray-500 hover:text-black">
+                                          <Eye size={16} />
                                         </Button>
-                                      </div>
-                                    </DialogContent>
-                                  </Dialog>
+                                      </DialogTrigger>
+                                      <DialogContent className="w-[90vw] max-w-4xl sm:max-w-lg md:max-w-4xl max-h-[90vh] overflow-y-auto p-6">
+                                        <DialogHeader>
+                                          <DialogTitle>Return Details</DialogTitle>
+                                          <DialogClose />
+                                        </DialogHeader>
+                                        <Table>
+                                          <TableHeader>
+                                            <TableRow>
+                                              <TableHead>Date</TableHead>
+                                              <TableHead>Product Code</TableHead>
+                                              <TableHead>Supplier</TableHead>
+                                              <TableHead>Brand</TableHead>
+                                              <TableHead>Category</TableHead>
+                                              <TableHead>Product</TableHead>
+                                              <TableHead>Quantity</TableHead>
+                                              <TableHead>Discount</TableHead>
+                                              <TableHead>Total</TableHead>
+                                            </TableRow>
+                                          </TableHeader>
+                                          <TableBody>
+                                            <TableRow>
+                                              <TableCell>{new Date(item.R_dateOfReturn).toLocaleDateString()}</TableCell>
+                                              <TableCell>{item.P_productCode}</TableCell>
+                                              <TableCell>
+                                                {suppliers.find(s => s.S_supplierID === item.S_supplierID)?.S_supplierName || "Unknown"}
+                                              </TableCell>
+                                              <TableCell>
+                                                {products.find(p => p.P_productCode === item.P_productCode)?.brand || "N/A"}
+                                              </TableCell>
+                                              <TableCell>
+                                                {products.find(p => p.P_productCode === item.P_productCode)?.category || "N/A"}
+                                              </TableCell>
+                                              <TableCell>
+                                                {products.find(p => p.P_productCode === item.P_productCode)?.P_productName || "Unknown"}
+                                              </TableCell>
+                                              <TableCell>{item.R_returnQuantity}</TableCell>
+                                              <TableCell>{item.R_discountAmount}%</TableCell>
+                                              <TableCell>{formatToPHP(item.R_TotalPrice)}</TableCell>
+                                            </TableRow>
+                                          </TableBody>
+                                        </Table>
+                                      </DialogContent>
+                                    </Dialog>
+                                    <Dialog>
+                                      <DialogTrigger asChild>
+                                        <Button variant="ghost" size="sm" className="text-gray-500 hover:text-red-600">
+                                          <Trash2 size={16} />
+                                        </Button>
+                                      </DialogTrigger>
+                                      <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
+                                        <DialogHeader>
+                                          <DialogTitle>
+                                            <span className="text-lg text-red-900">Delete Transaction</span>{" "}
+                                            <span className="text-lg text-gray-400 italic">{item.R_returnID}</span>
+                                          </DialogTitle>
+                                          <DialogClose />
+                                        </DialogHeader>
+                                        <p className="mt-2 pl-4 text-sm text-gray-800">
+                                          Deleting this transaction will reflect on Void Transactions.
+                                          Enter the admin password to delete this transaction.
+                                        </p>
+                                        <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">
+                                          <div className="flex-1">
+                                            <Label htmlFor={`password-${item.R_returnID}`} className="block mb-2 text-base font-medium text-gray-700">
+                                              Admin Password
+                                            </Label>
+                                            <div className="relative w-full">
+                                            <Input
+                                              id={`password-${item.R_returnID}`}
+                                               type={showPassword ? "text" : "password"} required
+                                              placeholder="Enter valid password"
+                                              className="w-full"
+                                            />
+                                            <button
+                                              type="button"
+                                              onClick={() => setShowPassword((prev) => !prev)}
+                                              className="absolute inset-y-0 right-3 flex items-center text-gray-500"
+                                              tabIndex={-1}
+                                            >
+                                              {showPassword ? (
+                                                <EyeOff className="w-5 h-5" />
+                                              ) : (
+                                                <Eye className="w-5 h-5" />
+                                              )}
+                                          </button>
+                                          </div>
+                                          </div>
+                                          <Button
+                                            className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
+                                            onClick={() =>
+                                              handleDelete(
+                                                item.R_returnID,
+                                                document.getElementById(`password-${item.R_returnID}`).value,
+                                                "customer"
+                                              )
+                                            }
+                                          >
+                                            DELETE TRANSACTION
+                                          </Button>
+                                        </div>
+                                      </DialogContent>
+                                    </Dialog>
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                            ) : (
+                              <TableRow>
+                                <TableCell colSpan={7} className="text-center py-10 text-gray-500">
+                                  {customerSearchTerm ? "No customer returns found matching your search" : "No customer returns found"}
                                 </TableCell>
                               </TableRow>
-                            ))
-                          ) : (
-                            <TableRow>
-                              <TableCell colSpan={7} className="text-center py-10 text-gray-500">
-                                No customer returns found
-                              </TableCell>
-                            </TableRow>
-                          )}
+                            );
+                          })()}
                         </TableBody>
                       </Table>
                     </div>
@@ -725,7 +799,19 @@ export default function ReturnsPage() {
               <div className="flex flex-col lg:flex-row gap-4 items-stretch">
                 <Card className="w-full lg:w-2/3 flex flex-col">
                   <CardContent className="p-4 flex flex-col justify-between flex-grow">
-                    <div className="flex flex-col overflow-auto max-h-screen w-full">
+                    {/* Search Filter for Supplier Returns */}
+                    <div className="mb-4">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                        <Input
+                          placeholder="Search supplier returns..."
+                          value={supplierSearchTerm}
+                          onChange={(e) => setSupplierSearchTerm(e.target.value)}
+                          className="pl-10 w-80"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex-1 overflow-hidden relative min-h-0">
                       <Table>
                         <TableHeader className="sticky top-0 z-10 bg-white">
                           <TableRow>
@@ -751,95 +837,97 @@ export default function ReturnsPage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {getSortedReturns(
-                            supplierReturns.filter(item => item.R_returnTypeID === 7), // Filter for supplier returns
-                            supplierSortConfig
-                          ).length > 0 ? (
-                            getSortedReturns(
-                              supplierReturns.filter(item => item.R_returnTypeID === 7), // Filter for supplier returns
-                              supplierSortConfig
-                            ).map((item) => (
-                              <TableRow key={item.R_returnID}>
-                                <TableCell className="text-center">{new Date(item.R_dateOfReturn).toLocaleDateString()}</TableCell>
-                                <TableCell className="text-center">{item.P_productCode}</TableCell>
-                                <TableCell className="text-center">
-                                  {suppliers.find(s => s.S_supplierID === item.S_supplierID)?.S_supplierName || "Unknown"}
-                                </TableCell>
-                                <TableCell className="text-center">
-                                  {products.find(p => p.P_productCode === item.P_productCode)?.P_productName || "Unknown"}
-                                </TableCell>
-                                <TableCell className="text-center">{item.R_returnQuantity}</TableCell>
-                                <TableCell className="text-center">{formatToPHP(item.R_TotalPrice)}</TableCell>
-                                <TableCell className="text-center">
-                                  <Dialog>
-                                    <DialogTrigger asChild>
-                                      <Button variant="ghost" size="sm" className="text-gray-500 hover:text-red-600">
-                                        <Trash2 size={16} />
-                                      </Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
-                                      <DialogHeader>
-                                        <DialogTitle>
-                                          <span className="text-lg text-red-900">Delete Transaction</span>{" "}
-                                          <span className="text-lg text-gray-400 font-normal italic">{item.R_returnID}</span>
-                                        </DialogTitle>
-                                        <DialogClose />
-                                      </DialogHeader>
-                                      <p className="text-sm text-gray-800 mt-2 pl-4">
-                                        Deleting this transaction will reflect on Void Transactions.
-                                        Enter the admin password to delete this transaction.
-                                      </p>
-                                      <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">
-                                        <div className="flex-1">
-                                          <Label htmlFor={`password-${item.R_returnID}`} className="text-base font-medium text-gray-700 block mb-2">
-                                            Admin Password
-                                          </Label>
-                                          <div className="relative w-full">
-                                          <Input
-                                            id={`password-${item.R_returnID}`}
-                                            type={showPassword ? "text" : "password"} required
-                                            placeholder="Enter valid password"
-                                            className="w-full"
-                                          />
-                                           <button
-                                            type="button"
-                                            onClick={() => setShowPassword((prev) => !prev)}
-                                            className="absolute inset-y-0 right-3 flex items-center text-gray-500"
-                                            tabIndex={-1}
-                                          >
-                                            {showPassword ? (
-                                              <EyeOff className="w-5 h-5" />
-                                            ) : (
-                                              <Eye className="w-5 h-5" />
-                                            )}
-                                          </button>
-                                          </div>
-                                        </div>
-                                        <Button
-                                          className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
-                                          onClick={() =>
-                                            handleDelete(
-                                              item.R_returnID,
-                                              document.getElementById(`password-${item.R_returnID}`).value,
-                                              "supplier"
-                                            )
-                                          }
-                                        >
-                                          DELETE TRANSACTION
+                          {(() => {
+                            const filteredData = getFilteredSupplierReturns(
+                              supplierReturns.filter(item => item.R_returnTypeID === 7),
+                              supplierSearchTerm
+                            );
+                            const sortedData = getSortedReturns(filteredData, supplierSortConfig);
+                            
+                            return sortedData.length > 0 ? (
+                              sortedData.map((item) => (
+                                <TableRow key={item.R_returnID}>
+                                  <TableCell className="text-center">{new Date(item.R_dateOfReturn).toLocaleDateString()}</TableCell>
+                                  <TableCell className="text-center">{item.P_productCode}</TableCell>
+                                  <TableCell className="text-center">
+                                    {suppliers.find(s => s.S_supplierID === item.S_supplierID)?.S_supplierName || "Unknown"}
+                                  </TableCell>
+                                  <TableCell className="text-center">
+                                    {products.find(p => p.P_productCode === item.P_productCode)?.P_productName || "Unknown"}
+                                  </TableCell>
+                                  <TableCell className="text-center">{item.R_returnQuantity}</TableCell>
+                                  <TableCell className="text-center">{formatToPHP(item.R_TotalPrice)}</TableCell>
+                                  <TableCell className="text-center">
+                                    <Dialog>
+                                      <DialogTrigger asChild>
+                                        <Button variant="ghost" size="sm" className="text-gray-500 hover:text-red-600">
+                                          <Trash2 size={16} />
                                         </Button>
-                                      </div>
-                                    </DialogContent>
-                                  </Dialog>
+                                      </DialogTrigger>
+                                      <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
+                                        <DialogHeader>
+                                          <DialogTitle>
+                                            <span className="text-lg text-red-900">Delete Transaction</span>{" "}
+                                            <span className="text-lg text-gray-400 font-normal italic">{item.R_returnID}</span>
+                                          </DialogTitle>
+                                          <DialogClose />
+                                        </DialogHeader>
+                                        <p className="text-sm text-gray-800 mt-2 pl-4">
+                                          Deleting this transaction will reflect on Void Transactions.
+                                          Enter the admin password to delete this transaction.
+                                        </p>
+                                        <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">
+                                          <div className="flex-1">
+                                            <Label htmlFor={`password-${item.R_returnID}`} className="text-base font-medium text-gray-700 block mb-2">
+                                              Admin Password
+                                            </Label>
+                                            <div className="relative w-full">
+                                            <Input
+                                              id={`password-${item.R_returnID}`}
+                                              type={showPassword ? "text" : "password"} required
+                                              placeholder="Enter valid password"
+                                              className="w-full"
+                                            />
+                                             <button
+                                              type="button"
+                                              onClick={() => setShowPassword((prev) => !prev)}
+                                              className="absolute inset-y-0 right-3 flex items-center text-gray-500"
+                                              tabIndex={-1}
+                                            >
+                                              {showPassword ? (
+                                                <EyeOff className="w-5 h-5" />
+                                              ) : (
+                                                <Eye className="w-5 h-5" />
+                                              )}
+                                            </button>
+                                            </div>
+                                          </div>
+                                          <Button
+                                            className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
+                                            onClick={() =>
+                                              handleDelete(
+                                                item.R_returnID,
+                                                document.getElementById(`password-${item.R_returnID}`).value,
+                                                "supplier"
+                                              )
+                                            }
+                                          >
+                                            DELETE TRANSACTION
+                                          </Button>
+                                        </div>
+                                      </DialogContent>
+                                    </Dialog>
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                            ) : (
+                              <TableRow>
+                                <TableCell colSpan={7} className="text-center py-10 text-gray-500">
+                                  {supplierSearchTerm ? "No supplier returns found matching your search" : "No supplier returns found"}
                                 </TableCell>
                               </TableRow>
-                            ))
-                          ) : (
-                            <TableRow>
-                              <TableCell colSpan={7} className="text-center py-10 text-gray-500">
-                                No supplier returns found
-                              </TableCell>
-                            </TableRow>
-                          )}
+                            );
+                          })()}
                         </TableBody>
                       </Table>
                     </div>
