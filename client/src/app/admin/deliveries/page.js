@@ -4,18 +4,21 @@ import { useState, useEffect } from "react";
 import LoadingSpinner from "@/components/loading-spinner";
 import { useRouter } from 'next/navigation';
 import axios from "axios";
+import { cn } from "@/lib/utils";
 import { AppSidebar } from "@/components/admin-sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast, Toaster } from "react-hot-toast";
-import { Search, ListFilter, Trash2, Eye, FilePen, PackagePlus, Save, ChevronsUpDown, ChevronUp, ChevronDown } from "lucide-react";
+import { Search, ListFilter, Trash2, CalendarDays, Eye, FilePen, PackagePlus, Save, ChevronsUpDown, ChevronUp, ChevronDown, RotateCcw } from "lucide-react";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogDescription } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
+import { format } from "date-fns";
 
 export default function DeliveriesPage() {
   const router = useRouter();
@@ -70,6 +73,32 @@ export default function DeliveriesPage() {
       fetch: "http://localhost:8080/deliveries/payment-status",
     }
   };
+
+  // Helper functions for date formatting
+  const formatDateForDisplay = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+  };
+
+  const formatDateForInput = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toISOString().split('T')[0];
+  };
+  
+  const getTodayDate = () => {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+  const todayDate = getTodayDate();
   
   // Load data from DB on component mount
   useEffect(() => {
@@ -252,53 +281,7 @@ export default function DeliveriesPage() {
       });
   };
 
-     // Date range filter
-  if (fromDate || toDate) {
-    result = result.filter(order => {
-      const transactionTime = new Date(order.transacDate).getTime();
-      const from = fromDate ? new Date(fromDate).setHours(0, 0, 0, 0) : null;
-      const to = toDate ? new Date(toDate).setHours(23, 59, 59, 999) : null;
-
-      if (from && to) return transactionTime >= from && transactionTime <= to;
-      if (from) return transactionTime >= from;
-      if (to) return transactionTime <= to;
-      return true;
-    });
-  } 
-
-  // Helper functions for date formatting
-  const formatDateForDisplay = (dateString) => {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
-    });
-  };
-
-  // const formatDateForInput = (dateString) => {
-  //   if (!dateString) return "";
-  //   const date = new Date(dateString);
-  //   return date.toISOString().split('T')[0];
-  // };
-  
-  // const getTodayDate = () => {
-  //   const today = new Date();
-  //   const yyyy = today.getFullYear();
-  //   const mm = String(today.getMonth() + 1).padStart(2, '0');
-  //   const dd = String(today.getDate()).padStart(2, '0');
-  //   return `${yyyy}-${mm}-${dd}`;
-  // };
-  // const todayDate = getTodayDate();
-
-  const handleFilterSelect = (filter, subFilter = null) => {
-    setSelectedFilter(filter);
-    setSelectedSubFilter(subFilter);
-
-
-
-    // Handle date range selection
+  // Handle date range selection
   const handleFromDateChange = (date) => {
     setFromDate(date);
     if (toDate && date > toDate) {
@@ -311,6 +294,10 @@ export default function DeliveriesPage() {
       setToDate(date);
     }
   };
+  
+  const handleFilterSelect = (filter, subFilter = null) => {
+    setSelectedFilter(filter);
+    setSelectedSubFilter(subFilter);
 
     // when filtering by supplier, set selectedSupplier accordingly;
     // otherwise clear it
@@ -383,6 +370,7 @@ export default function DeliveriesPage() {
   const getFilteredTransactions = () => {
     // ① If the user has typed a value, filter by substring match first
     let filteredTransactions = [...deliveries];
+    
     if (searchValue) {
       filteredTransactions = filteredTransactions.filter(item =>
         item.deliveryNum.includes(searchValue)
@@ -398,6 +386,20 @@ export default function DeliveriesPage() {
       filteredTransactions = filteredTransactions.filter(d =>
         (deliveryProducts[d.deliveryNum]?.[0]?.supplier || "Unknown") === selectedSupplier
       );
+    }
+
+    // Apply date range filter - FIXED
+    if (fromDate || toDate) {
+      filteredTransactions = filteredTransactions.filter(delivery => {
+        const deliveryDate = new Date(delivery.rawDate).getTime();
+        const from = fromDate ? new Date(fromDate).setHours(0, 0, 0, 0) : null;
+        const to = toDate ? new Date(toDate).setHours(23, 59, 59, 999) : null;
+
+        if (from && to) return deliveryDate >= from && deliveryDate <= to;
+        if (from) return deliveryDate >= from;
+        if (to) return deliveryDate <= to;
+        return true;
+      });
     }
 
     // ③ Apply existing filter/sort logic to the already-filtered list
@@ -429,8 +431,8 @@ export default function DeliveriesPage() {
 
       if (selectedFilter === "Date") {
         sortedTransactions.sort((a, b) => {
-          const dateA = new Date(a.dateAdded);
-          const dateB = new Date(b.dateAdded);
+          const dateA = new Date(a.rawDate);
+          const dateB = new Date(b.rawDate);
           return selectedSubFilter === "Oldest"
             ? dateA - dateB
             : dateB - dateA;
@@ -491,7 +493,7 @@ export default function DeliveriesPage() {
 
     axios
       .put(
-        // note the added “/payment-details”
+        // note the added "/payment-details"
         `${config.paymentDetails.update}/${deliveryNum}/payment-details`,
         payload
       )
@@ -714,29 +716,29 @@ export default function DeliveriesPage() {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-              </div>
-            </div>              
+            </div>  
+
             {/* Date Range Filter - From and To */}
-            <div className="relative flex items-center space-x-2 ml-4">
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   className={cn(
-                    "w-[150px] flex items-center justify-between px-3 py-2 border rounded-md font-normal",
+                    "w-[180px] flex items-center justify-between px-3 py-2 border rounded-md font-normal",
                     !fromDate && "text-muted-foreground"
                   )}
                 >
                   <CalendarDays className="mr-2 h-4 w-4" />
-                  {fromDate ? format(fromDate, "PPP") : <span>From</span>}
+                  {fromDate ? format(fromDate, "MMM dd, yyyy") : <span>From</span>}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[250px] p-0">
+              <PopoverContent className="w-auto p-0" align="start">
                 <CalendarComponent
                   mode="single"
                   selected={fromDate}
                   onSelect={handleFromDateChange}
                   initialFocus
+                  className="rounded-md border"
                 />
                 {fromDate && (
                   <div className="p-2 border-t flex justify-end">
@@ -757,21 +759,22 @@ export default function DeliveriesPage() {
                 <Button
                   variant="outline"
                   className={cn(
-                    "w-[150px] flex items-center justify-between px-3 py-2 border rounded-md font-normal",
+                    "w-[180px] flex items-center justify-between px-3 py-2 border rounded-md font-normal",
                     !toDate && "text-muted-foreground"
                   )}
                 >
                   <CalendarDays className="mr-2 h-4 w-4" />
-                  {toDate ? format(toDate, "PPP") : <span>To</span>}
+                  {toDate ? format(toDate, "MMM dd, yyyy") : <span>To</span>}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[250px] p-0">
+              <PopoverContent className="w-auto p-0" align="start">
                 <CalendarComponent
                   mode="single"
                   selected={toDate}
                   onSelect={handleToDateChange}
                   initialFocus
                   disabled={(date) => fromDate && date < fromDate}
+                  className="rounded-md border"
                 />
                 {toDate && (
                   <div className="p-2 border-t flex justify-end">
@@ -799,8 +802,7 @@ export default function DeliveriesPage() {
                     <span>Reset Date</span>
               </Button>
             </div>
-
-            
+                            
             {/* Button to navigate to Add Delivery form page */}
             <div className="flex space-x-2">
               <Button className="bg-blue-400 text-white" onClick={() => router.push("./deliveries-add-delivery")}>
@@ -871,7 +873,7 @@ export default function DeliveriesPage() {
                             <div className="grid grid-cols-2 gap-4">
                               <div>
                                 <label className="text-sm font-medium">Date of Delivery</label>
-                                <Input type="date" value={formatDateForInput(d.dateAdded)} disabled/>
+                                <Input type="date" value={d.rawDate} disabled/>
                               </div>
                               <div>
                                 <label className="text-sm font-medium">Delivery Number</label>
@@ -1059,7 +1061,7 @@ export default function DeliveriesPage() {
                                   <Label htmlFor="paymentAmount" className="mb-1 block">Amount</Label>
                                   <Input
                                     id="paymentAmount"
-                                    value={(parseFloat(d.totalCost.replace('₱', '')) / 2).toFixed(2)}
+                                    value={(parseFloat(d.totalCost.replace('₱', '').replace(',', '')) / 2).toFixed(2)}
                                     className="bg-red-800 text-white text-center"
                                     readOnly
                                   />
@@ -1155,7 +1157,7 @@ export default function DeliveriesPage() {
                                   <Label htmlFor="paymentAmount" className="mb-1 block">Amount</Label>
                                   <Input
                                     id="paymentAmount"
-                                    value={(parseFloat(d.totalCost.replace('₱', '')) / 2).toFixed(2)}
+                                    value={(parseFloat(d.totalCost.replace('₱', '').replace(',', '')) / 2).toFixed(2)}
                                     className="bg-red-800 text-white text-center"
                                     readOnly
                                   />

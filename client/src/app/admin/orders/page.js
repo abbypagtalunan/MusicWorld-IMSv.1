@@ -816,7 +816,7 @@ Object.entries(amountRanges).forEach(([key, range]) => {
                     <Button
                       variant="outline"
                       className={cn(
-                        "w-[150px] flex items-center justify-between px-3 py-2 border rounded-md font-normal",
+                        "w-[180px] flex items-center justify-between px-3 py-2 border rounded-md font-normal",
                         !fromDate && "text-muted-foreground"
                       )}
                     >
@@ -824,7 +824,7 @@ Object.entries(amountRanges).forEach(([key, range]) => {
                       {fromDate ? format(fromDate, "PPP") : <span>From</span>}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[250px] p-0">
+                  <PopoverContent className="w-auto p-0" align="start">
                     <CalendarComponent
                       mode="single"
                       selected={fromDate}
@@ -850,7 +850,7 @@ Object.entries(amountRanges).forEach(([key, range]) => {
                     <Button
                       variant="outline"
                       className={cn(
-                        "w-[150px] flex items-center justify-between px-3 py-2 border rounded-md font-normal",
+                        "w-[180px] flex items-center justify-between px-3 py-2 border rounded-md font-normal",
                         !toDate && "text-muted-foreground"
                       )}
                     >
@@ -858,7 +858,7 @@ Object.entries(amountRanges).forEach(([key, range]) => {
                       {toDate ? format(toDate, "PPP") : <span>To</span>}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[250px] p-0">
+                  <PopoverContent className="w-auto p-0" align="start">
                     <CalendarComponent
                       mode="single"
                       selected={toDate}
