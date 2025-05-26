@@ -88,59 +88,120 @@ export default function BatchDeliveriesPage() {
     quantity: ""
   });
 
-    // Add new product to the list
-  const handleAddProduct = () => {
-    // Create new product object
-    const productToAdd = {
-      productCode: selectedProduct.code,
-      supplier: selectedProduct.supplier,
-      brand: selectedProduct.brand,
-      product: selectedProduct.name,
-      quantity: quantity,
-      unitPrice: unitPrice,
-      total: computedTotal
+const newHandleSaveDelivery = async () => {
+  const raw = deliveryNumber.trim();
+  if (!raw) {
+    toast.error("Delivery number field is empty");
+    return;
+  }
+
+  if (!deliveryDate) {
+    toast.error("Delivery date is missing");
+    return;
+  }
+
+  if (productItems.length === 0) {
+    toast.error("Add at least one product to save delivery.");
+    return;
+  }
+
+  // Validate required payment fields if paymentDetails exist
+  if (paymentDetails) {
+    if (!paymentDetails.paymentType || !paymentDetails.paymentStatus) {
+      toast.error("Payment Type and Payment Status are required");
+      return;
+    }
+  }
+
+  try {
+    setLoading(true);
+
+    const deliveryPayload = {
+      D_deliveryNumber: parseInt(raw, 10),
+      D_deliveryDate: deliveryDate,
+      products: productItems.map(item => ({
+        P_productCode: parseInt(item.productCode, 10),
+        DPD_quantity: parseInt(item.quantity, 10),
+        P_unitPrice: parseFloat(item.unitPrice),
+      })),
+      payment: paymentDetails ? {
+        D_paymentTypeID: parseInt(paymentDetails.paymentType, 10),
+        D_paymentStatusID: parseInt(paymentDetails.paymentStatus, 10),
+        D_modeOfPaymentID: paymentDetails.paymentMode ? parseInt(paymentDetails.paymentMode, 10) : null,
+      } : null
     };
 
-    let updatedData = [];
-    if (isEditMode) {
-      updatedData = data.map((item) =>
-        item["Product Code"] === selectedProduct.code
-          ? { ...item, ...productToAdd }
-          : item
-      );
-    } else {
-      updatedData = [...data, productToAdd];
-    }
-    setData(updatedData);
+    console.log("Submitting delivery payload:", JSON.stringify(deliveryPayload, null, 2));
 
-    // Add to product items list
-    setProductItems([...productItems, productToAdd]);    
-    toast.success("Product added to delivery");
+    const res = await axios.post("http://localhost:8080/deliveries", deliveryPayload);
+    toast.success("Delivery and product details successfully saved!");
+    console.log("Server response:", res.data);
 
-    // Reset form
-    setSelectedProduct(null);
-    setQuantity(1);
-    setIsEditMode(false);
-    setUnitPrice(' ')
-  };
+    setDeliveryNumber("");
+    setProductItems([]);
+    setPaymentDetails(null); 
 
-const handleEditProduct = (row) => {
-  const {
-    productCode: code,
-    quantity,
-    unitPrice
-  } = row;
-
-  const matchedProduct = products.find((p) => p.code === code);
-  if (!matchedProduct) return;
-
-  // Autofill fields
-  setSelectedProduct(matchedProduct);
-  setQuantity(quantity);
-  setUnitPrice(unitPrice);
-  setIsEditMode(true);
+  } catch (error) {
+    console.error("Error saving delivery:", error);
+    toast.error(error.response?.data?.message || "Failed to save delivery");
+  } finally {
+    setLoading(false);
+  }
 };
 
+const handleAddProduct = () => {
+  const productToAdd = {
+    productCode: selectedProduct.code,
+    supplier: selectedProduct.supplier,
+    brand: selectedProduct.brand,
+    product: selectedProduct.name,
+    quantity: quantity,
+    unitPrice: unitPrice,
+    total: computedTotal
+  };
+
+  let updatedData = [];
+  if (isEditMode) {
+    updatedData = data.map((item) =>
+      item["Product Code"] === selectedProduct.code
+        ? { ...item, ...productToAdd }
+        : item
+    );
+    setData(updatedData);
+
+    setProductItems(productItems.map(item =>
+      item.productCode === selectedProduct.code ? { ...item, ...productToAdd } : item
+    ));
+  } else {
+    updatedData = [...data, productToAdd];
+    setData(updatedData);
+    setProductItems([...productItems, productToAdd]);
+  }
+
+  // Reset form
+  setSelectedProduct(null);
+  setQuantity(1);
+  setIsEditMode(false);
+  setUnitPrice(' ');
+};
+
+
+  const handleEditProduct = (row) => {
+    const {
+      productCode: code,
+      quantity,
+      unitPrice
+    } = row;
+
+    const matchedProduct = products.find((p) => p.code === code);
+    if (!matchedProduct) return;
+
+    // Autofill fields
+    setSelectedProduct(matchedProduct);
+    setQuantity(quantity);
+    setUnitPrice(unitPrice);
+    setIsEditMode(true);
+  };
 
   // API endpoints
   const API_CONFIG = {
@@ -229,35 +290,6 @@ const handleEditProduct = (row) => {
     minimumFractionDigits: 0,
   });
 
-  // Handle form input changes for new product
-  const handleInputChange = (field, value) => {
-    setNewProduct({
-      ...newProduct,
-      [field]: value
-    });
-    
-    // If product is selected, automatically fill unit price
-    if (field === 'product') {
-      const selectedProduct = products.find(p => p.P_productName === value);
-      if (selectedProduct) {
-        setNewProduct(prev => ({
-          ...prev,
-          unitPrice: selectedProduct.P_unitPrice || ""
-        }));
-      }
-    }
-    
-    // If supplier is selected, filter brands and products
-    if (field === 'supplier') {
-      // Find the supplier ID based on the selected supplier name
-      const supplierObj = suppliers.find(s => s.S_supplierName === value);
-      setSelectedSupplier(supplierObj ? supplierObj.S_supplierID : "");
-    }
-    
-    if (field === 'brand') {
-    }
-  };
-
   // Handle payment details input changes
   const handlePaymentDetailChange = (field, value) => {
     setPaymentDetails(prev => {
@@ -341,7 +373,6 @@ const handleEditProduct = (row) => {
         const statusName2 = statusObj2?.D_statusName.toLowerCase();
         setSelectedPaymentStatus2(statusName2 === 'paid' ? 1 : statusName2 === 'unpaid' ? 2 : -1);
       }
-
       return next;
     });
   };
@@ -367,14 +398,6 @@ const handleEditProduct = (row) => {
     const updatedItems = [...productItems];
     updatedItems.splice(index, 1);
     setProductItems(updatedItems);
-    toast.success("Product removed from delivery");
-  };
-
-  // Format date for input fields
-  const formatDateForInput = (dateString) => {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    return date.toISOString().split('T')[0];
   };
 
   // Save the delivery to the database
@@ -386,13 +409,6 @@ const handleEditProduct = (row) => {
       toast.error("Delivery number field is empty");
       return;
     }
-
-    // 2) Then enforce integer-only
-    if (!/^\d+$/.test(raw)) {
-      toast.error("Delivery number not an integer");
-      return;
-    }
-    const dnInt = Number(raw);
 
     try {
       if (productItems.length === 0) {
@@ -440,41 +456,37 @@ const handleEditProduct = (row) => {
         }
       }
 
-      setLoading(true);
-      
-      const supplierForDelivery = String(
-        selectedSupplier || (productItems.length > 0 ? productItems[0].supplierID : null)
-      );    
-      if (!supplierForDelivery) {
-        toast.error("Missing supplier information");
-        return;
-      }
+    // Create comprehensive delivery payload using the format expected
+    const deliveryPayload = {
+      D_deliveryNumber: parseInt(deliveryNumber.trim(), 10),
+      D_deliveryDate: deliveryDate,
 
-      // Create comprehensive delivery payload using the format expected
-      const deliveryPayload = {
-        D_deliveryNumber: parseInt(deliveryNumber.trim(), 10),
-        D_deliveryDate: deliveryDate,
-        products: productItems.map(item => ({
-          P_productCode: String(item.productCode),
-          DPD_quantity: parseInt(item.quantity, 10)
-        })),
-        payment: {
-          D_paymentTypeID: parseInt(paymentDetails.paymentType, 10),
-          D_modeOfPaymentID: parseInt(paymentDetails.paymentMode, 10),
-          D_paymentStatusID: parseInt(paymentDetails.paymentStatus, 10),
-          DPD_dateOfPaymentDue: paymentDetails.dateDue || null,
-          DPD_dateOfPayment1: paymentDetails.datePayment1 || null,
-          // for 2nd payment
-          D_modeOfPaymentID2: showSecondPayment
-            ? parseInt(paymentDetails.paymentMode2, 10) : null,
-          D_paymentStatusID2: showSecondPayment
-            ? parseInt(paymentDetails.paymentStatus2, 10) : null,
-          DPD_dateOfPaymentDue2: showSecondPayment
-            ? paymentDetails.dateDue2 : null,
-          DPD_dateOfPayment2: showSecondPayment
-            ? paymentDetails.datePayment2 : null
-        }
-      };
+      products: productItems.map(({ productCode, quantity, unitPrice, total }) => ({
+        P_productCode: String(productCode),
+        DPD_quantity: parseInt(quantity, 10),
+        DPD_unitPrice: parseFloat(unitPrice),
+        DPD_total: parseFloat(total),
+      })),
+
+      payment: {
+        D_paymentTypeID: parseInt(paymentDetails.paymentType, 10),
+        D_modeOfPaymentID: paymentDetails.paymentMode ? parseInt(paymentDetails.paymentMode, 10) : null,
+        D_paymentStatusID: parseInt(paymentDetails.paymentStatus, 10),
+        DPD_dateOfPaymentDue: paymentDetails.dateDue || null,
+        DPD_dateOfPayment1: paymentDetails.datePayment1 || null,
+
+        // 2nd payment (conditional)
+        D_modeOfPaymentID2: showSecondPayment && paymentDetails.paymentMode2
+          ? parseInt(paymentDetails.paymentMode2, 10)
+          : null,
+        D_paymentStatusID2: showSecondPayment && paymentDetails.paymentStatus2
+          ? parseInt(paymentDetails.paymentStatus2, 10)
+          : null,
+        DPD_dateOfPaymentDue2: showSecondPayment ? paymentDetails.dateDue2 || null : null,
+        DPD_dateOfPayment2: showSecondPayment ? paymentDetails.datePayment2 || null : null
+      }
+    };
+
 
       // Send all delivery data in a single request to the complete delivery endpoint
       const deliveryResponse = await axios.post(API_CONFIG.deliveries, deliveryPayload);
@@ -524,112 +536,6 @@ const handleEditProduct = (row) => {
       setLoading(false);
     }
 
-  };
-
-  // Save payment details separately
-  const handleSavePaymentDetails = (deliveryNum) => {
-    const detail = paymentDetails[deliveryNum];
-    if (!detail) {
-      toast.error("No payment details to save");
-      return;
-    }
-    setIsLoading(true);
-
-    const payload = {
-      D_paymentTypeID:    parseInt(detail.paymentType, 10),
-      D_modeOfPaymentID:  parseInt(detail.paymentMode, 10),
-      D_paymentStatusID:  parseInt(detail.paymentStatus, 10),
-      DPD_dateOfPaymentDue: detail.dateDue,
-      DPD_dateOfPayment1:   detail.datePayment1,
-      D_modeOfPaymentID2:   detail.paymentMode2  ? parseInt(detail.paymentMode2, 10)  : null,
-      D_paymentStatusID2:   detail.paymentStatus2 ? parseInt(detail.paymentStatus2, 10) : null,
-      DPD_dateOfPaymentDue2: detail.dateDue2      || null,
-      DPD_dateOfPayment2:   detail.datePayment2   || null,
-    };
-
-    axios
-      .put(
-        `${API_CONFIG.paymentDetails.update}/${deliveryNum}/payment-details`,
-        payload
-      )
-      .then(() => {
-        toast.success("Payment details updated successfully!");
-        // optionally re-load or refresh here
-      })
-      .catch(err => {
-        console.error("Error updating payment details:", err.response?.data || err);
-        toast.error("Failed to update payment details");
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
-  };
-  
-  // Handle delivery deletion
-  const handleDeleteDelivery = async (password) => {
-    try {
-      if (!password) {
-        toast.error("Admin password is required");
-        return;
-      }
-      
-      await axios({
-        method: 'put', // Change from 'delete' to 'put'
-        url: `${API_CONFIG.deliveries}/${deliveryNumber}/mark-deleted`, // Update endpoint
-        data: { adminPW: password },
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-      
-      toast.success("Delivery marked as deleted");
-      
-      // Reset form
-      setDeliveryNumber("");
-      setProductItems([]);
-      setPaymentDetails({
-        paymentType: "",
-        paymentMode: "",
-        paymentStatus: "",
-        dateDue: "",
-        datePayment1: "",
-        datePayment2: ""
-      });
-      
-    } catch (error) {
-      console.error("Error marking delivery as deleted:", error);
-      toast.error(error.response?.data?.message || "Failed to delete delivery");
-    }
-  };
-  
-  // Search handler for suppliers
-  const handleSupplierSearch = (searchTerm) => {
-    if (!searchTerm) {
-      return suppliers;
-    }
-    return suppliers.filter(supplier => 
-      supplier.S_supplierName.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  };
-
-  // Search handler for brands
-  const handleBrandSearch = (searchTerm) => {
-    if (!searchTerm) {
-      return brands;
-    }
-    return brands.filter(brand => 
-      brand.B_brandName.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  };
-
-  // Search handler for products
-  const handleProductSearch = (searchTerm) => {
-    if (!searchTerm) {
-      return products;
-    }
-    return products.filter(product => 
-      product.P_productName.toLowerCase().includes(searchTerm.toLowerCase())
-    );
   };
     
   // disable 2nd panel Date of Payment if its status is "Unpaid"
@@ -806,12 +712,13 @@ const handleEditProduct = (row) => {
                 </div>
 
                 <div className="flex justify-end gap-2 mt-6">
-                  <Button className="bg-green-600 text-white px-3 py-1.5 text-xs uppercase">
+                  <Button 
+                    className="bg-green-600 text-white px-3 py-1.5 text-xs uppercase"
+                    onClick={newHandleSaveDelivery}
+                    disabled={loading}
+                  >
                     Save Delivery
-                  </Button>
-                  <Button variant="outline" className="bg-gray-400 text-white px-3 py-1.5 text-xs uppercase">
-                    Delete Delivery
-                  </Button>
+                   </Button>
                 </div>
               </CardContent>
             </Card>

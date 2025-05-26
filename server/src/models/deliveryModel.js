@@ -9,7 +9,7 @@ const getAllDeliveries = (callback) => {
     SELECT 
       d.D_deliveryNumber,
       d.D_deliveryDate,
-      SUM(dp.DPD_quantity * p.P_unitPrice) as totalCost
+      SUM(dp.DPD_quantity * dp.P_unitPrice) as totalCost
     FROM Deliveries d
     LEFT JOIN DeliveryProductDetails dp ON d.D_deliveryNumber = dp.D_deliveryNumber
     LEFT JOIN Products p ON dp.P_productCode = p.P_productCode
@@ -64,7 +64,7 @@ const addDelivery = (deliveryData, products, payment, callback) => {
 
       const insertProductsQuery = `
         INSERT INTO DeliveryProductDetails
-          (DPD_quantity, D_deliveryNumber, P_productCode)
+          (DPD_quantity, D_deliveryNumber, P_productCode, P_unitPrice)
         VALUES ?
       `;
 
@@ -72,7 +72,8 @@ const addDelivery = (deliveryData, products, payment, callback) => {
       const productValues = products.map(p => [
         p.DPD_quantity,
         D_deliveryNumber,
-        p.P_productCode
+        p.P_productCode,
+        p.P_unitPrice
       ]);
 
       // Step 1: insert into Deliveries
@@ -252,7 +253,7 @@ const getDeliveryProductsOfDelivery = (deliveryNumber, callback) => {
       b.B_brandName as brandName,
       s.S_supplierName as supplierName,
       dpd.DPD_quantity,
-      p.P_unitPrice
+      dpd.P_unitPrice
     FROM DeliveryProductDetails dpd
     LEFT JOIN Products p ON dpd.P_productCode = p.P_productCode
     LEFT JOIN Brands b ON p.B_brandID = b.B_brandID
@@ -280,7 +281,7 @@ const getDeliveryProductsOfAllDeliveries = (callback) => {
       b.B_brandName as brandName,
       s.S_supplierName as supplierName,
       dpd.DPD_quantity,
-      p.P_unitPrice
+      dpd.P_unitPrice
     FROM DeliveryProductDetails dpd
     LEFT JOIN Products p ON dpd.P_productCode = p.P_productCode
     LEFT JOIN Brands b ON p.B_brandID = b.B_brandID
