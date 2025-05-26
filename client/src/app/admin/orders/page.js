@@ -93,7 +93,8 @@ export default function OrdersPage() {
   // Eye Toggle - Show Password
   const [showPassword, setShowPassword] = useState(false);
 
-  // Return order handler functions
+  // Return order handler functions:
+
   // for single or multiple selects
   const handleSelectTransaction = (transactionId) => {
     setSelectedTransactions((prev) =>
@@ -103,7 +104,7 @@ export default function OrdersPage() {
     );
   };
 
-  // Enhanced row click handler that doesn't interfere with checkbox clicks
+  // Row click handler 
   const handleRowClick = (transactionId, event) => {
     // Prevent row click when clicking directly on checkbox or input elements
     if (event.target.type === 'checkbox' || event.target.tagName === 'INPUT') {
@@ -1246,7 +1247,7 @@ export default function OrdersPage() {
                                       const isSelected = selectedTransactions.includes(transactionId);
                                       
                                       return (
-                                        // Enhanced clickable row with visual feedback
+                                        // Enhanced clickable row
                                         <TableRow 
                                           key={detail.orderDetailID}
                                           onClick={(e) => handleRowClick(transactionId, e)}
