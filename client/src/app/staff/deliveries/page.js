@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose, } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
-import { Search, ListFilter, Trash2, Eye, PackagePlus, ChevronsUpDown, ChevronUp, ChevronDown} from "lucide-react";
+import { Search, ListFilter, Trash2, Eye, PackagePlus, ChevronsUpDown, ChevronUp, ChevronDown, EyeOff} from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
 
@@ -52,6 +52,9 @@ export default function DeliveriesPage() {
 
   // Sort
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "ascending" });
+
+  // Eye Toggle
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSort = (key) => {
     setSortConfig((prev) => {
@@ -327,9 +330,22 @@ export default function DeliveriesPage() {
                               <label htmlFor={`password-${d.deliveryNum}`} className="text-base font-medium text-gray-700 block mb-2">
                                 Admin Password
                               </label>
-                              <Input type="password" id={`password-${d.deliveryNum}`} required
+                              <div className="relative w-full">
+                              <Input type={showPassword ? "text" : "password"} id={`password-${d.deliveryNum}`} required
                                 placeholder="Enter valid password"  className="w-full" 
-                              />
+                              /> <button
+                                  type="button"
+                                  onClick={() => setShowPassword((prev) => !prev)}
+                                  className="absolute inset-y-0 right-3 flex items-center text-gray-500"
+                                  tabIndex={-1}
+                                >
+                                  {showPassword ? (
+                                    <EyeOff className="w-5 h-5" />
+                                  ) : (
+                                    <Eye className="w-5 h-5" />
+                                  )}
+                                </button>
+                            </div>
                             </div>       
                             <Button 
                               className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
