@@ -581,24 +581,13 @@ export default function OrdersPage() {
       if (detailsForOrder.length === 0) {
         rows.push([
           order.receiptNo,
-          order.orderID,
-          order.transacDate,
-          order.orderPayment,
-          order.totalAmount,
-          order.wholeOrderDiscount,
-          order.totalProductDiscount,
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
+        order.orderID,
+        order.transacDate,
+        order.orderPayment,
+        order.totalAmount,
+        order.wholeOrderDiscount,
+        order.totalProductDiscount,
+        "", "", "", "", "", "", "", "", "", "", "", ""
         ]);
       } else {
         detailsForOrder.forEach((detail) => {
