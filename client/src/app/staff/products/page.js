@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, ListFilter, ChevronsUpDown, ChevronUp, ChevronDown } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
+import MinimumScreenGuard from "@/components/MinimumScreenGuard";
 
 export default function ProductsPage() {
   const config = {
@@ -296,6 +297,7 @@ export default function ProductsPage() {
 
 
   return (
+    <MinimumScreenGuard>
     <SidebarProvider>
       <div className="flex h-screen w-screen overflow-hidden">
         <AppSidebar />
@@ -437,6 +439,7 @@ export default function ProductsPage() {
       </div>
     </div>
     </SidebarProvider>
+    </MinimumScreenGuard>
   );
 }
 
