@@ -810,7 +810,7 @@ Object.entries(amountRanges).forEach(([key, range]) => {
                   </DropdownMenuContent>
                 </DropdownMenu> 
 
-                {/* Date Range Filters - From and To */}
+                {/* Date Range Filter - From and To */}
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button

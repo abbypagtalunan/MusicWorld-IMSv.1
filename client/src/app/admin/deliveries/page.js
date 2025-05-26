@@ -13,6 +13,7 @@ import { toast, Toaster } from "react-hot-toast";
 import { Search, ListFilter, Trash2, Eye, FilePen, PackagePlus, Save, ChevronsUpDown, ChevronUp, ChevronDown } from "lucide-react";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogDescription } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
 
@@ -36,7 +37,11 @@ export default function DeliveriesPage() {
   const [paymentTypes, setPaymentTypes] = useState([]);
   const [paymentModes, setPaymentModes] = useState([]);
   const [paymentStatuses, setPaymentStatuses] = useState([]);
-
+  
+  // Date filter states - updated to use fromDate/toDate
+  const [fromDate, setFromDate] = useState(null);
+  const [toDate, setToDate] = useState(null);
+  
   // API config
   const config = {
     deliveries: {
@@ -247,6 +252,20 @@ export default function DeliveriesPage() {
       });
   };
 
+     // Date range filter
+  if (fromDate || toDate) {
+    result = result.filter(order => {
+      const transactionTime = new Date(order.transacDate).getTime();
+      const from = fromDate ? new Date(fromDate).setHours(0, 0, 0, 0) : null;
+      const to = toDate ? new Date(toDate).setHours(23, 59, 59, 999) : null;
+
+      if (from && to) return transactionTime >= from && transactionTime <= to;
+      if (from) return transactionTime >= from;
+      if (to) return transactionTime <= to;
+      return true;
+    });
+  } 
+
   // Helper functions for date formatting
   const formatDateForDisplay = (dateString) => {
     if (!dateString) return "";
@@ -258,24 +277,40 @@ export default function DeliveriesPage() {
     });
   };
 
-  const formatDateForInput = (dateString) => {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    return date.toISOString().split('T')[0];
-  };
+  // const formatDateForInput = (dateString) => {
+  //   if (!dateString) return "";
+  //   const date = new Date(dateString);
+  //   return date.toISOString().split('T')[0];
+  // };
   
-  const getTodayDate = () => {
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
-    const dd = String(today.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
-  };
-  const todayDate = getTodayDate();
+  // const getTodayDate = () => {
+  //   const today = new Date();
+  //   const yyyy = today.getFullYear();
+  //   const mm = String(today.getMonth() + 1).padStart(2, '0');
+  //   const dd = String(today.getDate()).padStart(2, '0');
+  //   return `${yyyy}-${mm}-${dd}`;
+  // };
+  // const todayDate = getTodayDate();
 
   const handleFilterSelect = (filter, subFilter = null) => {
     setSelectedFilter(filter);
     setSelectedSubFilter(subFilter);
+
+
+
+    // Handle date range selection
+  const handleFromDateChange = (date) => {
+    setFromDate(date);
+    if (toDate && date > toDate) {
+      setToDate(null);
+    }
+  };
+
+  const handleToDateChange = (date) => {
+    if (!fromDate || date >= fromDate) {
+      setToDate(date);
+    }
+  };
 
     // when filtering by supplier, set selectedSupplier accordingly;
     // otherwise clear it
@@ -614,7 +649,7 @@ export default function DeliveriesPage() {
                     id="deliverySearch"
                     name="deliverySearch"
                     value={searchValue}
-                    onChange={handleSearchChange}           // ← use sanitized change handler
+                    onChange={handleSearchChange} // ← use sanitized change handler
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         handleSearch();
@@ -647,48 +682,16 @@ export default function DeliveriesPage() {
                   </div>
                 )}
               </div>
-              <span className="pr-5"></span>
-              
-              {/* ——— Date Search ——— */}
-              <div className="relative flex items-center space-x-2 ml-4">
-                <Input
-                  type="date"
-                  id="deliveryDateSearch"
-                  value={searchDate}
-                  onChange={e => {
-                    const date = e.target.value;
-                    setSearchDate(date);
-                    // automatically fetch on date select
-                    handleSearchDate(date);
-                  }}
-                  className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-100 text-gray-500"
-                />
-                {searchDate && searchResult && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-gray-500 hover:text-blue-600"
-                    onClick={() => {
-                      setSearchResult(null);
-                      setSearchDate("");
-                    }}
-                  >
-                    Exit Search
-                  </Button>
-                )}
-              </div>
-
-              <span className="pr-5"></span>
+              {/* Filter by Supplier */}
               <div className="flex items-center space-x-2">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="flex items-center space-x-2 bg-green-500 text-white">
+                    <Button variant="outline" className="flex items-center space-x-2">
                       <ListFilter className="w-4 h-4" />
                       <span>Filter</span>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start">
-                    {/* Filter by Supplier */}
                     <DropdownMenuSub>
                       <DropdownMenuSubTrigger>Supplier</DropdownMenuSubTrigger>
                       <DropdownMenuSubContent>
@@ -712,7 +715,91 @@ export default function DeliveriesPage() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
+            </div>              
+            {/* Date Range Filter - From and To */}
+            <div className="relative flex items-center space-x-2 ml-4">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-[150px] flex items-center justify-between px-3 py-2 border rounded-md font-normal",
+                    !fromDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarDays className="mr-2 h-4 w-4" />
+                  {fromDate ? format(fromDate, "PPP") : <span>From</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[250px] p-0">
+                <CalendarComponent
+                  mode="single"
+                  selected={fromDate}
+                  onSelect={handleFromDateChange}
+                  initialFocus
+                />
+                {fromDate && (
+                  <div className="p-2 border-t flex justify-end">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => setFromDate(null)}
+                      className="text-red-500"
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                )}
+              </PopoverContent>
+            </Popover>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-[150px] flex items-center justify-between px-3 py-2 border rounded-md font-normal",
+                    !toDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarDays className="mr-2 h-4 w-4" />
+                  {toDate ? format(toDate, "PPP") : <span>To</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[250px] p-0">
+                <CalendarComponent
+                  mode="single"
+                  selected={toDate}
+                  onSelect={handleToDateChange}
+                  initialFocus
+                  disabled={(date) => fromDate && date < fromDate}
+                />
+                {toDate && (
+                  <div className="p-2 border-t flex justify-end">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => setToDate(null)}
+                      className="text-red-500"
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                )}
+              </PopoverContent>
+            </Popover>
+            <Button
+                  variant="outline"
+                  onClick={() => {
+                    setFromDate(null);
+                    setToDate(null);
+                  }}
+                  className="text-sm border-gray-300 hover:text-red-600 "
+                >
+                  <RotateCcw className="w-4 h-4" />
+                    <span>Reset Date</span>
+              </Button>
             </div>
+
             
             {/* Button to navigate to Add Delivery form page */}
             <div className="flex space-x-2">
