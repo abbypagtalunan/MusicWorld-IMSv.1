@@ -30,7 +30,7 @@ const getAllOrderDetails = (callback) => {
       callback(err, null);
     } else {
       callback(null, results);
-      console.log("Query Results:", results);
+      // console.log("Query Results:", results);
     }
   });
 };
@@ -73,7 +73,7 @@ const fetchReportData = (callback) => {
       callback(err, null);
     } else {
       callback(null, results);
-      console.log("Report Query Results:", results);
+      // console.log("Report Query Results:", results);
     }
   });
 };
