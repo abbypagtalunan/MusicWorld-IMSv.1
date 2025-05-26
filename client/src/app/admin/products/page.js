@@ -131,11 +131,15 @@ export default function ProductsPage() {
       values[config.product.unitpriceField] &&
       values[config.product.sellingpriceField];
 
+
+  
+  const [selectedProductforPU, setSelectedProductforPU] = useState(null);    
   const isUpdateValid =
       values[config.product.codeField] &&
       values[config.product.sellingpriceField] !== "" &&
       !isNaN(parseFloat(values[config.product.sellingpriceField])) &&
-      parseFloat(values[config.product.sellingpriceField]) > 0;
+      parseFloat(values[config.product.sellingpriceField]) > 0 &&
+      (selectedProductforPU === null || parseFloat(values[config.product.sellingpriceField]) !== parseFloat(selectedProductforPU?.sellingPrice))
 
   
 
@@ -365,6 +369,32 @@ export default function ProductsPage() {
   // Submit
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    if(values[config.product.stockField] > 1000) {
+      toast.error("Stock amount exceeds allowed amount (1000)")
+      return;
+    }
+    if(values[config.product.stockField] <= 0) {
+      toast.error("Stock amount must be greater than 0")
+      return;
+    }
+    if(values[config.product.unitpriceField] > 500000) {
+      toast.error("Price exceeds allowed amount (500000)")
+      return;
+    }
+    if(values[config.product.unitpriceField] <= 0) {
+      toast.error("Price must be greater than 0")
+      return;
+    }
+    if(values[config.product.sellingpriceField] > 500000) {
+      toast.error("Selling price exceeds allowed amount (500000)")
+      return;
+    }
+    if(values[config.product.sellingpriceField] <= 0) {
+      toast.error("Selling price must be greater than 0")
+      return;
+    }
+
     const payload = { 
       C_categoryID: values[config.product.categoryField],
       P_productName: values[config.product.nameField],
@@ -435,6 +465,31 @@ export default function ProductsPage() {
   // Edit  
   const [isEditSheetOpen, setEditSheetOpen] = useState(false);
   const handleEdit = () => {
+    if(values[config.product.stockField] > 1000) {
+      toast.error("Stock amount exceeds allowed amount (1000)")
+      return;
+    }
+    if(values[config.product.stockField] <= 0) {
+      toast.error("Stock amount must be greater than 0")
+      return;
+    }
+    if(values[config.product.unitpriceField] > 500000) {
+      toast.error("Price exceeds allowed amount (500000)")
+      return;
+    }
+    if(values[config.product.unitpriceField] <= 0) {
+      toast.error("Price must be greater than 0")
+      return;
+    }
+    if(values[config.product.sellingpriceField] > 500000) {
+      toast.error("Selling price exceeds allowed amount (500000)")
+      return;
+    }
+    if(values[config.product.sellingpriceField] <= 0) {
+      toast.error("Selling price must be greater than 0")
+      return;
+    }
+
     const payload = { 
       C_categoryID: values[config.product.categoryField] || selectedProduct.categoryID,
       P_productName: values[config.product.nameField] || selectedProduct.productName,
@@ -474,9 +529,7 @@ export default function ProductsPage() {
   };
 
   // Price edit
-  const [openProduct, setOpenProduct] = useState(false);
   const [PSearchTerm, setPSearchTerm] = useState("");
-  const [selectProductforPU, setSelectedProductforPU] = useState(null);
   const [isPDOpen, setPDopen] = useState(false);
   const handlePriceUpdate = async () => {
     const productCode = values[config.product.codeField];;
@@ -486,9 +539,20 @@ export default function ProductsPage() {
       toast.error("No product selected");
       return;
     }
-
     if (!P_sellingPrice || P_sellingPrice <= 0) {
       toast.error("No price entered");
+      return;
+    }
+    if (selectedProductforPU && parseFloat(P_sellingPrice) === parseFloat(selectedProductforPU.sellingPrice)) {
+      toast.error("Price must be different from current price");
+      return;
+    }
+    if(values[config.product.sellingpriceField] > 500000) {
+      toast.error("Selling price exceeds allowed amount (500000)")
+      return;
+    }
+    if(values[config.product.sellingpriceField] <= 0) {
+      toast.error("Selling price must be greater than 0")
       return;
     }
 
@@ -616,6 +680,7 @@ export default function ProductsPage() {
         ).length;
         if (successCount > 0) {
           toast.success(`Deleted ${successCount} product(s) successfully`);
+          refreshTable();
         } 
       })
       .catch((err) => {
@@ -885,7 +950,8 @@ export default function ProductsPage() {
                       type="number" 
                       placeholder="Enter stock amount" 
                       required
-                      min="0"
+                      min="1"
+                      max="1000"
                       onKeyDown={(e) => {
                         if(e.key === 'e' || e.key === '-' || e.key === '+') {
                           e.preventDefault();
@@ -893,7 +959,7 @@ export default function ProductsPage() {
                       }} 
                       onChange={(e) => {
                         const value = parseFloat(e.target.value);
-                        if(!isNaN(value) && value >= 0) {
+                        if(!isNaN(value) && value >= 0 && value <= 1000) {
                           setValues({...values, [config.product.stockField]:value});
                         } else if (e.target.value === '') {
                           setValues({...values, [config.product.stockField]:''});    
@@ -908,6 +974,7 @@ export default function ProductsPage() {
                       required
                       min="0.01"
                       step="0.01"
+                      max="500000.00"
                       onKeyDown={(e) => {
                         if(e.key === 'e' || e.key === '-' || e.key === '+') {
                           e.preventDefault();
@@ -915,7 +982,7 @@ export default function ProductsPage() {
                       }} 
                       onChange={(e) => {
                         const value = parseFloat(e.target.value);
-                        if(!isNaN(value) && value > 0) {
+                        if(!isNaN(value) && value > 0 && value <= 500000) {
                           setValues({...values, [config.product.unitpriceField]:value});
                         } else if (e.target.value === '') {
                           setValues({...values, [config.product.unitpriceField]:''});    
@@ -930,6 +997,7 @@ export default function ProductsPage() {
                       required
                       min="0.01"
                       step="0.01"
+                      max="500000.00"
                       onKeyDown={(e) => {
                         if(e.key === 'e' || e.key === '-' || e.key === '+') {
                           e.preventDefault();
@@ -937,7 +1005,7 @@ export default function ProductsPage() {
                       }} 
                       onChange={(e) => {
                         const value = parseFloat(e.target.value);
-                        if(!isNaN(value) && value > 0) {
+                        if(!isNaN(value) && value > 0 && value <= 500000) {
                           setValues({...values, [config.product.sellingpriceField]:value});
                         } else if (e.target.value === '') {
                           setValues({...values, [config.product.sellingpriceField]:''});    
@@ -1029,6 +1097,7 @@ export default function ProductsPage() {
                                 [config.product.codeField]: product.productCode,
                                 [config.product.sellingpriceField]: product.sellingPrice,
                               });
+                              setSelectedProductforPU(product);
                               setPSearchTerm(`${product.productName} (${product.productCode})`);
                             }}
                           >
@@ -1055,6 +1124,7 @@ export default function ProductsPage() {
                       required
                       min="0.01"
                       step="0.01"
+                      max="500000.00"
                       onKeyDown={(e) => {
                         if(e.key === 'e' || e.key === '-' || e.key === '+') {
                           e.preventDefault();
@@ -1062,7 +1132,7 @@ export default function ProductsPage() {
                       }} 
                       onChange={(e) => {
                         const value = parseFloat(e.target.value);
-                        if(!isNaN(value) && value > 0) {
+                        if(!isNaN(value) && value > 0 && value <= 500000) {
                           setValues({...values, [config.product.sellingpriceField]:value});
                         } else if (e.target.value === '') {
                           setValues({...values, [config.product.sellingpriceField]:''});    
@@ -1321,7 +1391,8 @@ export default function ProductsPage() {
                 type="number" 
                 value={values[config.product.stockField]  ?? ""} 
                 required
-                min="0"
+                min="1"
+                max="1000"
                 onKeyDown={(e) => {
                   if(e.key === 'e' || e.key === '-' || e.key === '+') {
                     e.preventDefault();
@@ -1329,7 +1400,7 @@ export default function ProductsPage() {
                 }} 
                 onChange={(e) => {
                   const value = parseFloat(e.target.value);
-                  if(!isNaN(value) && value >= 0) {
+                  if(!isNaN(value) && value >= 0 && value <= 1000) {
                     setValues({...values, [config.product.stockField]:value});
                   } else if (e.target.value === '') {
                     setValues({...values, [config.product.stockField]:''});    
@@ -1344,6 +1415,7 @@ export default function ProductsPage() {
                 required
                 min="0.01"
                 step="0.01"
+                max="500000.00"
                 onKeyDown={(e) => {
                   if(e.key === 'e' || e.key === '-' || e.key === '+') {
                     e.preventDefault();
@@ -1351,7 +1423,7 @@ export default function ProductsPage() {
                 }} 
                 onChange={(e) => {
                   const value = parseFloat(e.target.value);
-                  if(!isNaN(value) && value > 0) {
+                  if(!isNaN(value) && value > 0 && value <= 500000) {
                     setValues({...values, [config.product.unitpriceField]:value});
                   } else if (e.target.value === '') {
                     setValues({...values, [config.product.unitpriceField]:''});    
@@ -1366,6 +1438,7 @@ export default function ProductsPage() {
                 required
                 min="0.01"
                 step="0.01"
+                max="500000.00"
                 onKeyDown={(e) => {
                   if(e.key === 'e' || e.key === '-' || e.key === '+') {
                     e.preventDefault();
@@ -1373,7 +1446,7 @@ export default function ProductsPage() {
                 }} 
                 onChange={(e) => {
                   const value = parseFloat(e.target.value);
-                  if(!isNaN(value) && value > 0) {
+                  if(!isNaN(value) && value > 0 && value <= 500000) {
                     setValues({...values, [config.product.sellingpriceField]:value});
                   } else if (e.target.value === '') {
                     setValues({...values, [config.product.sellingpriceField]:''});    
