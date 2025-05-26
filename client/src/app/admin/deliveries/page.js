@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast, Toaster } from "react-hot-toast";
-import { Search, ListFilter, Trash2, CalendarDays, Eye, FilePen, PackagePlus, Save, ChevronsUpDown, ChevronUp, ChevronDown, RotateCcw } from "lucide-react";
+import { Search, ListFilter, Trash2, CalendarDays, Eye, FilePen, PackagePlus, Save, ChevronsUpDown, ChevronUp, ChevronDown, RotateCcw, EyeOff } from "lucide-react";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -44,6 +44,9 @@ export default function DeliveriesPage() {
   // Date filter states - updated to use fromDate/toDate
   const [fromDate, setFromDate] = useState(null);
   const [toDate, setToDate] = useState(null);
+
+  // Eye Toggle
+  const [showPassword, setShowPassword] = useState(false);
   
   // API config
   const config = {
@@ -638,7 +641,7 @@ export default function DeliveriesPage() {
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen overflow-hidden">
+      <div className="flex h-screen w-screen overflow-hidden">
         <AppSidebar />
         <div className="flex-1 p-4 flex flex-col overflow-x-hidden">
           <div className="flex flex-wrap gap-4 justify-between mb-4 bg-white shadow-sm p-4 rounded-lg">
@@ -1369,10 +1372,23 @@ export default function DeliveriesPage() {
                               <label htmlFor={`password-${d.deliveryNum}`} className="text-base font-medium text-gray-700 block mb-2">
                                 Admin Password
                               </label>
-                              <Input type="password" id={`password-${d.deliveryNum}`} required
+                              <div className="relative w-full">
+                              <Input type={showPassword ? "text" : "password"} id={`password-${d.deliveryNum}`} required
                                 placeholder="Enter valid password"  className="w-full" 
-                              />
-                            </div>       
+                              /> <button
+                                type="button"
+                                onClick={() => setShowPassword((prev) => !prev)}
+                                className="absolute inset-y-0 right-3 flex items-center text-gray-500"
+                                tabIndex={-1}
+                              >
+                                {showPassword ? (
+                                  <EyeOff className="w-5 h-5" />
+                                ) : (
+                                  <Eye className="w-5 h-5" />
+                                )}
+                              </button>
+                            </div>   
+                            </div>    
                             <Button 
                               className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
                               onClick={() => handleDelete(d.deliveryNum, 

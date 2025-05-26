@@ -297,16 +297,16 @@ export default function ProductsPage() {
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen w-screen">
+      <div className="flex h-screen w-screen overflow-hidden">
         <AppSidebar />
-        <div className="flex-1 p-4 flex flex-col w-full">
-          <div className="flex items-center justify-between mb-4 bg-white p-4 shadow-sm rounded-lg">
-            <div className="flex items-center space-x-2">
+        <div className="flex-1 p-4 flex flex-col overflow-x-hidden">
+          <div className="flex flex-wrap gap-4 justify-between mb-4 bg-white shadow-sm p-4 rounded-lg">
+            <div className="flex flex-wrap items-center gap-2 min-w-[250px]">
               <div className="relative w-80">
                 <Input
                   type="text"
                   placeholder="Search product code, product, category"
-                  className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />

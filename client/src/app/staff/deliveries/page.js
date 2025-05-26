@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose, } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
-import { Search, ListFilter, Trash2, Eye, PackagePlus, ChevronsUpDown, ChevronUp, ChevronDown} from "lucide-react";
+import { Search, ListFilter, Trash2, Eye, PackagePlus, ChevronsUpDown, ChevronUp, ChevronDown, EyeOff} from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
 
@@ -52,6 +52,9 @@ export default function DeliveriesPage() {
 
   // Sort
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "ascending" });
+
+  // Eye Toggle
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSort = (key) => {
     setSortConfig((prev) => {
@@ -99,16 +102,16 @@ export default function DeliveriesPage() {
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen w-screen">
+      <div className="flex h-screen w-screen overflow-hidden">
         <AppSidebar />
-        <div className="flex-1 p-4 flex flex-col w-full">
-          <div className="flex items-center justify-between mb-4 bg-white p-4 shadow-sm rounded-lg">
-            <div className="flex items-center space-x-2">
+        <div className="flex-1 p-4 flex flex-col overflow-x-hidden">
+          <div className="flex flex-wrap gap-4 justify-between mb-4 bg-white shadow-sm p-4 rounded-lg">
+            <div className="flex flex-wrap items-center gap-2 min-w-[250px]">
               <div className="relative w-80">
                 <Input
                   type="text"
                   placeholder="Search transaction, id, product"
-                  className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <div className="absolute left-3 top-2.5 text-gray-500">
                   <Search className="w-5 h-5" />
@@ -145,7 +148,7 @@ export default function DeliveriesPage() {
                 </DropdownMenu>
               </div>
             </div>
-            <div className="flex space-x-2">
+            <div className="flex justify-end">
               <Button className="bg-blue-400 text-white" onClick={() => router.push("./deliveries-add-delivery")}>
                 <PackagePlus size={16} />
                   Add Delivery
@@ -327,9 +330,22 @@ export default function DeliveriesPage() {
                               <label htmlFor={`password-${d.deliveryNum}`} className="text-base font-medium text-gray-700 block mb-2">
                                 Admin Password
                               </label>
-                              <Input type="password" id={`password-${d.deliveryNum}`} required
+                              <div className="relative w-full">
+                              <Input type={showPassword ? "text" : "password"} id={`password-${d.deliveryNum}`} required
                                 placeholder="Enter valid password"  className="w-full" 
-                              />
+                              /> <button
+                                  type="button"
+                                  onClick={() => setShowPassword((prev) => !prev)}
+                                  className="absolute inset-y-0 right-3 flex items-center text-gray-500"
+                                  tabIndex={-1}
+                                >
+                                  {showPassword ? (
+                                    <EyeOff className="w-5 h-5" />
+                                  ) : (
+                                    <Eye className="w-5 h-5" />
+                                  )}
+                                </button>
+                            </div>
                             </div>       
                             <Button 
                               className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"

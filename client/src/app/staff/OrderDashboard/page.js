@@ -48,6 +48,7 @@ const OrderDashboard = () => {
   const [netItemSale, setNetItemSale] = useState(0);
   const [unitPrice, setUnitPrice] = useState(0);
 
+  const [paymentInput, setPaymentInput] = useState("");
   const totalAmount = data.reduce((sum, item) => sum + parseFloat(item.Total), 0); //Total after discount
   const discountedTotal = Math.max(totalAmount - wholeOrderDiscount, 0); //Total after whole order discount and product discount
   const parsedPayment = parseFloat(payment.toString().replace(/,/g, "")) || 0;
@@ -224,7 +225,7 @@ const OrderDashboard = () => {
     setIsEditMode(false);
   };
   
-const handleEdit = (row) => {
+  const handleEdit = (row) => {
     const {
       "Product Code": code,
       Quantity: quantity,
@@ -269,7 +270,6 @@ const handleEdit = (row) => {
       }
     };
     
-  
   const handleProductSelect = (product) => {
     setSelectedProduct(product);
     setOpenProduct(false);
@@ -300,10 +300,9 @@ const handleEdit = (row) => {
     setFreebieQuantity(1); 
     setOpenFreebie(false);
   };
-  
-  // DELETE BOTH OCCURRENCE IF SAME PRODUCT CODE
-  const handleDelete = (productCode) => {
-    setData((prevData) => prevData.filter(item => item["Product Code"] !== productCode));
+
+  const handleDelete = (rowIndex) => {
+    setData((prevData) => prevData.filter((_, index) => index !== rowIndex));
   };
 
   const refreshAll = async () => {
@@ -352,12 +351,14 @@ const handleEdit = (row) => {
             
             {/* TABLE */}
             <div className="lg:col-span-2 space-y-4 min-w-0">
-              <div className="h-[50%] text-xl bg-white shadow-md p-4 rounded-xl">
+              <div className="min-h-[30%] max-h-[50%] overflow-y-auto text-xl bg-white shadow-md p-4 rounded-xl">
               <DataTable 
                 columns={getColumns(handleDelete, handleEdit)} 
                 data={data}
               />
               </div>
+
+              
 
               {/* TOTAL AMOUNT - PAYMENT */}
               <div className="bg-white shadow-lg p-6 text-center rounded-xl">
@@ -397,7 +398,7 @@ const handleEdit = (row) => {
                       setIsModalOpen(true);
                     }}
                     className={`px-4 py-1 mt-5 rounded-md text-[13px] transition-colors ${
-                      data.length === 0
+                      data.length === 0 || isInvalidDiscount
                         ? "bg-gray-400 text-white cursor-not-allowed"
                         : "bg-blue-400 text-white hover:bg-blue-700"
                     }`}
@@ -430,33 +431,37 @@ const handleEdit = (row) => {
 
                         <input
                           type="text"
-                          value={payment === 0 ? "" : payment.toLocaleString("en-PH")}
+                          inputMode="decimal"
+                          value={paymentInput}
                           onChange={(e) => {
+                            const raw = e.target.value.replace(/[^0-9.]/g, "");
+                            
+                            // Allow only 6 digits before decimal, and max 2 digits after
+                            const isValid = /^\d{0,6}(\.\d{0,2})?$/.test(raw);
+                            if (!isValid) return;
+
+                            const numeric = parseFloat(raw);
+                            if (!isNaN(numeric) && numeric > 999999.99) return;
+                            setPaymentInput(raw);
+
+                            // Only update payment if valid number
+                            setPayment(isNaN(numeric) ? 0 : numeric);
                             setHasInteractedWithPayModal(true);
-                            const rawValue = e.target.value.replace(/[^0-9.]/g, ""); 
-                            const updatedPayment = rawValue === "" ? 0 : parseFloat(rawValue);
-                            setPayment(updatedPayment);
-                            console.log("Payment: ", payment)
                           }}
                           onBlur={() => {
-                            if (!payment || parseFloat(payment.toString().replace(/,/g, "")) < discountedTotal) {
+                            const numeric = parseFloat(paymentInput.replace(/,/g, "")) || 0;
+                            if (numeric < discountedTotal) {
                               setHasInteractedWithPayModal(true);
                             }
+                            // Format with commas on blur
+                            setPaymentInput(numeric === 0 ? "" : numeric.toLocaleString("en-PH", { minimumFractionDigits: 2 }));
                           }}
-                          onMouseLeave={(e) => {
-                            if (!payment || parseFloat(payment.toString().replace(/,/g, "")) < discountedTotal) {
-                              setHasInteractedWithPayModal(true);
-                            }
-                            const rawValue = e.target.value.replace(/[^0-9.]/g, ""); 
-                            const updatedPayment = rawValue === "" ? 0 : parseFloat(rawValue);
-                            setPayment(updatedPayment);
-                            console.log("Payment: ", payment)
+                          onFocus={() => {
+                            setPaymentInput(paymentInput.replace(/,/g, ""));
                           }}
                           className={`w-[80%] px-2 py-1 border rounded-md text-center focus:outline-none ${
-                            hasInteractedWithPayModal && !payment 
-                              ? "border-red-600 text-red-600" 
-                              : hasInteractedWithPayModal && payment < discountedTotal 
-                              ? "border-red-600 text-red-600" 
+                            hasInteractedWithPayModal && (payment <= 0 || payment < discountedTotal)
+                              ? "border-red-600 text-red-600"
                               : "border-gray-300 text-black"
                           }`}
                         />
@@ -545,33 +550,51 @@ const handleEdit = (row) => {
                         variant="outline"
                         role="combobox"
                         aria-expanded={openProduct}
-                        className="w-full justify-between">
+                        className="w-full justify-between"
+                      >
                         {selectedProduct ? selectedProduct.label : "Select product..."}
                         <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
+
                     <PopoverContent className="w-full p-0">
                       <Command>
-                        <CommandInput placeholder="Search product..." />
-                        <CommandEmpty>No product found.</CommandEmpty>
-                        <CommandGroup>
-                          {products.map((product) => (
-                            <CommandItem
-                              key={product.code}
-                              value={product.label} 
-                              onSelect={() => {
-                                handleProductSelect(product); 
-                                setOpenProduct(false);
-                              }}>
-                              <Check
+                        <div className="sticky top-0 z-10 bg-white p-2 border-b">
+                          <CommandInput placeholder="Search product..." />
+                        </div>
+                        <CommandEmpty className="p-2 text-sm text-gray-500">
+                          No product found.
+                        </CommandEmpty>
+                        <div className="max-h-60 overflow-y-auto">
+                          <CommandGroup>
+                            {products.map((product) => (
+                              <CommandItem
+                                key={product.code}
+                                value={product.label}
+                                onSelect={() => {
+                                  handleProductSelect(product);
+                                  setOpenProduct(false);
+                                }}
                                 className={cn(
-                                  "mr-2 h-4 w-4",
-                                  selectedProduct?.code === product.code ? "opacity-100" : "opacity-0"
-                                )}/>
-                              {product.label}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
+                                  product.stock === 0 && "bg-gray-200 text-gray-400",
+                                  "cursor-default flex items-start flex-col gap-0.5"
+                                )}
+                              >
+                                <div className="flex items-center w-full">
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      selectedProduct?.code === product.code ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  <span className="font-medium">{product.label}</span>
+                                </div>
+                                <span className="text-xs text-gray-500 ml-6"> Stock: {product.stock}</span>
+                                <span className="text-xs text-gray-500 ml-6"> Price: {product.price}</span>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </div>
                       </Command>
                     </PopoverContent>
                   </Popover>
@@ -824,6 +847,8 @@ const handleEdit = (row) => {
             <form className="text-[15px] space-y-2">
               <div className="text-left">
                 <label className="block mb-1 text-sm">Product</label>
+                
+                
                 <Popover open={openFreebie} onOpenChange={setOpenFreebie}>
                   <PopoverTrigger asChild>
                     <Button variant="outline" role="combobox" aria-expanded={openFreebie} className="w-full justify-between">
@@ -833,9 +858,13 @@ const handleEdit = (row) => {
                   </PopoverTrigger>
                   <PopoverContent className="w-full p-0">
                     <Command>
-                      <CommandInput placeholder="Search product..." />
+                      <div className="sticky top-0 z-10 bg-white p-2 border-b">
+                          <CommandInput placeholder="Search freebie..." />
+                        </div>
                       <CommandEmpty>No freebie found.</CommandEmpty>
+                      
                       {/* SHOW PRODUCT ONLY QUANTITY > 0 */}
+                      <div className="max-h-60 overflow-y-auto">
                       <CommandGroup>
                       {products
                         .filter(product => product.stock > 0)
@@ -850,6 +879,7 @@ const handleEdit = (row) => {
                           </CommandItem>
                       ))}
                     </CommandGroup>
+                    </div>
                     </Command>
                   </PopoverContent>
                 </Popover>
