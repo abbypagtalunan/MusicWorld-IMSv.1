@@ -179,13 +179,40 @@ export default function OrdersPage() {
       };
     });
 
-   axios
+ axios
   .post("http://localhost:8080/returns", { returnItems })
   .then((response) => {
-      toast.success("Returns processed successfully!");
-      resetReturnDialog();
-      handleDelete(selectedOrderID, true, true); 
-    })
+    toast.success("Returns processed successfully!");
+    resetReturnDialog();
+
+    // Get the current order details
+    const currentDetails = [...orderDetails];
+
+    // Extract orderDetailIDs of returned items
+    const returnedDetailIDs = selectedTransactions.map(id => {
+      const [_, detailId] = id.split("-");
+      return parseInt(detailId);
+    });
+
+    // Filter out only the returned items
+    const updatedOrderDetails = currentDetails.filter(
+      detail => !returnedDetailIDs.includes(detail.orderDetailID)
+    );
+
+    // Update state to remove returned items
+    setOrderDetails(updatedOrderDetails);
+
+    // Optional: Check if there are no items left in the order
+    const remainingItems = updatedOrderDetails.filter(
+      detail => detail.orderID === selectedOrderID
+    );
+
+    if (remainingItems.length === 0) {
+      // No items left, delete the order
+      handleDelete(selectedOrderID, true, true);
+    }
+
+  })
   .catch((error) => {
     const errorMessage =
       error.response?.data?.message ||
