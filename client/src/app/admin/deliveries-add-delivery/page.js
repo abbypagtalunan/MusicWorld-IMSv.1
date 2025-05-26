@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { X, Trash2, Undo2, Filter } from "lucide-react";
 import { toast, Toaster } from "react-hot-toast";
+import MinimumScreenGuard from "@/components/MinimumScreenGuard";
 
 export default function BatchDeliveriesPage() {
   const router = useRouter();
@@ -678,6 +679,7 @@ export default function BatchDeliveriesPage() {
   const todayDate = getTodayDate();
 
   return (
+    <MinimumScreenGuard>
     <SidebarProvider>
       <div className="flex h-screen w-screen overflow-hidden">
         <AppSidebar />
@@ -1203,5 +1205,6 @@ export default function BatchDeliveriesPage() {
         </div>
       </div>
     </SidebarProvider>
+    </MinimumScreenGuard>
   );
 }

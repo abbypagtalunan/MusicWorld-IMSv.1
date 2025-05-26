@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/popover";
 import { toast, Toaster } from "react-hot-toast";
 import axios from "axios";
+import MinimumScreenGuard from "@/components/MinimumScreenGuard";
 
 export default function ReportsPage() {
   const [reportData, setReportData] = useState([]);
@@ -241,6 +242,7 @@ export default function ReportsPage() {
   } 
 
   return (
+    <MinimumScreenGuard>
     <SidebarProvider>
       <div className="flex h-screen w-screen overflow-hidden">
         <AppSidebar />
@@ -444,5 +446,6 @@ export default function ReportsPage() {
         </div>
       </div>
     </SidebarProvider>
+    </MinimumScreenGuard>
   );
 }

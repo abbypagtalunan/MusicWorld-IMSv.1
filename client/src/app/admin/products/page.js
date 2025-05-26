@@ -15,6 +15,7 @@ import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, Dialog
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
 import { useRef } from "react";
 import { Eye, EyeOff } from "lucide-react";
+import MinimumScreenGuard from "@/components/MinimumScreenGuard";
 
 export default function ProductsPage() {
   const config = {
@@ -717,6 +718,7 @@ export default function ProductsPage() {
 
 
   return (
+    <MinimumScreenGuard>
     <SidebarProvider>
       <div className="flex h-screen w-screen overflow-hidden">
         <AppSidebar />
@@ -1453,6 +1455,7 @@ export default function ProductsPage() {
     </div>
     <Toaster position="top-center"/>
     </SidebarProvider>
+    </MinimumScreenGuard>
   );
 }
 

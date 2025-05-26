@@ -19,6 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogDescription } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
+import MinimumScreenGuard from "@/components/MinimumScreenGuard";
 
 export default function DeliveriesPage() {
   const router = useRouter();
@@ -640,6 +641,7 @@ export default function DeliveriesPage() {
   );
 
   return (
+    <MinimumScreenGuard>
     <SidebarProvider>
       <div className="flex h-screen w-screen overflow-hidden">
         <AppSidebar />
@@ -1412,5 +1414,6 @@ export default function DeliveriesPage() {
       <Toaster position="top-right" />
       {isLoading && <LoadingSpinner />} 
     </SidebarProvider>
+    </MinimumScreenGuard>
   );
 }

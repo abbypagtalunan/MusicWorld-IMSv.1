@@ -51,6 +51,7 @@ import { toast, Toaster } from "react-hot-toast";
 import axios from "axios";
 import { cn } from "@/lib/utils";
 import { Eye, EyeOff } from "lucide-react";
+import MinimumScreenGuard from "@/components/MinimumScreenGuard";
 
 export default function OrdersPage() {
   // Search state
@@ -631,6 +632,7 @@ export default function OrdersPage() {
   }
 
   return (
+    <MinimumScreenGuard>
     <SidebarProvider>
       <div className="flex h-screen w-screen overflow-hidden">
         <AppSidebar />
@@ -1530,5 +1532,6 @@ export default function OrdersPage() {
       </div>
       <Toaster position="top-center" />
     </SidebarProvider>
+    </MinimumScreenGuard>
   );
 }

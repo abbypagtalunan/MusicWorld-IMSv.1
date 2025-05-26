@@ -46,6 +46,8 @@ import {
 import { Trash2, Eye, ChevronsUpDown, ChevronUp, ChevronDown, EyeOff, Search } from "lucide-react";
 // Toast Notifications
 import { toast, Toaster } from "react-hot-toast";
+import MinimumScreenGuard from "@/components/MinimumScreenGuard";
+
 // Helper function to format PHP currency
 const formatToPHP = (amount) => {
   return `₱${Number(amount).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`;
@@ -455,6 +457,7 @@ export default function ReturnsPage() {
   };
 
   return (
+    <MinimumScreenGuard>
     <SidebarProvider>
       <div className="flex h-screen w-screen overflow-hidden">
         <AppSidebar />
@@ -1066,5 +1069,6 @@ export default function ReturnsPage() {
       </div>
       <Toaster />
     </SidebarProvider>
+    </MinimumScreenGuard>
   );
 }
