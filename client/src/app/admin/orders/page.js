@@ -102,6 +102,16 @@ export default function OrdersPage() {
         : [...prev, transactionId]
     );
   };
+
+  // Enhanced row click handler that doesn't interfere with checkbox clicks
+  const handleRowClick = (transactionId, event) => {
+    // Prevent row click when clicking directly on checkbox or input elements
+    if (event.target.type === 'checkbox' || event.target.tagName === 'INPUT') {
+      return;
+    }
+    handleSelectTransaction(transactionId);
+  };
+
   // when selected all
   const handleSelectAll = () => {
     const currentOrderDetails = orderDetails.filter(
@@ -1231,41 +1241,50 @@ export default function OrdersPage() {
                                     .filter(
                                       (detail) => detail.orderID === selectedOrderID
                                     )
-                                    .map((detail) => (
-                                      // checkbox select NO. OF ITEMS ONLY function for customer returns
-                                      <TableRow key={detail.orderDetailID}>
-                                        <TableCell>
-                                          <input
-                                            type="checkbox"
-                                            checked={selectedTransactions.includes(
-                                              `${detail.orderID}-${detail.orderDetailID}`
-                                            )}
-                                            onChange={() =>
-                                              handleSelectTransaction(
-                                                `${detail.orderID}-${detail.orderDetailID}`
-                                              )
-                                            }
-                                          />
-                                        </TableCell>
-                                        <TableCell>{detail.orderID}</TableCell>
-                                        <TableCell>{detail.orderDetailID}</TableCell>
-                                        <TableCell>{detail.productCode}</TableCell>
-                                        <TableCell>{detail.productName}</TableCell>
-                                        <TableCell>{detail.supplierName}</TableCell>
-                                        <TableCell>{detail.brandName}</TableCell>
-                                        <TableCell>
-                                          {detail.unitPrice === 0.00
-                                            ? "Freebie"
-                                            : formatPeso(detail.unitPrice)}
-                                        </TableCell>
-                                        <TableCell>{detail.quantity}</TableCell>
-                                        <TableCell>{detail.discountType || "---"}</TableCell>
-                                        <TableCell>{formatPeso(detail.discountAmount)}</TableCell>
-                                        <TableCell>{formatPeso(detail.itemTotal)}</TableCell>
-                                        <TableCell>{formatPeso(detail.itemGross)}</TableCell>
-                                        <TableCell>{formatPeso(detail.itemGrossProfit)}</TableCell>
-                                      </TableRow>
-                                    ))}
+                                    .map((detail) => {
+                                      const transactionId = `${detail.orderID}-${detail.orderDetailID}`;
+                                      const isSelected = selectedTransactions.includes(transactionId);
+                                      
+                                      return (
+                                        // Enhanced clickable row with visual feedback
+                                        <TableRow 
+                                          key={detail.orderDetailID}
+                                          onClick={(e) => handleRowClick(transactionId, e)}
+                                          className={cn(
+                                            "cursor-pointer transition-all duration-200 select-none",
+                                            isSelected 
+                                              ? "bg-blue-50 border-l-4 border-blue-500 shadow-sm" 
+                                              : "hover:bg-gray-50 hover:shadow-sm"
+                                          )}
+                                        >
+                                          <TableCell>
+                                            <input
+                                              type="checkbox"
+                                              checked={isSelected}
+                                              onChange={() => handleSelectTransaction(transactionId)}
+                                              className="text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                                            />
+                                          </TableCell>
+                                          <TableCell className="font-medium">{detail.orderID}</TableCell>
+                                          <TableCell>{detail.orderDetailID}</TableCell>
+                                          <TableCell className="font-mono text-sm">{detail.productCode}</TableCell>
+                                          <TableCell className="font-medium">{detail.productName}</TableCell>
+                                          <TableCell>{detail.supplierName}</TableCell>
+                                          <TableCell>{detail.brandName}</TableCell>
+                                          <TableCell className="font-medium">
+                                            {detail.unitPrice === 0.00
+                                              ? <span className="text-green-600 font-semibold">Freebie</span>
+                                              : formatPeso(detail.unitPrice)}
+                                          </TableCell>
+                                          <TableCell className="text-center font-medium">{detail.quantity}</TableCell>
+                                          <TableCell>{detail.discountType || <span className="text-gray-400">---</span>}</TableCell>
+                                          <TableCell>{formatPeso(detail.discountAmount)}</TableCell>
+                                          <TableCell className="font-medium">{formatPeso(detail.itemTotal)}</TableCell>
+                                          <TableCell>{formatPeso(detail.itemGross)}</TableCell>
+                                          <TableCell className="font-medium">{formatPeso(detail.itemGrossProfit)}</TableCell>
+                                        </TableRow>
+                                      );
+                                    })}
                                 </TableBody>
                               </Table>
                             ) : (
@@ -1274,17 +1293,21 @@ export default function OrdersPage() {
                               </p>
                             )}
                             {/* Return items function */}
-                            <div className="flex justify-between items-center mb-4">
+                            <div className="flex justify-between items-center mb-4 p-4 bg-gray-50 rounded-lg">
                               <div className="text-sm text-gray-600">
-                                {selectedTransactions.length > 0 && (
-                                  <span>
-                                    {selectedTransactions.length} item(s) selected
+                                {selectedTransactions.length > 0 ? (
+                                  <span className="font-medium text-blue-600">
+                                    {selectedTransactions.length} item(s) selected for return
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-500">
+                                    Click on rows or checkboxes to select items for return
                                   </span>
                                 )}
                               </div>
                               <Button
                                 variant="outline"
-                                className="bg-indigo-500 hover:bg-indigo-700 hover:text-white text-white"
+                                className="bg-indigo-500 hover:bg-indigo-700 hover:text-white text-white transition-colors duration-200"
                                 onClick={() => {
                                   setItemReturnReasons("");
                                   setReturnDialogOpen(true);
