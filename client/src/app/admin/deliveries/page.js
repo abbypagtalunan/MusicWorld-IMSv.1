@@ -63,7 +63,7 @@ export default function DeliveriesPage() {
     setIsMounted(true);
   }, []);
 
-// Return order handler functions
+// Return order handler functions:
 
   // Handle select all products for return
   const handleSelectAll = (deliveryNumber) => {
@@ -75,6 +75,15 @@ export default function DeliveriesPage() {
     } else {
       setSelectedTransactions(allProductIds);
     }
+  };
+
+ // Row click handler 
+  const handleRowClick = (transactionId, event) => {
+    // Prevent row click when clicking directly on checkbox or input elements
+    if (event.target.type === 'checkbox' || event.target.tagName === 'INPUT') {
+      return;
+    }
+    handleSelectTransaction(transactionId);
   };
 
   // for single or multiple selects
@@ -1072,7 +1081,15 @@ export default function DeliveriesPage() {
                                         const isSelected = selectedTransactions.includes(transactionId);
                                         
                                         return (
-                                          <TableRow key={idx} className={isSelected ? "bg-blue-50" : ""}>
+                                          <TableRow key={idx} 
+                                            onClick={(e) => handleRowClick(transactionId, e)}
+                                            className={cn(
+                                              "cursor-pointer transition-all duration-200 select-none",
+                                              isSelected 
+                                                ? "bg-blue-50 border-l-4 border-blue-500 shadow-sm" 
+                                                  : "hover:bg-gray-50 hover:shadow-sm"
+                                            )}
+                                          >
                                             <TableCell>
                                               <input
                                                 type="checkbox"
