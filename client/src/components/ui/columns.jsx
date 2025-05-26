@@ -88,7 +88,7 @@ const getColumns = (handleDelete, handleEdit) => [
           )}
           <button
             className="text-gray-500 hover:text-red-700"
-            onClick={() => handleDelete(row.original["Product Code"])}
+            onClick={() => handleDelete(row.index)}
             type="button"
           >
             <Trash2 size={16} />

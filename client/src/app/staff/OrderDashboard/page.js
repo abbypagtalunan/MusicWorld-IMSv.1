@@ -300,10 +300,9 @@ const OrderDashboard = () => {
     setFreebieQuantity(1); 
     setOpenFreebie(false);
   };
-  
-  // DELETE BOTH OCCURRENCE IF SAME PRODUCT CODE
-  const handleDelete = (productCode) => {
-    setData((prevData) => prevData.filter(item => item["Product Code"] !== productCode));
+
+  const handleDelete = (rowIndex) => {
+    setData((prevData) => prevData.filter((_, index) => index !== rowIndex));
   };
 
   const refreshAll = async () => {
@@ -576,6 +575,10 @@ const OrderDashboard = () => {
                                   handleProductSelect(product);
                                   setOpenProduct(false);
                                 }}
+                                className={cn(
+                                  product.stock === 0 && "bg-gray-200 text-gray-400",
+                                  "cursor-default"
+                                )}
                               >
                                 <Check
                                   className={cn(
