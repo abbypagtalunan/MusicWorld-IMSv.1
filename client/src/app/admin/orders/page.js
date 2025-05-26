@@ -271,6 +271,7 @@ export default function OrdersPage() {
           discountType: o.D_discountType,
           quantity: o.OD_quantity,
           unitPrice: o.OD_unitPrice,
+          sellingPrice: o.OD_sellingPrice,
           discountAmount: o.OD_discountAmount,
           itemTotal: o.OD_netSale,
           itemGross: o.OD_grossSale,
@@ -518,6 +519,7 @@ export default function OrdersPage() {
           discountType: o.D_discountType,
           quantity: o.OD_quantity,
           unitPrice: o.OD_unitPrice,
+          sellingPrice: o.OD_sellingPrice,
           discountAmount: o.OD_discountAmount,
           itemTotal: o.OD_netSale,
           itemGross: o.OD_grossSale,
@@ -1232,7 +1234,8 @@ export default function OrdersPage() {
                                     <TableHead>Product</TableHead>
                                     <TableHead>Supplier</TableHead>
                                     <TableHead>Brand</TableHead>
-                                    <TableHead>Price</TableHead>
+                                    <TableHead>Unit Price</TableHead>
+                                    <TableHead>Selling Price</TableHead>
                                     <TableHead>Quantity</TableHead>
                                     <TableHead>Discount Type</TableHead>
                                     <TableHead>Discount Amount</TableHead>
@@ -1276,10 +1279,12 @@ export default function OrdersPage() {
                                           <TableCell className="font-medium">{detail.productName}</TableCell>
                                           <TableCell>{detail.supplierName}</TableCell>
                                           <TableCell>{detail.brandName}</TableCell>
+                                          <TableCell className="font-medium"> {formatPeso(detail.unitPrice)}
+                                          </TableCell>
                                           <TableCell className="font-medium">
-                                            {detail.unitPrice === 0.00
+                                            {detail.sellingPrice == 0.00
                                               ? <span className="text-green-600 font-semibold">Freebie</span>
-                                              : formatPeso(detail.unitPrice)}
+                                              : formatPeso(detail.sellingPrice)}
                                           </TableCell>
                                           <TableCell className="text-center font-medium">{detail.quantity}</TableCell>
                                           <TableCell>{detail.discountType || <span className="text-gray-400">---</span>}</TableCell>
