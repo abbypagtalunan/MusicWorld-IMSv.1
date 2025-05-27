@@ -37,7 +37,7 @@ const getAllOrderDetails = (callback) => {
 
 const fetchReportData = (callback) => {
   const query = `
-    (
+(
   SELECT 
     od.OD_detailID,
     o.O_orderID,
@@ -52,12 +52,31 @@ const fetchReportData = (callback) => {
     p.P_productName,
     od.D_discountType,
     od.OD_quantity,
-    od.OD_unitPrice,
-    od.OD_sellingPrice,
+
+    -- If freebie, use original unit price
+    CASE 
+      WHEN od.OD_sellingPrice = 0.00 THEN p.P_unitPrice 
+      ELSE od.OD_unitPrice 
+    END AS OD_unitPrice,
+
+    -- If freebie, use original selling price
+    CASE 
+      WHEN od.OD_sellingPrice = 0.00 THEN p.P_sellingPrice 
+      ELSE od.OD_sellingPrice 
+    END AS OD_sellingPrice,
+
     od.OD_discountAmount,
     od.OD_netSale,
     od.OD_grossSale,
-    od.OD_grossProfit,
+
+    -- Recompute gross profit based on actual values
+    CASE 
+      WHEN od.OD_sellingPrice = 0.00 THEN 
+        -1 * ((p.P_sellingPrice * od.OD_quantity) - (p.P_unitPrice * od.OD_quantity))
+      ELSE 
+        (od.OD_sellingPrice * od.OD_quantity) - (od.OD_unitPrice * od.OD_quantity)
+    END AS OD_grossProfit,
+
     b.B_brandName,
     s.S_supplierName,
     'Sales' as recordType
@@ -68,7 +87,9 @@ const fetchReportData = (callback) => {
   LEFT JOIN Suppliers s ON p.S_supplierID = s.S_supplierID
   WHERE o.isTemporarilyDeleted = 0
 )
+
 UNION ALL
+
 (
   SELECT 
     od.OD_detailID,
@@ -84,12 +105,23 @@ UNION ALL
     p.P_productName,
     od.D_discountType,
     r.R_returnQuantity as OD_quantity,
-    od.OD_unitPrice,
-    od.OD_sellingPrice,
+
+    -- Replace unit price if freebie
+    CASE WHEN od.OD_sellingPrice = 0.00 THEN p.P_unitPrice ELSE od.OD_unitPrice END AS OD_unitPrice,
+
+    -- Replace selling price if freebie
+    CASE WHEN od.OD_sellingPrice = 0.00 THEN p.P_sellingPrice ELSE od.OD_sellingPrice END AS OD_sellingPrice,
+
     -1 * r.R_discountAmount as OD_discountAmount,
     -1 * (r.R_TotalPrice - r.R_discountAmount) as OD_netSale,
     -1 * r.R_TotalPrice as OD_grossSale,
-    -1 * (r.R_TotalPrice - r.R_discountAmount - od.OD_unitPrice * r.R_returnQuantity) as OD_grossProfit,
+
+    -- Multiply gross profit by -1, and if it's a freebie, reverse it again (total -2x)
+    CASE 
+      WHEN od.OD_sellingPrice = 0.00 THEN 1 * (r.R_TotalPrice - r.R_discountAmount - p.P_unitPrice * r.R_returnQuantity)
+      ELSE -1 * (r.R_TotalPrice - r.R_discountAmount - od.OD_unitPrice * r.R_returnQuantity)
+    END AS OD_grossProfit,
+
     b.B_brandName,
     s.S_supplierName,
     'Returns' as recordType
@@ -100,8 +132,10 @@ UNION ALL
   LEFT JOIN Brands b ON p.B_brandID = b.B_brandID
   LEFT JOIN Suppliers s ON p.S_supplierID = s.S_supplierID
 )
+
 ORDER BY T_transactionDate;
 `
+
 
   db.query(query, (err, results) => {
     if (err) {
