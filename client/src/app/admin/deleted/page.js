@@ -714,7 +714,7 @@ return (
                                 <span className="text-lg text-blue-900">Confirm Download?</span>
                                 <span className="text-lg text-gray-400 font-normal italic ml-2">
                                   ({config.label}-Deleted.csv)
-                                </span>DOWNLOAD FILE
+                                </span>
                               </DialogTitle>
                               <DialogClose />
                             </DialogHeader>

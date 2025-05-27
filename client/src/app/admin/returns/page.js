@@ -43,7 +43,7 @@ import {
   TabsTrigger,
   TabsContent,
 } from "@/components/ui/tabs";
-import { Trash2, Eye, ChevronsUpDown, ChevronUp, ChevronDown, EyeOff, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Trash2, Eye, ChevronsUpDown, ChevronUp, ChevronDown, Download, EyeOff, Search, ChevronLeft, ChevronRight } from "lucide-react";
 // Toast Notifications
 import { toast, Toaster } from "react-hot-toast";
 import MinimumScreenGuard from "@/components/MinimumScreenGuard";
@@ -575,16 +575,51 @@ export default function ReturnsPage() {
                   <CardContent className="p-4 flex flex-col flex-1 overflow-hidden">
                     {/* Search Filter for Customer Returns */}
                     <div className="mb-4 flex-shrink-0">
-                      <div className="relative w-80">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                        <Input
-                          placeholder="Search customer returns..."
-                          value={customerSearchTerm}
-                          onChange={(e) => setCustomerSearchTerm(e.target.value)}
-                          className="pl-10 w-full"
-                        />
+                      <div className="flex justify-between items-center gap-3">
+                        <div className="relative w-80">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                          <Input
+                            placeholder="Search customer returns..."
+                            value={customerSearchTerm}
+                            onChange={(e) => setCustomerSearchTerm(e.target.value)}
+                            className="pl-10 w-full"
+                          />
+                        </div>
+                        
+                        {/* Download Button - need backend */}
+                        <div className="flex gap-2">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button className="bg-blue-400 text-white">
+                              <Download className="w-4 h-4" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
+                            <DialogHeader>
+                              <DialogTitle>
+                                <span className="text-lg text-blue-900">Confirm Download?</span>
+                                <span className="text-lg text-gray-400 font-normal italic ml-2">
+                                  (Return from Customer.csv)
+                                </span>
+                              </DialogTitle>
+                              <DialogClose />
+                            </DialogHeader>
+                            <p className="text-medium text-gray-800 mt-2 pl-4">
+                              You are about to download the Return from Customer.csv file. Click the button below to proceed.
+                            </p>
+                            <div className="flex justify-end mt-4 text-gray-700 items-center pl-4">
+                              <Button
+                                className="bg-emerald-500 hover:bg-emerald-700 text-white uppercase text-sm font-medium whitespace-nowrap"
+                              >
+                                DOWNLOAD FILE
+                              </Button>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                        </div>
                       </div>
                     </div>
+
                     
                     {/* Scrollable Table Container */}
                     <div className="flex-1 overflow-hidden border rounded-lg">
@@ -787,16 +822,50 @@ export default function ReturnsPage() {
                   <CardContent className="p-4 flex flex-col flex-1 overflow-hidden">
                     {/* Search Filter for Supplier Returns */}
                     <div className="mb-4 flex-shrink-0">
-                      <div className="relative w-80">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                        <Input
-                          placeholder="Search supplier returns..."
-                          value={supplierSearchTerm}
-                          onChange={(e) => setSupplierSearchTerm(e.target.value)}
-                          className="pl-10 w-full"
-                        />
+                      <div className="flex justify-between items-center gap-3">
+                          <div className="relative w-80">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                            <Input
+                              placeholder="Search supplier returns..."
+                              value={supplierSearchTerm}
+                              onChange={(e) => setSupplierSearchTerm(e.target.value)}
+                              className="pl-10 w-full"
+                            />
+                          </div>
+                          {/* Download Button - need backend */}
+                          <div className="flex gap-2">
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button className="bg-blue-400 text-white">
+                                <Download className="w-4 h-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
+                              <DialogHeader>
+                                <DialogTitle>
+                                  <span className="text-lg text-blue-900">Confirm Download?</span>
+                                  <span className="text-lg text-gray-400 font-normal italic ml-2">
+                                    (Return to Supplier.csv)
+                                  </span>
+                                </DialogTitle>
+                                <DialogClose />
+                              </DialogHeader>
+                              <p className="text-medium text-gray-800 mt-2 pl-4">
+                                You are about to download the Return to Supplier.csv file. Click the button below to proceed.
+                              </p>
+                              <div className="flex justify-end mt-4 text-gray-700 items-center pl-4">
+                                <Button
+                                  className="bg-emerald-500 hover:bg-emerald-700 text-white uppercase text-sm font-medium whitespace-nowrap"
+                                >
+                                  DOWNLOAD FILE
+                                </Button>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                          </div>
+                        </div>
                       </div>
-                    </div>
+
                     
                     {/* Scrollable Table Container */}
                     <div className="flex-1 overflow-hidden border rounded-lg">
