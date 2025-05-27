@@ -70,174 +70,92 @@ export default function DeliveriesPage() {
 
 // Return order handler functions:
 
-// Handle select all products for return in a delivery
-const handleSelectAll = (deliveryNumber) => {
-  const products = deliveries[deliveryNumber] || [];
-  const allProductIds = products.map((_, idx) => `${deliveryNumber}-${idx}`);
+  // Handle select all products for return
+  const handleSelectAll = (deliveryNumber) => {
+    const products = deliveryProducts[deliveryNumber] || [];
+    const allProductIds = products.map((_, idx) => `${deliveryNumber}-${idx}`);
+    
+    if (selectedTransactions.length === allProductIds.length && selectedTransactions.length > 0) {
+      setSelectedTransactions([]);
+    } else {
+      setSelectedTransactions(allProductIds);
+    }
+  };
 
-  if (selectedTransactions.length === allProductIds.length && selectedTransactions.length > 0) {
+ // Row click handler 
+  const handleRowClick = (transactionId, event) => {
+    // Prevent row click when clicking directly on checkbox or input elements
+    if (event.target.type === 'checkbox' || event.target.tagName === 'INPUT') {
+      return;
+    }
+    handleSelectTransaction(transactionId);
+  };
+
+  // for single or multiple selects
+  const handleSelectTransaction = (transactionId) => {
+    setSelectedTransactions(prev => 
+      prev.includes(transactionId) 
+        ? prev.filter(id => id !== transactionId)
+        : [...prev, transactionId]
+    );
+  };
+
+  // Get filtered transactions for current delivery
+  const getFilteredTransaction = (deliveryNumber) => {
+    return deliveryProducts[deliveryNumber] || [];
+  };
+
+  // Handle return with individual item reasons
+  const handleReturnOrder = () => {
+    if (selectedTransactions.length === 0) {
+      toast.error("Please select at least one item to return");
+      return;
+    }
+    
+    // Check if all selected items have return reasons
+    const missingReasons = selectedTransactions.filter(transactionId => 
+      !itemReturnReasons[transactionId]?.trim()
+    );
+    
+    if (missingReasons.length > 0) {
+      toast.error("Please provide a reason for all selected items");
+      return;
+    }
+    
+    console.log("Returning items with individual reasons:");
+    selectedTransactions.forEach(transactionId => {
+      const [deliveryNum, productIndex] = transactionId.split('-');
+      const product = deliveryProducts[deliveryNum]?.[parseInt(productIndex)];
+      console.log(`Item: ${product?.product}, Reason: ${itemReturnReasons[transactionId]}`);
+    });
+    
+    toast.success("Return processed successfully!");
+    setReturnDialogOpen(false);
     setSelectedTransactions([]);
-  } else {
-    setSelectedTransactions(allProductIds);
-  }
-};
+    setItemReturnReasons({});
+  };
 
-// Row click handler for selecting individual product
-const handleRowClick = (transactionId, event) => {
-  if (event.target.type === 'checkbox' || event.target.tagName === 'INPUT') {
-    return;
-  }
-  handleSelectTransaction(transactionId);
-};
+  // Function to update individual item return reason
+  const updateItemReturnReason = (transactionId, reason) => {
+    // Only allow letters and spaces
+    let filtered = reason.replace(/[^a-zA-Z\s]/g, '');
+    // Enforce 50 character limit strictly
+    if (filtered.length > 50) {
+      filtered = filtered.substring(0, 50);
+    }
 
-// Select or deselect single/multiple transactions
-const handleSelectTransaction = (transactionId) => {
-  setSelectedTransactions(prev =>
-    prev.includes(transactionId)
-      ? prev.filter(id => id !== transactionId)
-      : [...prev, transactionId]
-  );
-};
+    setItemReturnReasons(prev => ({
+      ...prev,
+      [transactionId]: filtered
+    }));
+  };
 
-// Get filtered transactions for current delivery
-const getFilteredTransaction = (deliveryNumber) => {
-  return deliveries[deliveryNumber] || [];
-};
-
-// Function to update individual item return reason
-const updateItemReturnReason = (transactionId, reason) => {
-  let filtered = reason.replace(/[^a-zA-Z\s]/g, '');
-  if (filtered.length > 50) {
-    filtered = filtered.substring(0, 50);
-  }
-
-  setItemReturnReasons(prev => ({
-    ...prev,
-    [transactionId]: filtered
-  }));
-};
-
-// Reset function when Return dialog closes
-const resetReturnDialog = () => {
-  setReturnDialogOpen(false);
-  setSelectedTransactions([]);
-  setItemReturnReasons({});
-  setSelectedReturnType("");
-};
-
-// Main return handler - integrates with backend
-const handleReturnOrder = () => {
-  if (selectedTransactions.length === 0) {
-    toast.error("Please select at least one item to return");
-    return;
-  }
-
-  const missingReasons = selectedTransactions.filter((transactionId) =>
-    !itemReturnReasons[transactionId]?.trim()
-  );
-
-  if (missingReasons.length > 0) {
-    toast.error("Please provide a reason for all selected items");
-    return;
-  }
-
-  const returnItems = selectedTransactions.map((transactionId) => {
-    const [deliveryNum, productIndex] = transactionId.split("-");
-    const product = deliveries[deliveryNum][parseInt(productIndex)];
-
-    return {
-      P_productCode: product.productCode,
-      R_returnTypeID: 7, // Hardcoded return type
-      R_reasonOfReturn: itemReturnReasons[transactionId],
-      R_dateOfReturn: format(new Date(), "yyyy-MM-dd HH:mm:ss"),
-      R_returnQuantity: product.quantity,
-      R_discountAmount: product.discountAmount || 0,
-      R_TotalPrice: product.itemTotal,
-      D_deliveryNumber: deliveryNum,
-      S_supplierName: product.supplierName
-    };
-  });
-
-  axios
-    .post("http://localhost:8080/returns", { returnItems })
-    .then((response) => {
-      toast.success("Returns processed successfully!");
-      resetReturnDialog();
-
-      // Create a copy of current deliveries
-      const updatedDeliveries = { ...deliveries };
-
-      // Loop through each selected transaction ID
-      selectedTransactions.forEach((transactionId) => {
-        const [deliveryNum, productIndex] = transactionId.split("-");
-
-        // Remove the returned item from the delivery array
-        updatedDeliveries[deliveryNum].splice(parseInt(productIndex), 1);
-
-        // If delivery has no more items, remove it entirely
-        if (updatedDeliveries[deliveryNum].length === 0) {
-          delete updatedDeliveries[deliveryNum];
-        }
-      });
-
-      // Update deliveries state
-      setDeliveries(updatedDeliveries);
-
-      // Optional: Check if there are any deliveries left
-      if (Object.keys(updatedDeliveries).length === 0) {
-        toast.info("All deliveries have been returned.");
-        // Navigate away or clear state as needed
-      }
-
-    })
-    .catch((error) => {
-      const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        "Unknown error occurred";
-      toast.error(`Failed to process returns: ${errorMessage}`);
-    });
-
-  axios
-    .post("http://localhost:8080/returns", { returnItems })
-    .then((response) => {
-      toast.success("Returns processed successfully!");
-      resetReturnDialog();
-
-      // Create a copy of current deliveries
-      const updatedDeliveries = { ...deliveries };
-
-      // Loop through each selected transaction ID
-      selectedTransactions.forEach((transactionId) => {
-        const [deliveryNum, productIndex] = transactionId.split("-");
-
-        // Remove the returned item from the delivery array
-        updatedDeliveries[deliveryNum].splice(parseInt(productIndex), 1);
-
-        // If delivery has no more items, remove it entirely
-        if (updatedDeliveries[deliveryNum].length === 0) {
-          delete updatedDeliveries[deliveryNum];
-        }
-      });
-
-      // Update deliveries state
-      setDeliveries(updatedDeliveries);
-
-      // Optional: Check if there are any deliveries left
-      if (Object.keys(updatedDeliveries).length === 0) {
-        toast.info("All deliveries have been returned.");
-        // Navigate away or clear state as needed
-      }
-
-    })
-    .catch((error) => {
-      const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        "Unknown error occurred";
-      toast.error(`Failed to process returns: ${errorMessage}`);
-    });
-};
+  // Reset function when Return dialog closes
+  const resetReturnDialog = () => {
+    setReturnDialogOpen(false);
+    setSelectedTransactions([]);
+    setItemReturnReasons({});
+  };
 
   // API config
   const config = {
