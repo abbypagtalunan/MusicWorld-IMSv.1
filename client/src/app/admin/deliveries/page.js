@@ -469,11 +469,13 @@ const handleReturnOrder = () => {
         product:     item.P_productName || item.productName   || "Unknown Product",
         quantity:    quantity,
         unitPrice:   `₱${unitPrice.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`,
-        total:       item.DPD_total
-                       ? `₱${parseFloat(item.DPD_total).toFixed(2)
-                                      .replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`
-                       : `₱${(unitPrice * quantity).toFixed(2)
-                                      .replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`
+        total: (() => {
+          // use the stored total if it's not null/undefined, otherwise compute it
+          const raw = item.DPD_total != null
+            ? parseFloat(item.DPD_total)
+            : parseFloat(item.P_unitPrice) * parseInt(item.DPD_quantity,  10);
+          return `₱${raw.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
+        })()
       });
     });
     
@@ -496,12 +498,13 @@ const handleReturnOrder = () => {
             quantity:        parseInt(item.DPD_quantity) || 0,
             unitPrice:       `₱${parseFloat(item.P_unitPrice).toFixed(2)
                                      .replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`,
-            total:           item.DPD_total
-                               ? `₱${parseFloat(item.DPD_total).toFixed(2)
-                                              .replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`
-                               : `₱${(parseFloat(item.P_unitPrice) * parseInt(item.DPD_quantity))
-                                              .toFixed(2)
-                                              .replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`
+            total: (() => {
+              // use the stored total if it's not null/undefined, otherwise compute it
+              const raw = item.DPD_total != null
+                ? parseFloat(item.DPD_total)
+                : parseFloat(item.P_unitPrice) * parseInt(item.DPD_quantity,  10);
+              return `₱${raw.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
+            })()
           }));
           
           // Update only the products for this specific delivery
@@ -1391,16 +1394,10 @@ const handleReturnOrder = () => {
                                         />
                                       </TableHead>
                                       <TableHead
-                                        onClick={() => handleProductSort("productDetailID")}
-                                        className="cursor-pointer select-none"
-                                      >
-                                        Product Detail ID <SortIcon column="productDetailID" sortConfig={productSortConfig} />
-                                      </TableHead>
-                                      <TableHead
                                         onClick={() => handleProductSort("productCode")}
                                         className="cursor-pointer select-none"
                                       >
-                                        Code <SortIcon column="productCode" sortConfig={productSortConfig} />
+                                        Product Detail ID <SortIcon column="productCode" sortConfig={productSortConfig} />
                                       </TableHead>
                                       <TableHead
                                         onClick={() => handleProductSort("supplier")}
