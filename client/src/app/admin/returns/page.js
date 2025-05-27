@@ -191,97 +191,6 @@ export default function ReturnsPage() {
     setSupplierCurrentPage(1);
   }, [supplierSearchTerm, supplierSortConfig]);
 
-  // Handle Add Customer Return
-  const handleAddCustomerReturn = async () => {
-    if (!returnType.trim()) {
-      toast.error("Return Type cannot be empty.");
-      return;
-    }
-    if (
-      !productName ||
-      !selectedSupplierID ||
-      !selectedBrand ||
-      !selectedQuantity ||
-      !returnType
-    ) {
-      toast.error("Please fill in all required fields.");
-      return;
-    }
-    const newReturn = {
-      P_productCode: productName,
-      returnTypeDescription: "Customer Return",
-      R_reasonOfReturn: returnType,
-      R_dateOfReturn: format(new Date(), "yyyy-MM-dd HH:mm:ss"),
-      R_returnQuantity: parseInt(selectedQuantity),
-      R_discountAmount: parseFloat(selectedDiscount),
-      D_deliveryNumber: 1, // dummy value
-      S_supplierID: selectedSupplierID,
-    };
-    try {
-      await axios.post(config.returns.api.add, newReturn);
-      toast.success("Customer return added successfully!");
-      resetCustomerForm();
-      // Refresh customer returns
-      const customerRes = await axios.get(`${config.returns.api.fetch}?source=customer`);
-      setCustomerReturns(customerRes.data);
-    } catch (error) {
-      console.error("Error adding customer return:", error);
-      toast.error("Failed to add customer return.");
-    }
-  };
-
-  const resetCustomerForm = () => {
-    setProductName("");
-    setSelectedSupplierName("");
-    setSelectedSupplierID("");
-    setSelectedBrand("");
-    setSelectedQuantity("");
-    setReturnType("");
-    setSelectedDiscount("0");
-    setProductPrice(0);
-  };
-
-  // Handle Add Supplier Return
-  const handleAddSupplierReturn = async () => {
-    if (!deliveryNumber || !supplierID || !productItem || !brand || !quantity) {
-      toast.error("Please fill in all required fields.");
-      return;
-    }
-    const newReturn = {
-      P_productCode: productItem,
-      returnTypeDescription: "Supplier Return",
-      R_reasonOfReturn: "Supplier Defect",
-      R_dateOfReturn: format(new Date(), "yyyy-MM-dd HH:mm:ss"),
-      R_returnQuantity: parseInt(quantity),
-      R_discountAmount: 0,
-      D_deliveryNumber: parseInt(deliveryNumber),
-      S_supplierID: supplierID,
-      R_TotalPrice: amount,
-    };
-    try {
-      await axios.post(config.returns.api.add, newReturn);
-      toast.success("Supplier return added successfully!");
-      resetSupplierForm();
-      // Refresh supplier returns
-      const supplierRes = await axios.get(`${config.returns.api.fetch}?source=supplier`);
-      setSupplierReturns(supplierRes.data);
-    } catch (error) {
-      console.error("Error adding supplier return:", error);
-      toast.error("Failed to add supplier return.");
-    }
-  };
-
-  const resetSupplierForm = () => {
-    setDeliveryNumber("");
-    setSupplierName("");
-    setSupplierID("");
-    setProductItem("");
-    setBrand("");
-    setQuantity("");
-    setAmount("");
-    setSelectedProductPrice(0);
-  };
-
   // Handle Delete
   const handleDelete = async (id, password, type) => {
     if (!password) {
@@ -318,51 +227,6 @@ export default function ReturnsPage() {
       }
     }
   };
-
-  // Auto-calculate total price for customer returns
-  const calculateTotalPrice = (e) => {
-    const quantity = parseInt(e.target.value);
-    const total = quantity * productPrice;
-    setSelectedQuantity(quantity);
-  };
-
-  // Update product price when product is selected for Customer Returns
-  const handleProductSelect = (selectedName) => {
-    const product = products.find(p => p[config.products.nameField] === selectedName);
-    if (product) {
-      setProductName(product[config.products.codeField]);
-      setProductPrice(product[config.products.priceField] || 0);
-      const supplier = suppliers.find(s => s.S_supplierID === product.S_supplierID);
-      if (supplier) {
-        setSelectedSupplierName(supplier.S_supplierName);
-        setSelectedSupplierID(supplier.S_supplierID);
-      }
-      setSelectedBrand(product.brand || "N/A");
-    }
-  };
-
-  // Calculate total price for Supplier Returns
-  const calculateSupplierTotalPrice = (e) => {
-    const quantity = parseInt(e.target.value);
-    const total = quantity * selectedProductPrice;
-    setAmount(formatToPHP(total));
-  };
-
-  // Update product price when product is selected for Supplier Returns
-  const handleSupplierProductSelect = (selectedName) => {
-    const product = products.find(p => p.P_productName === selectedName);
-    if (product) {
-      setProductItem(product.P_productCode);
-      setSelectedProductPrice(product[config.products.priceField] || 0);
-      const supplier = suppliers.find(s => s.S_supplierID === product.S_supplierID);
-      if (supplier) {
-        setSupplierName(supplier.S_supplierName);
-        setSupplierID(supplier.S_supplierID);
-      }
-      setBrand(product.brand || "N/A");
-    }
-  };
-
   // Handle sorting
   const handleSort = (key, setSortConfig) => {
     setSortConfig((prev) => {
@@ -743,8 +607,11 @@ export default function ReturnsPage() {
                               <TableHead onClick={() => handleSort("R_TotalPrice", setCustomerSortConfig)} className="text-center cursor-pointer whitespace-nowrap">
                                 Total <SortIcon column="R_TotalPrice" sortConfig={customerSortConfig} />
                               </TableHead>
+                              <TableHead onClick={() => handleSort("R_returnTypeID", setCustomerSortConfig)} className="text-center cursor-pointer whitespace-nowrap">
+                                Return Type <SortIcon column="R_returnTypeID" sortConfig={customerSortConfig} />
+                              </TableHead>
                               <TableHead onClick={() => handleSort("R_reasonOfReturn", setCustomerSortConfig)} className="text-center cursor-pointer whitespace-nowrap">
-                                Return Type <SortIcon column="R_reasonOfReturn" sortConfig={customerSortConfig} />
+                                Return Reason <SortIcon column="R_reasonOfReturn" sortConfig={customerSortConfig} />
                               </TableHead>
                               <TableHead className="text-center whitespace-nowrap">View/Delete</TableHead>
                             </TableRow>
@@ -763,6 +630,7 @@ export default function ReturnsPage() {
                                     </TableCell>
                                     <TableCell className="text-center">{item.R_returnQuantity}</TableCell>
                                     <TableCell className="text-center whitespace-nowrap">{formatToPHP(item.R_TotalPrice)}</TableCell>
+                                    <TableCell className="text-center">{item.R_returnTypeID}</TableCell>
                                     <TableCell className="text-center">{item.R_reasonOfReturn}</TableCell>
                                     <TableCell className="text-center">
                                       <div className="flex justify-center space-x-2">
