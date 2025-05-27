@@ -35,37 +35,69 @@ const getAllOrderDetails = (callback) => {
   });
 };
 
-// Reports fetching
 const fetchReportData = (callback) => {
   const query = `
-    SELECT 
-      o.O_orderID,
-      o.O_receiptNumber,
-      o.T_transactionDate,
-      o.T_totalAmount,
-      o.D_wholeOrderDiscount,
-      o.O_orderPayment,
-      o.isTemporarilyDeleted,
-      od.OD_detailID,
-      od.P_productCode,
-      p.P_productName,
-      od.D_discountType,
-      od.OD_quantity,
-      od.OD_unitPrice,
-      od.OD_sellingPrice,
-      od.OD_discountAmount,
-      od.OD_netSale,
-      od.OD_grossSale,
-      od.OD_grossProfit,
-      b.B_brandName,
-      s.S_supplierName
-    FROM Orders o
-    LEFT JOIN OrderDetails od ON o.O_orderID = od.O_orderID
-    LEFT JOIN Products p ON od.P_productCode = p.P_productCode
-    LEFT JOIN Brands b ON p.B_brandID = b.B_brandID
-    LEFT JOIN Suppliers s ON p.S_supplierID = s.S_supplierID
-    WHERE o.isTemporarilyDeleted = 0
-    ORDER BY o.O_orderID, od.OD_detailID;
+    (
+      SELECT 
+        o.O_orderID,
+        o.O_receiptNumber,
+        o.T_transactionDate,
+        o.T_totalAmount,
+        o.D_wholeOrderDiscount,
+        o.O_orderPayment,
+        o.isTemporarilyDeleted,
+        od.OD_detailID,
+        od.P_productCode,
+        p.P_productName,
+        od.D_discountType,
+        od.OD_quantity,
+        od.OD_unitPrice,
+        od.OD_sellingPrice,
+        od.OD_discountAmount,
+        od.OD_netSale,
+        od.OD_grossSale,
+        od.OD_grossProfit,
+        b.B_brandName,
+        s.S_supplierName,
+        'SALE' as recordType
+      FROM Orders o
+      LEFT JOIN OrderDetails od ON o.O_orderID = od.O_orderID
+      LEFT JOIN Products p ON od.P_productCode = p.P_productCode
+      LEFT JOIN Brands b ON p.B_brandID = b.B_brandID
+      LEFT JOIN Suppliers s ON p.S_supplierID = s.S_supplierID
+      WHERE o.isTemporarilyDeleted = 0
+    )
+    UNION ALL
+    (
+      SELECT 
+        NULL as O_orderID,
+        NULL as O_receiptNumber,
+        r.R_dateOfReturn as T_transactionDate,
+        NULL as T_totalAmount,
+        NULL as D_wholeOrderDiscount,
+        NULL as O_orderPayment,
+        0 as isTemporarilyDeleted,
+        NULL as OD_detailID,
+        r.P_productCode,
+        p.P_productName,
+        NULL as D_discountType,
+        r.R_returnQuantity as OD_quantity,
+        NULL as OD_unitPrice,
+        NULL as OD_sellingPrice,
+        -1 * r.R_discountAmount as OD_discountAmount,
+        -1 * (r.R_TotalPrice - r.R_discountAmount) as OD_netSale,
+        -1 * r.R_TotalPrice as OD_grossSale,
+        -1 * (r.R_TotalPrice - r.R_discountAmount - p.P_unitPrice * r.R_returnQuantity) as OD_grossProfit,
+        b.B_brandName,
+        s.S_supplierName,
+        'RETURN' as recordType
+      FROM Returns r
+      LEFT JOIN Products p ON r.P_productCode = p.P_productCode
+      LEFT JOIN Brands b ON p.B_brandID = b.B_brandID
+      LEFT JOIN Suppliers s ON p.S_supplierID = s.S_supplierID
+      WHERE r.R_returnTypeID NOT IN (1, 6, 7)
+    )
+    ORDER BY T_transactionDate;
   `;
 
   db.query(query, (err, results) => {
@@ -73,7 +105,6 @@ const fetchReportData = (callback) => {
       callback(err, null);
     } else {
       callback(null, results);
-      // console.log("Report Query Results:", results);
     }
   });
 };

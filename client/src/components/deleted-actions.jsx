@@ -3,8 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RotateCcw, Trash2, Download, Eye, EyeOff } from "lucide-react";
 import { useState, useEffect } from "react";
+import { toast } from "react-hot-toast";
 
-const RDaction = ({ item, handleRetrieve, handleDelete, idField, codeField }) => {
+const RDaction = ({ item, handleRetrieve, handleDelete, handleDownload, idField, codeField }) => {
     const [adminPW, setAdminPW] = useState("");
     const [isDDOpen, setDDOpen] = useState(false);
     const [isRDOpen, setRDOpen] = useState(false);
@@ -148,145 +149,11 @@ const RDaction = ({ item, handleRetrieve, handleDelete, idField, codeField }) =>
 
     // Download
     const [isDownloadConfirmOpen, setDownloadConfirmOpen] = useState(false);
-    const handleDownloadCSV = (data) => {
-      const currentTabD = getFilteredTransactions();
-
-      let headers = [];
-      let rows = [];
-      
-      switch(activeTab) {
-        case "order":
-          headers = [
-            "Receipt Number",
-            "Order ID",
-            "Transaction Date",
-            "Product Name",
-            "Product Code",
-            "Quantity",
-            "Total Amount",
-            "Order Detail ID",
-            "Supplier",
-            "Brand",
-            "Category",
-            "Selling Price",
-            "Discount Amount"
-          ];
-          rows = currentTabD.map(item => [
-            item[config.receiptField],
-            item[config.idField],
-            new Date(item[config.dateField]).toLocaleDateString(),
-            item[config.nameField],
-            item[config.codeField],
-            item[config.quantityField],
-            item[config.idDetail],
-            item[config.supplierField],
-            item[config.brandField],
-            item[config.categoryField],
-            item[config.sellingpriceField],
-            item[config.discAmtField]
-          ]);
-          break;
-
-        case "return":
-          headers = [
-            "Return ID",
-            "Product Code",
-            "Reason of Return",
-            "Product Name",
-            "Return Total Amount",
-            "Return Date",
-            "Supplier",
-            "Brand",
-            "Category",
-            "Quantity",
-            "Discount Amount"
-          ];
-          rows = currentTabD.map(item => [
-            item[config.idField],
-            item[config.codeField],
-            item[config.typeField],
-            item[config.nameField],
-            item[config.totalamtField],
-            new Date(item[config.dateField]).toLocaleDateString(),
-            item[config.supplierField],
-            item[config.brandField],
-            item[config.categoryField],
-            item[config.quantityField],
-            item[config.discountField]
-          ]);
-          break;
-
-        case "delivery":
-          headers = [
-            "Delivery ID",
-            "Product Code",
-            "Product Name",
-            "Supplier",
-            "Quantity",
-            "Delivery Date",
-            "Brand",
-            "Category"
-          ];
-          rows = currentTabD.map(item => [
-            item[config.idField],
-            item[config.codeField],
-            item[config.nameField],
-            item[config.supplierField],
-            item[config.quantityField],
-            new Date(item[config.dateField]).toLocaleDateString(),
-            item[config.brandField],
-            item[config.categoryField]
-          ]);
-          break;
-
-        case "product":
-            headers = [
-              "Product Code",
-              "Product Name",
-              "Category",
-              "Supplier",
-              "Brand",
-              "Stock Number",
-              "Last Restock",
-              "Unit Price",
-              "Selling Price",
-              "Status",
-              "Date Product Added"
-            ];
-            rows = currentTabD.map(item => [
-              item.productCode,
-              item.productName,
-              item.category,
-              item.supplier,
-              item.brand,
-              item.stockNumber,
-              item.lastRestock,
-              item.price,
-              item.sellingPrice,
-              item.status,
-              new Date(item[config.dateField]).toLocaleDateString()
-            ]);
-            break;
-      }
-
-      const csvContent = [
-        headers.join(","),
-        ...rows.map(row => row.map(val => `"${val}"`).join(","))
-      ].join("\n");
-
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      
-      const itemConfig = getItemConfig();
-      link.setAttribute("download", `${itemConfig.label}-Deleted.csv`);
-      
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    };
+    const handleDownloadClick = () => {
+        handleDownload();
+        toast.success("Downloaded successfully!");
+        setDownloadConfirmOpen(false);
+      };
     
     return (
         <div className="flex items-center">
@@ -344,7 +211,7 @@ const RDaction = ({ item, handleRetrieve, handleDelete, idField, codeField }) =>
                                 </p>
                                 <Button 
                                       onClick={() => {
-                                      handleDownloadCSV();
+                                      handleDownloadClick();
                                       toast.success("Downloaded successfully!");
                                       setDownloadConfirmOpen(false);
                                     }}
