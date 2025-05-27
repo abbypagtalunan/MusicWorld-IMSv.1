@@ -1050,7 +1050,7 @@ export default function DeliveriesPage() {
           </div>
 
           <h1 className="text-2xl mb-4 p-4 rounded-sm text-blue-50 bg-blue-950 font-bold">Deliveries</h1>
-          <div className="bg-white shadow-md rounded-lg flex flex-col w-full" style={{height: 'calc(100vh - 280px)'}}>
+          <div className="bg-white shadow-md rounded-lg flex flex-col w-full flex-1 min-h-0">
             <div className="overflow-auto flex-1 relative p-4">
               {/* Deliveries Table */}
               <Table>
