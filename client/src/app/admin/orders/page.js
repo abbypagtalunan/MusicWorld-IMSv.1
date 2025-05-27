@@ -274,22 +274,24 @@ export default function OrdersPage() {
       return;
     }
 
-    const returnItems = selectedTransactions.map((transactionId) => {
+        const returnItems = selectedTransactions.map((transactionId) => {
       const [orderID, orderDetailID] = transactionId.split("-");
       const detail = orderDetails.find(
         (d) => d.orderDetailID.toString() === orderDetailID
       );
 
       return {
+        OD_detailID: detail.orderDetailID,
         P_productCode: detail.productCode,
         R_returnTypeID: parseInt(selectedReturnType),
         R_reasonOfReturn: itemReturnReasons[transactionId],
         R_dateOfReturn: format(new Date(), "yyyy-MM-dd HH:mm:ss"),
         R_returnQuantity: detail.quantity,
         R_discountAmount: detail.discountAmount || 0,
-        R_TotalPrice: detail.itemTotal, 
-        D_deliveryNumber: "1",
-        S_supplierName: detail.supplierName
+        D_deliveryNumber: 1,
+        S_supplierID: detail.supplierID,
+        R_TotalPrice: detail.itemTotal,
+        isTemporarilyDeleted: 0,
       };
     });
 

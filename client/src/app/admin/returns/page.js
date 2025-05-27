@@ -595,6 +595,9 @@ export default function ReturnsPage() {
                               <TableHead onClick={() => handleSort("R_dateOfReturn", setCustomerSortConfig)} className="text-center cursor-pointer whitespace-nowrap">
                                 Date <SortIcon column="R_dateOfReturn" sortConfig={customerSortConfig} />
                               </TableHead>
+                              <TableHead onClick={() => handleSort("OD_detailID", setCustomerSortConfig)} className="text-center cursor-pointer whitespace-nowrap">
+                                Order DetailID <SortIcon column="OD_detailID" sortConfig={customerSortConfig} />
+                              </TableHead>
                               <TableHead onClick={() => handleSort("R_returnID", setCustomerSortConfig)} className="text-center cursor-pointer whitespace-nowrap">
                                 Return ID <SortIcon column="R_returnID" sortConfig={customerSortConfig} />
                               </TableHead>
@@ -627,6 +630,7 @@ export default function ReturnsPage() {
                                 paginatedData.map((item) => (
                                   <TableRow key={item.R_returnID}>
                                     <TableCell className="text-center whitespace-nowrap">{new Date(item.R_dateOfReturn).toLocaleDateString()}</TableCell>
+                                    <TableCell className="text-center">{item.OD_detailID}</TableCell>
                                     <TableCell className="text-center">{item.R_returnID}</TableCell>
                                     <TableCell className="text-center">{item.P_productCode}</TableCell>
                                     <TableCell className="text-center">
@@ -654,6 +658,7 @@ export default function ReturnsPage() {
                                                 <TableHeader>
                                                   <TableRow>
                                                     <TableHead>Date</TableHead>
+                                                    <TableHead>Order Detail ID</TableHead>
                                                     <TableHead>Product Code</TableHead>
                                                     <TableHead>Supplier</TableHead>
                                                     <TableHead>Brand</TableHead>
@@ -667,6 +672,7 @@ export default function ReturnsPage() {
                                                 <TableBody>
                                                   <TableRow>
                                                     <TableCell>{new Date(item.R_dateOfReturn).toLocaleDateString()}</TableCell>
+                                                    <TableCell>{item.OD_detailID}</TableCell>
                                                     <TableCell>{item.P_productCode}</TableCell>
                                                     <TableCell>
                                                       {suppliers.find(s => s.S_supplierID === item.S_supplierID)?.S_supplierName || "Unknown"}

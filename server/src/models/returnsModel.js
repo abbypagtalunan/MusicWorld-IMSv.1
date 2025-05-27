@@ -5,6 +5,7 @@ const getAllActiveReturns = (callback) => {
 const query = `
   SELECT 
     R_returnID,
+    OD_detailID,
     P_productCode,
     R_returnTypeID,
     R_reasonOfReturn,
@@ -29,8 +30,10 @@ const query = `
 };
 
 // Add multiple returns at once
+// Add multiple returns at once
 const addReturn = (returnItems, callback) => {
   const values = returnItems.flatMap(item => [
+    item.OD_detailID,
     item.P_productCode,
     item.R_returnTypeID,
     item.R_reasonOfReturn,
@@ -42,10 +45,11 @@ const addReturn = (returnItems, callback) => {
     item.S_supplierID
   ]);
 
-  const placeholders = returnItems.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
+  const placeholders = returnItems.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
 
   const insertQuery = `
     INSERT INTO Returns (
+      OD_detailID,
       P_productCode,
       R_returnTypeID,
       R_reasonOfReturn,

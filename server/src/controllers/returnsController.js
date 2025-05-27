@@ -17,6 +17,7 @@ const getAllReturns = (req, res) => {
   const query = `
     SELECT 
       R_returnID,
+      OD_detailID,
       P_productCode,
       R_returnTypeID,
       R_reasonOfReturn,
@@ -47,9 +48,10 @@ const addReturn = (req, res) => {
     return res.status(400).json({ message: 'No return items provided' });
   }
 
-  // Validate required fields
+  // Validate required fields including OD_detailID
   for (let item of returnItems) {
     const {
+      OD_detailID, // <-- newly added field
       P_productCode,
       R_returnTypeID,
       R_reasonOfReturn,
@@ -61,6 +63,7 @@ const addReturn = (req, res) => {
     } = item;
 
     if (
+      !OD_detailID || // <-- validation added
       !P_productCode ||
       !R_returnTypeID ||
       !R_reasonOfReturn ||
@@ -91,6 +94,7 @@ const addReturn = (req, res) => {
         });
 
         values.push(
+          item.OD_detailID, // <-- Inserted here
           item.P_productCode,
           item.R_returnTypeID,
           item.R_reasonOfReturn,
@@ -102,7 +106,7 @@ const addReturn = (req, res) => {
           supplierId
         );
 
-        placeholders.push('(?, ?, ?, ?, ?, ?, ?, ?, ?)');
+        placeholders.push('(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
 
         // Only update inventory if return type is 1 ("Stock Return", for example)
         if (item.R_returnTypeID === 1) {
@@ -135,6 +139,7 @@ const addReturn = (req, res) => {
 
     const insertQuery = `
       INSERT INTO Returns (
+        OD_detailID, -- <-- Column added
         P_productCode,
         R_returnTypeID,
         R_reasonOfReturn,
