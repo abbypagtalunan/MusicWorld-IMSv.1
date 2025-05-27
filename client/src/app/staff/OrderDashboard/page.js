@@ -1,5 +1,6 @@
 "use client";
 
+import RequireAuth from '@/components/RequireAuth';
 import React from 'react';
 import { useEffect, useState } from "react";
 import { AppSidebar } from "@/components/staff-sidebar";
@@ -339,6 +340,7 @@ const OrderDashboard = () => {
   };
   
   return (
+    <RequireAuth role={2}>
     <MinimumScreenGuard>
     <SidebarProvider>
       <div className="flex h-screen w-screen">
@@ -920,6 +922,7 @@ const OrderDashboard = () => {
       <Toaster position="top-right" />
     </SidebarProvider>
   </MinimumScreenGuard>
+  </RequireAuth>
   );
 };
 

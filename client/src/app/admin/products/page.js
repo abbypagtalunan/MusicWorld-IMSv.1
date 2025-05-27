@@ -1,4 +1,5 @@
 "use client";
+import RequireAuth from '@/components/RequireAuth';
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { AppSidebar } from "@/components/admin-sidebar"
@@ -1062,6 +1063,7 @@ const[validationErr, setValidationErr] = useState({
   };
 
   return (
+    <RequireAuth role={1}>
     <MinimumScreenGuard>
     <SidebarProvider>
       <div className="flex h-screen w-screen overflow-hidden">
@@ -1812,6 +1814,7 @@ const[validationErr, setValidationErr] = useState({
     <Toaster position="top-center"/>
     </SidebarProvider>
     </MinimumScreenGuard>
+    </RequireAuth>
   );
 }
 
