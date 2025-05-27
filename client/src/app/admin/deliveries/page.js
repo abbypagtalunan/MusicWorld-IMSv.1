@@ -329,6 +329,22 @@ const handleReturnOrder = () => {
         .then(res => {
           const grouped = groupDeliveryProducts(res.data || []);
           setDeliveryProducts(grouped);
+
+          // ← immediately recompute your deliveries now that `deliveryProducts` is populated
+          setDeliveries(current =>
+            normalizeDeliveryData(
+              // we know `current` was built from the same raw data
+              // but normalizeDeliveryData only uses the array shape, so this works
+              // as long as your `deliveries` state _is_ the array you originally passed in.
+              current.map(d => ({
+                D_deliveryNumber: parseInt(d.deliveryNum, 10),
+                D_deliveryDate:   d.rawDate,
+                S_supplierID:     d.supplierID,
+                D_productDetailsID:d.productDetailID,
+                // we ignore .totalCost here, it will be overwritten
+              }))
+            )
+          );
         })
         .catch(error => {
           console.error("Error fetching delivery products:", error);
@@ -406,15 +422,26 @@ const handleReturnOrder = () => {
   };
   
   const normalizeDeliveryData = (data) => {
-    return data.map(item => ({
-      deliveryNum: item.D_deliveryNumber.toString(),
-      dateAdded: formatDateForDisplay(item.D_deliveryDate),
-      rawDate:    formatDateForInput(item.D_deliveryDate),
-      supplier: "",
-      supplierID: item.S_supplierID,
-      productDetailID: item.D_productDetailsID,
-      totalCost: item.totalCost ? `₱${parseFloat(item.totalCost).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}` : "₱0.00"
-    }));
+    return data.map(item => {
+      const key   = item.D_deliveryNumber.toString();
+      const prods = deliveryProducts[key] || [];
+      const sum   = prods
+        .reduce((acc, p) => {
+          // strip “₱” and commas, parse back to number
+          const n = parseFloat(p.total.replace(/[₱,]/g, "")) || 0;
+          return acc + n;
+        }, 0);
+
+      return {
+        deliveryNum:     key,
+        dateAdded:       formatDateForDisplay(item.D_deliveryDate),
+        rawDate:         formatDateForInput(item.D_deliveryDate),
+        supplier:        "",
+        supplierID:      item.S_supplierID,
+        productDetailID: item.D_productDetailsID,
+        totalCost:       `₱${sum.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`
+      };
+    });
   };
 
   const groupDeliveryProducts = (data) => {
@@ -437,12 +464,16 @@ const handleReturnOrder = () => {
       
       grouped[deliveryNumKey].push({
         productCode: item.P_productCode || "N/A",
-        supplier: item.S_supplierName || item.supplierName || "Unknown",
-        brand: item.B_brandName || item.brandName || "Unknown",
-        product: item.P_productName || item.productName || "Unknown Product",
-        quantity: quantity,
-        unitPrice: `₱${unitPrice.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`,
-        total: `₱${(unitPrice * quantity).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`
+        supplier:    item.S_supplierName || item.supplierName || "Unknown",
+        brand:       item.B_brandName   || item.brandName    || "Unknown",
+        product:     item.P_productName || item.productName   || "Unknown Product",
+        quantity:    quantity,
+        unitPrice:   `₱${unitPrice.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`,
+        total:       item.DPD_total
+                       ? `₱${parseFloat(item.DPD_total).toFixed(2)
+                                      .replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`
+                       : `₱${(unitPrice * quantity).toFixed(2)
+                                      .replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`
       });
     });
     
@@ -458,13 +489,19 @@ const handleReturnOrder = () => {
           // Create a simplified object for direct use
           const formattedProducts = res.data.map(item => ({
             productDetailID: item.D_productDetailsID,
-            productCode: item.P_productCode || "N/A",
-            supplier: item.supplierName || "Unknown",
-            brand: item.brandName || "Unknown",
-            product: item.productName || "Unknown Product",
-            quantity: parseInt(item.DPD_quantity) || 0,
-            unitPrice: `₱${parseFloat(item.P_unitPrice).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`,
-            total: `₱${(parseFloat(item.P_unitPrice) * parseInt(item.DPD_quantity)).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`
+            productCode:     item.P_productCode  || "N/A",
+            supplier:        item.supplierName   || "Unknown",
+            brand:           item.brandName      || "Unknown",
+            product:         item.productName    || "Unknown Product",
+            quantity:        parseInt(item.DPD_quantity) || 0,
+            unitPrice:       `₱${parseFloat(item.P_unitPrice).toFixed(2)
+                                     .replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`,
+            total:           item.DPD_total
+                               ? `₱${parseFloat(item.DPD_total).toFixed(2)
+                                              .replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`
+                               : `₱${(parseFloat(item.P_unitPrice) * parseInt(item.DPD_quantity))
+                                              .toFixed(2)
+                                              .replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`
           }));
           
           // Update only the products for this specific delivery
