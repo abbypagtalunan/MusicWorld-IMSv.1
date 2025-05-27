@@ -38,10 +38,17 @@ import { handleSignOut } from "@/utils/auth";
 
 export function AppSidebar({ ...props }) {
   const pathname = usePathname();
+  
   const [collapsed, setCollapsed] = React.useState(false);
 
-  const userFromStorage = JSON.parse(localStorage.getItem("user")) || {};
-  
+  // ── Move localStorage access into useEffect to avoid SSR errors ──
+  const [userFromStorage, setUserFromStorage] = React.useState({});
+
+  React.useEffect(() => {
+    const stored = JSON.parse(localStorage.getItem("user")) || {};
+    setUserFromStorage(stored);
+  }, []);
+
   const [showLogoutDialog, setShowLogoutDialog] = React.useState(false);
 
   // Format the user object for the sidebar
@@ -58,31 +65,36 @@ export function AppSidebar({ ...props }) {
   const navMain = [
     {
       title: "Order Dashboard",
-      url: "./OrderDashboard",
+      // url: "./OrderDashboard",
+      url: "/staff/OrderDashboard",
       icon: House,
       path: "OrderDashboard",
     },
     {
       title: "Orders",
-      url: "./orders",
+      // url: "./orders",
+      url: "/staff/orders",
       icon: ShoppingCartIcon,
       path: "orders",
     },
     {
       title: "Products",
-      url: "./products",
+      // url: "./products",
+      url: "/staff/products",
       icon: ListIcon,
       path: "products",
     },
     {
       title: "Deliveries",
-      url: "./deliveries",
+      // url: "./deliveries",
+      url: "/staff/deliveries",
       icon: TruckIcon,
       path: "deliveries",
     },
     {
       title: "Deleted Transactions",
-      url: "./deleted",
+      // url: "./deleted",
+      url: "/staff/deleted",
       icon: CircleXIcon,
       path: "deleted",
     },
