@@ -964,11 +964,7 @@ const handleAddProduct = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="col-span-3"> </div>
-                <div className="col-span-3"> </div>
-                
-                {/* Second row */}
-                <div className="col-span-3">
+               <div className="col-span-3">
                   <Label htmlFor="paymentStatus" className="mb-1 block">Payment Status</Label>
                   <Select 
                     value={paymentDetails.paymentStatus} 
@@ -1004,6 +1000,10 @@ const handleAddProduct = () => {
                     </SelectContent>
                   </Select>
                 </div>
+                
+                <div className="col-span-3"> </div>
+                
+                {/* Second row */}
                 
                 <div className="col-span-3">
                   <Label htmlFor="paymentMode" className="mb-1 block">Mode of Payment</Label>
