@@ -53,7 +53,6 @@ export default function BatchDeliveriesPage() {
   const qty = parseInt(quantity) || 0;
   return (price * qty).toFixed(2);
 })();
-
   
   // State for payment details
   const [paymentTypes, setPaymentTypes] = useState([]);
@@ -88,6 +87,13 @@ export default function BatchDeliveriesPage() {
     unitPrice: "",
     quantity: ""
   });
+
+  const isSaveDisabled =
+  !deliveryNumber ||
+  !paymentDetails.paymentType ||
+  !paymentDetails.paymentStatus ||
+  ((selectedPaymentStatus1 === 1 || selectedPaymentType === 1) && !paymentDetails.paymentMode) ||
+  loading;
 
 const newHandleSaveDelivery = async () => {
   const raw = deliveryNumber.trim();
@@ -735,12 +741,15 @@ const handleAddProduct = () => {
 
                 <div className="flex justify-end gap-2 mt-6">
                   <Button 
-                    className="bg-green-600 text-white px-3 py-1.5 text-xs uppercase"
+                    className={`
+                      px-3 py-1.5 text-xs uppercase text-white
+                      ${isSaveDisabled ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}
+                    `}
                     onClick={newHandleSaveDelivery}
-                    disabled={loading}
+                    disabled={isSaveDisabled}
                   >
                     Save Delivery
-                   </Button>
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -1027,7 +1036,6 @@ const handleAddProduct = () => {
                     id="paymentDateDue" 
                     type="date" 
                     value={paymentDetails.dateDue}
-                    className={paymentDetails.paymentType === '1' ? 'text-gray-400' : ''}
                     disabled={true}
                     className="disabled:bg-gray-200 disabled:!text-gray-600 disabled:opacity-100"
                     placeholder="N/A"
