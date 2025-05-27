@@ -1,5 +1,6 @@
 "use client";
 
+import RequireAuth from '@/components/RequireAuth';
 import React, { useState, useEffect } from "react";
 import LoadingSpinner from "@/components/loading-spinner";
 import { useRouter } from 'next/navigation';
@@ -1084,6 +1085,7 @@ const handleReturnOrder = () => {
   }
 
   return (
+    <RequireAuth role={2}>
     <MinimumScreenGuard>
     <SidebarProvider>
       <div className="flex h-screen w-screen overflow-hidden">
@@ -2088,5 +2090,6 @@ const handleReturnOrder = () => {
       {isLoading && <LoadingSpinner />} 
     </SidebarProvider>
     </MinimumScreenGuard>
+    </RequireAuth>
   );
 }

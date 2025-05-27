@@ -1,4 +1,5 @@
 "use client";
+import RequireAuth from '@/components/RequireAuth';
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
@@ -472,6 +473,7 @@ export default function ManageAccountsPage() {
   }
 
   return (
+  <RequireAuth role={1}>
   <MinimumScreenGuard>
     <SidebarProvider>
       <div className="flex h-screen w-screen overflow-hidden">
@@ -1147,5 +1149,6 @@ export default function ManageAccountsPage() {
       <Toaster />
     </SidebarProvider>
     </MinimumScreenGuard>
+    </RequireAuth>
   );
 }

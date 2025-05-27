@@ -1,4 +1,5 @@
 "use client";
+import RequireAuth from '@/components/RequireAuth';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
@@ -624,6 +625,7 @@ const handleAddProduct = () => {
   }, [selectedProduct]);
   
   return (
+    <RequireAuth role={1}>
     <MinimumScreenGuard>
     <SidebarProvider>
       <div className="flex h-screen w-screen overflow-hidden">
@@ -1194,5 +1196,6 @@ const handleAddProduct = () => {
       </div>
     </SidebarProvider>
     </MinimumScreenGuard>
+    </RequireAuth>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import RequireAuth from '@/components/RequireAuth';
 import React, { useState, useEffect, act } from "react";
 import axios from "axios";
 import { AppSidebar } from "@/components/staff-sidebar";
@@ -295,6 +296,7 @@ export default function DeletedPage() {
   };
    
   return (
+    <RequireAuth role={2}>
     <MinimumScreenGuard>
     <SidebarProvider>
       <div className="flex h-screen w-screen overflow-hidden">
@@ -711,5 +713,6 @@ export default function DeletedPage() {
       <Toaster position="top-center"/>
     </SidebarProvider>
     </MinimumScreenGuard>
+    </RequireAuth>
   );
 }

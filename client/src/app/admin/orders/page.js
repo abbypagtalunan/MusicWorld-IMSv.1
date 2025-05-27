@@ -1,4 +1,5 @@
 "use client";
+import RequireAuth from '@/components/RequireAuth';
 import { useEffect, useState, useMemo } from "react";
 import { AppSidebar } from "@/components/admin-sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -790,6 +791,7 @@ export default function OrdersPage() {
   }
 
   return (
+    <RequireAuth role={1}>
     <MinimumScreenGuard>
     <SidebarProvider>
       <div className="flex h-screen w-screen overflow-hidden">
@@ -1692,5 +1694,6 @@ export default function OrdersPage() {
       <Toaster position="top-center" />
     </SidebarProvider>
     </MinimumScreenGuard>
+    </RequireAuth>
   );
 }
