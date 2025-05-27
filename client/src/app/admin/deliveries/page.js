@@ -62,6 +62,9 @@ export default function DeliveriesPage() {
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
+  
+  // download
+  const [isDownloadConfirmOpen, setDownloadConfirmOpen] = useState(false);
 
   // Client-side hydration effect
   useEffect(() => {
@@ -870,6 +873,82 @@ const handleReturnOrder = () => {
       )
     )
   );
+  
+  // Lookup utility: find an object by its ID and return its name
+  const getNameById = (arr, id, idField, nameField) => {
+    const item = arr.find(i => i[idField].toString() === id);
+    return item ? item[nameField] : "";
+  };
+  
+  // download CSV
+  const handleDownloadCSV = () => {
+    const now = new Date();
+    const phLocale = "en-PH";
+    const phTimeZone = "Asia/Manila";
+
+    const formattedDate = now
+      .toLocaleString(phLocale, { timeZone: phTimeZone })
+      .replace(/[\/:,\s]+/g, "-")
+      .replace(/-+/g, "-");
+
+    const downloadTimestamp = `Downloaded at:, "${now.toLocaleString(phLocale, {
+      timeZone: phTimeZone,
+    })}"`;
+
+    const headers = [
+      "Delivery Date",
+      "Delivery Number",
+      "Supplier",
+      "Total Cost",
+      "Payment Type",
+      "Payment Status",
+      "Mode of Payment",
+      "Date Due",
+      "Date of Payment",
+      "Payment Status 2",
+      "Mode of Payment 2",
+      "Date Due 2",
+      "Date of Payment 2",
+    ];
+
+    const rows = deliveries.map((d) => {
+      const pd = paymentDetails[d.deliveryNum] || {};
+      const [y, m, day] = d.rawDate.split("-");
+      const formattedDate = `${m.padStart(2, "0")}/${day.padStart(2, "0")}/${y}`;
+
+      const valueOrNA = (val) => val ? val : "n/a";
+      const nameOrNA = (arr, id, idField, nameField) => {
+        return id ? getNameById(arr, id, idField, nameField) : "n/a";
+      };
+
+      return [
+        formattedDate,
+        `DR-${d.deliveryNum}`,
+        deliveryProducts[d.deliveryNum]?.[0]?.supplier || "",
+        d.totalCost.replace(/₱|,/g, ""),
+        getNameById(paymentTypes,   pd.paymentType,   "D_paymentTypeID",   "D_paymentName") || "",
+        getNameById(paymentStatuses,pd.paymentStatus, "D_paymentStatusID", "D_statusName") || "",
+        getNameById(paymentModes,   pd.paymentMode,   "D_modeOfPaymentID", "D_mopName") || "",
+        valueOrNA(pd.dateDue),
+        valueOrNA(pd.datePayment1),
+        nameOrNA(paymentStatuses, pd.paymentStatus2, "D_paymentStatusID", "D_statusName"),
+        nameOrNA(paymentModes,     pd.paymentMode2,  "D_modeOfPaymentID", "D_mopName"),
+        valueOrNA(pd.dateDue2),
+        valueOrNA(pd.datePayment2),
+      ].map((v) => `"${String(v).replace(/"/g, '""')}"`);
+    });
+
+    const csv = [downloadTimestamp, headers.join(","), ...rows.map(r => r.join(","))].join("\r\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Deliveries_${formattedDate}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   // Pagination component
   const PaginationControls = () => {
@@ -1137,14 +1216,17 @@ const handleReturnOrder = () => {
                 Add Delivery
               </Button>
 
-          {/* Donwload Button - still need Backend */}
-          <Dialog>
+          {/* Download Button */}
+          <Dialog
+            open={isDownloadConfirmOpen}
+            onOpenChange={(open) => setDownloadConfirmOpen(open)}
+          >
             <DialogTrigger asChild>
               <Button className="bg-blue-400 text-white">
                 <Download className="w-4 h-4" />
               </Button>
             </DialogTrigger>
-            <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
+            <DialogContent className="w-[90vw] max-w-md … p-6">
               <DialogHeader>
                 <DialogTitle>
                   <span className="text-lg text-blue-900">Confirm Download?</span>
@@ -1155,17 +1237,23 @@ const handleReturnOrder = () => {
                 <DialogClose />
               </DialogHeader>
               <p className="text-medium text-gray-800 mt-2 pl-4">
-                You are about to download the Deliveries.csv file. Click the button below to proceed.
+                You are about to download the Deliveries.csv file. Click below to proceed.
               </p>
               <div className="flex justify-end mt-4 text-gray-700 items-center pl-4">
                 <Button
                   className="bg-emerald-500 hover:bg-emerald-700 text-white uppercase text-sm font-medium whitespace-nowrap"
+                  onClick={() => {
+                    handleDownloadCSV();
+                    toast.success("Downloaded successfully!");
+                    setDownloadConfirmOpen(false);
+                  }}
                 >
                   DOWNLOAD FILE
                 </Button>
               </div>
             </DialogContent>
           </Dialog>
+          
           </div>
         </div>
 
