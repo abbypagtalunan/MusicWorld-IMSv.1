@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import LoadingSpinner from "@/components/loading-spinner";
 import { useRouter } from 'next/navigation';
 import axios from "axios";
@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast, Toaster } from "react-hot-toast";
-import { Search, ListFilter, Trash2, CalendarDays, Eye, FilePen, PackagePlus, Save, ChevronsUpDown, ChevronUp, ChevronDown, RotateCcw, EyeOff } from "lucide-react";
+import { Search, ListFilter, Trash2, CalendarDays, Eye, FilePen, PackagePlus, Save, ChevronsUpDown, ChevronUp, ChevronDown, RotateCcw, EyeOff, ChevronLeft, ChevronRight } from "lucide-react";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -57,6 +57,10 @@ export default function DeliveriesPage() {
   const [itemReturnReasons, setItemReturnReasons] = useState({});
   const [isReturnDialogOpen, setReturnDialogOpen] = useState(false);
   const [selectedDeliveryNumber, setSelectedDeliveryNumber] = useState(null);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
 
   // Client-side hydration effect
   useEffect(() => {
@@ -583,6 +587,30 @@ export default function DeliveriesPage() {
     return sortedTransactions;
   };
 
+  // Get paginated data
+  const getPaginatedData = () => {
+    const filteredData = getFilteredTransactions();
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredData.slice(startIndex, endIndex);
+  };
+
+  // Calculate total pages
+  const getTotalPages = () => {
+    const filteredData = getFilteredTransactions();
+    return Math.ceil(filteredData.length / itemsPerPage);
+  };
+
+  // Handle page change
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchValue, searchResult, selectedFilter, selectedSubFilter, selectedSupplier, fromDate, toDate, sortConfig]);
+
   // Function to handle saving payment details
   const handleSavePaymentDetails = (deliveryNum) => {
     const detail = paymentDetails[deliveryNum];
@@ -757,6 +785,92 @@ export default function DeliveriesPage() {
       )
     )
   );
+
+  // Pagination component
+  const PaginationControls = () => {
+    const totalPages = getTotalPages();
+    const totalItems = getFilteredTransactions().length;
+    const startItem = (currentPage - 1) * itemsPerPage + 1;
+    const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+
+    if (totalPages <= 1) return null;
+
+    const getPageNumbers = () => {
+      const pages = [];
+      const maxVisiblePages = 5;
+      
+      if (totalPages <= maxVisiblePages) {
+        for (let i = 1; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        if (currentPage <= 3) {
+          pages.push(1, 2, 3, 4, '...', totalPages);
+        } else if (currentPage >= totalPages - 2) {
+          pages.push(1, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+        } else {
+          pages.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
+        }
+      }
+      
+      return pages;
+    };
+
+    return (
+      <div className="flex items-center justify-between px-4 py-3">
+        <div className="flex items-center text-sm text-gray-700">
+          <span>
+            Showing {startItem} to {endItem} of {totalItems} results
+          </span>
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="flex items-center space-x-1"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span>Previous</span>
+          </Button>
+          
+          {getPageNumbers().map((page, index) => (
+            <React.Fragment key={index}>
+              {page === '...' ? (
+                <span className="px-3 py-2 text-gray-500">...</span>
+              ) : (
+                <Button
+                  variant={currentPage === page ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handlePageChange(page)}
+                  className={`min-w-[2.5rem] ${
+                    currentPage === page 
+                      ? "bg-blue-500 text-white" 
+                      : "text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  {page}
+                </Button>
+              )}
+            </React.Fragment>
+          ))}
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="flex items-center space-x-1"
+          >
+            <span>Next</span>
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+    );
+  };
 
    // Prevent hydration errors
   if (!isMounted) {
@@ -941,686 +1055,693 @@ export default function DeliveriesPage() {
           </div>
 
           <h1 className="text-2xl mb-4 p-4 rounded-sm text-blue-50 bg-blue-950 font-bold">Deliveries</h1>
-          <div className="p-4 bg-white shadow-md rounded-lg flex flex-col overflow-auto w-full">
-            {/* Deliveries Table */}
-            <Table>
-              <TableHeader className="sticky top-0 bg-white z-10">
-                <TableRow>
-                  <TableHead onClick={() => handleSort("dateAdded")} className="pl-10 cursor-pointer select-none">
-                    Date <SortIcon column="dateAdded" sortConfig={sortConfig} />
-                  </TableHead>
-                  <TableHead onClick={() => handleSort("deliveryNum")} className="pl-6 cursor-pointer select-none">
-                    Delivery Number <SortIcon column="deliveryNum" sortConfig={sortConfig} />
-                  </TableHead>
-                  <TableHead onClick={() => handleSort("supplier")} className="pl-0 cursor-pointer select-none">
-                    Supplier <SortIcon column="supplier" sortConfig={sortConfig} />
-                  </TableHead>
-                  <TableHead onClick={() => handleSort("totalCost")} className="pl-10 cursor-pointer select-none">
-                    Total Cost <SortIcon column="totalCost" sortConfig={sortConfig} />
-                  </TableHead>
-                  <TableHead>Manage</TableHead>
-                  <TableHead className="pl-0">Edit Payment</TableHead>
-                  <TableHead className="pl-0">Delete</TableHead>
-                </TableRow>
-              </TableHeader>
-              
-              <TableBody>
-                {getFilteredTransactions().map((d) => (
-                  <TableRow
-                    key={d.deliveryNum}
-                  >
-                    <TableCell className="pl-10">{d.dateAdded}</TableCell>
-                    <TableCell className="pl-6">{`DR-${d.deliveryNum}`}</TableCell>
-                    <TableCell className="pl-0">
-                      {deliveryProducts[d.deliveryNum]?.[0]?.supplier || "Unknown"}
-                    </TableCell>
-                    <TableCell className="pl-10">{d.totalCost}</TableCell>
-                    
-                    {/* View details */}
-                    <TableCell className="pl-6">
-                      <Dialog onOpenChange={(open) => {
-                        if (!open) {
-                          // Reset selection when dialog closes
-                          setSelectedTransactions([]);
-                          setSelectedDeliveryNumber(null);
-                        }
-                      }}>
-                        <DialogTrigger asChild>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="text-blue-900 hover:text-white hover:bg-blue-900 border-blue-900 
-                            transition-colors duration-200 flex items-center gap-2" 
-                            onClick={() => {
-                              loadDeliveryProducts(d.deliveryNum);
-                              setSelectedDeliveryNumber(d.deliveryNum);
-                              // Reset return states when opening view details
-                              setSelectedTransactions([]);
-                              setItemReturnReasons({});
-                            }}
-                          >
-                          <span className="hidden sm:inline">View/Return</span>
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="w-full max-w-screen-lg sm:max-w-screen-md md:max-w-screen-lg lg:max-w-screen-xl max-h-[95vh] overflow-y-auto p-6">
-                          <DialogHeader>
-                            <DialogTitle>Delivery Product Details</DialogTitle>
-                            <DialogDescription>View delivery products</DialogDescription>
-                            <DialogClose />
-                          </DialogHeader>
-                          
-                          <div className="flex flex-col gap-6">
-                            {/* Basic Delivery Info */}
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <label className="text-sm font-medium">Date of Delivery</label>
-                                <Input type="date" value={d.rawDate} disabled/>
-                              </div>
-                              <div>
-                                <label className="text-sm font-medium">Delivery Number</label>
-                                <Input value={`DR-${d.deliveryNum}`} className="text-center" readOnly />
-                              </div>
-                            </div>
-                            
-                            {/* Products table */}
-                            {deliveryProducts[d.deliveryNum] ? (
-                              <Table>
-                                <TableHeader>
-                                  <TableRow>
-                                    {/* checkbox select ALL function for returns */}
-                                    <TableHead className="sticky top-0 z-10 bg-white">
-                                      <input type="checkbox" 
-                                      onChange={() => handleSelectAll(d.deliveryNum)} 
-                                      checked={selectedTransactions.length === getFilteredTransaction(d.deliveryNum).length && 
-                                      selectedTransactions.length > 0}
-                                      />
-                                    </TableHead>
-                                    <TableHead
-                                      onClick={() => handleProductSort("productCode")}
-                                      className="cursor-pointer select-none"
-                                    >
-                                      Code <SortIcon column="productCode" sortConfig={productSortConfig} />
-                                    </TableHead>
-                                    <TableHead
-                                      onClick={() => handleProductSort("supplier")}
-                                      className="cursor-pointer select-none"
-                                    >
-                                      Supplier <SortIcon column="supplier" sortConfig={productSortConfig} />
-                                    </TableHead>
-                                    <TableHead
-                                      onClick={() => handleProductSort("brand")}
-                                      className="cursor-pointer select-none"
-                                    >
-                                      Brand <SortIcon column="brand" sortConfig={productSortConfig} />
-                                    </TableHead>
-                                    <TableHead
-                                      onClick={() => handleProductSort("product")}
-                                      className="cursor-pointer select-none"
-                                    >
-                                      Product <SortIcon column="product" sortConfig={productSortConfig} />
-                                    </TableHead>
-                                    <TableHead
-                                      onClick={() => handleProductSort("quantity")}
-                                      className="cursor-pointer select-none text-center"
-                                    >
-                                      Quantity <SortIcon column="quantity" sortConfig={productSortConfig} />
-                                    </TableHead> 
-                                    <TableHead
-                                      onClick={() => handleProductSort("unitPrice")}
-                                      className="cursor-pointer select-none text-center"
-                                    >
-                                      Unit Price <SortIcon column="unitPrice" sortConfig={productSortConfig} />
-                                    </TableHead>
-                                    <TableHead
-                                      onClick={() => handleProductSort("total")}
-                                      className="cursor-pointer select-none text-center"
-                                    >
-                                      Total <SortIcon column="total" sortConfig={productSortConfig} />
-                                    </TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {getSortedProducts(d.deliveryNum).length > 0
-                                    ? getSortedProducts(d.deliveryNum).map((item, idx) => {
-                                        const transactionId = `${d.deliveryNum}-${idx}`;
-                                        const isSelected = selectedTransactions.includes(transactionId);
-                                        
-                                        return (
-                                          <TableRow key={idx} 
-                                            onClick={(e) => handleRowClick(transactionId, e)}
-                                            className={cn(
-                                              "cursor-pointer transition-all duration-200 select-none",
-                                              isSelected 
-                                                ? "bg-blue-50 border-l-4 border-blue-500 shadow-sm" 
-                                                  : "hover:bg-gray-50 hover:shadow-sm"
-                                            )}
-                                          >
-                                            <TableCell>
-                                              <input
-                                                type="checkbox"
-                                                checked={isSelected}
-                                                onChange={() => handleSelectTransaction(transactionId)}
-                                              />
-                                            </TableCell>
-                                            <TableCell className="text-left">{item.productCode}</TableCell>
-                                            <TableCell className="text-sm">{item.supplier}</TableCell>
-                                            <TableCell className="text-sm">{item.brand}</TableCell>
-                                            <TableCell className="text-sm">{item.product}</TableCell>
-                                            <TableCell className="text-center text-sm">{item.quantity}</TableCell>
-                                            <TableCell className="text-center text-sm">{item.unitPrice}</TableCell>
-                                            <TableCell className="text-center text-sm">{item.total}</TableCell>
-                                          </TableRow>
-                                        );
-                                      })
-                                    : (
-                                      <TableRow>
-                                        <TableCell colSpan={8} className="text-center text-gray-500">
-                                          No products found for this delivery
-                                        </TableCell>
-                                      </TableRow>
-                                    )
-                                  }
-                                </TableBody>
-                              </Table>
-                            ) : (
-                              <p className="text-gray-500">Product details not found.</p>
-                            )}
-                            
-                            {/* Return items function */}
-                            <div className="flex justify-between items-center mb-4">
-                              <div className="text-sm text-gray-600">
-                                {selectedTransactions.length > 0 && (
-                                  <span>{selectedTransactions.length} item(s) selected</span>
-                                )}
-                              </div>
-                              <Button
-                                variant="outline"
-                                className="bg-indigo-500 hover:bg-indigo-700 hover:text-white text-white"
-                                onClick={() => {
-                                  setItemReturnReasons({});
-                                  setReturnDialogOpen(true);
-                                }}
-                                disabled={selectedTransactions.length === 0}
-                              >
-                                Return Selected Items
-                              </Button>
-                            </div>
-                            
-                          </div>
-                        </DialogContent>
-                      </Dialog>
-                    </TableCell>
-
-                    {/* Delivery payment details */}
-                    <TableCell className="p1-6">
+          <div className="bg-white shadow-md rounded-lg flex flex-col w-full flex-1 min-h-0">
+            <div className="overflow-auto flex-1 relative p-4">
+              {/* Deliveries Table */}
+              <Table>
+                <TableHeader className="sticky top-0 bg-white z-10 border-b">
+                  <TableRow>
+                    <TableHead onClick={() => handleSort("dateAdded")} className="pl-10 cursor-pointer select-none">
+                      Date <SortIcon column="dateAdded" sortConfig={sortConfig} />
+                    </TableHead>
+                    <TableHead onClick={() => handleSort("deliveryNum")} className="pl-6 cursor-pointer select-none">
+                      Delivery Number <SortIcon column="deliveryNum" sortConfig={sortConfig} />
+                    </TableHead>
+                    <TableHead onClick={() => handleSort("supplier")} className="pl-0 cursor-pointer select-none">
+                      Supplier <SortIcon column="supplier" sortConfig={sortConfig} />
+                    </TableHead>
+                    <TableHead onClick={() => handleSort("totalCost")} className="pl-10 cursor-pointer select-none">
+                      Total Cost <SortIcon column="totalCost" sortConfig={sortConfig} />
+                    </TableHead>
+                    <TableHead>Manage</TableHead>
+                    <TableHead className="pl-0">Edit Payment</TableHead>
+                    <TableHead className="pl-0">Delete</TableHead>
+                  </TableRow>
+                </TableHeader>
+                
+                <TableBody>
+                  {getPaginatedData().map((d) => (
+                    <TableRow
+                      key={d.deliveryNum}
+                    >
+                      <TableCell className="pl-10">{d.dateAdded}</TableCell>
+                      <TableCell className="pl-6">{`DR-${d.deliveryNum}`}</TableCell>
+                      <TableCell className="pl-0">
+                        {deliveryProducts[d.deliveryNum]?.[0]?.supplier || "Unknown"}
+                      </TableCell>
+                      <TableCell className="pl-10">{d.totalCost}</TableCell>
                       
-                      <Dialog
-                        onOpenChange={(open) => {
-                          if (open) {
-                            // fetch fresh payment details for this delivery
-                            axios
-                              .get(config.paymentDetails.fetch)         // endpoint that returns all details
-                              .then(res => {
-                                const item = res.data.find(i => 
-                                  i.D_deliveryNumber.toString() === d.deliveryNum
-                                );
-                                if (!item) return;
-                                setPaymentDetails(prev => ({
-                                  ...prev,
-                                  [d.deliveryNum]: {
-                                    paymentType:    item.D_paymentTypeID.toString(),
-                                    paymentMode:    item.D_modeOfPaymentID   !== null
-                                                      ? item.D_modeOfPaymentID.toString()
-                                                      : "",
-                                    paymentStatus:  item.D_paymentStatusID.toString(),
-                                    dateDue:        formatDateForInput(item.DPD_dateOfPaymentDue),
-                                    datePayment1:   formatDateForInput(item.DPD_dateOfPayment1),
-                                    paymentMode2:   item.D_modeOfPaymentID2   !== null
-                                                      ? item.D_modeOfPaymentID2.toString()
-                                                      : "",
-                                    paymentStatus2: item.D_paymentStatusID2   !== null
-                                                      ? item.D_paymentStatusID2.toString()
-                                                      : "",
-                                    dateDue2:       formatDateForInput(item.DPD_dateOfPaymentDue2) || "",
-                                    datePayment2:   formatDateForInput(item.DPD_dateOfPayment2)    || "",
-                                  }
-                                }));
-                                // clear unsaved-changes flag
-                                setModifiedPayments(prev => ({
-                                  ...prev,
-                                  [d.deliveryNum]: false
-                                }));
-                              })
-                              .catch(err => console.error("Failed to reload payment-details:", err));
-                          } else {
-                            // panel closed without save—ensure “Save” is disabled
-                            setModifiedPayments(prev => ({
-                              ...prev,
-                              [d.deliveryNum]: false
-                            }));
+                      {/* View details */}
+                      <TableCell className="pl-6">
+                        <Dialog onOpenChange={(open) => {
+                          if (!open) {
+                            // Reset selection when dialog closes
+                            setSelectedTransactions([]);
+                            setSelectedDeliveryNumber(null);
                           }
-                        }}
-                      >
-                      
-                        <DialogTrigger asChild>
-                          <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600">
-                            <FilePen size={16} />
-                          </Button>
-                        </DialogTrigger>
-                        
-                        <DialogContent className="w-[60vw] max-w-[60vw] p-4 sm:p-6">
-                          <DialogHeader>
-                            <DialogTitle>Delivery Payment Details</DialogTitle>
-                            <DialogClose />
-                          </DialogHeader>
-
-                          {/* always-shown: delivery number, amount, payment-type */}
-                          <div className="grid grid-cols-12 gap-4">
-                            <div className="col-span-3">
-                              <Label htmlFor="paymentDeliveryNumber" className="mb-1 block">Delivery Number</Label>
-                              <Input
-                                id="paymentDeliveryNumber"
-                                value={`DR-${d.deliveryNum}`}
-                                className="bg-gray-200 text-center"
-                                readOnly
-                              />
-                            </div>
-                            <div className="col-span-3">
-                              <Label htmlFor="paymentType" className="mb-1 block">Payment Type</Label>
-                              {/* make payment type uneditable */}
-                              <Select
-                                value={paymentDetails[d.deliveryNum]?.paymentType || ""}
-                                onValueChange={(v) => updatePaymentDetail(d.deliveryNum, 'paymentType', v)}
-                                name="paymentType"
-                                disabled={true}
-                              >
-                                <SelectTrigger id="paymentType">
-                                  <SelectValue placeholder="Select payment type" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {paymentTypes.map(pt => (
-                                    <SelectItem key={pt.D_paymentTypeID} value={pt.D_paymentTypeID.toString()} className="hover:bg-gray-100 data-[highlighted]:bg-gray-100">
-                                      {pt.D_paymentName}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
+                        }}>
+                          <DialogTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="text-blue-900 hover:text-white hover:bg-blue-900 border-blue-900 
+                              transition-colors duration-200 flex items-center gap-2" 
+                              onClick={() => {
+                                loadDeliveryProducts(d.deliveryNum);
+                                setSelectedDeliveryNumber(d.deliveryNum);
+                                // Reset return states when opening view details
+                                setSelectedTransactions([]);
+                                setItemReturnReasons({});
+                              }}
+                            >
+                            <span className="hidden sm:inline">View/Return</span>
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="w-full max-w-screen-lg sm:max-w-screen-md md:max-w-screen-lg lg:max-w-screen-xl max-h-[95vh] overflow-y-auto p-6">
+                            <DialogHeader>
+                              <DialogTitle>Delivery Product Details</DialogTitle>
+                              <DialogDescription>View delivery products</DialogDescription>
+                              <DialogClose />
+                            </DialogHeader>
                             
-                            {paymentDetails[d.deliveryNum]?.paymentType !== '3' ? (
+                            <div className="flex flex-col gap-6">
+                              {/* Basic Delivery Info */}
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <label className="text-sm font-medium">Date of Delivery</label>
+                                  <Input type="date" value={d.rawDate} disabled/>
+                                </div>
+                                <div>
+                                  <label className="text-sm font-medium">Delivery Number</label>
+                                  <Input value={`DR-${d.deliveryNum}`} className="text-center" readOnly />
+                                </div>
+                              </div>
+                              
+                              {/* Products table */}
+                              {deliveryProducts[d.deliveryNum] ? (
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      {/* checkbox select ALL function for returns */}
+                                      <TableHead className="sticky top-0 z-10 bg-white">
+                                        <input type="checkbox" 
+                                        onChange={() => handleSelectAll(d.deliveryNum)} 
+                                        checked={selectedTransactions.length === getFilteredTransaction(d.deliveryNum).length && 
+                                        selectedTransactions.length > 0}
+                                        />
+                                      </TableHead>
+                                      <TableHead
+                                        onClick={() => handleProductSort("productCode")}
+                                        className="cursor-pointer select-none"
+                                      >
+                                        Code <SortIcon column="productCode" sortConfig={productSortConfig} />
+                                      </TableHead>
+                                      <TableHead
+                                        onClick={() => handleProductSort("supplier")}
+                                        className="cursor-pointer select-none"
+                                      >
+                                        Supplier <SortIcon column="supplier" sortConfig={productSortConfig} />
+                                      </TableHead>
+                                      <TableHead
+                                        onClick={() => handleProductSort("brand")}
+                                        className="cursor-pointer select-none"
+                                      >
+                                        Brand <SortIcon column="brand" sortConfig={productSortConfig} />
+                                      </TableHead>
+                                      <TableHead
+                                        onClick={() => handleProductSort("product")}
+                                        className="cursor-pointer select-none"
+                                      >
+                                        Product <SortIcon column="product" sortConfig={productSortConfig} />
+                                      </TableHead>
+                                      <TableHead
+                                        onClick={() => handleProductSort("quantity")}
+                                        className="cursor-pointer select-none text-center"
+                                      >
+                                        Quantity <SortIcon column="quantity" sortConfig={productSortConfig} />
+                                      </TableHead> 
+                                      <TableHead
+                                        onClick={() => handleProductSort("unitPrice")}
+                                        className="cursor-pointer select-none text-center"
+                                      >
+                                        Unit Price <SortIcon column="unitPrice" sortConfig={productSortConfig} />
+                                      </TableHead>
+                                      <TableHead
+                                        onClick={() => handleProductSort("total")}
+                                        className="cursor-pointer select-none text-center"
+                                      >
+                                        Total <SortIcon column="total" sortConfig={productSortConfig} />
+                                      </TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {getSortedProducts(d.deliveryNum).length > 0
+                                      ? getSortedProducts(d.deliveryNum).map((item, idx) => {
+                                          const transactionId = `${d.deliveryNum}-${idx}`;
+                                          const isSelected = selectedTransactions.includes(transactionId);
+                                          
+                                          return (
+                                            <TableRow key={idx} 
+                                              onClick={(e) => handleRowClick(transactionId, e)}
+                                              className={cn(
+                                                "cursor-pointer transition-all duration-200 select-none",
+                                                isSelected 
+                                                  ? "bg-blue-50 border-l-4 border-blue-500 shadow-sm" 
+                                                    : "hover:bg-gray-50 hover:shadow-sm"
+                                              )}
+                                            >
+                                              <TableCell>
+                                                <input
+                                                  type="checkbox"
+                                                  checked={isSelected}
+                                                  onChange={() => handleSelectTransaction(transactionId)}
+                                                />
+                                              </TableCell>
+                                              <TableCell className="text-left">{item.productCode}</TableCell>
+                                              <TableCell className="text-sm">{item.supplier}</TableCell>
+                                              <TableCell className="text-sm">{item.brand}</TableCell>
+                                              <TableCell className="text-sm">{item.product}</TableCell>
+                                              <TableCell className="text-center text-sm">{item.quantity}</TableCell>
+                                              <TableCell className="text-center text-sm">{item.unitPrice}</TableCell>
+                                              <TableCell className="text-center text-sm">{item.total}</TableCell>
+                                            </TableRow>
+                                          );
+                                        })
+                                      : (
+                                        <TableRow>
+                                          <TableCell colSpan={8} className="text-center text-gray-500">
+                                            No products found for this delivery
+                                          </TableCell>
+                                        </TableRow>
+                                      )
+                                    }
+                                  </TableBody>
+                                </Table>
+                              ) : (
+                                <p className="text-gray-500">Product details not found.</p>
+                              )}
+                              
+                              {/* Return items function */}
+                              <div className="flex justify-between items-center mb-4">
+                                <div className="text-sm text-gray-600">
+                                  {selectedTransactions.length > 0 && (
+                                    <span>{selectedTransactions.length} item(s) selected</span>
+                                  )}
+                                </div>
+                                <Button
+                                  variant="outline"
+                                  className="bg-indigo-500 hover:bg-indigo-700 hover:text-white text-white"
+                                  onClick={() => {
+                                    setItemReturnReasons({});
+                                    setReturnDialogOpen(true);
+                                  }}
+                                  disabled={selectedTransactions.length === 0}
+                                >
+                                  Return Selected Items
+                                </Button>
+                              </div>
+                              
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      </TableCell>
+
+                      {/* Delivery payment details */}
+                      <TableCell className="p1-6">
+                        
+                        <Dialog
+                          onOpenChange={(open) => {
+                            if (open) {
+                              // fetch fresh payment details for this delivery
+                              axios
+                                .get(config.paymentDetails.fetch)         // endpoint that returns all details
+                                .then(res => {
+                                  const item = res.data.find(i => 
+                                    i.D_deliveryNumber.toString() === d.deliveryNum
+                                  );
+                                  if (!item) return;
+                                  setPaymentDetails(prev => ({
+                                    ...prev,
+                                    [d.deliveryNum]: {
+                                      paymentType:    item.D_paymentTypeID.toString(),
+                                      paymentMode:    item.D_modeOfPaymentID   !== null
+                                                        ? item.D_modeOfPaymentID.toString()
+                                                        : "",
+                                      paymentStatus:  item.D_paymentStatusID.toString(),
+                                      dateDue:        formatDateForInput(item.DPD_dateOfPaymentDue),
+                                      datePayment1:   formatDateForInput(item.DPD_dateOfPayment1),
+                                      paymentMode2:   item.D_modeOfPaymentID2   !== null
+                                                        ? item.D_modeOfPaymentID2.toString()
+                                                        : "",
+                                      paymentStatus2: item.D_paymentStatusID2   !== null
+                                                        ? item.D_paymentStatusID2.toString()
+                                                        : "",
+                                      dateDue2:       formatDateForInput(item.DPD_dateOfPaymentDue2) || "",
+                                      datePayment2:   formatDateForInput(item.DPD_dateOfPayment2)    || "",
+                                    }
+                                  }));
+                                  // clear unsaved-changes flag
+                                  setModifiedPayments(prev => ({
+                                    ...prev,
+                                    [d.deliveryNum]: false
+                                  }));
+                                })
+                                .catch(err => console.error("Failed to reload payment-details:", err));
+                            } else {
+                              // panel closed without save—ensure "Save" is disabled
+                              setModifiedPayments(prev => ({
+                                ...prev,
+                                [d.deliveryNum]: false
+                              }));
+                            }
+                          }}
+                        >
+                        
+                          <DialogTrigger asChild>
+                            <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600">
+                              <FilePen size={16} />
+                            </Button>
+                          </DialogTrigger>
+                          
+                          <DialogContent className="w-[60vw] max-w-[60vw] p-4 sm:p-6">
+                            <DialogHeader>
+                              <DialogTitle>Delivery Payment Details</DialogTitle>
+                              <DialogClose />
+                            </DialogHeader>
+
+                            {/* always-shown: delivery number, amount, payment-type */}
+                            <div className="grid grid-cols-12 gap-4">
+                              <div className="col-span-3">
+                                <Label htmlFor="paymentDeliveryNumber" className="mb-1 block">Delivery Number</Label>
+                                <Input
+                                  id="paymentDeliveryNumber"
+                                  value={`DR-${d.deliveryNum}`}
+                                  className="bg-gray-200 text-center"
+                                  readOnly
+                                />
+                              </div>
+                              <div className="col-span-3">
+                                <Label htmlFor="paymentType" className="mb-1 block">Payment Type</Label>
+                                {/* make payment type uneditable */}
+                                <Select
+                                  value={paymentDetails[d.deliveryNum]?.paymentType || ""}
+                                  onValueChange={(v) => updatePaymentDetail(d.deliveryNum, 'paymentType', v)}
+                                  name="paymentType"
+                                  disabled={true}
+                                >
+                                  <SelectTrigger id="paymentType">
+                                    <SelectValue placeholder="Select payment type" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {paymentTypes.map(pt => (
+                                      <SelectItem key={pt.D_paymentTypeID} value={pt.D_paymentTypeID.toString()} className="hover:bg-gray-100 data-[highlighted]:bg-gray-100">
+                                        {pt.D_paymentName}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              
+                              {paymentDetails[d.deliveryNum]?.paymentType !== '3' ? (
+                                <>
+                                  <div className="col-span-3"></div>
+                                  <div className="col-span-3"></div>
+                                  <div className="col-span-3">
+                                    <Label htmlFor="paymentAmount" className="mb-1 block">Amount</Label>
+                                    <Input
+                                      id="paymentAmount"
+                                      value={d.totalCost.replace('₱', '')}
+                                      className="bg-red-800 text-white text-center"
+                                      readOnly
+                                    />
+                                  </div>
+                                </>
+                                ) : (
+                                <> </>
+                              )}
+                                
+                            </div>
+
+                            {/* determine if two-time (ID '3') or one-time/full */}
+                            {paymentDetails[d.deliveryNum]?.paymentType === '3' ? (
                               <>
-                                <div className="col-span-3"></div>
-                                <div className="col-span-3"></div>
-                                <div className="col-span-3">
-                                  <Label htmlFor="paymentAmount" className="mb-1 block">Amount</Label>
-                                  <Input
-                                    id="paymentAmount"
-                                    value={d.totalCost.replace('₱', '')}
-                                    className="bg-red-800 text-white text-center"
-                                    readOnly
-                                  />
+                                {/* 1st payment section */}
+                                <div className="grid grid-cols-12 gap-4 mt-0">
+                                  <h3 className="col-span-12 text-lg font-semibold mt-6">1st payment</h3>
+
+                                  <div className="col-span-3">
+                                    <Label htmlFor="paymentAmount" className="mb-1 block">Amount</Label>
+                                    <Input
+                                      id="paymentAmount"
+                                      value={(parseFloat(d.totalCost.replace('₱', '').replace(',', '')) / 2).toFixed(2)}
+                                      className="bg-red-800 text-white text-center"
+                                      readOnly
+                                    />
+                                  </div>
+                                  <div className="col-span-3"></div>
+                                  <div className="col-span-3"></div>
+                                  <div className="col-span-3"></div>
+
+                                  <div className="col-span-3">
+                                    <Label htmlFor="paymentStatus" className="mb-1 block">Payment Status</Label>
+                                    <Select
+                                      value={paymentDetails[d.deliveryNum]?.paymentStatus || ""}
+                                      onValueChange={v => updatePaymentDetail(d.deliveryNum, 'paymentStatus', v)}
+                                      name="paymentStatus"
+                                      disabled={paymentDetails[d.deliveryNum]?.paymentType === '1'}
+                                    >
+                                      <SelectTrigger id="paymentStatus">
+                                        <SelectValue placeholder="Select payment status" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {paymentStatuses.map(status => (
+                                          <SelectItem
+                                            key={status.D_paymentStatusID}
+                                            value={status.D_paymentStatusID.toString()}
+                                            className="hover:bg-gray-100 data-[highlighted]:bg-gray-100"
+                                          >
+                                            {status.D_statusName}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  
+                                  <div className="col-span-3">
+                                    <Label htmlFor="paymentMode" className="mb-1 block">Mode of Payment</Label>
+                                    <Select
+                                      value={paymentDetails[d.deliveryNum]?.paymentMode || ""}
+                                      onValueChange={(v) => updatePaymentDetail(d.deliveryNum, 'paymentMode', v)}
+                                      name="paymentMode"
+                                      disabled={paymentDetails[d.deliveryNum]?.paymentStatus === '2'}
+                                    >
+                                      <SelectTrigger id="paymentMode">
+                                        <SelectValue placeholder="Select payment mode" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {paymentModes.map(mode => (
+                                          <SelectItem
+                                            key={mode.D_modeOfPaymentID}
+                                            value={mode.D_modeOfPaymentID.toString()}
+                                            className="hover:bg-gray-100 data-[highlighted]:bg-gray-100"
+                                          >
+                                            {mode.D_mopName}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+
+                                  <div className="col-span-3">
+                                    <Label htmlFor="paymentDateDue" className="mb-1 block">Date of Payment Due</Label>
+                                    {/* ⑤ Date of Payment Due fields should be uneditable */}
+                                    <Input
+                                      id="paymentDateDue"
+                                      type="date"
+                                      value={paymentDetails[d.deliveryNum]?.dateDue || ""}
+                                      placeholder="mm/dd/yyyy"
+                                      disabled={true}
+                                    />
+                                  </div>
+
+                                  <div className="col-span-3">
+                                    <Label htmlFor="paymentDate1" className="mb-1 block">Date of Payment</Label>
+                                    <Input
+                                      id="paymentDate1"
+                                      type="date"
+                                      value={paymentDetails[d.deliveryNum]?.datePayment1 || ""}
+                                      onChange={(e) => updatePaymentDetail(d.deliveryNum, 'datePayment1', e.target.value)}
+                                      /* ② only allow selection between delivery date and due date */
+                                      min={d.rawDate}
+                                      max={todayDate}
+                                      /* ③ disable when status is unpaid */
+                                      disabled={
+                                        paymentDetails[d.deliveryNum]?.paymentStatus === '2'
+                                      }
+                                    />
+                                  </div>
+                                </div>
+
+                                {/* 2nd payment section */}
+                                <div className="grid grid-cols-12 gap-4 mt-0">
+                                  <h3 className="col-span-12 text-lg font-semibold mt-6">2nd payment</h3>
+
+                                  <div className="col-span-3">
+                                    <Label htmlFor="paymentAmount" className="mb-1 block">Amount</Label>
+                                    <Input
+                                      id="paymentAmount"
+                                      value={(parseFloat(d.totalCost.replace('₱', '').replace(',', '')) / 2).toFixed(2)}
+                                      className="bg-red-800 text-white text-center"
+                                      readOnly
+                                    />
+                                  </div>
+                                  <div className="col-span-3"></div>
+                                  <div className="col-span-3"></div>
+                                  <div className="col-span-3"></div>
+                                  
+                                  <div className="col-span-3">
+                                    <Label htmlFor="paymentStatus2" className="mb-1 block">Payment Status</Label>
+                                    <Select
+                                      value={paymentDetails[d.deliveryNum]?.paymentStatus2 || ""}
+                                      onValueChange={v => updatePaymentDetail(d.deliveryNum, 'paymentStatus2', v)}
+                                      name="paymentStatus2"
+                                      disabled={
+                                        paymentDetails[d.deliveryNum]?.paymentStatus === '2'
+                                      }
+                                    >
+                                      <SelectTrigger id="paymentStatus2">
+                                        <SelectValue placeholder="Select payment status" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {paymentStatuses.map(status => (
+                                          <SelectItem
+                                            key={status.D_paymentStatusID}
+                                            value={status.D_paymentStatusID.toString()}
+                                            className="hover:bg-gray-100 data-[highlighted]:bg-gray-100"
+                                          >
+                                            {status.D_statusName}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  
+                                  <div className="col-span-3">
+                                    <Label htmlFor="paymentMode2" className="mb-1 block">Mode of Payment</Label>
+                                    <Select
+                                      value={paymentDetails[d.deliveryNum]?.paymentMode2 || ""}
+                                      onValueChange={v => updatePaymentDetail(d.deliveryNum, 'paymentMode2', v)}
+                                      name="paymentMode2"
+                                      disabled={
+                                        paymentDetails[d.deliveryNum]?.paymentStatus === '2'
+                                        || paymentDetails[d.deliveryNum]?.paymentStatus2 === '2'
+                                      }
+                                    >
+                                      <SelectTrigger id="paymentMode2">
+                                        <SelectValue placeholder="Select payment mode" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {paymentModes.map(mode => (
+                                          <SelectItem
+                                            key={mode.D_modeOfPaymentID}
+                                            value={mode.D_modeOfPaymentID.toString()}
+                                            className="hover:bg-gray-100 data-[highlighted]:bg-gray-100"
+                                          >
+                                            {mode.D_mopName}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+
+                                  <div className="col-span-3">
+                                    <Label htmlFor="paymentDateDue2" className="mb-1 block">Date of Payment Due</Label>
+                                    <Input
+                                      id="paymentDateDue2"
+                                      type="date"
+                                      value={paymentDetails[d.deliveryNum]?.dateDue2 || ""}
+                                      disabled={true}
+                                    />
+                                  </div>
+
+                                  <div className="col-span-3">
+                                    <Label htmlFor="paymentDate2" className="mb-1 block">Date of Payment</Label>
+                                    <Input
+                                      id="paymentDate2"
+                                      type="date"
+                                      value={paymentDetails[d.deliveryNum]?.datePayment2 || ""}
+                                      onChange={(e) => updatePaymentDetail(d.deliveryNum, 'datePayment2', e.target.value)}
+                                      min={d.rawDate}
+                                      max={todayDate}
+                                      disabled={
+                                        paymentDetails[d.deliveryNum]?.paymentStatus === '2'
+                                        || paymentDetails[d.deliveryNum]?.paymentStatus2 === '2'
+                                      }
+                                    />
+                                  </div>
                                 </div>
                               </>
-                              ) : (
-                              <> </>
+                            ) : (
+                              <>
+                                {/* one-time/full upfront */}
+                                <div className="grid grid-cols-12 gap-4 mt-4">
+                                  
+                                  <div className="col-span-3">
+                                    <Label htmlFor="paymentStatus1" className="mb-1 block">Payment Status</Label>
+                                    <Select
+                                      value={paymentDetails[d.deliveryNum]?.paymentStatus || ""}
+                                      onValueChange={v => updatePaymentDetail(d.deliveryNum, 'paymentStatus', v)}
+                                      name="paymentStatus"
+                                      disabled={paymentDetails[d.deliveryNum]?.paymentType === '1'}
+                                    >
+                                      <SelectTrigger id="paymentStatus1">
+                                        <SelectValue placeholder="Select payment status" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {paymentStatuses.map(status => (
+                                          <SelectItem
+                                            key={status.D_paymentStatusID}
+                                            value={status.D_paymentStatusID.toString()}
+                                            className="hover:bg-gray-100 data-[highlighted]:bg-gray-100"
+                                          >
+                                            {status.D_statusName}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  
+                                  <div className="col-span-3">
+                                    <Label htmlFor="paymentMode" className="mb-1 block">Mode of Payment</Label>
+                                    <Select
+                                      value={paymentDetails[d.deliveryNum]?.paymentMode || ""}
+                                      onValueChange={v => updatePaymentDetail(d.deliveryNum, 'paymentMode', v)}
+                                      name="paymentMode"
+                                      disabled={paymentDetails[d.deliveryNum]?.paymentType === '1'}
+                                    >
+                                      <SelectTrigger id="paymentMode">
+                                        <SelectValue placeholder="Select payment mode" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {paymentModes.map(mode => (
+                                          <SelectItem
+                                            key={mode.D_modeOfPaymentID}
+                                            value={mode.D_modeOfPaymentID.toString()}
+                                            className="hover:bg-gray-100 data-[highlighted]:bg-gray-100"
+                                          >
+                                            {mode.D_mopName}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+
+                                  <div className="col-span-3">
+                                    <Label htmlFor="paymentDateDue" className="mb-1 block">Date of Payment Due</Label>
+                                    <Input
+                                      id="paymentDateDue"
+                                      type="date"
+                                      value={paymentDetails[d.deliveryNum]?.dateDue || ""}
+                                      disabled={true}
+                                    />
+                                  </div>
+                                  <div className="col-span-3">
+                                    <Label htmlFor="paymentDate1" className="mb-1 block">Date of Payment</Label>
+                                    <Input
+                                      id="paymentDate1"
+                                      type="date"
+                                      value={paymentDetails[d.deliveryNum]?.datePayment1 || ""}
+                                      onChange={e => updatePaymentDetail(d.deliveryNum, 'datePayment1', e.target.value)}
+                                      min={d.rawDate}
+                                      max={todayDate}
+                                      disabled={
+                                        paymentDetails[d.deliveryNum]?.paymentType === '1' ||
+                                        paymentStatuses.find(s => s.D_paymentStatusID.toString() === paymentDetails[d.deliveryNum]?.paymentStatus)
+                                          ?.D_statusName.toLowerCase() === 'unpaid'
+                                      }
+                                    />
+                                  </div>
+                                </div>
+                              </>
                             )}
-                              
-                          </div>
 
-                          {/* determine if two-time (ID '3') or one-time/full */}
-                          {paymentDetails[d.deliveryNum]?.paymentType === '3' ? (
-                            <>
-                              {/* 1st payment section */}
-                              <div className="grid grid-cols-12 gap-4 mt-0">
-                                <h3 className="col-span-12 text-lg font-semibold mt-6">1st payment</h3>
-
-                                <div className="col-span-3">
-                                  <Label htmlFor="paymentAmount" className="mb-1 block">Amount</Label>
-                                  <Input
-                                    id="paymentAmount"
-                                    value={(parseFloat(d.totalCost.replace('₱', '').replace(',', '')) / 2).toFixed(2)}
-                                    className="bg-red-800 text-white text-center"
-                                    readOnly
-                                  />
-                                </div>
-                                <div className="col-span-3"></div>
-                                <div className="col-span-3"></div>
-                                <div className="col-span-3"></div>
-
-                                <div className="col-span-3">
-                                  <Label htmlFor="paymentStatus" className="mb-1 block">Payment Status</Label>
-                                  <Select
-                                    value={paymentDetails[d.deliveryNum]?.paymentStatus || ""}
-                                    onValueChange={v => updatePaymentDetail(d.deliveryNum, 'paymentStatus', v)}
-                                    name="paymentStatus"
-                                    disabled={paymentDetails[d.deliveryNum]?.paymentType === '1'}
-                                  >
-                                    <SelectTrigger id="paymentStatus">
-                                      <SelectValue placeholder="Select payment status" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {paymentStatuses.map(status => (
-                                        <SelectItem
-                                          key={status.D_paymentStatusID}
-                                          value={status.D_paymentStatusID.toString()}
-                                          className="hover:bg-gray-100 data-[highlighted]:bg-gray-100"
-                                        >
-                                          {status.D_statusName}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                                
-                                <div className="col-span-3">
-                                  <Label htmlFor="paymentMode" className="mb-1 block">Mode of Payment</Label>
-                                  <Select
-                                    value={paymentDetails[d.deliveryNum]?.paymentMode || ""}
-                                    onValueChange={(v) => updatePaymentDetail(d.deliveryNum, 'paymentMode', v)}
-                                    name="paymentMode"
-                                    disabled={paymentDetails[d.deliveryNum]?.paymentStatus === '2'}
-                                  >
-                                    <SelectTrigger id="paymentMode">
-                                      <SelectValue placeholder="Select payment mode" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {paymentModes.map(mode => (
-                                        <SelectItem
-                                          key={mode.D_modeOfPaymentID}
-                                          value={mode.D_modeOfPaymentID.toString()}
-                                          className="hover:bg-gray-100 data-[highlighted]:bg-gray-100"
-                                        >
-                                          {mode.D_mopName}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-
-                                <div className="col-span-3">
-                                  <Label htmlFor="paymentDateDue" className="mb-1 block">Date of Payment Due</Label>
-                                  {/* ⑤ Date of Payment Due fields should be uneditable */}
-                                  <Input
-                                    id="paymentDateDue"
-                                    type="date"
-                                    value={paymentDetails[d.deliveryNum]?.dateDue || ""}
-                                    placeholder="mm/dd/yyyy"
-                                    disabled={true}
-                                  />
-                                </div>
-
-                                <div className="col-span-3">
-                                  <Label htmlFor="paymentDate1" className="mb-1 block">Date of Payment</Label>
-                                  <Input
-                                    id="paymentDate1"
-                                    type="date"
-                                    value={paymentDetails[d.deliveryNum]?.datePayment1 || ""}
-                                    onChange={(e) => updatePaymentDetail(d.deliveryNum, 'datePayment1', e.target.value)}
-                                    /* ② only allow selection between delivery date and due date */
-                                    min={d.rawDate}
-                                    max={todayDate}
-                                    /* ③ disable when status is unpaid */
-                                    disabled={
-                                      paymentDetails[d.deliveryNum]?.paymentStatus === '2'
-                                    }
-                                  />
-                                </div>
-                              </div>
-
-                              {/* 2nd payment section */}
-                              <div className="grid grid-cols-12 gap-4 mt-0">
-                                <h3 className="col-span-12 text-lg font-semibold mt-6">2nd payment</h3>
-
-                                <div className="col-span-3">
-                                  <Label htmlFor="paymentAmount" className="mb-1 block">Amount</Label>
-                                  <Input
-                                    id="paymentAmount"
-                                    value={(parseFloat(d.totalCost.replace('₱', '').replace(',', '')) / 2).toFixed(2)}
-                                    className="bg-red-800 text-white text-center"
-                                    readOnly
-                                  />
-                                </div>
-                                <div className="col-span-3"></div>
-                                <div className="col-span-3"></div>
-                                <div className="col-span-3"></div>
-                                
-                                <div className="col-span-3">
-                                  <Label htmlFor="paymentStatus2" className="mb-1 block">Payment Status</Label>
-                                  <Select
-                                    value={paymentDetails[d.deliveryNum]?.paymentStatus2 || ""}
-                                    onValueChange={v => updatePaymentDetail(d.deliveryNum, 'paymentStatus2', v)}
-                                    name="paymentStatus2"
-                                    disabled={
-                                      paymentDetails[d.deliveryNum]?.paymentStatus === '2'
-                                    }
-                                  >
-                                    <SelectTrigger id="paymentStatus2">
-                                      <SelectValue placeholder="Select payment status" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {paymentStatuses.map(status => (
-                                        <SelectItem
-                                          key={status.D_paymentStatusID}
-                                          value={status.D_paymentStatusID.toString()}
-                                          className="hover:bg-gray-100 data-[highlighted]:bg-gray-100"
-                                        >
-                                          {status.D_statusName}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                                
-                                <div className="col-span-3">
-                                  <Label htmlFor="paymentMode2" className="mb-1 block">Mode of Payment</Label>
-                                  <Select
-                                    value={paymentDetails[d.deliveryNum]?.paymentMode2 || ""}
-                                    onValueChange={v => updatePaymentDetail(d.deliveryNum, 'paymentMode2', v)}
-                                    name="paymentMode2"
-                                    disabled={
-                                      paymentDetails[d.deliveryNum]?.paymentStatus === '2'
-                                      || paymentDetails[d.deliveryNum]?.paymentStatus2 === '2'
-                                    }
-                                  >
-                                    <SelectTrigger id="paymentMode2">
-                                      <SelectValue placeholder="Select payment mode" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {paymentModes.map(mode => (
-                                        <SelectItem
-                                          key={mode.D_modeOfPaymentID}
-                                          value={mode.D_modeOfPaymentID.toString()}
-                                          className="hover:bg-gray-100 data-[highlighted]:bg-gray-100"
-                                        >
-                                          {mode.D_mopName}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-
-                                <div className="col-span-3">
-                                  <Label htmlFor="paymentDateDue2" className="mb-1 block">Date of Payment Due</Label>
-                                  <Input
-                                    id="paymentDateDue2"
-                                    type="date"
-                                    value={paymentDetails[d.deliveryNum]?.dateDue2 || ""}
-                                    disabled={true}
-                                  />
-                                </div>
-
-                                <div className="col-span-3">
-                                  <Label htmlFor="paymentDate2" className="mb-1 block">Date of Payment</Label>
-                                  <Input
-                                    id="paymentDate2"
-                                    type="date"
-                                    value={paymentDetails[d.deliveryNum]?.datePayment2 || ""}
-                                    onChange={(e) => updatePaymentDetail(d.deliveryNum, 'datePayment2', e.target.value)}
-                                    min={d.rawDate}
-                                    max={todayDate}
-                                    disabled={
-                                      paymentDetails[d.deliveryNum]?.paymentStatus === '2'
-                                      || paymentDetails[d.deliveryNum]?.paymentStatus2 === '2'
-                                    }
-                                  />
-                                </div>
-                              </div>
-                            </>
-                          ) : (
-                            <>
-                              {/* one-time/full upfront */}
-                              <div className="grid grid-cols-12 gap-4 mt-4">
-                                
-                                <div className="col-span-3">
-                                  <Label htmlFor="paymentStatus1" className="mb-1 block">Payment Status</Label>
-                                  <Select
-                                    value={paymentDetails[d.deliveryNum]?.paymentStatus || ""}
-                                    onValueChange={v => updatePaymentDetail(d.deliveryNum, 'paymentStatus', v)}
-                                    name="paymentStatus"
-                                    disabled={paymentDetails[d.deliveryNum]?.paymentType === '1'}
-                                  >
-                                    <SelectTrigger id="paymentStatus1">
-                                      <SelectValue placeholder="Select payment status" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {paymentStatuses.map(status => (
-                                        <SelectItem
-                                          key={status.D_paymentStatusID}
-                                          value={status.D_paymentStatusID.toString()}
-                                          className="hover:bg-gray-100 data-[highlighted]:bg-gray-100"
-                                        >
-                                          {status.D_statusName}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                                
-                                <div className="col-span-3">
-                                  <Label htmlFor="paymentMode" className="mb-1 block">Mode of Payment</Label>
-                                  <Select
-                                    value={paymentDetails[d.deliveryNum]?.paymentMode || ""}
-                                    onValueChange={v => updatePaymentDetail(d.deliveryNum, 'paymentMode', v)}
-                                    name="paymentMode"
-                                    disabled={paymentDetails[d.deliveryNum]?.paymentType === '1'}
-                                  >
-                                    <SelectTrigger id="paymentMode">
-                                      <SelectValue placeholder="Select payment mode" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {paymentModes.map(mode => (
-                                        <SelectItem
-                                          key={mode.D_modeOfPaymentID}
-                                          value={mode.D_modeOfPaymentID.toString()}
-                                          className="hover:bg-gray-100 data-[highlighted]:bg-gray-100"
-                                        >
-                                          {mode.D_mopName}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-
-                                <div className="col-span-3">
-                                  <Label htmlFor="paymentDateDue" className="mb-1 block">Date of Payment Due</Label>
-                                  <Input
-                                    id="paymentDateDue"
-                                    type="date"
-                                    value={paymentDetails[d.deliveryNum]?.dateDue || ""}
-                                    disabled={true}
-                                  />
-                                </div>
-                                <div className="col-span-3">
-                                  <Label htmlFor="paymentDate1" className="mb-1 block">Date of Payment</Label>
-                                  <Input
-                                    id="paymentDate1"
-                                    type="date"
-                                    value={paymentDetails[d.deliveryNum]?.datePayment1 || ""}
-                                    onChange={e => updatePaymentDetail(d.deliveryNum, 'datePayment1', e.target.value)}
-                                    min={d.rawDate}
-                                    max={todayDate}
-                                    disabled={
-                                      paymentDetails[d.deliveryNum]?.paymentType === '1' ||
-                                      paymentStatuses.find(s => s.D_paymentStatusID.toString() === paymentDetails[d.deliveryNum]?.paymentStatus)
-                                        ?.D_statusName.toLowerCase() === 'unpaid'
-                                    }
-                                  />
-                                </div>
-                              </div>
-                            </>
-                          )}
-
-                          <div className="mt-4 flex justify-end space-x-2">
-                            <Button
-                              disabled={!modifiedPayments[d.deliveryNum]}         // disabled until a change
-                              onClick={() => handleSavePaymentDetails(d.deliveryNum)}
-                            >
-                              <Save size={16} className="mr-2" />
-                              Save
-                            </Button>
-                          </div>
-                        </DialogContent>
-
-                      </Dialog>
-                    </TableCell>
-
-                    
-                    {/* For deleting transactions */}
-                    <TableCell className="pl-0 pr-8">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button variant="ghost" size="sm" className="text-gray-500 hover:text-red-600">
-                            <Trash2 size={16} />
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
-                          <DialogHeader>
-                            <DialogTitle>
-                              <span className="text-lg text-red-900">Delete Transaction</span>{" "}
-                              <span className="text-lg text-gray-400 font-normal italic">{d.deliveryNum}</span>
-                            </DialogTitle>
-                            <DialogClose />
-                          </DialogHeader>
-                          <p className='text-sm text-gray-800 mt-2 pl-4'> Deleting this transaction will reflect on Void Transactions. Enter the admin password to delete this transaction. </p>
-                          <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">        
-                            <div className="flex-1">
-                              <label htmlFor={`password-${d.deliveryNum}`} className="text-base font-medium text-gray-700 block mb-2">
-                                Admin Password
-                              </label>
-                              <div className="relative w-full">
-                              <Input type={showPassword ? "text" : "password"} id={`password-${d.deliveryNum}`} required
-                                placeholder="Enter valid password"  className="w-full" 
-                              /> <button
-                                type="button"
-                                onClick={() => setShowPassword((prev) => !prev)}
-                                className="absolute inset-y-0 right-3 flex items-center text-gray-500"
-                                tabIndex={-1}
+                            <div className="mt-4 flex justify-end space-x-2">
+                              <Button
+                                disabled={!modifiedPayments[d.deliveryNum]}         // disabled until a change
+                                onClick={() => handleSavePaymentDetails(d.deliveryNum)}
                               >
-                                {showPassword ? (
-                                  <EyeOff className="w-5 h-5" />
-                                ) : (
-                                  <Eye className="w-5 h-5" />
-                                )}
-                              </button>
-                            </div>   
-                            </div>    
-                            <Button 
-                              className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
-                              onClick={() => handleDelete(d.deliveryNum, 
-                                document.getElementById(`password-${d.deliveryNum}`).value)}
-                            >
-                              DELETE TRANSACTION
+                                <Save size={16} className="mr-2" />
+                                Save
+                              </Button>
+                            </div>
+                          </DialogContent>
+
+                        </Dialog>
+                      </TableCell>
+
+                      
+                      {/* For deleting transactions */}
+                      <TableCell className="pl-0 pr-8">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="ghost" size="sm" className="text-gray-500 hover:text-red-600">
+                              <Trash2 size={16} />
                             </Button>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
-                    </TableCell>
-                    
-                  </TableRow>
-                ))}
-              </TableBody>
-              
-            </Table>
+                          </DialogTrigger>
+                          <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
+                            <DialogHeader>
+                              <DialogTitle>
+                                <span className="text-lg text-red-900">Delete Transaction</span>{" "}
+                                <span className="text-lg text-gray-400 font-normal italic">{d.deliveryNum}</span>
+                              </DialogTitle>
+                              <DialogClose />
+                            </DialogHeader>
+                            <p className='text-sm text-gray-800 mt-2 pl-4'> Deleting this transaction will reflect on Void Transactions. Enter the admin password to delete this transaction. </p>
+                            <div className="flex gap-4 mt-4 text-gray-700 items-center pl-4">        
+                              <div className="flex-1">
+                                <label htmlFor={`password-${d.deliveryNum}`} className="text-base font-medium text-gray-700 block mb-2">
+                                  Admin Password
+                                </label>
+                                <div className="relative w-full">
+                                <Input type={showPassword ? "text" : "password"} id={`password-${d.deliveryNum}`} required
+                                  placeholder="Enter valid password"  className="w-full" 
+                                /> <button
+                                  type="button"
+                                  onClick={() => setShowPassword((prev) => !prev)}
+                                  className="absolute inset-y-0 right-3 flex items-center text-gray-500"
+                                  tabIndex={-1}
+                                >
+                                  {showPassword ? (
+                                    <EyeOff className="w-5 h-5" />
+                                  ) : (
+                                    <Eye className="w-5 h-5" />
+                                  )}
+                                </button>
+                              </div>   
+                              </div>    
+                              <Button 
+                                className="bg-red-900 hover:bg-red-950 text-white uppercase text-sm font-medium whitespace-nowrap mt-7"
+                                onClick={() => handleDelete(d.deliveryNum, 
+                                  document.getElementById(`password-${d.deliveryNum}`).value)}
+                              >
+                                DELETE TRANSACTION
+                              </Button>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      </TableCell>
+                      
+                    </TableRow>
+                  ))}
+                </TableBody>
+                
+              </Table>
+            </div>
+            
+            {/* Pagination Controls */}
+            <div className="border-t border-gray-200 bg-white">
+              <PaginationControls />
+            </div>
 
             {/* Return Dialog with Individual Item Reasons - Following Orders Page Format */}
             <Dialog open={isReturnDialogOpen} onOpenChange={(open) => {
