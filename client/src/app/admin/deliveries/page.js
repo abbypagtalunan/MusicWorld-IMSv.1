@@ -1423,6 +1423,24 @@ const handleReturnOrder = () => {
                                   readOnly
                                 />
                               </div>
+
+                              {paymentDetails[d.deliveryNum]?.paymentType !== '3' ? (
+                                <>
+
+                                  <div className="col-span-3">
+                                    <Label htmlFor="paymentAmount" className="mb-1 block">Amount</Label>
+                                    <Input
+                                      id="paymentAmount"
+                                      value={d.totalCost.replace('₱', '')}
+                                      className="bg-red-800 text-white text-center"
+                                      readOnly
+                                    />
+                                  </div>
+                                </>
+                                ) : (
+                                <> </>
+                              )}
+ 
                               <div className="col-span-3">
                                 <Label htmlFor="paymentType" className="mb-1 block">Payment Type</Label>
                                 {/* make payment type uneditable */}
@@ -1443,26 +1461,7 @@ const handleReturnOrder = () => {
                                     ))}
                                   </SelectContent>
                                 </Select>
-                              </div>
-                              
-                              {paymentDetails[d.deliveryNum]?.paymentType !== '3' ? (
-                                <>
-                                  <div className="col-span-3"></div>
-                                  <div className="col-span-3"></div>
-                                  <div className="col-span-3">
-                                    <Label htmlFor="paymentAmount" className="mb-1 block">Amount</Label>
-                                    <Input
-                                      id="paymentAmount"
-                                      value={d.totalCost.replace('₱', '')}
-                                      className="bg-red-800 text-white text-center"
-                                      readOnly
-                                    />
-                                  </div>
-                                </>
-                                ) : (
-                                <> </>
-                              )}
-                                
+                              </div>                                
                             </div>
 
                             {/* determine if two-time (ID '3') or one-time/full */}

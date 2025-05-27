@@ -499,30 +499,32 @@ const[validationErr, setValidationErr] = useState({
       .then(() => {
         toast.success(`${config.product.label} added successfully`);
         refreshTable((updatedData) => {
-            // Find the product with the latest dateAdded
-            const newest = [...updatedData].sort((a, b) =>
-              parseInt(b.productCode) - parseInt(a.productCode)
-            )[0];
+          // Sort the updated data by productCode descending (newest product first)
+          const sorted = [...updatedData].sort((a, b) => parseInt(b.productCode) - parseInt(a.productCode));
+          setData(sorted); // update the data for rendering
 
-            if (newest?.productCode) {
-              setHighlightedCode(newest.productCode);
+          const newest = sorted[0];
+          const filtered = sorted.filter(
+            (item) =>
+              (item.productName?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+              (item.category?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+              (item.productCode?.toString().toLowerCase() || "").includes(searchTerm.toLowerCase())
+          );
 
-              // Calculate which page the new item should be on
-              const allFilteredData = getFilteredTransactions();
-              const itemIndex = allFilteredData.findIndex(item => item.productCode === newest.productCode);
-              const newPage = Math.ceil((itemIndex + 1) / itemsPerPage);
-              setCurrentPage(newPage);
+          const index = filtered.findIndex(item => item.productCode === newest.productCode);
+          const page = Math.ceil((index + 1) / itemsPerPage);
 
-              // Scroll into view if the row ref exists
-              setTimeout(() => {
-                const row = rowRefs.current[newest.productCode];
-                if (row) {
-                  row.scrollIntoView({ behavior: "smooth", block: "center" });
-                }
-              }, 300);
+          setCurrentPage(page);
+
+          // Scroll and highlight after DOM updates
+          setTimeout(() => {
+            setHighlightedCode(newest.productCode);
+            const row = rowRefs.current[newest.productCode];
+            if (row) {
+              row.scrollIntoView({ behavior: "smooth", block: "center" });
             }
-          });
-
+          }, 400);
+        });     
         resetForm();
         setAddSheetOpen(false);
       })
@@ -713,7 +715,33 @@ const[validationErr, setValidationErr] = useState({
       .put(`http://localhost:8080/products/update-price/${productCode}`, { P_sellingPrice })
       .then(() => {
         toast.success("Price updated");
-        refreshTable();
+          refreshTable((updatedData) => {
+          const sorted = [...updatedData].sort((a, b) => {
+            const dateA = new Date(a.lastEdit);
+            const dateB = new Date(b.lastEdit);
+            return dateB - dateA; // newest first
+          });
+
+          setData(sorted);
+
+          const updatedIndex = sorted.findIndex(p => p.productCode === productCode);
+          const page = Math.ceil((updatedIndex + 1) / itemsPerPage);
+          setCurrentPage(page);
+
+          // Delay to wait for table to re-render after page change
+          setTimeout(() => {
+            setHighlightedCode(productCode);
+
+            const row = rowRefs.current[productCode];
+            if (row) {
+              row.scrollIntoView({
+                behavior: "smooth",
+                block: "center", // "center" or "nearest" works well
+              });
+            }
+          }, 400); // wait for re-render before accessing the row
+        });
+
         resetForm({
           [config.product.codeField]: "",
           [config.product.sellingpriceField]: "",
