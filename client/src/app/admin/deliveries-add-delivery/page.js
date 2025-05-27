@@ -971,7 +971,9 @@ const handleAddProduct = () => {
                     value={paymentDetails.paymentStatus} 
                     onValueChange={(value) => handlePaymentDetailChange('paymentStatus', value)}
                     disabled={
-                      paymentDetails.paymentType === '1' || selectedPaymentType === 1
+                      paymentDetails.paymentType === '1'
+                      || selectedPaymentType === 1
+                      || selectedPaymentType === -1
                     }
                   >
                     <SelectTrigger
@@ -980,7 +982,9 @@ const handleAddProduct = () => {
                     >
                       <SelectValue
                         placeholder={
-                           paymentDetails.paymentType === '1' || selectedPaymentType === 1
+                          paymentDetails.paymentType === '1'
+                          || selectedPaymentType === 1
+                          || selectedPaymentType === -1
                           ? "Null" : "Select payment status"
                         }
                       />
@@ -1049,7 +1053,9 @@ const handleAddProduct = () => {
                     max={todayDate} 
                     onChange={(e) => handlePaymentDetailChange('datePayment1', e.target.value)}
                     disabled={
-                      selectedPaymentStatus1 === 2
+                      selectedPaymentType === -1
+                      || selectedPaymentStatus1 === 2
+                      || selectedPaymentStatus1 === -1
                     }
                     className="disabled:bg-gray-200 disabled:!text-gray-600 disabled:opacity-100"
                   />
@@ -1167,6 +1173,9 @@ const handleAddProduct = () => {
                       onChange={e => handlePaymentDetailChange('datePayment2', e.target.value)}
                       disabled={
                         selectedPaymentStatus1 === 2
+                        || selectedPaymentStatus1 === -1
+                        || selectedPaymentStatus2 === 2
+                        || selectedPaymentStatus2 === -1
                       }
                       className="disabled:bg-gray-200 disabled:!text-gray-600 disabled:opacity-100"
                     />
