@@ -600,11 +600,11 @@ export default function OrdersPage() {
       .toLocaleString(phLocale, { timeZone: phTimeZone })
       .replace(/[/:, ]/g, "-")
       .replace(/--+/g, "-");
-
+  
     const downloadTimestamp = `Downloaded At:, "${now.toLocaleString(phLocale, {
       timeZone: phTimeZone,
     })}"`;
-
+  
     const headers = [
       "Receipt Number",
       "Order ID",
@@ -627,62 +627,62 @@ export default function OrdersPage() {
       "Item Net Sale",
       "Item Gross Profit",
     ];
-
+  
     const rows = [];
-
+  
     getFilteredTransactions().forEach((order) => {
       const detailsForOrder = orderDetails.filter(
         (detail) => detail.orderID === order.orderID
       );
-
+  
       if (detailsForOrder.length === 0) {
         rows.push([
-          order.receiptNo,
-          order.orderID,
-          order.transacDate,
-          order.orderPayment,
-          order.totalAmount,
-          order.wholeOrderDiscount,
-          order.totalProductDiscount,
-          order.originalTotal,
+          order.receiptNo || "",
+          order.orderID || "",
+          order.transacDate || "",
+          order.orderPayment || "",
+          order.totalAmount || "",
+          order.wholeOrderDiscount || "",
+          order.totalProductDiscount || "",
+          order.originalTotal || "",
           "", "", "", "", "", "", "", "", "", "", "", ""
         ]);
       } else {
         detailsForOrder.forEach((detail) => {
           rows.push([
-            order.receiptNo,
-            order.orderID,
-            order.transacDate,
-            order.orderPayment,
-            order.totalAmount,
-            order.wholeOrderDiscount,
-            order.totalProductDiscount,
-            order.originalTotal,
-            detail.productName,
-            detail.productCode,
-            detail.brandName,
-            detail.supplierName,
-            detail.quantity,
-            detail.unitPrice,
-            detail.sellingPrice, // Fixed: was "" before
-            detail.discountType,
-            detail.discountAmount,
-            detail.itemGross,
-            detail.itemTotal,
-            detail.itemGrossProfit,
+            order.receiptNo || "",
+            order.orderID || "",
+            order.transacDate || "",
+            order.orderPayment || "",
+            order.totalAmount || "",
+            order.wholeOrderDiscount || "",
+            order.totalProductDiscount || "",
+            order.originalTotal || "",
+            detail.productName || "",
+            detail.productCode || "",
+            detail.brandName || "",
+            detail.supplierName || "",
+            detail.quantity || "",
+            detail.unitPrice || "",
+            detail.sellingPrice || "",
+            detail.discountType || "",
+            detail.discountAmount || "",
+            detail.itemGross || "",
+            detail.itemTotal || "",
+            detail.itemGrossProfit || "",
           ]);
         });
       }
     });
-
+  
     const csvContent = [
       downloadTimestamp,
       headers.join(","),
       ...rows.map((row) =>
-        row.map((val) => `"${val.replace(/"/g, '""')}"`).join(",")
+        row.map((val) => `"${String(val || "").replace(/"/g, '""')}"`).join(",")
       ),
     ].join("\r\n");
-
+  
     const blob = new Blob([csvContent], {
       type: "text/csv;charset=utf-8;",
     });
