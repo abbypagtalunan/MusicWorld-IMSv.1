@@ -139,7 +139,18 @@ const newHandleSaveDelivery = async () => {
 
     setDeliveryNumber("");
     setProductItems([]);
-    setPaymentDetails(null); 
+    setPaymentDetails({
+      paymentType:   "",
+      paymentMode:   "",
+      paymentStatus: "",
+      dateDue:       "",
+      datePayment1:  "",
+      // for 2nd payment
+      paymentMode2:   "",
+      paymentStatus2: "2",   // default back to “Unpaid”
+      dateDue2:       "",
+      datePayment2:   ""
+    });
 
   } catch (error) {
     console.error("Error saving delivery:", error);
@@ -436,6 +447,13 @@ const handleAddProduct = () => {
       if (selectedPaymentStatus1 === 1 || selectedPaymentType === 1) {
         if (!paymentDetails.paymentMode) {
           toast.error("Payment Mode field is empty");
+          return;
+        }
+      }
+      // if payment status is Paid and Date of Payment is empty
+      if (selectedPaymentStatus === 1) {
+        if (!paymentDetails.datePayment1) {
+          toast.error("Date of Payment field is empty");
           return;
         }
       }
@@ -917,7 +935,10 @@ const handleAddProduct = () => {
                     value={paymentDetails.paymentType} 
                     onValueChange={(value) => handlePaymentDetailChange('paymentType', value)}
                   >
-                    <SelectTrigger id="paymentType">
+                    <SelectTrigger
+                      id="paymentType"
+                      className="disabled:bg-gray-200 disabled:!text-gray-600 disabled:opacity-100"
+                    >
                       <SelectValue placeholder="Select payment type" />
                     </SelectTrigger>
                     <SelectContent>
@@ -938,10 +959,20 @@ const handleAddProduct = () => {
                   <Select 
                     value={paymentDetails.paymentStatus} 
                     onValueChange={(value) => handlePaymentDetailChange('paymentStatus', value)}
-                    disabled={paymentDetails.paymentType === '1'}
+                    disabled={
+                      paymentDetails.paymentType === '1' || selectedPaymentType === 1
+                    }
                   >
-                    <SelectTrigger id="paymentStatus">
-                      <SelectValue placeholder="Select status" />
+                    <SelectTrigger
+                      id="paymentStatus"
+                      className="disabled:bg-gray-200 disabled:!text-gray-600 disabled:opacity-100"
+                    >
+                      <SelectValue
+                        placeholder={
+                           paymentDetails.paymentType === '1' || selectedPaymentType === 1
+                          ? "Null" : "Select payment status"
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       {paymentStatuses.map(status => (
@@ -965,8 +996,16 @@ const handleAddProduct = () => {
                       selectedPaymentType !== 1 && selectedPaymentStatus1 !== 1
                     }
                   >
-                    <SelectTrigger id="paymentMode">
-                      <SelectValue placeholder="Select payment mode" />
+                    <SelectTrigger
+                      id="paymentMode"
+                      className="disabled:bg-gray-200 disabled:!text-gray-600 disabled:opacity-100"
+                    >
+                      <SelectValue
+                        placeholder={
+                          selectedPaymentType !== 1 && selectedPaymentStatus1 !== 1
+                          ? "Null" : "Select payment mode"
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       {paymentModes.map(mode => (
@@ -984,9 +1023,10 @@ const handleAddProduct = () => {
                     id="paymentDateDue" 
                     type="date" 
                     value={paymentDetails.dateDue}
-                    placeholder="N/A"
                     className={paymentDetails.paymentType === '1' ? 'text-gray-400' : ''}
-                    readOnly
+                    disabled={true}
+                    className="disabled:bg-gray-200 disabled:!text-gray-600 disabled:opacity-100"
+                    placeholder="N/A"
                   />
                 </div>
                 <div className="col-span-3">
@@ -995,8 +1035,13 @@ const handleAddProduct = () => {
                     id="paymentDate1" 
                     type="date" 
                     value={paymentDetails.datePayment1 || ''}
-                    disabled={true}
+                    min={deliveryDate} 
+                    max={todayDate} 
                     onChange={(e) => handlePaymentDetailChange('datePayment1', e.target.value)}
+                    disabled={
+                      selectedPaymentStatus1 === 2
+                    }
+                    className="disabled:bg-gray-200 disabled:!text-gray-600 disabled:opacity-100"
                   />
                 </div>
               </div>
@@ -1045,8 +1090,15 @@ const handleAddProduct = () => {
                       onValueChange={v => handlePaymentDetailChange('paymentStatus2', v)}
                       disabled={selectedPaymentStatus1 !== 1}
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select status" />
+                      <SelectTrigger
+                        className="disabled:bg-gray-200 disabled:!text-gray-600 disabled:opacity-100"
+                      >
+                        <SelectValue
+                          placeholder={
+                            selectedPaymentStatus1 !== 1
+                            ? "Null" : "Select payment status"
+                          }
+                        />
                       </SelectTrigger>
                       <SelectContent>
                         {paymentStatuses.map(s => (
@@ -1065,8 +1117,15 @@ const handleAddProduct = () => {
                       onValueChange={v => handlePaymentDetailChange('paymentMode2', v)}
                       disabled={selectedPaymentStatus2 !== 1}
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select mode" />
+                      <SelectTrigger
+                        className="disabled:bg-gray-200 disabled:!text-gray-600 disabled:opacity-100"
+                      >
+                        <SelectValue
+                          placeholder={
+                            selectedPaymentStatus2 !== 1
+                            ? "Null" : "Select payment mode"
+                          }
+                        />
                       </SelectTrigger>
                       <SelectContent>
                         {paymentModes.map(m => (
@@ -1083,8 +1142,8 @@ const handleAddProduct = () => {
                     <Input
                       type="date"
                       value={paymentDetails.dateDue2}
-                      readOnly
-                      disabled={selectedPaymentStatus1 !== 1}
+                      disabled={true}
+                      className="disabled:bg-gray-200 disabled:!text-gray-600 disabled:opacity-100"
                     />
                   </div>
                   {/* Date of Payment 2 */}
@@ -1092,9 +1151,14 @@ const handleAddProduct = () => {
                     <Label>Date of Payment</Label>
                     <Input
                       type="date"
-                      value={selectedPaymentStatus2 === 1 ? todayDate : ''}
+                      value={paymentDetails.datePayment2 || ''}
+                      min={deliveryDate}
+                      max={todayDate}
                       onChange={e => handlePaymentDetailChange('datePayment2', e.target.value)}
-                      disabled={true}
+                      disabled={
+                        selectedPaymentStatus1 === 2
+                      }
+                      className="disabled:bg-gray-200 disabled:!text-gray-600 disabled:opacity-100"
                     />
                   </div>
                 </div>
