@@ -614,22 +614,39 @@ export default function DeliveriesPage() {
   // Function to handle saving payment details
   const handleSavePaymentDetails = (deliveryNum) => {
     const detail = paymentDetails[deliveryNum];
-    if (!detail) {
-      toast.error("No payment details to save");
-      return;
+    if (!detail) { toast.error("No payment details to save"); return; }
+
+    // ── Validation block (already inserted) ──
+    if (detail.paymentStatus === "1") {
+      if (!detail.paymentMode) {
+        toast.error("Mode of Payment 1 field is empty");
+        return;
+      }
+      if (!detail.datePayment1) {
+        toast.error("Date of Payment 1 field is empty");
+        return;
+      }
     }
+    if (detail.paymentStatus2 === "1") {
+      if (!detail.paymentMode2) {
+        toast.error("Mode of Payment 2 field is empty");
+        return;
+      }
+      if (!detail.datePayment2) {
+        toast.error("Date of Payment 2 field is empty");
+        return;
+      }
+    }
+    // ─────────────────────────────────────────
 
     setIsLoading(true);
 
     const payload = {
-      // required first-payment fields
       D_paymentTypeID:    parseInt(detail.paymentType, 10),
       D_modeOfPaymentID:  parseInt(detail.paymentMode, 10),
       D_paymentStatusID:  parseInt(detail.paymentStatus, 10),
       DPD_dateOfPaymentDue: detail.dateDue,
       DPD_dateOfPayment1:   detail.datePayment1,
-
-      // second-payment fields (will be null if not applicable)
       D_modeOfPaymentID2:   detail.paymentMode2  ? parseInt(detail.paymentMode2, 10)  : null,
       D_paymentStatusID2:   detail.paymentStatus2 ? parseInt(detail.paymentStatus2, 10) : null,
       DPD_dateOfPaymentDue2: detail.dateDue2    || null,
@@ -637,25 +654,13 @@ export default function DeliveriesPage() {
     };
 
     axios
-      .put(
-        // note the added "/payment-details"
-        `${config.paymentDetails.update}/${deliveryNum}/payment-details`,
-        payload
-      )
+      .put(`${config.paymentDetails.update}/${deliveryNum}/payment-details`, payload)
       .then(() => {
         toast.success("Payment details updated successfully!");
-        setModifiedPayments(prev => ({
-          ...prev,
-          [deliveryNum]: false
-        }));
+        setModifiedPayments(prev => ({ ...prev, [deliveryNum]: false }));
       })
-      .catch(err => {
-        console.error("Error updating payment details:", err.response?.data || err);
-        toast.error("Failed to update payment details");
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
+      .catch(err => { toast.error("Failed to update payment details"); })
+      .finally(() => { setIsLoading(false); });
   };
 
   // Handle search
