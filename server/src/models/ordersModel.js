@@ -2,30 +2,22 @@ const db = require('../../db');
 
 // Get all orders
 const getAllOrders = (callback) => {
-  const query = `
-    SELECT 
-      o.O_orderID,
-      o.O_receiptNumber,
-      o.T_totalAmount,
-      o.D_wholeOrderDiscount,
-      o.T_transactionDate,
-      o.isTemporarilyDeleted,
-      o.O_orderPayment,
-      O_originalTotal,
-      SUM(od.OD_discountAmount) AS D_totalProductDiscount
-    FROM Orders o
-    LEFT JOIN OrderDetails od ON o.O_orderID = od.O_orderID
-    WHERE o.isTemporarilyDeleted = 0
-    GROUP BY 
-      o.O_orderID,
-      o.O_receiptNumber,
-      o.T_totalAmount,
-      o.D_wholeOrderDiscount,
-      o.T_transactionDate,
-      o.isTemporarilyDeleted,
-      o.O_orderPayment,
-      O_originalTotal
-    ORDER BY o.O_orderID;
+const query = `
+  SELECT 
+    o.O_orderID,
+    o.O_receiptNumber,
+    o.T_totalAmount,
+    o.D_wholeOrderDiscount,
+    o.T_transactionDate,
+    o.isTemporarilyDeleted,
+    o.O_orderPayment,
+    o.O_originalTotal,
+    SUM(od.OD_discountAmount) AS D_totalProductDiscount
+  FROM Orders o
+  LEFT JOIN OrderDetails od ON o.O_orderID = od.O_orderID
+  WHERE o.isTemporarilyDeleted = 0
+  GROUP BY o.O_orderID
+  ORDER BY o.T_transactionDate DESC;
 `;
 
   db.query(query, (err, results) => {

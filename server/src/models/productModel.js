@@ -25,6 +25,7 @@ const getAllProducts = (callback) => {
     LEFT JOIN Suppliers s ON p.S_supplierID = s.S_supplierID
     LEFT JOIN ProductStatus ps ON p.P_productStatusID = ps.P_productStatusID
     WHERE p.isDeleted = 0 AND p.P_productStatusID != 4
+    ORDER BY p.P_dateAdded DESC
   `;
   
   db.query(query, (err, results) => {

@@ -2,21 +2,22 @@ const db = require('../../db');
 
 // Get all active returns (not temporarily deleted)
 const getAllActiveReturns = (callback) => {
-  const query = `
-    SELECT 
-      R_returnID,
-      P_productCode,
-      R_returnTypeID,
-      R_reasonOfReturn,
-      R_dateOfReturn,
-      R_returnQuantity,
-      R_discountAmount,
-      R_TotalPrice,
-      D_deliveryNumber,
-      S_supplierID
-    FROM Returns
-    WHERE isTemporarilyDeleted = 0;
-  `;
+const query = `
+  SELECT 
+    R_returnID,
+    P_productCode,
+    R_returnTypeID,
+    R_reasonOfReturn,
+    R_dateOfReturn,
+    R_returnQuantity,
+    R_discountAmount,
+    R_TotalPrice,
+    D_deliveryNumber,
+    S_supplierID
+  FROM Returns
+  WHERE isTemporarilyDeleted = 0
+  ORDER BY R_dateOfReturn DESC;
+`;
 
   db.query(query, (err, results) => {
     if (err) {

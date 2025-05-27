@@ -146,7 +146,6 @@ const OrderDashboard = () => {
         toast.error(`An error occurred while saving the order.`);
       }
     }
-    refreshAll();
   };
 
   const handleAddOrderItem = () => {
