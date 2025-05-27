@@ -36,7 +36,6 @@ const getAllDeleted = (callback) => {
 };
 
 const retrieveDeleted = (productCode, callback) => {
-  // First get the product's current stock
   const getStockQuery = `SELECT P_stockNum FROM Products WHERE P_productCode = ?`;
   
   db.query(getStockQuery, [productCode], (err, stockResults) => {
@@ -51,7 +50,6 @@ const retrieveDeleted = (productCode, callback) => {
     const stock = stockResults[0].P_stockNum;
     let newStatus;
     
-    // Determine status based on stock
     if (stock >= 10) {
       newStatus = 1;
     } else if (stock < 10) {
@@ -60,7 +58,6 @@ const retrieveDeleted = (productCode, callback) => {
       newStatus = 2;
     }
     
-    // Update with the appropriate status
     const updateQuery = `UPDATE Products 
                         SET isDeleted = '0', 
                             P_productStatusID = ? 
