@@ -40,7 +40,7 @@ const addDelivery = (req, res) => {
 
     // 3. Validate each product
     for (const prod of products) {
-      const { P_productCode, DPD_quantity, P_unitPrice } = prod;
+      const { P_productCode, DPD_quantity, P_unitPrice, DPD_total } = prod;
       if (!P_productCode || DPD_quantity === undefined) {
         return res.status(400).json({
           message: 'Each product must have a product code and quantity',
@@ -60,9 +60,16 @@ const addDelivery = (req, res) => {
       if (Number.isNaN(priceFloat)) {
         return res.status(400).json({ message: `Invalid unit price for product ${codeInt}: ${P_unitPrice}` });
       }
+
+      // Validate unit price
+      const totalFloat = parseFloat(DPD_total);
+      if (Number.isNaN(priceFloat)) {
+        return res.status(400).json({ message: `Invalid total for product ${codeInt}: ${DPD_total}` });
+      }
       prod.P_productCode = codeInt;
       prod.DPD_quantity    = qtyInt;
       prod.P_unitPrice = priceFloat;
+      prod.DPD_total = totalFloat;
     }
 
     // 4. Validate payment if provided

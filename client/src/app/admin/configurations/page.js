@@ -225,8 +225,17 @@ export default function ConfigurationsPage() {
   // Submit
   const handleSubmit = (e) => {
     e.preventDefault();
-    const payload = { ...values };
-  
+
+    let payload;
+    if (config.label === "Category") {
+      payload = {
+        C_categoryName: values.C_categoryName,
+        C_categoryStatusID: values.C_categoryStatusID
+      };
+    } else {
+      payload = { ...values };
+    }
+
     if (editingItem) {
       axios
         .put(`${config.api.update}/${editingItem[config.idField]}`, payload)

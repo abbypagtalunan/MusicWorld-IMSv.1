@@ -14,14 +14,14 @@ const getAllCategories = (req, res) => {
 
 // Route to add a new category
 const addCategory = (req, res) => {
-  const { C_categoryID, C_categoryName, C_categoryStatusID } = req.body;
+  const {C_categoryName, C_categoryStatusID } = req.body;
 
   // Validate the required fields
-  if (!C_categoryID || !C_categoryName || !C_categoryStatusID) {
+  if (!C_categoryName || !C_categoryStatusID) {
     return res.status(400).json({ message: 'Missing required fields' });
   }
 
-  categoryModel.addCategory({ C_categoryID, C_categoryName, C_categoryStatusID }, (err, categoryId) => {
+  categoryModel.addCategory({C_categoryName, C_categoryStatusID }, (err, categoryId) => {
     if (err) {
       console.error('Error inserting supplier:', err);
       // Handle duplicate entry error from MySQL (ER_DUP_ENTRY)

@@ -95,7 +95,6 @@ const fetchReportData = (callback) => {
       LEFT JOIN Products p ON r.P_productCode = p.P_productCode
       LEFT JOIN Brands b ON p.B_brandID = b.B_brandID
       LEFT JOIN Suppliers s ON p.S_supplierID = s.S_supplierID
-      WHERE r.R_returnTypeID NOT IN (1, 6, 7)
     )
     ORDER BY T_transactionDate;
   `;

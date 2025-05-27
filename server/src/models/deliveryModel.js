@@ -275,19 +275,21 @@ const getDeliveryProductsOfDelivery = (deliveryNumber, callback) => {
 // Get delivery products of all deliveries
 const getDeliveryProductsOfAllDeliveries = (callback) => {
   const query = `
-    SELECT 
-      dpd.D_deliveryNumber,
-      dpd.P_productCode,
-      p.P_productName as productName,
-      b.B_brandName as brandName,
-      s.S_supplierName as supplierName,
-      dpd.DPD_quantity,
-      dpd.P_unitPrice
-    FROM DeliveryProductDetails dpd
-    LEFT JOIN Products p ON dpd.P_productCode = p.P_productCode
-    LEFT JOIN Brands b ON p.B_brandID = b.B_brandID
-    LEFT JOIN Suppliers s ON p.S_supplierID = s.S_supplierID
-    ORDER BY dpd.D_deliveryNumber;
+SELECT 
+  dpd.D_deliveryNumber,
+  dpd.DPD_total,
+  dpd.P_productCode,
+  p.P_productName AS productName,
+  b.B_brandName AS brandName,
+  s.S_supplierName AS supplierName,
+  dpd.DPD_quantity,
+  dpd.P_unitPrice
+FROM DeliveryProductDetails dpd
+LEFT JOIN Products p ON dpd.P_productCode = p.P_productCode
+LEFT JOIN Brands b ON p.B_brandID = b.B_brandID
+LEFT JOIN Suppliers s ON p.S_supplierID = s.S_supplierID
+ORDER BY dpd.D_deliveryNumber;
+
   `;
   
   db.query(query, (err, results) => {

@@ -31,10 +31,10 @@ const getAllCategories = (callback) => {
 
 // Add a new category
 const addCategory = (categoryData, callback) => {
-  const { C_categoryID, C_categoryName, C_categoryStatusID } = categoryData;
-  const query = `INSERT INTO Categories (C_categoryID, C_categoryName, C_categoryStatusID) VALUES (?, ?, ?)`;
+  const {C_categoryName, C_categoryStatusID } = categoryData;
+  const query = `INSERT INTO Categories (C_categoryName, C_categoryStatusID) VALUES (?, ?)`;
 
-  db.query(query, [C_categoryID, C_categoryName, C_categoryStatusID], (err, results) => {
+  db.query(query, [C_categoryName, C_categoryStatusID], (err, results) => {
     if (err) {
       callback(err, null);
     } else {

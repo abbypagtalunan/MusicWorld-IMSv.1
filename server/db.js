@@ -30,7 +30,7 @@ db.getConnection((err, connection) => {
 // const mysql = require('mysql2');
 
 // const db = mysql.createPool({
-//   host: 'localhost',
+//   host: '127.0.0.1',
 //   user: 'root',
 //   password: '', 
 //   database: 'defaultdb',
