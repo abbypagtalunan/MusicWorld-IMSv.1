@@ -161,10 +161,22 @@ export default function ReturnsPage() {
     const fetchData = async () => {
       try {
         // Fetch filtered returns
+        // Fetch and filter customer returns
         const customerRes = await axios.get(`${config.returns.api.fetch}?source=customer`);
-        setCustomerReturns(customerRes.data);
+        const allowedCustomerReturnTypes = [1, 2, 3, 5, 6];
+        const filteredCustomerData = customerRes.data.filter(
+          (item) => allowedCustomerReturnTypes.includes(item.R_returnTypeID)
+        );
+        setCustomerReturns(filteredCustomerData);
+
+        // Fetch and filter supplier returns
         const supplierRes = await axios.get(`${config.returns.api.fetch}?source=supplier`);
-        setSupplierReturns(supplierRes.data);
+        const allowedSupplierReturnType = 7;
+        const filteredSupplierData = supplierRes.data.filter(
+          (item) => item.R_returnTypeID === allowedSupplierReturnType
+        );
+        setSupplierReturns(filteredSupplierData);
+        
         // Fetch dropdown options
         const suppliersRes = await axios.get(config.suppliers.api.fetch);
         setSuppliers(suppliersRes.data);
