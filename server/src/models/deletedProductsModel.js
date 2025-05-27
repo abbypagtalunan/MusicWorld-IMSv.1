@@ -36,16 +36,45 @@ const getAllDeleted = (callback) => {
 };
 
 const retrieveDeleted = (productCode, callback) => {
-  const query = `UPDATE Products SET isDeleted = '0', P_productStatusID = '1' WHERE P_productCode = ?`;
-    
-  db.query(query, [productCode], (err, results) => {
+  // First get the product's current stock
+  const getStockQuery = `SELECT P_stockNum FROM Products WHERE P_productCode = ?`;
+  
+  db.query(getStockQuery, [productCode], (err, stockResults) => {
     if (err) {
-      callback(err, null);
-    } else {
-      callback(null, results);
+      return callback(err, null);
     }
+    
+    if (stockResults.length === 0) {
+      return callback(new Error('Product not found'), null);
+    }
+    
+    const stock = stockResults[0].P_stockNum;
+    let newStatus;
+    
+    // Determine status based on stock
+    if (stock >= 10) {
+      newStatus = 1;
+    } else if (stock < 10) {
+      newStatus = 5; 
+    } else if (stock <= 0) {
+      newStatus = 2;
+    }
+    
+    // Update with the appropriate status
+    const updateQuery = `UPDATE Products 
+                        SET isDeleted = '0', 
+                            P_productStatusID = ? 
+                        WHERE P_productCode = ?`;
+    
+    db.query(updateQuery, [newStatus, productCode], (err, results) => {
+      if (err) {
+        callback(err, null);
+      } else {
+        callback(null, results);
+      }
+    });
   });
-}
+};
 
 // Delete permanently
 const deletePermanently = (productCode, callback) => {
