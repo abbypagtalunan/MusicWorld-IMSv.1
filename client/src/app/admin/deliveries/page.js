@@ -409,6 +409,7 @@ const handleReturnOrder = () => {
       rawDate:    formatDateForInput(item.D_deliveryDate),
       supplier: "",
       supplierID: item.S_supplierID,
+      productDetailID: item.D_productDetailsID,
       totalCost: item.totalCost ? `₱${parseFloat(item.totalCost).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}` : "₱0.00"
     }));
   };
@@ -453,6 +454,7 @@ const handleReturnOrder = () => {
         if (Array.isArray(res.data) && res.data.length > 0) {
           // Create a simplified object for direct use
           const formattedProducts = res.data.map(item => ({
+            productDetailID: item.D_productDetailsID,
             productCode: item.P_productCode || "N/A",
             supplier: item.supplierName || "Unknown",
             brand: item.brandName || "Unknown",
@@ -1262,6 +1264,12 @@ const handleReturnOrder = () => {
                                         checked={selectedTransactions.length === getFilteredTransaction(d.deliveryNum).length && 
                                         selectedTransactions.length > 0}
                                         />
+                                      </TableHead>
+                                      <TableHead
+                                        onClick={() => handleProductSort("productDetailID")}
+                                        className="cursor-pointer select-none"
+                                      >
+                                        Product Detail ID <SortIcon column="productDetailID" sortConfig={productSortConfig} />
                                       </TableHead>
                                       <TableHead
                                         onClick={() => handleProductSort("productCode")}
