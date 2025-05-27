@@ -93,6 +93,7 @@ export default function BatchDeliveriesPage() {
   !paymentDetails.paymentType ||
   !paymentDetails.paymentStatus ||
   ((selectedPaymentStatus1 === 1 || selectedPaymentType === 1) && !paymentDetails.paymentMode) ||
+  ((selectedPaymentType === 3) && !paymentDetails.paymentMode) ||
   loading;
 
 const newHandleSaveDelivery = async () => {
