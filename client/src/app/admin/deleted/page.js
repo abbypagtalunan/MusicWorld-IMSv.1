@@ -373,7 +373,7 @@ const handleDownloadCSV = (data) => {
       rows = currentTabD.map(item => [
         item[config.receiptField],
         item[config.idField],
-        new Date(item[config.dateField]).toLocaleDateString(),
+        item[config.dateField],
         item[config.nameField],
         item[config.codeField],
         item[config.quantityField],
@@ -406,7 +406,7 @@ const handleDownloadCSV = (data) => {
         item[config.typeField],
         item[config.nameField],
         item[config.totalamtField],
-        new Date(item[config.dateField]).toLocaleDateString(),
+        item[config.dateField],
         item[config.supplierField],
         item[config.brandField],
         item[config.categoryField],
@@ -432,7 +432,7 @@ const handleDownloadCSV = (data) => {
         item[config.nameField],
         item[config.supplierField],
         item[config.quantityField],
-        new Date(item[config.dateField]).toLocaleDateString(),
+        item[config.dateField],
         item[config.brandField],
         item[config.categoryField]
       ]);
@@ -463,7 +463,7 @@ const handleDownloadCSV = (data) => {
           item[config.unitpriceField],
           item[config.sellingpriceField],
           item[config.statusField],
-          new Date(item[config.dateField]).toLocaleDateString()
+          item[config.dateField],
         ]);
         break;
   }
@@ -714,7 +714,7 @@ return (
                                 <span className="text-lg text-blue-900">Confirm Download?</span>
                                 <span className="text-lg text-gray-400 font-normal italic ml-2">
                                   ({config.label}-Deleted.csv)
-                                </span>
+                                </span>DOWNLOAD FILE
                               </DialogTitle>
                               <DialogClose />
                             </DialogHeader>
@@ -1003,10 +1003,11 @@ return (
                                           </Dialog>
                                         </TableCell>
                                         <TableCell className="px-4 py-3">
-                                          <RDaction
+                                          <RDaction 
                                             item={item}
                                             handleRetrieve={handleRetrieve}
-                                            handleDelete={handleDelete}           
+                                            handleDelete={handleDelete}
+                                            handleDownload={handleDownloadCSV}
                                             idField={config.idField}
                                             codeField={config.codeField}
                                           />
@@ -1072,10 +1073,11 @@ return (
                                           </Dialog>
                                         </TableCell>
                                         <TableCell className="px-4 py-3">
-                                          <RDaction
+                                          <RDaction 
                                             item={item}
                                             handleRetrieve={handleRetrieve}
-                                            handleDelete={handleDelete}           
+                                            handleDelete={handleDelete}
+                                            handleDownload={handleDownloadCSV} 
                                             idField={config.idField}
                                             codeField={config.codeField}
                                           />
@@ -1139,10 +1141,11 @@ return (
                                           </Dialog>
                                         </TableCell>
                                         <TableCell className="px-4 py-3">
-                                          <RDaction
+                                          <RDaction 
                                             item={item}
                                             handleRetrieve={handleRetrieve}
-                                            handleDelete={handleDelete}           
+                                            handleDelete={handleDelete}
+                                            handleDownload={handleDownloadCSV} 
                                             idField={config.idField}
                                             codeField={config.codeField}
                                           />
@@ -1169,10 +1172,11 @@ return (
                                         <TableCell className="px-4 py-3">{item[config.statusField]}</TableCell>
                                         <TableCell className="px-4 py-3">{new Date(item[config.dateField]).toLocaleDateString()}</TableCell>
                                         <TableCell className="px-4 py-3">
-                                          <RDaction
+                                          <RDaction 
                                             item={item}
                                             handleRetrieve={handleRetrieve}
-                                            handleDelete={handleDelete}           
+                                            handleDelete={handleDelete}
+                                            handleDownload={handleDownloadCSV} 
                                             idField={config.idField}
                                             codeField={config.codeField}
                                           />
