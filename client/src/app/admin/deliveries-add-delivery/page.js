@@ -88,7 +88,8 @@ export default function BatchDeliveriesPage() {
     quantity: ""
   });
 
-  const isSaveDisabled = productItems.length === 0
+  const isSaveDisabled =
+    productItems.length === 0
     || !deliveryNumber
     || !paymentDetails.paymentType
     || !paymentDetails.paymentStatus
