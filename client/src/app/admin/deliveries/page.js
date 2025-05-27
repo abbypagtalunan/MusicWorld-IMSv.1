@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast, Toaster } from "react-hot-toast";
-import { Search, ListFilter, Trash2, CalendarDays, Eye, FilePen, PackagePlus, Save, ChevronsUpDown, ChevronUp, ChevronDown, RotateCcw, EyeOff, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, ListFilter, Trash2, CalendarDays, Eye, FilePen, PackagePlus, Save, ChevronsUpDown, ChevronUp, ChevronDown, Download, RotateCcw, EyeOff, ChevronLeft, ChevronRight } from "lucide-react";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -1129,13 +1129,45 @@ const handleReturnOrder = () => {
             </div>
                             
             {/* Button to navigate to Add Delivery form page */}
-            <div className="flex justify-end">
+            <div className="flex flex-wrap justify-end gap-2 min-w-[250px]">
               <Button className="bg-blue-400 text-white" onClick={() => router.push("./deliveries-add-delivery")}>
                 <PackagePlus size={16} className="mr-2" />
                 Add Delivery
               </Button>
-            </div>
+
+
+          {/* Donwload Button - still need Backend */}
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button className="bg-blue-400 text-white">
+                <Download className="w-4 h-4" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
+              <DialogHeader>
+                <DialogTitle>
+                  <span className="text-lg text-blue-900">Confirm Download?</span>
+                  <span className="text-lg text-gray-400 font-normal italic ml-2">
+                    (Deliveries.csv)
+                  </span>
+                </DialogTitle>
+                <DialogClose />
+              </DialogHeader>
+              <p className="text-medium text-gray-800 mt-2 pl-4">
+                You are about to download the Deliveries.csv file. Click the button below to proceed.
+              </p>
+              <div className="flex justify-end mt-4 text-gray-700 items-center pl-4">
+                <Button
+                  className="bg-emerald-500 hover:bg-emerald-700 text-white uppercase text-sm font-medium whitespace-nowrap"
+                >
+                  DOWNLOAD FILE
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
           </div>
+        </div>
+
 
           <h1 className="text-2xl mb-4 p-4 rounded-sm text-blue-50 bg-blue-950 font-bold">Deliveries</h1>
           <div className="bg-white shadow-md rounded-lg flex flex-col w-full flex-1 min-h-0">

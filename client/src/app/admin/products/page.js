@@ -1428,7 +1428,7 @@ const[validationErr, setValidationErr] = useState({
                 </DialogContent>
               </Dialog>
 
-              {/* DOWNLOAD */}
+              {/* Download Button */}
               <Dialog open={isDownloadConfirmOpen} onOpenChange={(open) => {
                 setDownloadConfirmOpen(open);
               }}>
