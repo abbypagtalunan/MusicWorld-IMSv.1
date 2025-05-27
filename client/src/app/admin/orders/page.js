@@ -30,6 +30,8 @@ import {
   ChevronUp,
   ChevronDown,
   RotateCcw,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -52,6 +54,7 @@ import axios from "axios";
 import { cn } from "@/lib/utils";
 import { Eye, EyeOff } from "lucide-react";
 import MinimumScreenGuard from "@/components/MinimumScreenGuard";
+import React from "react";
 
 export default function OrdersPage() {
   // Search state
@@ -71,6 +74,10 @@ export default function OrdersPage() {
   const [orderDetails, setOrderDetails] = useState([]);
   const [selectedOrderID, setSelectedOrderID] = useState(null);
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
+
   // Return order states
   const [selectedTransactions, setSelectedTransactions] = useState([]);
   const [isReturnDialogOpen, setReturnDialogOpen] = useState(false);
@@ -86,6 +93,113 @@ export default function OrdersPage() {
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // Get filtered and sorted data
+  const getFilteredTransactions = () => {
+    let result = [...orders];
+
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(
+        (order) =>
+          order.orderID.toString().toLowerCase().includes(query) ||
+          (order.receiptNo !== null &&
+            order.receiptNo !== undefined &&
+            order.receiptNo.toString().toLowerCase().includes(query))
+      );
+    }
+
+    if (fromDate || toDate) {
+      const from = fromDate
+        ? new Date(fromDate).setHours(0, 0, 0, 0)
+        : null;
+      const to = toDate
+        ? new Date(toDate).setHours(23, 59, 59, 999)
+        : null;
+
+      result = result.filter((order) => {
+        const transactionTime = new Date(order.transacDate).getTime();
+        if (from && to) return transactionTime >= from && transactionTime <= to;
+        if (from) return transactionTime >= from;
+        if (to) return transactionTime <= to;
+        return true;
+      });
+    }
+
+    Object.entries(amountRanges).forEach(([key, range]) => {
+      const min = parseFloat(range.min);
+      const max = parseFloat(range.max);
+      if (amountErrors[key]) return;
+
+      result = result.filter((order) => {
+        const value = parseFloat(order[key]);
+        if (!isNaN(min) && !isNaN(max)) {
+          return value >= min && value <= max;
+        }
+        if (!isNaN(min) && aboveOnly[key]) {
+          return value >= min;
+        }
+        if (!isNaN(min)) {
+          return value >= min;
+        }
+        if (!isNaN(max)) {
+          return value <= max;
+        }
+        return true;
+      });
+    });
+
+    if (sortConfig.key) {
+      result.sort((a, b) => {
+        const valA = a[sortConfig.key] ?? "";
+        const valB = b[sortConfig.key] ?? "";
+        const dateA = new Date(valA);
+        const dateB = new Date(valB);
+
+        if (!isNaN(dateA) && !isNaN(dateB)) {
+          return sortConfig.direction === "ascending"
+            ? dateA - dateB
+            : dateB - dateA;
+        }
+
+        const numA = parseFloat(valA);
+        const numB = parseFloat(valB);
+        if (!isNaN(numA) && !isNaN(numB)) {
+          return sortConfig.direction === "ascending" ? numA - numB : numB - numA;
+        }
+
+        return sortConfig.direction === "ascending"
+          ? valA.toString().localeCompare(valB.toString())
+          : valB.toString().localeCompare(valA.toString());
+      });
+    }
+
+    return result;
+  };
+
+  // Get paginated data
+  const getPaginatedData = () => {
+    const filteredData = getFilteredTransactions();
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredData.slice(startIndex, endIndex);
+  };
+
+  // Calculate total pages
+  const getTotalPages = () => {
+    const filteredData = getFilteredTransactions();
+    return Math.ceil(filteredData.length / itemsPerPage);
+  };
+
+  // Handle page change
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedFilter, selectedSubFilter, fromDate, toDate, sortConfig]);
 
   // handleFilterSelect function
   const handleFilterSelect = (filter, subFilter) => {
@@ -135,7 +249,7 @@ export default function OrdersPage() {
     }
   };
 
-  const getFilteredTransactions = () => {
+  const getFilteredTransactionsForReturn = () => {
     return orderDetails.filter((detail) => detail.orderID === selectedOrderID);
   };
 
@@ -330,98 +444,7 @@ export default function OrdersPage() {
       .catch((err) => console.error("Failed to fetch return types:", err));
   }, []);
 
-  // Apply search and filters to orders
-  useEffect(() => {
-    let result = [...orders];
-
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(
-        (order) =>
-          order.orderID.toString().toLowerCase().includes(query) ||
-          (order.receiptNo !== null &&
-            order.receiptNo !== undefined &&
-            order.receiptNo.toString().toLowerCase().includes(query))
-      );
-    }
-
-    if (fromDate || toDate) {
-      const from = fromDate
-        ? new Date(fromDate).setHours(0, 0, 0, 0)
-        : null;
-      const to = toDate
-        ? new Date(toDate).setHours(23, 59, 59, 999)
-        : null;
-
-      result = result.filter((order) => {
-        const transactionTime = new Date(order.transacDate).getTime();
-        if (from && to) return transactionTime >= from && transactionTime <= to;
-        if (from) return transactionTime >= from;
-        if (to) return transactionTime <= to;
-        return true;
-      });
-    }
-
-    Object.entries(amountRanges).forEach(([key, range]) => {
-      const min = parseFloat(range.min);
-      const max = parseFloat(range.max);
-      if (amountErrors[key]) return;
-
-      result = result.filter((order) => {
-        const value = parseFloat(order[key]);
-        if (!isNaN(min) && !isNaN(max)) {
-          return value >= min && value <= max;
-        }
-        if (!isNaN(min) && aboveOnly[key]) {
-          return value >= min;
-        }
-        if (!isNaN(min)) {
-          return value >= min;
-        }
-        if (!isNaN(max)) {
-          return value <= max;
-        }
-        return true;
-      });
-    });
-
-    if (sortConfig.key) {
-      result.sort((a, b) => {
-        const valA = a[sortConfig.key] ?? "";
-        const valB = b[sortConfig.key] ?? "";
-        const dateA = new Date(valA);
-        const dateB = new Date(valB);
-
-        if (!isNaN(dateA) && !isNaN(dateB)) {
-          return sortConfig.direction === "ascending"
-            ? dateA - dateB
-            : dateB - dateA;
-        }
-
-        const numA = parseFloat(valA);
-        const numB = parseFloat(valB);
-        if (!isNaN(numA) && !isNaN(numB)) {
-          return sortConfig.direction === "ascending" ? numA - numB : numB - numA;
-        }
-
-        return sortConfig.direction === "ascending"
-          ? valA.toString().localeCompare(valB.toString())
-          : valB.toString().localeCompare(valA.toString());
-      });
-    }
-
-    setFilteredOrders(result);
-  }, [
-    orders,
-    searchQuery,
-    selectedFilter,
-    selectedSubFilter,
-    fromDate,
-    toDate,
-    sortConfig,
-    amountRanges,
-    amountErrors,
-  ]);
+  // Apply search and filters to orders - moved this to getFilteredTransactions function above
 
   const handleSort = (key) => {
     setSortConfig((prev) => {
@@ -567,7 +590,7 @@ export default function OrdersPage() {
       );
   };
 
-  // Download CSV
+  // Download CSV - Fixed the missing sellingPrice issue
   const [isDownloadConfirmOpen, setDownloadConfirmOpen] = useState("");
   const handleDownloadCSV = () => {
     const now = new Date();
@@ -607,7 +630,7 @@ export default function OrdersPage() {
 
     const rows = [];
 
-    filteredOrders.forEach((order) => {
+    getFilteredTransactions().forEach((order) => {
       const detailsForOrder = orderDetails.filter(
         (detail) => detail.orderID === order.orderID
       );
@@ -615,13 +638,14 @@ export default function OrdersPage() {
       if (detailsForOrder.length === 0) {
         rows.push([
           order.receiptNo,
-        order.orderID,
-        order.transacDate,
-        order.orderPayment,
-        order.totalAmount,
-        order.wholeOrderDiscount,
-        order.totalProductDiscount,
-        "", "", "", "", "", "", "", "", "", "", "", ""
+          order.orderID,
+          order.transacDate,
+          order.orderPayment,
+          order.totalAmount,
+          order.wholeOrderDiscount,
+          order.totalProductDiscount,
+          order.originalTotal,
+          "", "", "", "", "", "", "", "", "", "", "", ""
         ]);
       } else {
         detailsForOrder.forEach((detail) => {
@@ -640,7 +664,7 @@ export default function OrdersPage() {
             detail.supplierName,
             detail.quantity,
             detail.unitPrice,
-            "",
+            detail.sellingPrice, // Fixed: was "" before
             detail.discountType,
             detail.discountAmount,
             detail.itemGross,
@@ -670,6 +694,92 @@ export default function OrdersPage() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  };
+
+  // Pagination component - similar to products page
+  const PaginationControls = () => {
+    const totalPages = getTotalPages();
+    const totalItems = getFilteredTransactions().length;
+    const startItem = (currentPage - 1) * itemsPerPage + 1;
+    const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+
+    if (totalPages <= 1) return null;
+
+    const getPageNumbers = () => {
+      const pages = [];
+      const maxVisiblePages = 5;
+      
+      if (totalPages <= maxVisiblePages) {
+        for (let i = 1; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        if (currentPage <= 3) {
+          pages.push(1, 2, 3, 4, '...', totalPages);
+        } else if (currentPage >= totalPages - 2) {
+          pages.push(1, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+        } else {
+          pages.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
+        }
+      }
+      
+      return pages;
+    };
+
+    return (
+      <div className="flex items-center justify-between mt-4 px-4 py-3 bg-white border-t border-gray-200">
+        <div className="flex items-center text-sm text-gray-700">
+          <span>
+            Showing {startItem} to {endItem} of {totalItems} results
+          </span>
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="flex items-center space-x-1"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span>Previous</span>
+          </Button>
+          
+          {getPageNumbers().map((page, index) => (
+            <React.Fragment key={index}>
+              {page === '...' ? (
+                <span className="px-3 py-2 text-gray-500">...</span>
+              ) : (
+                <Button
+                  variant={currentPage === page ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handlePageChange(page)}
+                  className={`min-w-[2.5rem] ${
+                    currentPage === page 
+                      ? "bg-blue-500 text-white" 
+                      : "text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  {page}
+                </Button>
+              )}
+            </React.Fragment>
+          ))}
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="flex items-center space-x-1"
+          >
+            <span>Next</span>
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+    );
   };
 
   // Prevent hydration errors
@@ -1127,261 +1237,266 @@ export default function OrdersPage() {
             Customer Orders
           </h1>
 
-          <div className="p-4 bg-white shadow-md rounded-lg flex flex-col overflow-auto w-full">
-            <Table>
-              <TableHeader className="sticky top-0 z-10 bg-white shadow-sm border-b">
-                <TableRow>
-                  <TableHead
-                    onClick={() => handleSort("orderID")}
-                    className="cursor-pointer select-none"
-                  >
-                    {" "}
-                    Order ID{" "}
-                    <SortIcon column="orderID" />
-                  </TableHead>
-                  <TableHead
-                    onClick={() => handleSort("transacDate")}
-                    className="cursor-pointer select-none"
-                  >
-                    {" "}
-                    Date{" "}
-                    <SortIcon column="transacDate" />
-                  </TableHead>
-                  <TableHead
-                    onClick={() => handleSort("transacDate")}
-                    className="cursor-pointer select-none"
-                  >
-                    {" "}
-                    Time{" "}
-                    <SortIcon column="transacDate" />
-                  </TableHead>
-                  <TableHead
-                    onClick={() => handleSort("receiptNo")}
-                    className="cursor-pointer select-none"
-                  >
-                    {" "}
-                    Receipt Number{" "}
-                    <SortIcon column="receiptNo" />
-                  </TableHead>
-                  <TableHead
-                    onClick={() => handleSort("originalTotal")}
-                    className="cursor-pointer select-none"
-                  >
-                    Original Total{" "}
-                    <SortIcon column="originalTotal" />
-                  </TableHead>
-                  <TableHead
-                    onClick={() => handleSort("totalProductDiscount")}
-                    className="cursor-pointer select-none"
-                  >
-                    {" "}
-                    Total Product Discount{" "}
-                    <SortIcon column="totalProductDiscount" />
-                  </TableHead>
-                  <TableHead
-                    onClick={() => handleSort("wholeOrderDiscount")}
-                    className="cursor-pointer select-none"
-                  >
-                    {" "}
-                    Whole Order Discount{" "}
-                    <SortIcon column="wholeOrderDiscount" />
-                  </TableHead>
-                  <TableHead
-                    onClick={() => handleSort("orderPayment")}
-                    className="cursor-pointer select-none"
-                  >
-                    {" "}
-                    Payment{" "}
-                    <SortIcon column="orderPayment" />
-                  </TableHead>
-                  <TableHead
-                    onClick={() => handleSort("totalAmount")}
-                    className="cursor-pointer select-none"
-                  >
-                    {" "}
-                    Total Amount{" "}
-                    <SortIcon column="totalAmount" />
-                  </TableHead>
-                  <TableHead>Manage</TableHead>
-                  <TableHead>Delete</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredOrders.map((order) => {
-                  return (
-                    <TableRow key={order.orderID}>
-                      <TableCell>{order.orderID}</TableCell>
-                      <TableCell>{formatDate(order.transacDate)}</TableCell>
-                      <TableCell>{formatTime(order.transacDate)}</TableCell>
-                      <TableCell>{order.receiptNo || "0"}</TableCell>
-                      <TableCell>{formatPeso(order.originalTotal)}</TableCell>
-                      <TableCell>{formatPeso(order.totalProductDiscount)}</TableCell>
-                      <TableCell>{formatPeso(order.wholeOrderDiscount)}</TableCell>
-                      <TableCell>{formatPeso(order.orderPayment)}</TableCell>
-                      <TableCell>{formatPeso(order.totalAmount)}</TableCell>
-                      {/* View/Return toggle button with modal pop-up */}{" "}
-                      <TableCell className="flex justify-center items-center">
-                        <Dialog
-                          onOpenChange={(open) => {
-                            if (!open) {
-                              // Reset selection when dialog closes
-                              setSelectedTransactions([]);
-                              setSelectedOrderID(null);
-                            }
-                          }}
-                        >
-                          <DialogTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-blue-900 hover:text-white hover:bg-blue-900 border-blue-900 transition-colors duration-200 flex items-center gap-2"
-                              onClick={() => setSelectedOrderID(order.orderID)}
-                            >
-                              <span className="hidden sm:inline">View/Return</span>
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="w-full max-w-screen-lg sm:max-w-screen-md md:max-w-screen-lg lg:max-w-screen-xl max-h-[95vh] overflow-y-auto p-6">
-                            <DialogHeader>
-                              <DialogTitle>Order Details</DialogTitle>
-                              <DialogClose />
-                            </DialogHeader>
-                            {orders ? (
-                              <Table>
-                                <TableHeader>
-                                  <TableRow>
-                                    {/* checkbox select ALL function for customer returns */}
-                                    <TableHead className="sticky top-0 z-10 bg-white">
-                                      <input
-                                        type="checkbox"
-                                        onChange={handleSelectAll}
-                                        checked={
-                                          selectedTransactions.length ===
-                                            getFilteredTransactions().length &&
-                                          selectedTransactions.length > 0
-                                        }
-                                      />
-                                    </TableHead>
-                                    <TableHead>Order ID</TableHead>
-                                    <TableHead>Order Detail ID</TableHead>
-                                    <TableHead>Product Code</TableHead>
-                                    <TableHead>Product</TableHead>
-                                    <TableHead>Supplier</TableHead>
-                                    <TableHead>Brand</TableHead>
-                                    <TableHead>Unit Price</TableHead>
-                                    <TableHead>Selling Price</TableHead>
-                                    <TableHead>Quantity</TableHead>
-                                    <TableHead>Discount Type</TableHead>
-                                    <TableHead>Discount Amount</TableHead>
-                                    <TableHead>NET Sale</TableHead>
-                                    <TableHead>Gross Sale</TableHead>
-                                    <TableHead>Gross Profit</TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {orderDetails
-                                    .filter(
-                                      (detail) => detail.orderID === selectedOrderID
-                                    )
-                                    .map((detail) => {
-                                      const transactionId = `${detail.orderID}-${detail.orderDetailID}`;
-                                      const isSelected = selectedTransactions.includes(transactionId);
-                                      
-                                      return (
-                                        // Enhanced clickable row
-                                        <TableRow 
-                                          key={detail.orderDetailID}
-                                          onClick={(e) => handleRowClick(transactionId, e)}
-                                          className={cn(
-                                            "cursor-pointer transition-all duration-200 select-none",
-                                            isSelected 
-                                              ? "bg-blue-50 border-l-4 border-blue-500 shadow-sm" 
-                                              : "hover:bg-gray-50 hover:shadow-sm"
-                                          )}
-                                        >
-                                          <TableCell>
-                                            <input
-                                              type="checkbox"
-                                              checked={isSelected}
-                                              onChange={() => handleSelectTransaction(transactionId)}
-                                              className="text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                                            />
-                                          </TableCell>
-                                          <TableCell className="font-medium">{detail.orderID}</TableCell>
-                                          <TableCell>{detail.orderDetailID}</TableCell>
-                                          <TableCell className="font-mono text-sm">{detail.productCode}</TableCell>
-                                          <TableCell className="font-medium">{detail.productName}</TableCell>
-                                          <TableCell>{detail.supplierName}</TableCell>
-                                          <TableCell>{detail.brandName}</TableCell>
-                                          <TableCell className="font-medium"> {formatPeso(detail.unitPrice)}
-                                          </TableCell>
-                                          <TableCell className="font-medium">
-                                            {detail.sellingPrice == 0.00
-                                              ? <span className="text-green-600 font-semibold">Freebie</span>
-                                              : formatPeso(detail.sellingPrice)}
-                                          </TableCell>
-                                          <TableCell className="text-center font-medium">{detail.quantity}</TableCell>
-                                          <TableCell>{detail.discountType || <span className="text-gray-400">---</span>}</TableCell>
-                                          <TableCell>{formatPeso(detail.discountAmount)}</TableCell>
-                                          <TableCell className="font-medium">{formatPeso(detail.itemTotal)}</TableCell>
-                                          <TableCell>{formatPeso(detail.itemGross)}</TableCell>
-                                          <TableCell className="font-medium">{formatPeso(detail.itemGrossProfit)}</TableCell>
-                                        </TableRow>
-                                      );
-                                    })}
-                                </TableBody>
-                              </Table>
-                            ) : (
-                              <p className="text-gray-500">
-                                Product details not found.
-                              </p>
-                            )}
-                            {/* Return items function */}
-                            <div className="flex justify-between items-center mb-4 p-4 bg-gray-50 rounded-lg">
-                              <div className="text-sm text-gray-600">
-                                {selectedTransactions.length > 0 ? (
-                                  <span className="font-medium text-blue-600">
-                                    {selectedTransactions.length} item(s) selected for return
-                                  </span>
-                                ) : (
-                                  <span className="text-gray-500">
-                                    Click on rows or checkboxes to select items for return
-                                  </span>
-                                )}
-                              </div>
+          <div className="p-4 bg-white shadow-md rounded-lg flex flex-col overflow-hidden w-full">
+            <div className="overflow-auto flex-1">
+              <Table>
+                <TableHeader className="sticky top-0 z-10 bg-white shadow-sm border-b">
+                  <TableRow>
+                    <TableHead
+                      onClick={() => handleSort("orderID")}
+                      className="cursor-pointer select-none"
+                    >
+                      {" "}
+                      Order ID{" "}
+                      <SortIcon column="orderID" />
+                    </TableHead>
+                    <TableHead
+                      onClick={() => handleSort("transacDate")}
+                      className="cursor-pointer select-none"
+                    >
+                      {" "}
+                      Date{" "}
+                      <SortIcon column="transacDate" />
+                    </TableHead>
+                    <TableHead
+                      onClick={() => handleSort("transacDate")}
+                      className="cursor-pointer select-none"
+                    >
+                      {" "}
+                      Time{" "}
+                      <SortIcon column="transacDate" />
+                    </TableHead>
+                    <TableHead
+                      onClick={() => handleSort("receiptNo")}
+                      className="cursor-pointer select-none"
+                    >
+                      {" "}
+                      Receipt Number{" "}
+                      <SortIcon column="receiptNo" />
+                    </TableHead>
+                    <TableHead
+                      onClick={() => handleSort("originalTotal")}
+                      className="cursor-pointer select-none"
+                    >
+                      Original Total{" "}
+                      <SortIcon column="originalTotal" />
+                    </TableHead>
+                    <TableHead
+                      onClick={() => handleSort("totalProductDiscount")}
+                      className="cursor-pointer select-none"
+                    >
+                      {" "}
+                      Total Product Discount{" "}
+                      <SortIcon column="totalProductDiscount" />
+                    </TableHead>
+                    <TableHead
+                      onClick={() => handleSort("wholeOrderDiscount")}
+                      className="cursor-pointer select-none"
+                    >
+                      {" "}
+                      Whole Order Discount{" "}
+                      <SortIcon column="wholeOrderDiscount" />
+                    </TableHead>
+                    <TableHead
+                      onClick={() => handleSort("orderPayment")}
+                      className="cursor-pointer select-none"
+                    >
+                      {" "}
+                      Payment{" "}
+                      <SortIcon column="orderPayment" />
+                    </TableHead>
+                    <TableHead
+                      onClick={() => handleSort("totalAmount")}
+                      className="cursor-pointer select-none"
+                    >
+                      {" "}
+                      Total Amount{" "}
+                      <SortIcon column="totalAmount" />
+                    </TableHead>
+                    <TableHead>Manage</TableHead>
+                    <TableHead>Delete</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {getPaginatedData().map((order) => {
+                    return (
+                      <TableRow key={order.orderID}>
+                        <TableCell>{order.orderID}</TableCell>
+                        <TableCell>{formatDate(order.transacDate)}</TableCell>
+                        <TableCell>{formatTime(order.transacDate)}</TableCell>
+                        <TableCell>{order.receiptNo || "0"}</TableCell>
+                        <TableCell>{formatPeso(order.originalTotal)}</TableCell>
+                        <TableCell>{formatPeso(order.totalProductDiscount)}</TableCell>
+                        <TableCell>{formatPeso(order.wholeOrderDiscount)}</TableCell>
+                        <TableCell>{formatPeso(order.orderPayment)}</TableCell>
+                        <TableCell>{formatPeso(order.totalAmount)}</TableCell>
+                        {/* View/Return toggle button with modal pop-up */}{" "}
+                        <TableCell className="flex justify-center items-center">
+                          <Dialog
+                            onOpenChange={(open) => {
+                              if (!open) {
+                                // Reset selection when dialog closes
+                                setSelectedTransactions([]);
+                                setSelectedOrderID(null);
+                              }
+                            }}
+                          >
+                            <DialogTrigger asChild>
                               <Button
                                 variant="outline"
-                                className="bg-indigo-500 hover:bg-indigo-700 hover:text-white text-white transition-colors duration-200"
-                                onClick={() => {
-                                  setItemReturnReasons("");
-                                  setReturnDialogOpen(true);
-                                }}
-                                disabled={selectedTransactions.length === 0}
+                                size="sm"
+                                className="text-blue-900 hover:text-white hover:bg-blue-900 border-blue-900 transition-colors duration-200 flex items-center gap-2"
+                                onClick={() => setSelectedOrderID(order.orderID)}
                               >
-                                Return Selected Items
+                                <span className="hidden sm:inline">View/Return</span>
                               </Button>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                      </TableCell>
-                      {/* For delete button */}
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-gray-500 hover:text-red-600"
-                          onClick={() => {
-                            setSelectedProduct(order);
-                            setDDOpen(true);
-                          }}
-                        >
-                          <Trash2 size={16} />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                            </DialogTrigger>
+                            <DialogContent className="w-full max-w-screen-lg sm:max-w-screen-md md:max-w-screen-lg lg:max-w-screen-xl max-h-[95vh] overflow-y-auto p-6">
+                              <DialogHeader>
+                                <DialogTitle>Order Details</DialogTitle>
+                                <DialogClose />
+                              </DialogHeader>
+                              {orders ? (
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      {/* checkbox select ALL function for customer returns */}
+                                      <TableHead className="sticky top-0 z-10 bg-white">
+                                        <input
+                                          type="checkbox"
+                                          onChange={handleSelectAll}
+                                          checked={
+                                            selectedTransactions.length ===
+                                              getFilteredTransactionsForReturn().length &&
+                                            selectedTransactions.length > 0
+                                          }
+                                        />
+                                      </TableHead>
+                                      <TableHead>Order ID</TableHead>
+                                      <TableHead>Order Detail ID</TableHead>
+                                      <TableHead>Product Code</TableHead>
+                                      <TableHead>Product</TableHead>
+                                      <TableHead>Supplier</TableHead>
+                                      <TableHead>Brand</TableHead>
+                                      <TableHead>Unit Price</TableHead>
+                                      <TableHead>Selling Price</TableHead>
+                                      <TableHead>Quantity</TableHead>
+                                      <TableHead>Discount Type</TableHead>
+                                      <TableHead>Discount Amount</TableHead>
+                                      <TableHead>NET Sale</TableHead>
+                                      <TableHead>Gross Sale</TableHead>
+                                      <TableHead>Gross Profit</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {orderDetails
+                                      .filter(
+                                        (detail) => detail.orderID === selectedOrderID
+                                      )
+                                      .map((detail) => {
+                                        const transactionId = `${detail.orderID}-${detail.orderDetailID}`;
+                                        const isSelected = selectedTransactions.includes(transactionId);
+                                        
+                                        return (
+                                          // Enhanced clickable row
+                                          <TableRow 
+                                            key={detail.orderDetailID}
+                                            onClick={(e) => handleRowClick(transactionId, e)}
+                                            className={cn(
+                                              "cursor-pointer transition-all duration-200 select-none",
+                                              isSelected 
+                                                ? "bg-blue-50 border-l-4 border-blue-500 shadow-sm" 
+                                                : "hover:bg-gray-50 hover:shadow-sm"
+                                            )}
+                                          >
+                                            <TableCell>
+                                              <input
+                                                type="checkbox"
+                                                checked={isSelected}
+                                                onChange={() => handleSelectTransaction(transactionId)}
+                                                className="text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                                              />
+                                            </TableCell>
+                                            <TableCell className="font-medium">{detail.orderID}</TableCell>
+                                            <TableCell>{detail.orderDetailID}</TableCell>
+                                            <TableCell className="font-mono text-sm">{detail.productCode}</TableCell>
+                                            <TableCell className="font-medium">{detail.productName}</TableCell>
+                                            <TableCell>{detail.supplierName}</TableCell>
+                                            <TableCell>{detail.brandName}</TableCell>
+                                            <TableCell className="font-medium"> {formatPeso(detail.unitPrice)}
+                                            </TableCell>
+                                            <TableCell className="font-medium">
+                                              {detail.sellingPrice == 0.00
+                                                ? <span className="text-green-600 font-semibold">Freebie</span>
+                                                : formatPeso(detail.sellingPrice)}
+                                            </TableCell>
+                                            <TableCell className="text-center font-medium">{detail.quantity}</TableCell>
+                                            <TableCell>{detail.discountType || <span className="text-gray-400">---</span>}</TableCell>
+                                            <TableCell>{formatPeso(detail.discountAmount)}</TableCell>
+                                            <TableCell className="font-medium">{formatPeso(detail.itemTotal)}</TableCell>
+                                            <TableCell>{formatPeso(detail.itemGross)}</TableCell>
+                                            <TableCell className="font-medium">{formatPeso(detail.itemGrossProfit)}</TableCell>
+                                          </TableRow>
+                                        );
+                                      })}
+                                  </TableBody>
+                                </Table>
+                              ) : (
+                                <p className="text-gray-500">
+                                  Product details not found.
+                                </p>
+                              )}
+                              {/* Return items function */}
+                              <div className="flex justify-between items-center mb-4 p-4 bg-gray-50 rounded-lg">
+                                <div className="text-sm text-gray-600">
+                                  {selectedTransactions.length > 0 ? (
+                                    <span className="font-medium text-blue-600">
+                                      {selectedTransactions.length} item(s) selected for return
+                                    </span>
+                                  ) : (
+                                    <span className="text-gray-500">
+                                      Click on rows or checkboxes to select items for return
+                                    </span>
+                                  )}
+                                </div>
+                                <Button
+                                  variant="outline"
+                                  className="bg-indigo-500 hover:bg-indigo-700 hover:text-white text-white transition-colors duration-200"
+                                  onClick={() => {
+                                    setItemReturnReasons("");
+                                    setReturnDialogOpen(true);
+                                  }}
+                                  disabled={selectedTransactions.length === 0}
+                                >
+                                  Return Selected Items
+                                </Button>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        </TableCell>
+                        {/* For delete button */}
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-gray-500 hover:text-red-600"
+                            onClick={() => {
+                              setSelectedProduct(order);
+                              setDDOpen(true);
+                            }}
+                          >
+                            <Trash2 size={16} />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Pagination Controls */}
+            <PaginationControls />
 
             {/* Return Dialog */}
             <Dialog
