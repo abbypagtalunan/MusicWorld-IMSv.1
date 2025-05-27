@@ -88,7 +88,7 @@ export default function BatchDeliveriesPage() {
     quantity: ""
   });
 
-  const isSaveDisabled =
+  const isSaveDisabled = productItems.length === 0||
   !deliveryNumber ||
   !paymentDetails.paymentType ||
   !paymentDetails.paymentStatus ||
@@ -122,7 +122,6 @@ const newHandleSaveDelivery = async () => {
 
   try {
     setLoading(true);
-
     const deliveryPayload = {
       D_deliveryNumber: parseInt(raw, 10),
       D_deliveryDate: deliveryDate,
@@ -139,7 +138,6 @@ const newHandleSaveDelivery = async () => {
     };
 
     console.log("Submitting delivery payload:", JSON.stringify(deliveryPayload, null, 2));
-
     const res = await axios.post("http://localhost:8080/deliveries", deliveryPayload);
     toast.success("Delivery and product details successfully saved!");
     console.log("Server response:", res.data);
