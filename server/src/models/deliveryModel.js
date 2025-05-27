@@ -97,12 +97,13 @@ const addDelivery = (deliveryData, products, payment, callback) => {
           // Step 3: update Products stock numbers
           const updateStockQuery = `
             UPDATE Products
-            SET P_stockNum = P_stockNum + ?
-            WHERE P_productCode = ?
+            SET P_stockNum = P_stockNum + ?,
+                P_lastRestockDateTime = CURRENT_TIMESTAMP
+            WHERE P_productCode = ? AND ? > 0
           `;
-          // for each delivered product, bump its stock
+
           products.forEach(({ P_productCode, DPD_quantity }) => {
-            conn.query(updateStockQuery, [DPD_quantity, P_productCode], (err) => {
+            conn.query(updateStockQuery, [DPD_quantity, P_productCode, DPD_quantity], (err) => {
               if (err) {
                 return conn.rollback(() => {
                   conn.release();
