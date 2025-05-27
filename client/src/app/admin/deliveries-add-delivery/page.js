@@ -43,6 +43,7 @@ export default function BatchDeliveriesPage() {
 
   const [data, setData] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [duplicateError, setDuplicateError] = useState(false);
   const [openProduct, setOpenProduct] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [unitPrice, setUnitPrice] = useState('');
@@ -143,7 +144,13 @@ const newHandleSaveDelivery = async () => {
 
   } catch (error) {
     console.error("Error saving delivery:", error);
-    toast.error(error.response?.data?.message || "Failed to save delivery");
+      // Handle duplicate entry error specifically
+    if (error.response?.data?.message?.includes("already used")) {
+      toast.error("This delivery number is already in use. Please enter a unique delivery number.");
+      setDuplicateError(true);
+    } else {
+      toast.error(error.response?.data?.message || "Failed to save delivery");
+    }
   } finally {
     setLoading(false);
   }
@@ -539,8 +546,9 @@ const handleAddProduct = () => {
   };
     
   // disable 2nd panel Date of Payment if its status is "Unpaid"
-  const status2Obj = paymentStatuses
-    .find(s => s.D_paymentStatusID.toString() === paymentDetails.paymentStatus2);
+  const status2Obj = paymentDetails
+  ? paymentStatuses.find(s => s.D_paymentStatusID.toString() === paymentDetails.paymentStatus2)
+  : null;
   const isSecondUnpaid = status2Obj?.D_statusName.toLowerCase() === 'unpaid';
   
   const getTodayDate = () => {
@@ -611,37 +619,33 @@ const handleAddProduct = () => {
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
           <Card className="mb-4">
             <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4 w-full">
-                  <div className="w-1/3">
-                    <Label htmlFor="deliveryDate" className="mb-1 block">Date of Delivery</Label>
-                    <Input 
-                      id="deliveryDate" 
-                      type="date" 
-                      value={deliveryDate}
-                      readOnly
-                    />
-                    {/* onChange={(e) => setDeliveryDate(e.target.value)} */}
-                  </div>
-                  <div className="w-1/3">
-                    <Label htmlFor="deliveryNumber" className="mb-1 block">Delivery Number</Label>
-                    <Input
-                      id="deliveryNumber"
-                      type="text"
-                      placeholder="Enter number only"
-                      className="text-center"
-                      value={deliveryNumber}
-                      onChange={e => {
-                        let val = e.target.value;
-                        // strip all non-digits
-                        val = val.replace(/\D/g, '');
-                        // remove leading zeros
-                        val = val.replace(/^0+/, '');
-                        setDeliveryNumber(val);
-                      }}
-                      autoComplete="off"
-                    />
-                  </div>
+              <div className="flex items-center justify-between w-full">
+                {/* Date of Delivery */}
+                <div className="w-1/2 pr-2">
+                  <Label htmlFor="deliveryDate" className="mb-1 block">Date of Delivery</Label>
+                  <Input 
+                    id="deliveryDate" 
+                    type="date" 
+                    value={deliveryDate}
+                    readOnly
+                  />
+                </div>
+
+                {/* Delivery Number */}
+                <div className="w-1/2 pl-2">
+                  <Label htmlFor="deliveryNumber" className="mb-1 block text-left">Delivery Number</Label>
+                  <Input
+                    id="deliveryNumber"
+                    type="text"
+                    className={`text-center w-full ${duplicateError ? 'border-red-500 focus:ring-red-500' : ''}`}
+                    value={deliveryNumber}
+                    onChange={e => {
+                      let val = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
+                      setDeliveryNumber(val);
+                      setDuplicateError(false);
+                    }}
+                    autoComplete="off"
+                  />
                 </div>
               </div>
             </CardContent>
