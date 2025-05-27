@@ -598,6 +598,9 @@ export default function ReturnsPage() {
                               <TableHead onClick={() => handleSort("R_returnID", setCustomerSortConfig)} className="text-center cursor-pointer whitespace-nowrap">
                                 Return ID <SortIcon column="R_returnID" sortConfig={customerSortConfig} />
                               </TableHead>
+                              <TableHead onClick={() => handleSort("P_productCode", setCustomerSortConfig)} className="text-center cursor-pointer whitespace-nowrap">
+                                Product Code <SortIcon column="P_productCode" sortConfig={customerSortConfig} />
+                              </TableHead>
                               <TableHead onClick={() => handleSort("productName", setCustomerSortConfig)} className="text-center cursor-pointer whitespace-nowrap">
                                 Product <SortIcon column="productName" sortConfig={customerSortConfig} />
                               </TableHead>
@@ -625,6 +628,7 @@ export default function ReturnsPage() {
                                   <TableRow key={item.R_returnID}>
                                     <TableCell className="text-center whitespace-nowrap">{new Date(item.R_dateOfReturn).toLocaleDateString()}</TableCell>
                                     <TableCell className="text-center">{item.R_returnID}</TableCell>
+                                    <TableCell className="text-center">{item.P_productCode}</TableCell>
                                     <TableCell className="text-center">
                                       {products.find(p => p.P_productCode === item.P_productCode)?.P_productName || "Unknown"}
                                     </TableCell>
