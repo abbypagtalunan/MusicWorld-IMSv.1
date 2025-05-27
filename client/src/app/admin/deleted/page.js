@@ -1,5 +1,6 @@
 "use client";
 
+import RequireAuth from '@/components/RequireAuth';
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { AppSidebar } from "@/components/admin-sidebar";
@@ -612,6 +613,7 @@ const itemsPerPage = 12;
   };
 
 return (
+  <RequireAuth role={1}>
   <MinimumScreenGuard>
   <SidebarProvider>
     <div className="flex h-screen w-screen overflow-hidden">
@@ -1260,5 +1262,6 @@ return (
     <Toaster position="top-center"/>
   </SidebarProvider>
   </MinimumScreenGuard>
+  </RequireAuth>
 );
 }

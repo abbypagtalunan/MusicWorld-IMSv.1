@@ -1,5 +1,6 @@
 "use client";
 
+import RequireAuth from '@/components/RequireAuth';
 import React, { useState, useEffect } from "react";
 import LoadingSpinner from "@/components/loading-spinner";
 import { useRouter } from 'next/navigation';
@@ -878,6 +879,7 @@ export default function DeliveriesPage() {
   }
 
   return (
+    <RequireAuth role={2}>
     <MinimumScreenGuard>
     <SidebarProvider>
       <div className="flex h-screen w-screen overflow-hidden">
@@ -1843,5 +1845,6 @@ export default function DeliveriesPage() {
       {isLoading && <LoadingSpinner />} 
     </SidebarProvider>
     </MinimumScreenGuard>
+    </RequireAuth>
   );
 }

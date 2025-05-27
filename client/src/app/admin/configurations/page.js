@@ -1,4 +1,5 @@
 "use client";
+import RequireAuth from '@/components/RequireAuth';
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { AppSidebar } from "@/components/admin-sidebar";
@@ -327,6 +328,7 @@ export default function ConfigurationsPage() {
   };
 
   return (
+  <RequireAuth role={1}>
     <MinimumScreenGuard>
     <SidebarProvider>
       <div className="flex h-screen w-screen">
@@ -632,6 +634,7 @@ export default function ConfigurationsPage() {
       </Dialog>
     </SidebarProvider>
     </MinimumScreenGuard>
+    </RequireAuth>
   );
 }
 

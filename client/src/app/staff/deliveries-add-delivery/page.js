@@ -1,5 +1,6 @@
 "use client";
 
+import RequireAuth from '@/components/RequireAuth';
 import { useRouter } from 'next/navigation';
 import { AppSidebar } from "@/components/staff-sidebar";
 import {
@@ -47,6 +48,7 @@ export default function BatchDeliveriesPage() {
   });
 
   return (
+    <RequireAuth role={2}>
     <MinimumScreenGuard>
     <SidebarProvider>
       <div className="flex h-screen w-screen overflow-hidden">
@@ -351,5 +353,6 @@ export default function BatchDeliveriesPage() {
       </div>
     </SidebarProvider>
     </MinimumScreenGuard>
+    </RequireAuth>
   );
 }
