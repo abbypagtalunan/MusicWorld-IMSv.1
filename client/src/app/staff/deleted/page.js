@@ -305,7 +305,7 @@ export default function DeletedPage() {
           </div>
 
           <Tabs defaultValue="order" onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-            <TabsList className="w-full flex justify-start bg-white rounded-md shadow-md px-6 py-3 space-x-4 flex-shrink-0 h-16">
+            <TabsList className="w-full flex justify-start bg-white shadow-md rounded-md px-6 py-6 mb-4">
               {Object.entries(configMap).map(([key, cfg]) => (
                 <TabsTrigger
                   key={key}

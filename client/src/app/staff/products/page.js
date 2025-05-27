@@ -6,9 +6,10 @@ import { SidebarProvider } from "@/components/ui/sidebar"
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, ListFilter, ChevronsUpDown, ChevronUp, ChevronDown } from "lucide-react";
+import { Search, ListFilter, ChevronsUpDown, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
 import MinimumScreenGuard from "@/components/MinimumScreenGuard";
+import React from "react";
 
 export default function ProductsPage() {
   const config = {
@@ -91,6 +92,10 @@ export default function ProductsPage() {
 
   const [searchTerm, setSearchTerm] = useState("");
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
+
   const normalizedData = (products) => products.data.map((item) => ({
     productCode: item.P_productCode,
     category: item.category || "",
@@ -137,13 +142,7 @@ export default function ProductsPage() {
   // Search
   const [selectedFilter, setSelectedFilter] = useState(null);
   const [selectedSubFilter, setSelectedSubFilter] = useState(null);  
-  const [selectedProducts, setSelectedProducts] = useState([]);
   
-  useEffect(() => {
-    setSelectedProducts([]);
-  }, [selectedFilter, selectedSubFilter]); 
-  
-
   // Sort
    const [sortConfig, setSortConfig] = useState({ key: null, direction: "ascending" });
 
@@ -161,15 +160,6 @@ export default function ProductsPage() {
   };
 
   const getFilteredTransactions = () => {
-    config?.nameField && config?.idField
-      ? data.filter(
-          (item) =>
-            (item[config.nameField]?.toLowerCase() || "").includes(
-              searchTerm.toLowerCase()
-            ) || (item[config.idField] || "").includes(searchTerm)
-        )
-      : [];
-
     let sortedTransactions = [...data];
 
     // Search
@@ -249,6 +239,29 @@ export default function ProductsPage() {
     return sortedTransactions;
   };
 
+  // Get paginated data
+  const getPaginatedData = () => {
+    const filteredData = getFilteredTransactions();
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredData.slice(startIndex, endIndex);
+  };
+
+  // Calculate total pages
+  const getTotalPages = () => {
+    const filteredData = getFilteredTransactions();
+    return Math.ceil(filteredData.length / itemsPerPage);
+  };
+
+  // Handle page change
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedFilter, selectedSubFilter, sortConfig]);
 
   function SortIcon({ column }) {
     if (sortConfig.key !== column) return <ChevronsUpDown className="inline ml-1 w-4 h-4 text-gray-400" />;
@@ -293,8 +306,92 @@ export default function ProductsPage() {
       .then(res => setPStatus(res.data))
       .catch((err) => console.error("Failed to fetch product status options:", err));
   }, []);
- 
 
+  // Pagination component
+  const PaginationControls = () => {
+    const totalPages = getTotalPages();
+    const totalItems = getFilteredTransactions().length;
+    const startItem = (currentPage - 1) * itemsPerPage + 1;
+    const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+
+    if (totalPages <= 1) return null;
+
+    const getPageNumbers = () => {
+      const pages = [];
+      const maxVisiblePages = 5;
+      
+      if (totalPages <= maxVisiblePages) {
+        for (let i = 1; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        if (currentPage <= 3) {
+          pages.push(1, 2, 3, 4, '...', totalPages);
+        } else if (currentPage >= totalPages - 2) {
+          pages.push(1, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+        } else {
+          pages.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
+        }
+      }
+      
+      return pages;
+    };
+
+    return (
+      <div className="flex items-center justify-between mt-4 px-4 py-3 bg-white border-t border-gray-200">
+        <div className="flex items-center text-sm text-gray-700">
+          <span>
+            Showing {startItem} to {endItem} of {totalItems} results
+          </span>
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="flex items-center space-x-1"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span>Previous</span>
+          </Button>
+          
+          {getPageNumbers().map((page, index) => (
+            <React.Fragment key={index}>
+              {page === '...' ? (
+                <span className="px-3 py-2 text-gray-500">...</span>
+              ) : (
+                <Button
+                  variant={currentPage === page ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handlePageChange(page)}
+                  className={`min-w-[2.5rem] ${
+                    currentPage === page 
+                      ? "bg-blue-500 text-white" 
+                      : "text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  {page}
+                </Button>
+              )}
+            </React.Fragment>
+          ))}
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="flex items-center space-x-1"
+          >
+            <span>Next</span>
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <MinimumScreenGuard>
@@ -394,47 +491,48 @@ export default function ProductsPage() {
             </div>
           </div>
           <h1 className="text-2xl mb-4 p-4 rounded-sm text-blue-50 bg-blue-950 font-bold">Products</h1>
-          <div className="p-4 bg-white shadow-md rounded-lg flex flex-col overflow-auto w-full">
-            <Table>
-              <TableHeader className="sticky top-0 bg-white z-10">
-                <TableRow>
-                  <TableHead onClick={() => handleSort("productCode")} className="cursor-pointer select-none">Product Code <SortIcon column="productCode" /></TableHead>
-                  <TableHead onClick={() => handleSort("category")} className="cursor-pointer select-none">Category <SortIcon column="category" /></TableHead>
-                  <TableHead onClick={() => handleSort("productName")} className="cursor-pointer select-none">Product <SortIcon column="productName" /></TableHead>
-                  <TableHead onClick={() => handleSort("brand")} className="cursor-pointer select-none">Brand <SortIcon column="brand" /></TableHead>
-                  <TableHead onClick={() => handleSort("supplier")} className="cursor-pointer select-none">Supplier <SortIcon column="supplier" /></TableHead>
-                  <TableHead onClick={() => handleSort("stockNumber")} className="cursor-pointer select-none">Stock amount <SortIcon column="stockNumber" /></TableHead>
-                  <TableHead onClick={() => handleSort("lastRestock")} className="cursor-pointer select-none">Last Restock Date and Time <SortIcon column="lastRestock" /></TableHead>
-                  <TableHead onClick={() => handleSort("price")} className="cursor-pointer select-none">Price <SortIcon column="price" /></TableHead>
-                  <TableHead onClick={() => handleSort("sellingPrice")} className="cursor-pointer select-none">Selling Price <SortIcon column="sellingPrice" /></TableHead>
-                  <TableHead onClick={() => handleSort("status")} className="cursor-pointer select-none">Status <SortIcon column="status" /></TableHead>
-                  <TableHead onClick={() => handleSort("dateAdded")} className="cursor-pointer select-none">Date Added <SortIcon column="dateAdded" /></TableHead>
-                  <TableHead onClick={() => handleSort("lastEdit")} className="cursor-pointer select-none">Last Edited<SortIcon column="lastEdit" /></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-              {getFilteredTransactions().filter(item =>
-                (item.productName?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
-                (item.category?.toLowerCase() || "").includes(searchTerm.toLowerCase())||
-                (item.productCode?.toString().toLowerCase() || "").includes(searchTerm.toLowerCase())            
-              ).map((item) => (
-                  <TableRow key={item.productCode} className={getStatusColor(item.status)}>
-                    <TableCell>{item.productCode}</TableCell>
-                    <TableCell>{item.category}</TableCell>
-                    <TableCell>{item.productName}</TableCell>
-                    <TableCell>{item.brand}</TableCell>
-                    <TableCell>{item.supplier}</TableCell>
-                    <TableCell>{item.stockNumber} pcs</TableCell>
-                    <TableCell>{item.lastRestock}</TableCell>
-                    <TableCell>{item.price}</TableCell>
-                    <TableCell>{item.sellingPrice}</TableCell>
-                    <TableCell className={`font-semibold ${getStatusTextColor(item.status)}`}>{item.status}</TableCell>
-                    <TableCell>{item.dateAdded}</TableCell>
-                    <TableCell>{item.lastEdit}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <div className="p-4 bg-white shadow-md rounded-lg flex flex-col overflow-hidden w-full">
+            <div className="overflow-auto flex-1">
+              <Table>
+                <TableHeader className="sticky top-0 bg-white z-10">
+                  <TableRow>
+                    <TableHead onClick={() => handleSort("productCode")} className="cursor-pointer select-none">Product Code <SortIcon column="productCode" /></TableHead>
+                    <TableHead onClick={() => handleSort("category")} className="cursor-pointer select-none">Category <SortIcon column="category" /></TableHead>
+                    <TableHead onClick={() => handleSort("productName")} className="cursor-pointer select-none">Product <SortIcon column="productName" /></TableHead>
+                    <TableHead onClick={() => handleSort("brand")} className="cursor-pointer select-none">Brand <SortIcon column="brand" /></TableHead>
+                    <TableHead onClick={() => handleSort("supplier")} className="cursor-pointer select-none">Supplier <SortIcon column="supplier" /></TableHead>
+                    <TableHead onClick={() => handleSort("stockNumber")} className="cursor-pointer select-none">Stock amount <SortIcon column="stockNumber" /></TableHead>
+                    <TableHead onClick={() => handleSort("lastRestock")} className="cursor-pointer select-none">Last Restock Date and Time <SortIcon column="lastRestock" /></TableHead>
+                    <TableHead onClick={() => handleSort("price")} className="cursor-pointer select-none">Price <SortIcon column="price" /></TableHead>
+                    <TableHead onClick={() => handleSort("sellingPrice")} className="cursor-pointer select-none">Selling Price <SortIcon column="sellingPrice" /></TableHead>
+                    <TableHead onClick={() => handleSort("status")} className="cursor-pointer select-none">Status <SortIcon column="status" /></TableHead>
+                    <TableHead onClick={() => handleSort("dateAdded")} className="cursor-pointer select-none">Date Added <SortIcon column="dateAdded" /></TableHead>
+                    <TableHead onClick={() => handleSort("lastEdit")} className="cursor-pointer select-none">Last Edited<SortIcon column="lastEdit" /></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                {getPaginatedData().map((item) => (
+                    <TableRow key={item.productCode} className={getStatusColor(item.status)}>
+                      <TableCell>{item.productCode}</TableCell>
+                      <TableCell>{item.category}</TableCell>
+                      <TableCell>{item.productName}</TableCell>
+                      <TableCell>{item.brand}</TableCell>
+                      <TableCell>{item.supplier}</TableCell>
+                      <TableCell>{item.stockNumber} pcs</TableCell>
+                      <TableCell>{item.lastRestock}</TableCell>
+                      <TableCell>{item.price}</TableCell>
+                      <TableCell>{item.sellingPrice}</TableCell>
+                      <TableCell className={`font-semibold ${getStatusTextColor(item.status)}`}>{item.status}</TableCell>
+                      <TableCell>{item.dateAdded}</TableCell>
+                      <TableCell>{item.lastEdit}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            </div>
+            
+            {/* Pagination Controls */}
+            <PaginationControls />
         </div>
       </div>
     </div>
