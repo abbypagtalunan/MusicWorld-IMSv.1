@@ -1332,7 +1332,7 @@ export default function OrdersPage() {
                         <TableCell>{formatPeso(order.wholeOrderDiscount)}</TableCell>
                         <TableCell>{formatPeso(order.orderPayment)}</TableCell>
                         <TableCell>{formatPeso(order.totalAmount)}</TableCell>
-                        {/* View/Return toggle button with modal pop-up */}{" "}
+                        {/* View/Return toggle button with modal pop-up */}
                         <TableCell className="flex justify-center items-center">
                           <Dialog
                             onOpenChange={(open) => {
