@@ -53,6 +53,35 @@ import MinimumScreenGuard from "@/components/MinimumScreenGuard";
 const formatToPHP = (amount) => {
   return `₱${Number(amount).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`;
 };
+// CSV Export Helpers
+const convertToCSV = (data) => {
+  if (!data.length) return "";
+  
+  const headers = Object.keys(data[0]);
+  const csvRows = [headers.join(",")];
+
+  for (const row of data) {
+    const values = headers.map(key => {
+      let value = row[key];
+      return typeof value === "string"
+        ? `"${value.replace(/"/g, '""')}"` // escape quotes
+        : value;
+    });
+    csvRows.push(values.join(","));
+  }
+
+  return csvRows.join("\n");
+};
+
+const downloadCSV = (csvData, filename) => {
+  const blob = new Blob([csvData], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url); // cleanup
+};
 
 export default function ReturnsPage() {
   const config = {
@@ -603,33 +632,45 @@ export default function ReturnsPage() {
                         {/* Download Button - need backend */}
                         <div className="flex gap-2">
                         <Dialog>
-                          <DialogTrigger asChild>
-                            <Button className="bg-blue-400 text-white">
-                              <Download className="w-4 h-4" />
+                        <DialogTrigger asChild>
+                          <Button className="bg-blue-400 text-white">
+                            <Download className="w-4 h-4" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
+                          <DialogHeader>
+                            <DialogTitle>
+                              <span className="text-lg text-blue-900">Confirm Download?</span>
+                              <span className="text-lg text-gray-400 font-normal italic ml-2">(Return-from-Customer.csv)</span>
+                            </DialogTitle>
+                            <DialogClose />
+                          </DialogHeader>
+                          <p className="text-medium text-gray-800 mt-2 pl-4">
+                            You are about to download the Return-from-Customer.csv file.
+                          </p>
+                          <div className="flex justify-end mt-4 text-gray-700 items-center pl-4">
+                            <Button
+                              className="bg-emerald-500 hover:bg-emerald-700 text-white uppercase text-sm font-medium whitespace-nowrap"
+                              onClick={() => {
+                                const filteredData = getFilteredCustomerReturns(customerReturns, customerSearchTerm);
+                                const csvData = filteredData.map(row => ({
+                                  ...row,
+                                  Product: products.find(p => p.P_productCode === row.P_productCode)?.P_productName || "",
+                                  Supplier: suppliers.find(s => s.S_supplierID === row.S_supplierID)?.S_supplierName || "",
+                                  Date: new Date(row.R_dateOfReturn).toLocaleDateString(),
+                                  Reason: row.R_reasonOfReturn || "",
+                                  Quantity: row.R_returnQuantity,
+                                  Total: Number(row.R_TotalPrice).toFixed(2),
+                                }));
+                                const csv = convertToCSV(csvData);
+                                downloadCSV(csv, "Return-from-Customer.csv");
+                              }}
+                            >
+                              DOWNLOAD FILE
                             </Button>
-                          </DialogTrigger>
-                          <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
-                            <DialogHeader>
-                              <DialogTitle>
-                                <span className="text-lg text-blue-900">Confirm Download?</span>
-                                <span className="text-lg text-gray-400 font-normal italic ml-2">
-                                  (Return from Customer.csv)
-                                </span>
-                              </DialogTitle>
-                              <DialogClose />
-                            </DialogHeader>
-                            <p className="text-medium text-gray-800 mt-2 pl-4">
-                              You are about to download the Return from Customer.csv file. Click the button below to proceed.
-                            </p>
-                            <div className="flex justify-end mt-4 text-gray-700 items-center pl-4">
-                              <Button
-                                className="bg-emerald-500 hover:bg-emerald-700 text-white uppercase text-sm font-medium whitespace-nowrap"
-                              >
-                                DOWNLOAD FILE
-                              </Button>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
                         </div>
                       </div>
                     </div>
@@ -858,18 +899,29 @@ export default function ReturnsPage() {
                               <DialogHeader>
                                 <DialogTitle>
                                   <span className="text-lg text-blue-900">Confirm Download?</span>
-                                  <span className="text-lg text-gray-400 font-normal italic ml-2">
-                                    (Return to Supplier.csv)
-                                  </span>
+                                  <span className="text-lg text-gray-400 font-normal italic ml-2">(Return-to-Supplier.csv)</span>
                                 </DialogTitle>
                                 <DialogClose />
                               </DialogHeader>
                               <p className="text-medium text-gray-800 mt-2 pl-4">
-                                You are about to download the Return to Supplier.csv file. Click the button below to proceed.
+                                You are about to download the Return-to-Supplier.csv file.
                               </p>
                               <div className="flex justify-end mt-4 text-gray-700 items-center pl-4">
                                 <Button
                                   className="bg-emerald-500 hover:bg-emerald-700 text-white uppercase text-sm font-medium whitespace-nowrap"
+                                  onClick={() => {
+                                    const filteredData = getFilteredSupplierReturns(supplierReturns, supplierSearchTerm);
+                                    const csvData = filteredData.map(row => ({
+                                      ...row,
+                                      Product: products.find(p => p.P_productCode === row.P_productCode)?.P_productName || "",
+                                      Supplier: suppliers.find(s => s.S_supplierID === row.S_supplierID)?.S_supplierName || "",
+                                      Date: new Date(row.R_dateOfReturn).toLocaleDateString(),
+                                      Quantity: row.R_returnQuantity,
+                                      Total: Number(row.R_TotalPrice).toFixed(2),
+                                    }));
+                                    const csv = convertToCSV(csvData);
+                                    downloadCSV(csv, "Return-to-Supplier.csv");
+                                  }}
                                 >
                                   DOWNLOAD FILE
                                 </Button>
@@ -880,7 +932,6 @@ export default function ReturnsPage() {
                         </div>
                       </div>
 
-                    
                     {/* Scrollable Table Container */}
                     <div className="flex-1 overflow-hidden border rounded-lg">
                       <div className="h-full overflow-auto">
