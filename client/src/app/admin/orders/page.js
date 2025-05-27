@@ -289,7 +289,7 @@ export default function OrdersPage() {
         R_returnQuantity: detail.quantity,
         R_discountAmount: detail.discountAmount || 0,
         D_deliveryNumber: 1,
-        S_supplierID: detail.supplierID,
+        S_supplierName: detail.supplierName,
         R_TotalPrice: detail.itemTotal,
         isTemporarilyDeleted: 0,
       };
