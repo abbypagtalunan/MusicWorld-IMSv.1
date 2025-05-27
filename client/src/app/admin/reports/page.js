@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
-import { CalendarDays, Download, ChevronsUpDown, ChevronUp, ChevronDown, RotateCcw} from "lucide-react";
+import { CalendarDays, Download, ChevronsUpDown, ChevronUp, ChevronDown, ListFilter, RotateCcw} from "lucide-react";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -30,6 +31,7 @@ export default function ReportsPage() {
   const [reportData, setReportData] = useState([]);
   const [fromDate, setFromDate] = useState(null);
   const [toDate, setToDate] = useState(null);
+  const [currentPeriodFilter, setCurrentPeriodFilter] = useState(null);
 
   useEffect(() => {
     axios
@@ -55,6 +57,91 @@ export default function ReportsPage() {
         console.error("Failed to fetch reports:", err);
       });
   }, []);
+
+  // Period filter functions
+  const getCurrentYear = () => new Date().getFullYear();
+  
+  const getPeriodDates = (period, year = null) => {
+    const targetYear = year || getCurrentYear();
+    
+    const [periodType, periodYear] = period.includes('_') ? period.split('_') : [period, null];
+    const finalYear = periodYear ? parseInt(periodYear) : targetYear;
+    
+    switch (periodType) {
+      case 'Q1':
+        return {
+          from: new Date(finalYear, 0, 1), 
+          to: new Date(finalYear, 2, 31)   
+        };
+      case 'Q2':
+        return {
+          from: new Date(finalYear, 3, 1),
+          to: new Date(finalYear, 5, 30)   
+        };
+      case 'Q3':
+        return {
+          from: new Date(finalYear, 6, 1),
+          to: new Date(finalYear, 8, 30)  
+        };
+      case 'Q4':
+        return {
+          from: new Date(finalYear, 9, 1),
+          to: new Date(finalYear, 11, 31)  
+        };
+      case 'H1':
+        return {
+          from: new Date(finalYear, 0, 1), 
+          to: new Date(finalYear, 5, 30)   
+        };
+      case 'H2':
+        return {
+          from: new Date(finalYear, 6, 1),  
+          to: new Date(finalYear, 11, 31) 
+        };
+      case 'CURRENT_YEAR':
+        return {
+          from: new Date(getCurrentYear(), 0, 1),  
+          to: new Date(getCurrentYear(), 11, 31)  
+        };
+      case 'PREVIOUS_YEAR':
+        return {
+          from: new Date(getCurrentYear() - 1, 0, 1),  
+          to: new Date(getCurrentYear() - 1, 11, 31)  
+        };
+      case 'FULL_YEAR':
+        return {
+          from: new Date(finalYear, 0, 1),  
+          to: new Date(finalYear, 11, 31)  
+        };
+      default:
+        return { from: null, to: null };
+    }
+  };
+
+  // Get available years from data
+  const getAvailableYears = useMemo(() => {
+    if (reportData.length === 0) return [];
+    
+    const years = [...new Set(reportData.map(item => 
+      new Date(item.transactionDate).getFullYear()
+    ))].sort((a, b) => b - a); // Sort descending (newest first)
+    
+    return years;
+  }, [reportData]);
+
+  const handlePeriodFilter = (period) => {
+    const dates = getPeriodDates(period);
+    setFromDate(dates.from);
+    setToDate(dates.to);
+    setCurrentPeriodFilter(period);
+  };
+
+  const resetAllFilters = () => {
+    setFromDate(null);
+    setToDate(null);
+    setCurrentPeriodFilter(null);
+  };
+
 
     // Download Handling
   const [isDownloadConfirmOpen, setDownloadConfirmOpen] = useState("");
@@ -170,6 +257,7 @@ export default function ReportsPage() {
 
   const handleFromDateChange = (date) => {
     setFromDate(date);
+    setCurrentPeriodFilter(null); // Clear period filter when manually setting dates
     if (toDate && date > toDate) {
       setToDate(null);
     }
@@ -178,6 +266,7 @@ export default function ReportsPage() {
   const handleToDateChange = (date) => {
     if (!fromDate || date >= fromDate) {
       setToDate(date);
+      setCurrentPeriodFilter(null); // Clear period filter when manually setting dates
     }
   };
 
@@ -241,6 +330,31 @@ export default function ReportsPage() {
     );
   } 
 
+  const getPeriodDisplayText = () => {
+    if (!currentPeriodFilter) return "Filter";
+    
+    const currentYear = getCurrentYear();
+    const [periodType, periodYear] = currentPeriodFilter.includes('_') 
+      ? currentPeriodFilter.split('_') 
+      : [currentPeriodFilter, null];
+    
+    const displayYear = periodYear || currentYear;
+    
+    const periodLabels = {
+      'Q1': `Q1 ${displayYear}`,
+      'Q2': `Q2 ${displayYear}`, 
+      'Q3': `Q3 ${displayYear}`,
+      'Q4': `Q4 ${displayYear}`,
+      'H1': `H1 ${displayYear}`,
+      'H2': `H2 ${displayYear}`,
+      'CURRENT_YEAR': `${currentYear}`,
+      'PREVIOUS_YEAR': `${currentYear - 1}`,
+      'FULL_YEAR': `${displayYear}`
+    };
+    
+    return periodLabels[periodType] || "Filter";
+  };
+
   return (
     <MinimumScreenGuard>
     <SidebarProvider>
@@ -249,6 +363,119 @@ export default function ReportsPage() {
         <div className="flex-1 p-4 flex flex-col overflow-x-hidden">
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 mb-4 bg-white shadow-sm p-4 rounded-lg">
             <div className="flex flex-wrap items-center gap-3">
+                {/* Filter by Period */}
+                <div className="flex items-center space-x-2">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          className={cn(
+                            "flex items-center space-x-2",
+                            currentPeriodFilter && "bg-blue-50 border-blue-300"
+                          )}
+                        >
+                          <ListFilter className="w-4 h-4" />
+                          <span>{getPeriodDisplayText()}</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-48">
+                        <DropdownMenuSub>
+                          <DropdownMenuSubTrigger>Quarterly - {getCurrentYear()}</DropdownMenuSubTrigger>
+                          <DropdownMenuSubContent>
+                            <DropdownMenuItem onClick={() => handlePeriodFilter('Q1')}>
+                              Q1 {getCurrentYear()} (Jan - Mar)
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handlePeriodFilter('Q2')}>
+                              Q2 {getCurrentYear()} (Apr - Jun)
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handlePeriodFilter('Q3')}>
+                              Q3 {getCurrentYear()} (Jul - Sep)
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handlePeriodFilter('Q4')}>
+                              Q4 {getCurrentYear()} (Oct - Dec)
+                            </DropdownMenuItem>
+                          </DropdownMenuSubContent>
+                        </DropdownMenuSub>
+
+                        {getAvailableYears.filter(year => year !== getCurrentYear()).map(year => (
+                          <DropdownMenuSub key={`quarterly-${year}`}>
+                            <DropdownMenuSubTrigger>Quarterly - {year}</DropdownMenuSubTrigger>
+                            <DropdownMenuSubContent>
+                              <DropdownMenuItem onClick={() => handlePeriodFilter(`Q1_${year}`)}>
+                                Q1 {year} (Jan - Mar)
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handlePeriodFilter(`Q2_${year}`)}>
+                                Q2 {year} (Apr - Jun)
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handlePeriodFilter(`Q3_${year}`)}>
+                                Q3 {year} (Jul - Sep)
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handlePeriodFilter(`Q4_${year}`)}>
+                                Q4 {year} (Oct - Dec)
+                              </DropdownMenuItem>
+                            </DropdownMenuSubContent>
+                          </DropdownMenuSub>
+                        ))}
+
+                        <DropdownMenuSub>
+                          <DropdownMenuSubTrigger>Semi-Annual - {getCurrentYear()}</DropdownMenuSubTrigger>
+                          <DropdownMenuSubContent>
+                            <DropdownMenuItem onClick={() => handlePeriodFilter('H1')}>
+                              H1 {getCurrentYear()} (Jan - Jun)
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handlePeriodFilter('H2')}>
+                              H2 {getCurrentYear()} (Jul - Dec)
+                            </DropdownMenuItem>
+                          </DropdownMenuSubContent>
+                        </DropdownMenuSub>
+
+                        {getAvailableYears.filter(year => year !== getCurrentYear()).map(year => (
+                          <DropdownMenuSub key={`semi-${year}`}>
+                            <DropdownMenuSubTrigger>Semi-Annual - {year}</DropdownMenuSubTrigger>
+                            <DropdownMenuSubContent>
+                              <DropdownMenuItem onClick={() => handlePeriodFilter(`H1_${year}`)}>
+                                H1 {year} (Jan - Jun)
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handlePeriodFilter(`H2_${year}`)}>
+                                H2 {year} (Jul - Dec)
+                              </DropdownMenuItem>
+                            </DropdownMenuSubContent>
+                          </DropdownMenuSub>
+                        ))}
+
+                        <DropdownMenuSub>
+                          <DropdownMenuSubTrigger>Annual</DropdownMenuSubTrigger>
+                          <DropdownMenuSubContent>
+                            <DropdownMenuItem onClick={() => handlePeriodFilter('CURRENT_YEAR')}>
+                              {getCurrentYear()} (Full Year)
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handlePeriodFilter('PREVIOUS_YEAR')}>
+                              {getCurrentYear() - 1} (Previous Year)
+                            </DropdownMenuItem>
+                            {getAvailableYears
+                              .filter(year => year !== getCurrentYear() && year !== getCurrentYear() - 1)
+                              .map(year => (
+                                <DropdownMenuItem 
+                                  key={year} 
+                                  onClick={() => handlePeriodFilter(`FULL_YEAR_${year}`)}
+                                >
+                                  {year} (Full Year)
+                                </DropdownMenuItem>
+                              ))
+                            }
+                          </DropdownMenuSubContent>
+                        </DropdownMenuSub>
+
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          onClick={resetAllFilters} 
+                          className="text-red-500 font-medium"
+                        >
+                          Reset All Filters
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>  
               {/* Date Range Filter - From and To */}
                 <Popover>
                   <PopoverTrigger asChild>
@@ -275,7 +502,10 @@ export default function ReportsPage() {
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          onClick={() => setFromDate(null)}
+                          onClick={() => {
+                            setFromDate(null);
+                            setCurrentPeriodFilter(null);
+                          }}
                           className="text-red-500"
                         >
                           Clear
@@ -310,7 +540,10 @@ export default function ReportsPage() {
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          onClick={() => setToDate(null)}
+                          onClick={() => {
+                            setToDate(null);
+                            setCurrentPeriodFilter(null);
+                          }}
                           className="text-red-500"
                         >
                           Clear
@@ -324,6 +557,7 @@ export default function ReportsPage() {
                     onClick={() => {
                       setFromDate(null);
                       setToDate(null);
+                      setCurrentPeriodFilter(null);
                     }}
                     className="text-sm border-gray-300 hover:text-red-600"
                   >
@@ -431,7 +665,7 @@ export default function ReportsPage() {
               </TableBody>
 
               <TableFooter>
-                <TableRow className="bg-white font-bold text-blue-500">
+                <TableRow className="sticky bottom-0 bg-blue-50 font-bold text-blue-500">
                   <TableCell colSpan={6} className="text-right">
                     TOTAL:
                   </TableCell>

@@ -554,7 +554,7 @@ const handleDownloadCSV = (data) => {
         setMDDOpen(false);
         setSelectedTransactions([]);
       })
-      .catch(() => {
+      .catch((err) => {
         const serverMessage = err.response?.data?.message || 
                             err.message || 
                             "Unknown error occurred";
