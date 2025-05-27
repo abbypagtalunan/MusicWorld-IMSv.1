@@ -50,6 +50,7 @@ export default function ReportsPage() {
           grossProfit: r.OD_grossProfit,
           brandName: r.B_brandName,
           supplierName: r.S_supplierName,
+          type: r.recordType,
         }));
         setReportData(mappedData);
       })
@@ -159,6 +160,7 @@ export default function ReportsPage() {
     // CSV timestamp row
     const downloadTimestamp = `Downloaded At:, "${now.toLocaleString(phLocale, { timeZone: phTimeZone })}"`;
     const headers = [
+      "Type",
       "Receipt Number",
       "Order ID",
       "Transaction Date",
@@ -174,6 +176,7 @@ export default function ReportsPage() {
 
     // Use filteredData instead of full reportData
     const rows = filteredData.map((item) => [
+      item.type,
       item.receiptNumber,
       item.orderID,
       item.transactionDate,
@@ -623,6 +626,9 @@ export default function ReportsPage() {
                   <TableHead onClick={() => handleSort("receiptNumber")} className="cursor-pointer">
                     Receipt Number <SortIcon column="receiptNumber" />
                   </TableHead>
+                  <TableHead onClick={() => handleSort("type")} className="cursor-pointer">
+                    Type <SortIcon column="type" />
+                  </TableHead>
                   <TableHead onClick={() => handleSort("productCode")} className="cursor-pointer">
                     Product Code <SortIcon column="productCode" />
                   </TableHead>
@@ -651,6 +657,7 @@ export default function ReportsPage() {
                     <TableCell>{order.orderID}</TableCell>
                     <TableCell>{order.detailID}</TableCell>
                     <TableCell>{order.receiptNumber}</TableCell>
+                    <TableCell>{order.type}</TableCell>
                     <TableCell>{order.productCode}</TableCell>
                     <TableCell>
                       {order.productName}-{order.supplierName}-
@@ -666,7 +673,7 @@ export default function ReportsPage() {
 
               <TableFooter>
                 <TableRow className="sticky bottom-0 bg-blue-50 font-bold text-blue-500">
-                  <TableCell colSpan={6} className="text-right">
+                  <TableCell colSpan={7} className="text-right">
                     TOTAL:
                   </TableCell>
                   <TableCell>{formatPeso(totals.discountAmount)}</TableCell>
