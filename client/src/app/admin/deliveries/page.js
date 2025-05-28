@@ -562,29 +562,40 @@ export default function DeliveriesPage() {
             : dateB - dateA;
         });
       }
-    } else if (sortConfig.key) {
-      
-      sortedTransactions.sort((a, b) => {
-        const valA = a[sortConfig.key] ?? "";
-        const valB = b[sortConfig.key] ?? "";
-
-        const numA = parseFloat(valA.toString().replace(/[₱,]/g, ""));
-        const numB = parseFloat(valB.toString().replace(/[₱,]/g, ""));
-
-        if (!isNaN(numA) && !isNaN(numB)) {
-          return sortConfig.direction === "ascending" ? numA - numB : numB - numA;
-        }
-
-        if (!isNaN(Date.parse(valA)) && !isNaN(Date.parse(valB))) {
+    } 
+    else if (sortConfig.key) {
+      // —— SPECIAL CASE for supplier —— 
+      if (sortConfig.key === "supplier") {
+        sortedTransactions.sort((a, b) => {
+          const supA = (deliveryProducts[a.deliveryNum]?.[0]?.supplier || "").toString();
+          const supB = (deliveryProducts[b.deliveryNum]?.[0]?.supplier || "").toString();
           return sortConfig.direction === "ascending"
-            ? new Date(valA) - new Date(valB)
-            : new Date(valB) - new Date(valA);
-        }
+            ? supA.localeCompare(supB)
+            : supB.localeCompare(supA);
+        });
+      } else {
+        sortedTransactions.sort((a, b) => {
+          const valA = a[sortConfig.key] ?? "";
+          const valB = b[sortConfig.key] ?? "";
 
-        return sortConfig.direction === "ascending"
-          ? valA.toString().localeCompare(valB.toString())
-          : valB.toString().localeCompare(valA.toString());
-      });
+          const numA = parseFloat(valA.toString().replace(/[₱,]/g, ""));
+          const numB = parseFloat(valB.toString().replace(/[₱,]/g, ""));
+
+          if (!isNaN(numA) && !isNaN(numB)) {
+            return sortConfig.direction === "ascending" ? numA - numB : numB - numA;
+          }
+
+          if (!isNaN(Date.parse(valA)) && !isNaN(Date.parse(valB))) {
+            return sortConfig.direction === "ascending"
+              ? new Date(valA) - new Date(valB)
+              : new Date(valB) - new Date(valA);
+          }
+
+          return sortConfig.direction === "ascending"
+            ? valA.toString().localeCompare(valB.toString())
+            : valB.toString().localeCompare(valA.toString());
+        });
+      }
     }
 
     return sortedTransactions;
@@ -788,6 +799,107 @@ export default function DeliveriesPage() {
       )
     )
   );
+  
+  // Lookup utility: find an object by its ID and return its name
+  const getNameById = (arr, id, idField, nameField) => {
+    const item = arr.find(i => i[idField].toString() === id);
+    return item ? item[nameField] : "";
+  };
+  
+  // download CSV
+  const handleDownloadCSV = () => {
+    const now = new Date();
+    const phLocale = "en-PH";
+    const phTimeZone = "Asia/Manila";
+
+    const formattedDate = now
+      .toLocaleString(phLocale, { timeZone: phTimeZone })
+      .replace(/[\/:,\s]+/g, "-")
+      .replace(/-+/g, "-");
+
+    const downloadTimestamp = `Downloaded at:, "${now.toLocaleString(phLocale, {
+      timeZone: phTimeZone,
+    })}"`;
+
+    const headers = [
+      "Delivery Date",
+      "Delivery Number",
+      "Supplier",
+      "Total Cost",
+      "Payment Type",
+      "Payment Status",
+      "Mode of Payment",
+      "Date Due",
+      "Date of Payment",
+      "Payment Status 2",
+      "Mode of Payment 2",
+      "Date Due 2",
+      "Date of Payment 2",
+    ];
+
+    const rows = deliveries.map((d) => {
+      const pd = paymentDetails[d.deliveryNum] || {};
+      const [y, m, day] = d.rawDate.split("-");
+      const formattedDate = `${m.padStart(2, "0")}/${day.padStart(2, "0")}/${y}`;
+
+      const valueOrNA = (val) => val ? val : "n/a";
+      const nameOrNA = (arr, id, idField, nameField) => {
+        return id ? getNameById(arr, id, idField, nameField) : "n/a";
+      };
+
+      return [
+        formattedDate,
+        `DR-${d.deliveryNum}`,
+        deliveryProducts[d.deliveryNum]?.[0]?.supplier || "",
+        d.totalCost.replace(/₱|,/g, ""),
+        getNameById(paymentTypes,   pd.paymentType,   "D_paymentTypeID",   "D_paymentName") || "",
+        getNameById(paymentStatuses,pd.paymentStatus, "D_paymentStatusID", "D_statusName") || "",
+        getNameById(paymentModes,   pd.paymentMode,   "D_modeOfPaymentID", "D_mopName") || "",
+        valueOrNA(pd.dateDue),
+        valueOrNA(pd.datePayment1),
+        nameOrNA(paymentStatuses, pd.paymentStatus2, "D_paymentStatusID", "D_statusName"),
+        nameOrNA(paymentModes,     pd.paymentMode2,  "D_modeOfPaymentID", "D_mopName"),
+        valueOrNA(pd.dateDue2),
+        valueOrNA(pd.datePayment2),
+      ].map((v) => `"${String(v).replace(/"/g, '""')}"`);
+    });
+
+    const csv = [downloadTimestamp, headers.join(","), ...rows.map(r => r.join(","))].join("\r\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Deliveries_${formattedDate}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+  
+  // recompute totalCost each time deliveryProducts changes
+  useEffect(() => {
+    // only run if we already have some deliveries and products
+    if (deliveries.length && Object.keys(deliveryProducts).length) {
+      const updated = deliveries.map(d => {
+        const prods = deliveryProducts[d.deliveryNum] || [];
+        const sum = prods.reduce((acc, p) => {
+          // strip “₱” and commas, parse to number
+          const n = parseFloat(p.total.replace(/[₱,]/g, "")) || 0;
+          return acc + n;
+        }, 0);
+
+        return {
+          ...d,
+          totalCost: `₱${sum.toFixed(2).replace(
+            /\B(?=(\d{3})+(?!\d))/g,
+            ","
+          )}`
+        };
+      });
+
+      setDeliveries(updated);
+    }
+  }, [deliveryProducts]);
 
   // Pagination component
   const PaginationControls = () => {
