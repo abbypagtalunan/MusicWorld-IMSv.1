@@ -990,6 +990,31 @@ const handleReturnOrder = () => {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
+  
+  // recompute totalCost each time deliveryProducts changes
+  useEffect(() => {
+    // only run if we already have some deliveries and products
+    if (deliveries.length && Object.keys(deliveryProducts).length) {
+      const updated = deliveries.map(d => {
+        const prods = deliveryProducts[d.deliveryNum] || [];
+        const sum = prods.reduce((acc, p) => {
+          // strip “₱” and commas, parse to number
+          const n = parseFloat(p.total.replace(/[₱,]/g, "")) || 0;
+          return acc + n;
+        }, 0);
+
+        return {
+          ...d,
+          totalCost: `₱${sum.toFixed(2).replace(
+            /\B(?=(\d{3})+(?!\d))/g,
+            ","
+          )}`
+        };
+      });
+
+      setDeliveries(updated);
+    }
+  }, [deliveryProducts]);
 
   // Pagination component
   const PaginationControls = () => {
