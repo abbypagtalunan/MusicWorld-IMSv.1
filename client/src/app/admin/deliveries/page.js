@@ -1,5 +1,4 @@
 "use client";
-
 import RequireAuth from '@/components/RequireAuth';
 import React, { useState, useEffect } from "react";
 import LoadingSpinner from "@/components/loading-spinner";
@@ -63,9 +62,6 @@ export default function DeliveriesPage() {
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
-  
-  // download
-  const [isDownloadConfirmOpen, setDownloadConfirmOpen] = useState(false);
 
   // Client-side hydration effect
   useEffect(() => {
@@ -74,174 +70,92 @@ export default function DeliveriesPage() {
 
 // Return order handler functions:
 
-// Handle select all products for return in a delivery
-const handleSelectAll = (deliveryNumber) => {
-  const products = deliveries[deliveryNumber] || [];
-  const allProductIds = products.map((_, idx) => `${deliveryNumber}-${idx}`);
+  // Handle select all products for return
+  const handleSelectAll = (deliveryNumber) => {
+    const products = deliveryProducts[deliveryNumber] || [];
+    const allProductIds = products.map((_, idx) => `${deliveryNumber}-${idx}`);
+    
+    if (selectedTransactions.length === allProductIds.length && selectedTransactions.length > 0) {
+      setSelectedTransactions([]);
+    } else {
+      setSelectedTransactions(allProductIds);
+    }
+  };
 
-  if (selectedTransactions.length === allProductIds.length && selectedTransactions.length > 0) {
+ // Row click handler 
+  const handleRowClick = (transactionId, event) => {
+    // Prevent row click when clicking directly on checkbox or input elements
+    if (event.target.type === 'checkbox' || event.target.tagName === 'INPUT') {
+      return;
+    }
+    handleSelectTransaction(transactionId);
+  };
+
+  // for single or multiple selects
+  const handleSelectTransaction = (transactionId) => {
+    setSelectedTransactions(prev => 
+      prev.includes(transactionId) 
+        ? prev.filter(id => id !== transactionId)
+        : [...prev, transactionId]
+    );
+  };
+
+  // Get filtered transactions for current delivery
+  const getFilteredTransaction = (deliveryNumber) => {
+    return deliveryProducts[deliveryNumber] || [];
+  };
+
+  // Handle return with individual item reasons
+  const handleReturnOrder = () => {
+    if (selectedTransactions.length === 0) {
+      toast.error("Please select at least one item to return");
+      return;
+    }
+    
+    // Check if all selected items have return reasons
+    const missingReasons = selectedTransactions.filter(transactionId => 
+      !itemReturnReasons[transactionId]?.trim()
+    );
+    
+    if (missingReasons.length > 0) {
+      toast.error("Please provide a reason for all selected items");
+      return;
+    }
+    
+    console.log("Returning items with individual reasons:");
+    selectedTransactions.forEach(transactionId => {
+      const [deliveryNum, productIndex] = transactionId.split('-');
+      const product = deliveryProducts[deliveryNum]?.[parseInt(productIndex)];
+      console.log(`Item: ${product?.product}, Reason: ${itemReturnReasons[transactionId]}`);
+    });
+    
+    toast.success("Return processed successfully!");
+    setReturnDialogOpen(false);
     setSelectedTransactions([]);
-  } else {
-    setSelectedTransactions(allProductIds);
-  }
-};
+    setItemReturnReasons({});
+  };
 
-// Row click handler for selecting individual product
-const handleRowClick = (transactionId, event) => {
-  if (event.target.type === 'checkbox' || event.target.tagName === 'INPUT') {
-    return;
-  }
-  handleSelectTransaction(transactionId);
-};
+  // Function to update individual item return reason
+  const updateItemReturnReason = (transactionId, reason) => {
+    // Only allow letters and spaces
+    let filtered = reason.replace(/[^a-zA-Z\s]/g, '');
+    // Enforce 50 character limit strictly
+    if (filtered.length > 50) {
+      filtered = filtered.substring(0, 50);
+    }
 
-// Select or deselect single/multiple transactions
-const handleSelectTransaction = (transactionId) => {
-  setSelectedTransactions(prev =>
-    prev.includes(transactionId)
-      ? prev.filter(id => id !== transactionId)
-      : [...prev, transactionId]
-  );
-};
+    setItemReturnReasons(prev => ({
+      ...prev,
+      [transactionId]: filtered
+    }));
+  };
 
-// Get filtered transactions for current delivery
-const getFilteredTransaction = (deliveryNumber) => {
-  return deliveries[deliveryNumber] || [];
-};
-
-// Function to update individual item return reason
-const updateItemReturnReason = (transactionId, reason) => {
-  let filtered = reason.replace(/[^a-zA-Z\s]/g, '');
-  if (filtered.length > 50) {
-    filtered = filtered.substring(0, 50);
-  }
-
-  setItemReturnReasons(prev => ({
-    ...prev,
-    [transactionId]: filtered
-  }));
-};
-
-// Reset function when Return dialog closes
-const resetReturnDialog = () => {
-  setReturnDialogOpen(false);
-  setSelectedTransactions([]);
-  setItemReturnReasons({});
-  setSelectedReturnType("");
-};
-
-// Main return handler - integrates with backend
-const handleReturnOrder = () => {
-  if (selectedTransactions.length === 0) {
-    toast.error("Please select at least one item to return");
-    return;
-  }
-
-  const missingReasons = selectedTransactions.filter((transactionId) =>
-    !itemReturnReasons[transactionId]?.trim()
-  );
-
-  if (missingReasons.length > 0) {
-    toast.error("Please provide a reason for all selected items");
-    return;
-  }
-
-  const returnItems = selectedTransactions.map((transactionId) => {
-    const [deliveryNum, productIndex] = transactionId.split("-");
-    const product = deliveries[deliveryNum][parseInt(productIndex)];
-
-    return {
-      P_productCode: product.productCode,
-      R_returnTypeID: 7, // Hardcoded return type
-      R_reasonOfReturn: itemReturnReasons[transactionId],
-      R_dateOfReturn: format(new Date(), "yyyy-MM-dd HH:mm:ss"),
-      R_returnQuantity: product.quantity,
-      R_discountAmount: product.discountAmount || 0,
-      R_TotalPrice: product.itemTotal,
-      D_deliveryNumber: deliveryNum,
-      S_supplierName: product.supplierName
-    };
-  });
-
-  axios
-    .post("http://localhost:8080/returns", { returnItems })
-    .then((response) => {
-      toast.success("Returns processed successfully!");
-      resetReturnDialog();
-
-      // Create a copy of current deliveries
-      const updatedDeliveries = { ...deliveries };
-
-      // Loop through each selected transaction ID
-      selectedTransactions.forEach((transactionId) => {
-        const [deliveryNum, productIndex] = transactionId.split("-");
-
-        // Remove the returned item from the delivery array
-        updatedDeliveries[deliveryNum].splice(parseInt(productIndex), 1);
-
-        // If delivery has no more items, remove it entirely
-        if (updatedDeliveries[deliveryNum].length === 0) {
-          delete updatedDeliveries[deliveryNum];
-        }
-      });
-
-      // Update deliveries state
-      setDeliveries(updatedDeliveries);
-
-      // Optional: Check if there are any deliveries left
-      if (Object.keys(updatedDeliveries).length === 0) {
-        toast.info("All deliveries have been returned.");
-        // Navigate away or clear state as needed
-      }
-
-    })
-    .catch((error) => {
-      const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        "Unknown error occurred";
-      toast.error(`Failed to process returns: ${errorMessage}`);
-    });
-
-  axios
-    .post("http://localhost:8080/returns", { returnItems })
-    .then((response) => {
-      toast.success("Returns processed successfully!");
-      resetReturnDialog();
-
-      // Create a copy of current deliveries
-      const updatedDeliveries = { ...deliveries };
-
-      // Loop through each selected transaction ID
-      selectedTransactions.forEach((transactionId) => {
-        const [deliveryNum, productIndex] = transactionId.split("-");
-
-        // Remove the returned item from the delivery array
-        updatedDeliveries[deliveryNum].splice(parseInt(productIndex), 1);
-
-        // If delivery has no more items, remove it entirely
-        if (updatedDeliveries[deliveryNum].length === 0) {
-          delete updatedDeliveries[deliveryNum];
-        }
-      });
-
-      // Update deliveries state
-      setDeliveries(updatedDeliveries);
-
-      // Optional: Check if there are any deliveries left
-      if (Object.keys(updatedDeliveries).length === 0) {
-        toast.info("All deliveries have been returned.");
-        // Navigate away or clear state as needed
-      }
-
-    })
-    .catch((error) => {
-      const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        "Unknown error occurred";
-      toast.error(`Failed to process returns: ${errorMessage}`);
-    });
-};
+  // Reset function when Return dialog closes
+  const resetReturnDialog = () => {
+    setReturnDialogOpen(false);
+    setSelectedTransactions([]);
+    setItemReturnReasons({});
+  };
 
   // API config
   const config = {
@@ -330,22 +244,6 @@ const handleReturnOrder = () => {
         .then(res => {
           const grouped = groupDeliveryProducts(res.data || []);
           setDeliveryProducts(grouped);
-
-          // ← immediately recompute your deliveries now that `deliveryProducts` is populated
-          setDeliveries(current =>
-            normalizeDeliveryData(
-              // we know `current` was built from the same raw data
-              // but normalizeDeliveryData only uses the array shape, so this works
-              // as long as your `deliveries` state _is_ the array you originally passed in.
-              current.map(d => ({
-                D_deliveryNumber: parseInt(d.deliveryNum, 10),
-                D_deliveryDate:   d.rawDate,
-                S_supplierID:     d.supplierID,
-                D_productDetailsID:d.productDetailID,
-                // we ignore .totalCost here, it will be overwritten
-              }))
-            )
-          );
         })
         .catch(error => {
           console.error("Error fetching delivery products:", error);
@@ -423,26 +321,15 @@ const handleReturnOrder = () => {
   };
   
   const normalizeDeliveryData = (data) => {
-    return data.map(item => {
-      const key   = item.D_deliveryNumber.toString();
-      const prods = deliveryProducts[key] || [];
-      const sum   = prods
-        .reduce((acc, p) => {
-          // strip “₱” and commas, parse back to number
-          const n = parseFloat(p.total.replace(/[₱,]/g, "")) || 0;
-          return acc + n;
-        }, 0);
-
-      return {
-        deliveryNum:     key,
-        dateAdded:       formatDateForDisplay(item.D_deliveryDate),
-        rawDate:         formatDateForInput(item.D_deliveryDate),
-        supplier:        "",
-        supplierID:      item.S_supplierID,
-        productDetailID: item.D_productDetailsID,
-        totalCost:       `₱${sum.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`
-      };
-    });
+    return data.map(item => ({
+      deliveryNum: item.D_deliveryNumber.toString(),
+      dateAdded: formatDateForDisplay(item.D_deliveryDate),
+      rawDate:    formatDateForInput(item.D_deliveryDate),
+      supplier: "",
+      supplierID: item.S_supplierID,
+      productDetailID: item.D_productDetailsID,
+      totalCost: item.totalCost ? `₱${parseFloat(item.totalCost).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}` : "₱0.00"
+    }));
   };
 
   const groupDeliveryProducts = (data) => {
@@ -465,18 +352,12 @@ const handleReturnOrder = () => {
       
       grouped[deliveryNumKey].push({
         productCode: item.P_productCode || "N/A",
-        supplier:    item.S_supplierName || item.supplierName || "Unknown",
-        brand:       item.B_brandName   || item.brandName    || "Unknown",
-        product:     item.P_productName || item.productName   || "Unknown Product",
-        quantity:    quantity,
-        unitPrice:   `₱${unitPrice.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`,
-        total: (() => {
-          // use the stored total if it's not null/undefined, otherwise compute it
-          const raw = item.DPD_total != null
-            ? parseFloat(item.DPD_total)
-            : parseFloat(item.P_unitPrice) * parseInt(item.DPD_quantity,  10);
-          return `₱${raw.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
-        })()
+        supplier: item.S_supplierName || item.supplierName || "Unknown",
+        brand: item.B_brandName || item.brandName || "Unknown",
+        product: item.P_productName || item.productName || "Unknown Product",
+        quantity: quantity,
+        unitPrice: `₱${unitPrice.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`,
+        total: `₱${(unitPrice * quantity).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`
       });
     });
     
@@ -492,20 +373,13 @@ const handleReturnOrder = () => {
           // Create a simplified object for direct use
           const formattedProducts = res.data.map(item => ({
             productDetailID: item.D_productDetailsID,
-            productCode:     item.P_productCode  || "N/A",
-            supplier:        item.supplierName   || "Unknown",
-            brand:           item.brandName      || "Unknown",
-            product:         item.productName    || "Unknown Product",
-            quantity:        parseInt(item.DPD_quantity) || 0,
-            unitPrice:       `₱${parseFloat(item.P_unitPrice).toFixed(2)
-                                     .replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`,
-            total: (() => {
-              // use the stored total if it's not null/undefined, otherwise compute it
-              const raw = item.DPD_total != null
-                ? parseFloat(item.DPD_total)
-                : parseFloat(item.P_unitPrice) * parseInt(item.DPD_quantity,  10);
-              return `₱${raw.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
-            })()
+            productCode: item.P_productCode || "N/A",
+            supplier: item.supplierName || "Unknown",
+            brand: item.brandName || "Unknown",
+            product: item.productName || "Unknown Product",
+            quantity: parseInt(item.DPD_quantity) || 0,
+            unitPrice: `₱${parseFloat(item.P_unitPrice).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`,
+            total: `₱${(parseFloat(item.P_unitPrice) * parseInt(item.DPD_quantity)).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`
           }));
           
           // Update only the products for this specific delivery
@@ -914,82 +788,6 @@ const handleReturnOrder = () => {
       )
     )
   );
-  
-  // Lookup utility: find an object by its ID and return its name
-  const getNameById = (arr, id, idField, nameField) => {
-    const item = arr.find(i => i[idField].toString() === id);
-    return item ? item[nameField] : "";
-  };
-  
-  // download CSV
-  const handleDownloadCSV = () => {
-    const now = new Date();
-    const phLocale = "en-PH";
-    const phTimeZone = "Asia/Manila";
-
-    const formattedDate = now
-      .toLocaleString(phLocale, { timeZone: phTimeZone })
-      .replace(/[\/:,\s]+/g, "-")
-      .replace(/-+/g, "-");
-
-    const downloadTimestamp = `Downloaded at:, "${now.toLocaleString(phLocale, {
-      timeZone: phTimeZone,
-    })}"`;
-
-    const headers = [
-      "Delivery Date",
-      "Delivery Number",
-      "Supplier",
-      "Total Cost",
-      "Payment Type",
-      "Payment Status",
-      "Mode of Payment",
-      "Date Due",
-      "Date of Payment",
-      "Payment Status 2",
-      "Mode of Payment 2",
-      "Date Due 2",
-      "Date of Payment 2",
-    ];
-
-    const rows = deliveries.map((d) => {
-      const pd = paymentDetails[d.deliveryNum] || {};
-      const [y, m, day] = d.rawDate.split("-");
-      const formattedDate = `${m.padStart(2, "0")}/${day.padStart(2, "0")}/${y}`;
-
-      const valueOrNA = (val) => val ? val : "n/a";
-      const nameOrNA = (arr, id, idField, nameField) => {
-        return id ? getNameById(arr, id, idField, nameField) : "n/a";
-      };
-
-      return [
-        formattedDate,
-        `DR-${d.deliveryNum}`,
-        deliveryProducts[d.deliveryNum]?.[0]?.supplier || "",
-        d.totalCost.replace(/₱|,/g, ""),
-        getNameById(paymentTypes,   pd.paymentType,   "D_paymentTypeID",   "D_paymentName") || "",
-        getNameById(paymentStatuses,pd.paymentStatus, "D_paymentStatusID", "D_statusName") || "",
-        getNameById(paymentModes,   pd.paymentMode,   "D_modeOfPaymentID", "D_mopName") || "",
-        valueOrNA(pd.dateDue),
-        valueOrNA(pd.datePayment1),
-        nameOrNA(paymentStatuses, pd.paymentStatus2, "D_paymentStatusID", "D_statusName"),
-        nameOrNA(paymentModes,     pd.paymentMode2,  "D_modeOfPaymentID", "D_mopName"),
-        valueOrNA(pd.dateDue2),
-        valueOrNA(pd.datePayment2),
-      ].map((v) => `"${String(v).replace(/"/g, '""')}"`);
-    });
-
-    const csv = [downloadTimestamp, headers.join(","), ...rows.map(r => r.join(","))].join("\r\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `Deliveries_${formattedDate}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
 
   // Pagination component
   const PaginationControls = () => {
@@ -1258,17 +1056,14 @@ const handleReturnOrder = () => {
                 Add Delivery
               </Button>
 
-          {/* Download Button */}
-          <Dialog
-            open={isDownloadConfirmOpen}
-            onOpenChange={(open) => setDownloadConfirmOpen(open)}
-          >
+          {/* Donwload Button - still need Backend */}
+          <Dialog>
             <DialogTrigger asChild>
               <Button className="bg-blue-400 text-white">
                 <Download className="w-4 h-4" />
               </Button>
             </DialogTrigger>
-            <DialogContent className="w-[90vw] max-w-md … p-6">
+            <DialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto p-6">
               <DialogHeader>
                 <DialogTitle>
                   <span className="text-lg text-blue-900">Confirm Download?</span>
@@ -1279,23 +1074,17 @@ const handleReturnOrder = () => {
                 <DialogClose />
               </DialogHeader>
               <p className="text-medium text-gray-800 mt-2 pl-4">
-                You are about to download the Deliveries.csv file. Click below to proceed.
+                You are about to download the Deliveries.csv file. Click the button below to proceed.
               </p>
               <div className="flex justify-end mt-4 text-gray-700 items-center pl-4">
                 <Button
                   className="bg-emerald-500 hover:bg-emerald-700 text-white uppercase text-sm font-medium whitespace-nowrap"
-                  onClick={() => {
-                    handleDownloadCSV();
-                    toast.success("Downloaded successfully!");
-                    setDownloadConfirmOpen(false);
-                  }}
                 >
                   DOWNLOAD FILE
                 </Button>
               </div>
             </DialogContent>
           </Dialog>
-          
           </div>
         </div>
 
@@ -1396,10 +1185,16 @@ const handleReturnOrder = () => {
                                         />
                                       </TableHead>
                                       <TableHead
+                                        onClick={() => handleProductSort("productDetailID")}
+                                        className="cursor-pointer select-none"
+                                      >
+                                        Product Detail ID <SortIcon column="productDetailID" sortConfig={productSortConfig} />
+                                      </TableHead>
+                                      <TableHead
                                         onClick={() => handleProductSort("productCode")}
                                         className="cursor-pointer select-none"
                                       >
-                                        Product Detail ID <SortIcon column="productCode" sortConfig={productSortConfig} />
+                                        Code <SortIcon column="productCode" sortConfig={productSortConfig} />
                                       </TableHead>
                                       <TableHead
                                         onClick={() => handleProductSort("supplier")}
@@ -2088,6 +1883,6 @@ const handleReturnOrder = () => {
       {isLoading && <LoadingSpinner />} 
     </SidebarProvider>
     </MinimumScreenGuard>
-  </RequireAuth>
+    </RequireAuth>
   );
 }
