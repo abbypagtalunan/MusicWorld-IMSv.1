@@ -688,29 +688,40 @@ const handleReturnOrder = () => {
             : dateB - dateA;
         });
       }
-    } else if (sortConfig.key) {
-      
-      sortedTransactions.sort((a, b) => {
-        const valA = a[sortConfig.key] ?? "";
-        const valB = b[sortConfig.key] ?? "";
-
-        const numA = parseFloat(valA.toString().replace(/[₱,]/g, ""));
-        const numB = parseFloat(valB.toString().replace(/[₱,]/g, ""));
-
-        if (!isNaN(numA) && !isNaN(numB)) {
-          return sortConfig.direction === "ascending" ? numA - numB : numB - numA;
-        }
-
-        if (!isNaN(Date.parse(valA)) && !isNaN(Date.parse(valB))) {
+    } 
+    else if (sortConfig.key) {
+      // —— SPECIAL CASE for supplier —— 
+      if (sortConfig.key === "supplier") {
+        sortedTransactions.sort((a, b) => {
+          const supA = (deliveryProducts[a.deliveryNum]?.[0]?.supplier || "").toString();
+          const supB = (deliveryProducts[b.deliveryNum]?.[0]?.supplier || "").toString();
           return sortConfig.direction === "ascending"
-            ? new Date(valA) - new Date(valB)
-            : new Date(valB) - new Date(valA);
-        }
+            ? supA.localeCompare(supB)
+            : supB.localeCompare(supA);
+        });
+      } else {
+        sortedTransactions.sort((a, b) => {
+          const valA = a[sortConfig.key] ?? "";
+          const valB = b[sortConfig.key] ?? "";
 
-        return sortConfig.direction === "ascending"
-          ? valA.toString().localeCompare(valB.toString())
-          : valB.toString().localeCompare(valA.toString());
-      });
+          const numA = parseFloat(valA.toString().replace(/[₱,]/g, ""));
+          const numB = parseFloat(valB.toString().replace(/[₱,]/g, ""));
+
+          if (!isNaN(numA) && !isNaN(numB)) {
+            return sortConfig.direction === "ascending" ? numA - numB : numB - numA;
+          }
+
+          if (!isNaN(Date.parse(valA)) && !isNaN(Date.parse(valB))) {
+            return sortConfig.direction === "ascending"
+              ? new Date(valA) - new Date(valB)
+              : new Date(valB) - new Date(valA);
+          }
+
+          return sortConfig.direction === "ascending"
+            ? valA.toString().localeCompare(valB.toString())
+            : valB.toString().localeCompare(valA.toString());
+        });
+      }
     }
 
     return sortedTransactions;
