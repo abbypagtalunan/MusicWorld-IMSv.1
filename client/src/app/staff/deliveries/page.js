@@ -6,7 +6,7 @@ import LoadingSpinner from "@/components/loading-spinner";
 import { useRouter } from 'next/navigation';
 import axios from "axios";
 import { cn } from "@/lib/utils";
-import { AppSidebar } from "@/components/staff-sidebar"; // ++ added for staff version
+import { AppSidebar } from "@/components/staff-sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { format } from "date-fns";
 import MinimumScreenGuard from "@/components/MinimumScreenGuard";
 
-export default function DeliveriesPage() {  
+export default function DeliveriesPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState(null);
@@ -690,29 +690,40 @@ const handleReturnOrder = () => {
             : dateB - dateA;
         });
       }
-    } else if (sortConfig.key) {
-      
-      sortedTransactions.sort((a, b) => {
-        const valA = a[sortConfig.key] ?? "";
-        const valB = b[sortConfig.key] ?? "";
-
-        const numA = parseFloat(valA.toString().replace(/[₱,]/g, ""));
-        const numB = parseFloat(valB.toString().replace(/[₱,]/g, ""));
-
-        if (!isNaN(numA) && !isNaN(numB)) {
-          return sortConfig.direction === "ascending" ? numA - numB : numB - numA;
-        }
-
-        if (!isNaN(Date.parse(valA)) && !isNaN(Date.parse(valB))) {
+    } 
+    else if (sortConfig.key) {
+      // —— SPECIAL CASE for supplier —— 
+      if (sortConfig.key === "supplier") {
+        sortedTransactions.sort((a, b) => {
+          const supA = (deliveryProducts[a.deliveryNum]?.[0]?.supplier || "").toString();
+          const supB = (deliveryProducts[b.deliveryNum]?.[0]?.supplier || "").toString();
           return sortConfig.direction === "ascending"
-            ? new Date(valA) - new Date(valB)
-            : new Date(valB) - new Date(valA);
-        }
+            ? supA.localeCompare(supB)
+            : supB.localeCompare(supA);
+        });
+      } else {
+        sortedTransactions.sort((a, b) => {
+          const valA = a[sortConfig.key] ?? "";
+          const valB = b[sortConfig.key] ?? "";
 
-        return sortConfig.direction === "ascending"
-          ? valA.toString().localeCompare(valB.toString())
-          : valB.toString().localeCompare(valA.toString());
-      });
+          const numA = parseFloat(valA.toString().replace(/[₱,]/g, ""));
+          const numB = parseFloat(valB.toString().replace(/[₱,]/g, ""));
+
+          if (!isNaN(numA) && !isNaN(numB)) {
+            return sortConfig.direction === "ascending" ? numA - numB : numB - numA;
+          }
+
+          if (!isNaN(Date.parse(valA)) && !isNaN(Date.parse(valB))) {
+            return sortConfig.direction === "ascending"
+              ? new Date(valA) - new Date(valB)
+              : new Date(valB) - new Date(valA);
+          }
+
+          return sortConfig.direction === "ascending"
+            ? valA.toString().localeCompare(valB.toString())
+            : valB.toString().localeCompare(valA.toString());
+        });
+      }
     }
 
     return sortedTransactions;
@@ -992,6 +1003,31 @@ const handleReturnOrder = () => {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
+  
+  // recompute totalCost each time deliveryProducts changes
+  useEffect(() => {
+    // only run if we already have some deliveries and products
+    if (deliveries.length && Object.keys(deliveryProducts).length) {
+      const updated = deliveries.map(d => {
+        const prods = deliveryProducts[d.deliveryNum] || [];
+        const sum = prods.reduce((acc, p) => {
+          // strip “₱” and commas, parse to number
+          const n = parseFloat(p.total.replace(/[₱,]/g, "")) || 0;
+          return acc + n;
+        }, 0);
+
+        return {
+          ...d,
+          totalCost: `₱${sum.toFixed(2).replace(
+            /\B(?=(\d{3})+(?!\d))/g,
+            ","
+          )}`
+        };
+      });
+
+      setDeliveries(updated);
+    }
+  }, [deliveryProducts]);
 
   // Pagination component
   const PaginationControls = () => {
@@ -2090,6 +2126,6 @@ const handleReturnOrder = () => {
       {isLoading && <LoadingSpinner />} 
     </SidebarProvider>
     </MinimumScreenGuard>
-    </RequireAuth>
+  </RequireAuth>
   );
 }
